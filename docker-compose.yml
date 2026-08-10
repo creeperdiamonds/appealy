@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: appealy
+      POSTGRES_PASSWORD: appealy
+      POSTGRES_DB: appealy
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - appealy_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appealy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - appealy_internal
+
+  bot:
+    build:
+      context: .
+      dockerfile: bot/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://appealy:appealy@postgres:5432/appealy
+      REDIS_URL: redis://redis:6379
+      BOT_INTERNAL_PORT: 9090
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - appealy_internal
+    # BOT_INTERNAL_PORT (control server) is intentionally NOT published to
+    # the host — only the api service reaches it, over the private network.
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://appealy:appealy@postgres:5432/appealy
+      REDIS_URL: redis://redis:6379
+      BOT_INTERNAL_URL: http://bot:9090
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      bot:
+        condition: service_started
+    networks:
+      - appealy_internal
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        # Baked into the bundle at build time — Vite inlines env vars, so
+        # this cannot be changed by restarting the container.
+        VITE_API_URL: http://localhost:3001
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    networks:
+      - appealy_internal
+
+networks:
+  appealy_internal:
+    driver: bridge
+
+volumes:
+  pg_data:

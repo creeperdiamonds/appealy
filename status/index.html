@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Appealy status</title>
+<!--
+  Public shard status.
+
+  No build step, no framework, no API call. One fetch of a static JSON file
+  written by the gateway. If this page needed the app to be running, it would
+  go down at precisely the moment anyone wanted to read it.
+
+  The server-id lookup runs entirely in the browser — the shard formula is
+  arithmetic, so there is no reason to send someone's server id to us, and
+  not sending it means nothing to log, cache or leak.
+-->
+<style>
+  :root {
+    --bg: #07080f; --panel: #10121e; --line: #1e2233;
+    --fg: #e6e8f0; --dim: #6c7391;
+    --up: #7c9bff; --degraded: #ffb84d; --down: #ff4d6d;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 3rem 1.25rem; background: var(--bg); color: var(--fg);
+    font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 42rem; margin: 0 auto; }
+  h1 { font-size: 1.75rem; letter-spacing: -.02em; margin: 0 0 .25rem; }
+  .dim { color: var(--dim); }
+  .eyebrow { font-size: .625rem; letter-spacing: .22em; text-transform: uppercase; color: var(--dim); }
+
+  .headline { display: flex; align-items: baseline; gap: .625rem; margin: 1.75rem 0 .5rem; }
+  .dot { width: .625rem; height: .625rem; border-radius: 50%; flex: none; }
+  .is-up .dot { background: var(--up); } .is-degraded .dot { background: var(--degraded); } .is-down .dot { background: var(--down); }
+  .is-up .headline-text { color: var(--up); } .is-degraded .headline-text { color: var(--degraded); } .is-down .headline-text { color: var(--down); }
+  .headline-text { font-size: 1.25rem; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 2px; padding: 1.125rem; margin: 1.5rem 0; }
+
+  .lookup input {
+    width: 100%; padding: .625rem .75rem; margin-top: .5rem; border-radius: 2px;
+    background: var(--bg); border: 1px solid var(--line); color: inherit;
+    font-family: var(--mono); font-size: .875rem;
+  }
+  .lookup input:focus-visible { outline: 2px solid var(--up); outline-offset: 1px; }
+  .result { margin-top: .875rem; font-size: .9375rem; }
+
+  .grid { display: flex; flex-wrap: wrap; gap: 4px; margin-top: .75rem; }
+  .cell { width: 22px; height: 22px; border-radius: 2px; display: grid; place-items: center;
+          font: 500 9px/1 var(--mono); color: rgba(7,8,15,.75); }
+  .cell.up { background: var(--up); } .cell.degraded { background: var(--degraded); } .cell.down { background: var(--down); }
+  .cell.mine { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; font-size: .75rem; color: var(--dim); }
+  .legend span { display: flex; align-items: center; gap: .375rem; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+  footer { margin-top: 2.5rem; font-size: .75rem; color: var(--dim); font-family: var(--mono); }
+  .stale { border-left: 2px solid var(--degraded); padding-left: .75rem; color: var(--degraded); }
+</style>
+</head>
+<body>
+<main>
+  <span class="eyebrow">Appealy</span>
+  <h1>Status</h1>
+
+  <div id="headline" class="headline"><span class="dot"></span><span class="headline-text">Checking…</span></div>
+  <p class="dim" id="detail"></p>
+
+  <div class="card lookup">
+    <label class="eyebrow" for="gid">Check your server</label>
+    <input id="gid" inputmode="numeric" autocomplete="off" spellcheck="false"
+           placeholder="Paste your server ID">
+    <div class="result dim" id="result">
+      Right-click your server in Discord and choose Copy Server ID. Nothing is sent anywhere —
+      this runs in your browser.
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="eyebrow">All shards</span>
+    <div class="grid" id="grid"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--up)"></i>Up</span>
+      <span><i class="swatch" style="background:var(--degraded)"></i>Slow</span>
+      <span><i class="swatch" style="background:var(--down)"></i>Down</span>
+    </div>
+  </div>
+
+  <footer id="footer"></footer>
+</main>
+
+<script>
+// Older than this and we stop trusting the file. Publisher writes every 10s,
+// so a minute of silence is unambiguous: the gateway isn't running.
+const STALE_MS = 60_000;
+let snapshot = null;
+
+const rel = (iso) => {
+  const s = Math.round((Date.now() - new Date(iso)) / 1000);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+};
+
+function render() {
+  const headline = document.getElementById("headline");
+  const text = headline.querySelector(".headline-text");
+  const detail = document.getElementById("detail");
+  const footer = document.getElementById("footer");
+
+  if (!snapshot) {
+    headline.className = "headline is-down";
+    text.textContent = "Status unavailable";
+    detail.innerHTML = '<span class="stale">We can\'t read the status file. Treat this as an outage.</span>';
+    return;
+  }
+
+  const age = Date.now() - new Date(snapshot.generatedAt);
+  const { up, degraded, down } = snapshot.summary;
+
+  if (age > STALE_MS) {
+    headline.className = "headline is-down";
+    text.textContent = "Appealy is down";
+    detail.innerHTML = `<span class="stale">No update for ${rel(snapshot.generatedAt)}. The bot isn't reporting in.</span>`;
+  } else if (down > 0) {
+    headline.className = "headline is-down";
+    text.textContent = down === snapshot.totalShards ? "Appealy is down" : "Partial outage";
+    detail.textContent = `${down} of ${snapshot.totalShards} shards are down. Servers on those shards won't get responses.`;
+  } else if (degraded > 0) {
+    headline.className = "headline is-degraded";
+    text.textContent = "Running slowly";
+    detail.textContent = `${degraded} of ${snapshot.totalShards} shards are responding slowly. Commands may take longer than usual.`;
+  } else {
+    headline.className = "headline is-up";
+    text.textContent = "All systems normal";
+    detail.textContent = `${up} shards connected.`;
+  }
+
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  for (const s of snapshot.shards) {
+    const el = document.createElement("div");
+    el.className = `cell ${s.state}`;
+    el.textContent = s.id;
+    el.title = `Shard ${s.id} — ${s.state} since ${rel(s.since)}`;
+    grid.appendChild(el);
+  }
+
+  footer.textContent = `updated ${rel(snapshot.generatedAt)}`;
+  lookup();
+}
+
+function lookup() {
+  const raw = document.getElementById("gid").value.trim();
+  const out = document.getElementById("result");
+  document.querySelectorAll(".cell.mine").forEach((c) => c.classList.remove("mine"));
+
+  if (!raw) {
+    out.className = "result dim";
+    out.textContent = "Right-click your server in Discord and choose Copy Server ID. Nothing is sent anywhere — this runs in your browser.";
+    return;
+  }
+  if (!/^\d{17,20}$/.test(raw) || !snapshot) {
+    out.className = "result dim";
+    out.textContent = "That doesn't look like a server ID — they're 17 to 20 digits.";
+    return;
+  }
+
+  // Discord's own formula. Pure arithmetic, so it stays on this device.
+  const id = Number((BigInt(raw) >> 22n) % BigInt(snapshot.totalShards));
+  const shard = snapshot.shards.find((s) => s.id === id);
+  if (!shard) { out.textContent = "Couldn't match that to a shard."; return; }
+
+  document.querySelectorAll(".cell")[id]?.classList.add("mine");
+
+  const copy = {
+    up: `Your server is on shard ${id}, which is up. If Appealy still isn't responding, it's not a shard problem.`,
+    degraded: `Your server is on shard ${id}, which is running slowly. Commands should work but may lag.`,
+    down: `Your server is on shard ${id}, which has been down for ${rel(shard.since)}. Nothing you do will help — we're on it.`,
+  };
+  out.className = "result";
+  out.style.color = `var(--${shard.state})`;
+  out.textContent = copy[shard.state];
+}
+
+async function poll() {
+  try {
+    const res = await fetch(`status.json?t=${Date.now()}`, { cache: "no-store" });
+    snapshot = res.ok ? await res.json() : null;
+  } catch { snapshot = null; }
+  render();
+}
+
+document.getElementById("gid").addEventListener("input", lookup);
+poll();
+setInterval(poll, 15_000);
+</script>
+</body>
+</html>

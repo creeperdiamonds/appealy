@@ -1,0 +1,766 @@
+/* web/src/index.css
+ *
+ * Design system for the Appealy console.
+ *
+ * The visual direction is "instrument panel", not "marketing dashboard".
+ * This screen is opened by someone who wants to know whether their server
+ * is about to hit a wall, and to do something about it. Everything here is
+ * in service of legibility at a glance: one accent colour reserved for
+ * interactive things, a three-step signal palette (fine / watch / act) that
+ * only appears when a number actually warrants attention, and a mono face
+ * for anything a person might need to read digit by digit — snowflake IDs,
+ * counters, RTT.
+ *
+ * The blurple is not a stylistic pick. 0x5865F2 is already the default
+ * embed colour throughout this codebase (panels, welcomer, role menus), so
+ * the console shares a palette with the messages it publishes.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+:root {
+  /* Ground. Deep navy rather than neutral black — a true black console
+   * reads as a terminal emulator, and this is a place where you make
+   * changes that cost money, not a place you tail logs. */
+  --ink: #0e1420;
+  --surface: #161d2c;
+  --raised: #1e2738;
+  --line: #2a3547;
+  --line-soft: #212b3c;
+
+  --text: #e8ecf3;
+  --text-dim: #a3b0c4;
+  --text-muted: #7987a0;
+
+  --accent: #5865f2;
+  --accent-soft: #5865f229;
+  --accent-line: #5865f259;
+
+  /* Signal. Three steps, used only for capacity and health. Reserving
+   * these for state means a coloured pixel anywhere on screen is
+   * information, never decoration. */
+  --ok: #3dd9a4;
+  --watch: #e8a33d;
+  --act: #e5484d;
+  --ok-soft: #3dd9a41f;
+  --watch-soft: #e8a33d1f;
+  --act-soft: #e5484d1f;
+
+  --display: "Space Grotesk", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+
+  --rail-w: 232px;
+  --bar-h: 60px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+h1 {
+  font-size: 25px;
+}
+h2 {
+  font-size: 17px;
+}
+h3 {
+  font-size: 14px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+/* Focus is never removed, only restyled. A console is a keyboard tool. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 10px;
+  border: 3px solid var(--ink);
+}
+
+/* ------------------------------------------------------------------ *
+ * Eyebrow — small caps label. Used above every panel so the eye can
+ * find section boundaries without relying on box borders alone.
+ * ------------------------------------------------------------------ */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ *
+ * Shell
+ * ------------------------------------------------------------------ */
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr;
+  min-height: 100%;
+}
+
+.rail {
+  background: var(--surface);
+  border-right: 1px solid var(--line-soft);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 8px;
+}
+.brand-name {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.brand-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.nav-group {
+  padding: 14px 8px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+}
+.nav-item:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+.nav-item[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.nav-badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--act-soft);
+  color: var(--act);
+}
+
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: var(--bar-h);
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1240px;
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ *
+ * Panels
+ * ------------------------------------------------------------------ */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  padding: 18px;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.panel-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.span-2 {
+  grid-column: span 2;
+}
+
+/* ------------------------------------------------------------------ *
+ * Stat — a single number with its label. Deliberately restrained: the
+ * number carries the weight, nothing else competes with it.
+ * ------------------------------------------------------------------ */
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-value {
+  font-family: var(--display);
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stat-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.stat.is-act {
+  border-color: var(--act);
+  background: linear-gradient(var(--act-soft), transparent 60%), var(--surface);
+}
+.stat.is-act .stat-value {
+  color: var(--act);
+}
+
+/* ------------------------------------------------------------------ *
+ * Capacity rail — the signature element.
+ *
+ * One row per metered cap from shared/schema/pricing.ts, each a thin bar
+ * filled against that guild's actual limit. This is the thing an operator
+ * came here to see: not "how much have you used" in the abstract, but
+ * "which of the eight things you're paying for is about to run out".
+ *
+ * The tick at 90% is drawn on every bar, not just full ones, so the
+ * threshold is visible before you cross it rather than only in hindsight.
+ * ------------------------------------------------------------------ */
+.caprail {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.capbar-row {
+  display: grid;
+  grid-template-columns: 1fr 74px;
+  align-items: center;
+  gap: 12px;
+}
+.capbar-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.capbar-name {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.capbar-track {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.capbar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.capbar-fill.is-watch {
+  background: var(--watch);
+}
+.capbar-fill.is-act {
+  background: var(--act);
+}
+.capbar-tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 90%;
+  width: 1px;
+  background: var(--line);
+}
+.capbar-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: right;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.capbar-count strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------ *
+ * Pills / badges
+ * ------------------------------------------------------------------ */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: none;
+}
+.pill.is-ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+  background: var(--ok-soft);
+}
+.pill.is-watch {
+  color: var(--watch);
+  border-color: color-mix(in srgb, var(--watch) 35%, transparent);
+  background: var(--watch-soft);
+}
+.pill.is-act {
+  color: var(--act);
+  border-color: color-mix(in srgb, var(--act) 40%, transparent);
+  background: var(--act-soft);
+}
+
+/* A live lockdown is the one thing on this screen allowed to move.
+ * Everything else is static so that motion means "look here now". */
+.pill.is-live .dot {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Buttons
+ * ------------------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #4a56d9;
+  border-color: #4a56d9;
+}
+.btn-danger {
+  color: var(--act);
+  border-color: color-mix(in srgb, var(--act) 40%, transparent);
+  background: var(--act-soft);
+}
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--act) 22%, transparent);
+  border-color: var(--act);
+}
+.btn-sm {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Tables
+ * ------------------------------------------------------------------ */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 0 12px 9px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+.table tbody tr:hover {
+  background: var(--raised);
+}
+
+/* ------------------------------------------------------------------ *
+ * Sparkline
+ * ------------------------------------------------------------------ */
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 46px;
+}
+.spark-bar {
+  flex: 1;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent-line);
+  transition: background 120ms ease;
+}
+.spark-bar:hover {
+  background: var(--accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Empty and error states.
+ *
+ * These are directions, not moods: say what's missing and what to do
+ * about it. An empty queue is good news and should read that way.
+ * ------------------------------------------------------------------ */
+.empty {
+  padding: 34px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.empty strong {
+  display: block;
+  color: var(--text-dim);
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 15px;
+  border-radius: var(--r-md);
+  border: 1px solid;
+  font-size: 13px;
+}
+.banner.is-act {
+  border-color: color-mix(in srgb, var(--act) 45%, transparent);
+  background: var(--act-soft);
+}
+.banner.is-watch {
+  border-color: color-mix(in srgb, var(--watch) 40%, transparent);
+  background: var(--watch-soft);
+}
+.banner-body {
+  flex: 1;
+  min-width: 0;
+}
+.banner-title {
+  font-family: var(--display);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--line-soft), var(--line), var(--line-soft));
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.spread {
+  justify-content: space-between;
+}
+.dim {
+  color: var(--text-muted);
+}
+.wrap {
+  flex-wrap: wrap;
+}
+
+select.input,
+input.input {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: var(--r-sm);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+/* ------------------------------------------------------------------ *
+ * Responsive. A console gets opened on a phone during an incident —
+ * that is exactly when someone needs to clear a raid lockdown — so the
+ * capacity rail and lockdown controls must survive a narrow viewport.
+ * ------------------------------------------------------------------ */
+@media (max-width: 1080px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .rail {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .brand,
+  .nav-group {
+    display: none;
+  }
+  .nav {
+    flex-direction: row;
+    gap: 4px;
+  }
+  .nav-item {
+    white-space: nowrap;
+    width: auto;
+  }
+  .grid-4,
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .span-2 {
+    grid-column: span 1;
+  }
+  .content {
+    padding: 16px;
+  }
+  .topbar {
+    padding: 0 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Bans
+ *
+ * The ban screen borrows the console's panel and eyebrow language on
+ * purpose — a separate visual identity for the ban page would read as a
+ * different product, or worse, as a phishing page. Same shell, one new
+ * accent (--act, already defined) doing the marking.
+ * ------------------------------------------------------------------ */
+
+.banned-shell { min-height: 100vh; display: grid; place-items: center; padding: 4rem 1.25rem; }
+.banned-inner { width: 100%; max-width: 34rem; }
+.banned-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.25rem; font-size: .8125rem; }
+
+.ban-tag {
+  display: inline-block; padding: .1875rem .5rem; border-radius: 2px;
+  border: 1px solid var(--act); color: var(--act);
+  font-size: .625rem; letter-spacing: .22em; text-transform: uppercase;
+}
+
+.banned-title { font-size: clamp(2rem, 6vw, 2.625rem); line-height: 1.05; letter-spacing: -.02em; margin: .75rem 0 1.25rem; }
+.banned-lede { margin: 1.5rem 0; line-height: 1.6; }
+.ban-ref { margin-top: 1.75rem; font-size: .6875rem; font-variant-numeric: tabular-nums; }
+
+.ban-facts { display: grid; gap: 0; margin: 0; }
+.ban-fact { display: grid; grid-template-columns: 7rem 1fr; gap: 1rem; padding: .5rem 0; align-items: baseline; }
+.ban-fact + .ban-fact { border-top: 1px solid var(--line); }
+.ban-fact dd { margin: 0; line-height: 1.55; }
+@media (max-width: 30rem) { .ban-fact { grid-template-columns: 1fr; gap: .25rem; } }
+
+.appeal-form textarea {
+  width: 100%; resize: vertical; padding: .625rem .75rem; border-radius: 2px;
+  background: var(--bg); border: 1px solid var(--line); color: inherit;
+  font: inherit; line-height: 1.6;
+}
+.appeal-form textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.appeal-meta { display: flex; justify-content: space-between; margin: .5rem 0 .75rem; font-size: .6875rem; font-variant-numeric: tabular-nums; }
+.appeal-rules { margin-top: .75rem; font-size: .75rem; line-height: 1.55; }
+.appeal-sent-title { font-weight: 500; margin-bottom: .375rem; }
+
+/* Banned avatar: greyed, crossed. The X is drawn rather than an icon font
+   so it inherits --act and scales with the avatar. */
+.banned-avatar { position: relative; display: inline-block; flex: none; }
+.banned-avatar img { border-radius: 50%; filter: grayscale(1); opacity: .35; display: block; }
+.banned-avatar svg { position: absolute; inset: 0; stroke: var(--act); }
+
+.guild-option { display: flex; align-items: center; gap: .625rem; width: 100%; text-align: left; padding: .5rem; border-radius: 2px; }
+.guild-option.is-banned .guild-name { color: var(--dim); }
+.guild-option.is-banned { border-color: var(--act); }
+.guild-option-body { display: grid; min-width: 0; }
+.guild-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guild-sub { font-size: .6875rem; }
+
+.sheet-backdrop { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 1rem; background: color-mix(in srgb, var(--bg) 84%, transparent); }
+.sheet { width: 100%; max-width: 31rem; max-height: 100%; overflow-y: auto; padding: 1.25rem; border-radius: 2px; background: var(--panel); border: 1px solid var(--line); }
+.sheet-head { display: flex; gap: .75rem; align-items: flex-start; margin-bottom: 1.25rem; }
+.sheet-head h2 { margin: 0 0 .25rem; font-size: 1.0625rem; letter-spacing: -.01em; }
+.sheet-close { margin-left: auto; font-size: 1.25rem; line-height: 1; padding: 0 .375rem; color: var(--dim); }
+@media (max-width: 30rem) { .sheet-backdrop { align-items: end; } }
+
+@media (prefers-reduced-motion: reduce) { .sheet, .sheet-backdrop { animation: none !important; } }

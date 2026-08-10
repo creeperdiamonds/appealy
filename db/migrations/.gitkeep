@@ -1,0 +1,2 @@
+Generated migration SQL files land here via `npm run db:generate` (see api/drizzle.config.ts).
+Do not hand-edit generated files; change shared/schema/schema.ts and regenerate instead.

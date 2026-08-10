@@ -1,0 +1,19 @@
+{
+  "tasks": {
+    "start": "deno run --allow-net --allow-env --allow-read bot/src/main.ts",
+    "dev": "deno run --watch --allow-net --allow-env --allow-read bot/src/main.ts",
+    "sync-commands": "deno run --allow-net --allow-env --allow-read src/tasks/syncCommands.ts"
+  },
+  "imports": {
+    "@discordeno/bot": "jsr:@discordeno/bot@^18.4.0",
+    "drizzle-orm": "npm:drizzle-orm@^0.33.0",
+    "postgres": "npm:postgres@^3.4.4",
+    "redis": "https://deno.land/x/redis@v0.32.3/mod.ts"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "lib": [
+      "deno.window"
+    ]
+  }
+}

@@ -1,0 +1,132 @@
+// bot/src/services/permissionService.ts
+//
+// Two distinct permission questions live here:
+//   1. Can this staff member review submissions for this form at all?
+//      (Administrator OR explicit manager delegation via staff_permissions)
+//   2. Can the bot actually assign/remove the roles this form specifies?
+//      (bot's highest role position must be above every target role, per
+//      Discord's role hierarchy rules — otherwise the API call 403s)
+
+import { eq, and, or, isNull } from "drizzle-orm";
+import type { AppealyBot } from "../core/client.ts";
+import { db, schema } from "../db/client.ts";
+
+const ADMINISTRATOR = 0x8n;
+
+/**
+ * True only for the guild's actual owner — stricter than any permission
+ * bit, since Administrator does not imply ownership. Used to gate the
+ * full-data /export and /import-appy commands, matching the same
+ * owner-only scoping as the dashboard's requireOwnerAccess middleware
+ * (api/src/middleware/guildAccess.ts) so both entry points enforce the
+ * identical rule rather than two independently-maintained checks that
+ * could drift apart.
+ */
+export async function isGuildOwner(bot: AppealyBot, guildId: bigint, userId: bigint): Promise<boolean> {
+  const cached = await bot.cache?.guilds?.get(guildId);
+  if (cached?.ownerId) return cached.ownerId === userId;
+
+  // Cache miss — fall back to a live fetch rather than fail closed
+  // silently or fail open, since a wrong answer here is a real trust
+  // boundary, not a cosmetic one.
+  const guild = await bot.helpers.getGuild(guildId);
+  return guild.ownerId === userId;
+}
+
+export async function canReviewForm(
+  guildId: bigint,
+  formId: string,
+  memberId: bigint,
+  memberRoleIds: bigint[],
+  memberPermissions: bigint,
+): Promise<boolean> {
+  if ((memberPermissions & ADMINISTRATOR) === ADMINISTRATOR) return true;
+
+  const delegations = await db
+    .select()
+    .from(schema.staffPermissions)
+    .where(
+      and(
+        eq(schema.staffPermissions.guildId, guildId),
+        or(isNull(schema.staffPermissions.formId), eq(schema.staffPermissions.formId, formId)),
+        eq(schema.staffPermissions.canReview, true),
+      ),
+    );
+
+  return delegations.some(
+    (d) =>
+      (d.userId !== null && d.userId === memberId) ||
+      (d.roleId !== null && memberRoleIds.includes(d.roleId)),
+  );
+}
+
+export async function canManageForm(
+  guildId: bigint,
+  formId: string | null,
+  memberId: bigint,
+  memberRoleIds: bigint[],
+  memberPermissions: bigint,
+): Promise<boolean> {
+  if ((memberPermissions & ADMINISTRATOR) === ADMINISTRATOR) return true;
+
+  const delegations = await db
+    .select()
+    .from(schema.staffPermissions)
+    .where(
+      and(
+        eq(schema.staffPermissions.guildId, guildId),
+        formId
+          ? or(isNull(schema.staffPermissions.formId), eq(schema.staffPermissions.formId, formId))
+          : isNull(schema.staffPermissions.formId),
+        eq(schema.staffPermissions.canManageForm, true),
+      ),
+    );
+
+  return delegations.some(
+    (d) =>
+      (d.userId !== null && d.userId === memberId) ||
+      (d.roleId !== null && memberRoleIds.includes(d.roleId)),
+  );
+}
+
+export async function canManageTicket(
+  guildId: bigint,
+  config: { supportRoleIds: string[] },
+  memberId: bigint,
+  memberRoleIds: bigint[],
+  memberPermissions: bigint,
+): Promise<boolean> {
+  if ((memberPermissions & ADMINISTRATOR) === ADMINISTRATOR) return true;
+  return config.supportRoleIds.some((roleId) => memberRoleIds.map(String).includes(roleId));
+}
+
+/**
+ * Verifies the bot's own highest role sits above every role it needs to
+ * grant/remove, per Discord's role hierarchy rule (a bot/member can only
+ * manage roles positioned below its own highest role). Returns the subset
+ * of role IDs the bot is NOT able to manage, so the caller can warn staff
+ * precisely rather than failing silently.
+ */
+export async function findUnmanageableRoles(
+  bot: AppealyBot,
+  guildId: bigint,
+  roleIds: string[],
+): Promise<string[]> {
+  if (roleIds.length === 0) return [];
+
+  const guild = await bot.helpers.getGuild(guildId);
+  const botMember = await bot.helpers.getMember(guildId, bot.id);
+
+  const botRoles = guild.roles.filter((r) => botMember.roles.includes(r.id));
+  const botHighestPosition = Math.max(0, ...botRoles.map((r) => r.position));
+
+  const unmanageable: string[] = [];
+  for (const roleId of roleIds) {
+    const role = guild.roles.find((r) => r.id === BigInt(roleId));
+    if (!role) continue; // role no longer exists — nothing to manage
+    if (role.position >= botHighestPosition) {
+      unmanageable.push(roleId);
+    }
+  }
+  return unmanageable;
+}
