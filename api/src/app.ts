@@ -23,6 +23,11 @@ import { antiRaidRouter } from "./routes/antiRaid.ts";
 import { quickResponsesRouter } from "./routes/quickResponses.ts";
 import { stickyMessagesRouter } from "./routes/stickyMessages.ts";
 import { migrationRouter } from "./routes/migration.ts";
+import { appealConfigRouter } from "./routes/appealConfig.ts";
+import { opsRouter } from "./routes/ops.ts";
+import { platformAppealsRouter } from "./routes/platformAppeals.ts";
+import { banGate } from "./middleware/banGate.ts";
+import { requireOpsUser } from "./middleware/requireOpsUser.ts";
 import { overviewRouter } from "./routes/overview.ts";
 import { requireSession } from "./middleware/auth.ts";
 import { guildApiRateLimit } from "./middleware/apiRateLimit.ts";
@@ -74,7 +79,19 @@ export function createApp() {
   // knowing the request is legitimately for that guild, and letting
   // unauthenticated requests consume a paying customer's quota would turn
   // the rate limiter into a denial-of-service vector against them.
+  // Order is the security here.
+  //
+  // Platform appeals mount FIRST and outside banGate — they are the only
+  // endpoints a banned account may reach, and a ban screen whose form 403s is
+  // worse than no appeal process at all.
+  app.use("/api/platform-appeals", platformAppealsRouter);
+
+  // Everything below requires a session. banGate then short-circuits a
+  // user-banned account with a typed 403 the SPA renders as the ban screen.
+  app.use("/api/ops", requireSession, requireOpsUser, opsRouter);
+
   app.use("/api/guilds/:guildId", requireSession);
+  app.use("/api/guilds/:guildId", banGate);
   app.use("/api/guilds/:guildId", guildApiRateLimit);
   app.use("/api/guilds/:guildId", invalidateOnWrite);
 
@@ -89,6 +106,7 @@ export function createApp() {
   app.use("/api/guilds/:guildId/ticket-configs", ticketsRouter);
   app.use("/api/guilds/:guildId/giveaways", giveawaysRouter);
   app.use("/api/guilds/:guildId/verification", verificationRouter);
+  app.use("/api/guilds/:guildId/appeal-config", appealConfigRouter);
   app.use("/api/guilds/:guildId/welcomer", welcomerRouter);
   app.use("/api/guilds/:guildId/billing", billingRouter);
   app.use("/api/guilds/:guildId/role-menus", roleMenusRouter);

@@ -16,7 +16,7 @@
 
 import { useState } from "react";
 import { Panel } from "../components/ui";
-import type { PublicBan } from "../../../shared/schema/bans";
+import type { PublicBan } from "../../../shared/schema/platformBans";
 
 const MIN = 40;
 const MAX = 2000;

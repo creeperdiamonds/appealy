@@ -51,10 +51,16 @@ const questionSchema = z
     }),
   );
 
-const formSchema = z.object({
+// Plain z.object so .partial() still works for PATCH — .refine() returns
+// ZodEffects, which doesn't support .partial(). The cross-field rule is
+// applied separately to create and update instead.
+const formBaseSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).default(""),
   applicationType: z.enum(["in_server", "direct_message"]).default("in_server"),
+  // "appeal" forms are reachable only via the ban-time DM flow — never a
+  // panel or /apply, since a banned user can see neither.
+  kind: z.enum(["application", "appeal"]).default("application"),
   logChannelId: z.string(),
   acceptedChannelId: z.string().nullable().optional(),
   deniedChannelId: z.string().nullable().optional(),
@@ -84,6 +90,14 @@ const formSchema = z.object({
   active: z.boolean().default(true),
   questions: z.array(questionSchema).max(10).default([]),
 });
+
+const APPEAL_KIND_MESSAGE =
+  'An appeal-kind form must use applicationType "direct_message" — a banned user can never reach an in_server flow.';
+
+const formSchema = formBaseSchema.refine(
+  (f) => f.kind !== "appeal" || f.applicationType === "direct_message",
+  { message: APPEAL_KIND_MESSAGE, path: ["applicationType"] },
+);
 
 formsRouter.use(requireGuildAccess);
 
@@ -131,6 +145,7 @@ formsRouter.post("/", requireAdminAccess, async (req, res) => {
         name: data.name,
         description: data.description,
         applicationType: data.applicationType,
+        kind: data.kind,
         logChannelId: BigInt(data.logChannelId),
         acceptedChannelId: data.acceptedChannelId ? BigInt(data.acceptedChannelId) : null,
         deniedChannelId: data.deniedChannelId ? BigInt(data.deniedChannelId) : null,
@@ -190,7 +205,7 @@ formsRouter.post("/", requireAdminAccess, async (req, res) => {
 });
 
 formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
-  const parsed = formSchema.partial().safeParse(req.body);
+  const parsed = formBaseSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
 
   const guildId = BigInt(req.params.guildId);
@@ -202,12 +217,26 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
 
   const data = parsed.data;
 
+  // Validate the MERGED row, not just the delta. PATCH { kind: "appeal" } on
+  // an in_server form, or PATCH { applicationType: "in_server" } on an appeal
+  // form, each look fine alone and each produce an appeal form no banned user
+  // can reach. This hole existed in the original.
+  const mergedKind = data.kind ?? existing.kind;
+  const mergedType = data.applicationType ?? existing.applicationType;
+  if (mergedKind === "appeal" && mergedType !== "direct_message") {
+    return res.status(400).json({
+      error: "invalid_body",
+      detail: { fieldErrors: { applicationType: [APPEAL_KIND_MESSAGE] } },
+    });
+  }
+
   await db.transaction(async (tx) => {
     const updateSet: Record<string, unknown> = { updatedAt: new Date() };
     for (const key of [
       "name",
       "description",
       "applicationType",
+      "kind",
       "cooldownSeconds",
       "maxTotalSubmissions",
       "maxSubmissionsWindowSeconds",

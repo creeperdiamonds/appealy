@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# Secrets
+#
+# .env holds the bot token, OAuth client secret, session secret, and the
+# AES key used to encrypt stored Discord tokens. setup.sh writes real values
+# into it, and this repo is public. Nothing here is recoverable once pushed —
+# a leaked bot token has to be reset in the Developer Portal, and every stored
+# token encrypted under a leaked TOKEN_ENCRYPTION_KEY has to be invalidated.
+#
+# .env.example is tracked on purpose; it contains no values.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+*.pem
+*.key
+secrets/
+
+# ---------------------------------------------------------------------------
+# Dependencies and build output
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Deno's local cache, if DENO_DIR is pointed inside the repo
+.deno/
+deno.lock.bak
+
+# ---------------------------------------------------------------------------
+# Runtime artifacts
+# ---------------------------------------------------------------------------
+# Written by bot/src/core/statusPublisher.ts. Regenerated every 10s; committing
+# a snapshot would publish a stale one to anyone reading the repo.
+status/status.json
+status/directory.json
+status/.*.tmp
+
+*.log
+logs/
+pids/
+*.pid
+
+# Docker volume mounts, if bound locally
+pgdata/
+redisdata/
+
+# ---------------------------------------------------------------------------
+# Editors and OS
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# ---------------------------------------------------------------------------
+# Test and coverage
+# ---------------------------------------------------------------------------
+coverage/
+.nyc_output/

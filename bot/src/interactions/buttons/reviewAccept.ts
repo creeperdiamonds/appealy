@@ -27,7 +27,8 @@ export async function handleReviewAccept(
     return respond(bot, interaction, "This submission no longer exists.");
   }
   if (submission.status !== "pending") {
-    return respond(bot, interaction, `This application was already marked **${submission.status}**.`);
+    const noun = submission.form.kind === "appeal" ? "appeal" : "application";
+    return respond(bot, interaction, `This ${noun} was already marked **${submission.status}**.`);
   }
 
   const allowed = await canReviewForm(
@@ -38,7 +39,8 @@ export async function handleReviewAccept(
     interaction.member?.permissions ?? 0n,
   );
   if (!allowed) {
-    return respond(bot, interaction, "You don't have permission to review this application.");
+    const noun = submission.form.kind === "appeal" ? "appeal" : "application";
+    return respond(bot, interaction, `You don't have permission to review this ${noun}.`);
   }
 
   const form = submission.form;
@@ -70,6 +72,35 @@ export async function handleReviewAccept(
       submissionId,
       error: String(err),
     });
+  }
+
+  // Ban-appeal-specific: accepting an appeal is the one case in this
+  // codebase where "accepted" needs to reverse something Discord itself
+  // did (a ban), not just grant/remove roles — the applicant isn't a
+  // guild member to grant roles to in the first place. See
+  // shared/schema/schema.ts's appealConfigs comment for the full design.
+  let unbanWarning: string | null = null;
+  if (form.kind === "appeal") {
+    const appealConfig = await db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) });
+    // Default to unbanning even with no config row (or autoUnbanOnAccept
+    // unset) — a missing config shouldn't silently leave an accepted
+    // appeal banned, since "accepted" has an unambiguous real-world
+    // meaning for a ban appeal specifically. autoUnbanOnAccept only needs
+    // to be explicitly false to opt OUT of this.
+    if (appealConfig?.autoUnbanOnAccept ?? true) {
+      try {
+        await bot.helpers.unbanMember(guildId, submission.applicantId, "Ban appeal accepted");
+      } catch (err) {
+        // Common, non-alarming causes: the user was already unbanned by
+        // a staff member manually before this button was clicked, or the
+        // bot lacks the Ban Members permission. Surface it to the
+        // reviewer rather than only logging it, since "accepted" without
+        // an actual unban is a state a moderator needs to know about.
+        logger.warn("Unban failed after appeal acceptance", { submissionId, error: String(err) });
+        unbanWarning =
+          "Note: the automatic unban failed — the user may already be unbanned, or I'm missing the Ban Members permission. Please verify manually.";
+      }
+    }
   }
 
   await db
@@ -140,13 +171,17 @@ export async function handleReviewAccept(
     formName: form.name,
   });
 
-  await respond(
-    bot,
-    interaction,
+  const outcomeVerb = form.kind === "appeal" ? "Appeal accepted" : "Application accepted";
+  const messages = [
     unmanageable.length > 0
-      ? `Application accepted. Note: ${unmanageable.length} role(s) could not be assigned because they are positioned above my highest role — move my role above them in Server Settings.`
-      : "Application accepted.",
-  );
+      ? `${outcomeVerb}. Note: ${unmanageable.length} role(s) could not be assigned because they are positioned above my highest role — move my role above them in Server Settings.`
+      : `${outcomeVerb}.`,
+  ];
+  // A failed unban must reach the reviewer, not just the log. "Accepted" on an
+  // appeal that left the user banned is the whole outcome they just approved.
+  if (unbanWarning) messages.push(unbanWarning);
+
+  await respond(bot, interaction, messages.join(" "));
 }
 
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {

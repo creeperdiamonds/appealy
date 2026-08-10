@@ -25,6 +25,20 @@
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
+/**
+ * Thrown when the API answers 403 { error: "banned" }. Carries the ban so the
+ * shell can render the ban screen instead of a generic fatal error.
+ *
+ * Deliberately not a route: a banned account that can navigate to and from
+ * /banned is one bad guard away from a redirect loop it cannot escape.
+ */
+export class BannedError extends Error {
+  constructor(public ban: import("../../../shared/schema/platformBans.ts").PublicBan) {
+    super("banned");
+    this.name = "BannedError";
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -53,6 +67,14 @@ async function request<T>(path: string, init: RequestInit = {}, retried = false)
     const wait = Number(res.headers.get("Retry-After") ?? 2);
     await new Promise((r) => setTimeout(r, Math.min(wait, 10) * 1000));
     return request<T>(path, init, true);
+  }
+
+  if (res.status === 403) {
+
+    const body = await res.clone().json().catch(() => ({}));
+
+    if (body?.error === "banned") throw new BannedError(body.ban);
+
   }
 
   if (res.status === 401) {
@@ -231,6 +253,34 @@ export const api = {
 
   forms: (guildId: string) => request<FormSummary[]>(`/api/guilds/${guildId}/forms`),
 
+  // --- Guild ban appeals (the product feature) ---
+  appealConfig: (guildId: string) =>
+    request<AppealConfigDTO>(`/api/guilds/${guildId}/appeal-config`),
+
+  saveAppealConfig: (guildId: string, body: Partial<AppealConfigDTO>) =>
+    request<AppealConfigDTO>(`/api/guilds/${guildId}/appeal-config`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  // --- Platform bans (operator only; 404s for everyone else by design) ---
+  opsAppeals: () => request<{ appeals: OpsAppeal[] }>("/api/ops/appeals"),
+
+  decideAppeal: (id: string, decision: "accept" | "deny", note: string) =>
+    request<void>(`/api/ops/appeals/${id}/${decision}`, {
+      method: "POST",
+      body: JSON.stringify({ note }),
+    }),
+
+  createPlatformBan: (body: {
+    subject: "user" | "guild";
+    subjectId: string;
+    reasonCode: string;
+    reasonPublic: string;
+    notes?: string;
+    expiresAt?: string | null;
+  }) => request<{ id: string }>("/api/ops/bans", { method: "POST", body: JSON.stringify(body) }),
+
   submissions: (guildId: string, params: { status?: string; formId?: string } = {}) => {
     const q = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v) as [string, string][],
@@ -257,3 +307,36 @@ export const api = {
       `/api/guilds/${guildId}/resources/roles`,
     ),
 };
+
+// --- Types for the two appeal surfaces ---
+
+export interface AppealConfigDTO {
+  guildId: string;
+  enabled: boolean;
+  formId: string | null;
+  dmOnBanEnabled: boolean;
+  dmOnBanNote: string | null;
+  autoUnbanOnAccept: boolean;
+  updatedAt: string;
+}
+
+/** Operator view of a platform appeal — includes the internal ban fields that
+ *  never leave /api/ops. */
+export interface OpsAppeal {
+  id: string;
+  body: string;
+  appellantId: string;
+  createdAt: string;
+  ban: {
+    id: string;
+    subject: "user" | "guild";
+    subjectId: string;
+    reasonCode: string;
+    reasonPublic: string;
+    createdAt: string;
+    expiresAt: string | null;
+    automated: boolean;
+    notes: string | null;
+    evidence: Record<string, unknown> | null;
+  };
+}

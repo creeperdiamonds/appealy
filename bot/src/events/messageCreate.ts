@@ -36,6 +36,7 @@ import type { AppealyBot } from "../core/client.ts";
 import { handleDmApplicationReply } from "../services/dmApplicationService.ts";
 import { bumpStickyMessageCounter } from "../services/stickyMessageService.ts";
 import { getGuildConfig, stickyChannelHint } from "../core/guildConfigCache.ts";
+import { passesBanGateForMessage } from "../core/banGate.ts";
 import { logger } from "../utils/logger.ts";
 
 // Guilds whose config we've asked for but haven't received yet. Without
@@ -51,6 +52,12 @@ export function onMessageCreate(bot: AppealyBot) {
     author?: { id: bigint; toggles?: { bot?: boolean } };
     content?: string;
   }) => {
+    // Cheapest possible check, before any database read. No reply on this
+    // path ever — a banned guild is by definition one we don't want to be
+    // sending messages into, and it already got its one ephemeral notice
+    // from the interaction path.
+    if (!passesBanGateForMessage(message.authorId ?? message.author?.id, message.guildId)) return;
+
     // Bot and webhook messages are ignored entirely. Checked first because
     // it's free and because letting them through would make the sticky
     // repost trigger its own recount.

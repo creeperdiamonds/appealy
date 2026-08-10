@@ -9,6 +9,10 @@
 // and can be linked to, which is the only part of routing this actually
 // needed.
 
+import Banned from "./pages/Banned";
+import AppealConfig from "./pages/AppealConfig";
+import OpsAppeals from "./pages/OpsAppeals";
+import { BannedError } from "./lib/api";
 import { useEffect, useState } from "react";
 import { api, ApiError, type GuildSummary } from "./lib/api";
 import { Banner, Pill } from "./components/ui";
@@ -16,17 +20,43 @@ import Overview from "./pages/Overview";
 import Submissions from "./pages/Submissions";
 import Operations from "./pages/Operations";
 
-type View = "overview" | "submissions" | "operations";
+type View = "overview" | "submissions" | "operations" | "appeals" | "ops-appeals";
 
 const NAV: { id: View; label: string; hint: string }[] = [
   { id: "overview", label: "Overview", hint: "Capacity, activity, and health" },
   { id: "submissions", label: "Applications", hint: "The review queue" },
   { id: "operations", label: "Operations", hint: "Queued work and audit log" },
+  { id: "appeals", label: "Ban appeals", hint: "DM banned members a form" },
 ];
 
 const LAST_GUILD_KEY = "appealy:lastGuild";
 
 export default function App() {
+  // Set by any API call that throws BannedError. Not a route — see the
+  // comment on BannedError in lib/api.ts.
+  const [platformBan, setPlatformBan] = useState<
+    import("../../shared/schema/platformBans").PublicBan | null
+  >(null);
+
+  // Whether to show the Operator nav group. Cosmetic only — every /api/ops
+  // route enforces requireOpsUser independently and 404s for everyone else,
+  // so a wrong value here reveals nothing.
+  const [isOperator, setIsOperator] = useState(false);
+  useEffect(() => {
+    api.opsAppeals().then(() => setIsOperator(true)).catch(() => setIsOperator(false));
+  }, []);
+
+  useEffect(() => {
+    const onRejection = (e: PromiseRejectionEvent) => {
+      if (e.reason instanceof BannedError) {
+        setPlatformBan(e.reason.ban);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => window.removeEventListener("unhandledrejection", onRejection);
+  }, []);
+
   const [guilds, setGuilds] = useState<GuildSummary[] | null>(null);
   const [guildId, setGuildId] = useState<string | null>(null);
   const [discordReachable, setDiscordReachable] = useState(true);
@@ -67,6 +97,17 @@ export default function App() {
 
   const active = guilds?.find((g) => g.id === guildId) ?? null;
 
+  // Full takeover. A user-level ban means there is no dashboard to show, so
+
+  // this replaces the shell entirely rather than rendering a disabled version
+
+  // of it. Guild bans do NOT come through here — those decorate the server
+
+  // list instead, via ServerBanned.tsx.
+
+  if (platformBan) return <Banned ban={platformBan} username={user?.username ?? ""} />;
+
+
   return (
     <div className="shell">
       <aside className="rail">
@@ -88,6 +129,18 @@ export default function App() {
               {item.label}
             </button>
           ))}
+          {isOperator && (
+            <>
+              <div className="nav-group eyebrow">Operator</div>
+              <button
+                className="nav-item"
+                aria-current={view === "ops-appeals" ? "page" : undefined}
+                onClick={() => setView("ops-appeals")}
+              >
+                Appeal queue
+              </button>
+            </>
+          )}
         </nav>
 
         <div style={{ marginTop: "auto", padding: "0 8px" }}>
@@ -159,6 +212,8 @@ export default function App() {
           {guildId && view === "overview" && <Overview guildId={guildId} />}
           {guildId && view === "submissions" && <Submissions guildId={guildId} />}
           {guildId && view === "operations" && <Operations guildId={guildId} />}
+          {guildId && view === "appeals" && <AppealConfig guildId={guildId} />}
+          {view === "ops-appeals" && <OpsAppeals />}
         </main>
       </div>
     </div>

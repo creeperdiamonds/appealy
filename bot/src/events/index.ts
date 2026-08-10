@@ -5,6 +5,7 @@
 
 import type { AppealyBot } from "../core/client.ts";
 import { onReady } from "./ready.ts";
+import { onGuildBanAdd } from "./guildBanAdd.ts";
 import { onGuildCreate } from "./guildCreate.ts";
 import { onInteractionCreate } from "./interactionCreate.ts";
 import { onGuildMemberRemove } from "./guildMemberRemove.ts";
@@ -12,7 +13,8 @@ import { onGuildMemberAdd } from "./guildMemberAdd.ts";
 import { onMessageCreate } from "./messageCreate.ts";
 
 export function registerEventHandlers(bot: AppealyBot) {
-  bot.events.ready = onReady;
+  bot.events.ready = (payload) => onReady(bot, payload);
+  bot.events.guildBanAdd = onGuildBanAdd(bot);
   bot.events.guildCreate = (guild, shardId) => onGuildCreate(guild, shardId ?? 0);
   bot.events.interactionCreate = onInteractionCreate(bot);
   bot.events.guildMemberRemove = onGuildMemberRemove(bot);

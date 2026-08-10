@@ -40,7 +40,7 @@ import { and, eq, gt, isNull, or } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { getRedis } from "./redis.ts";
 import { logger } from "../utils/logger.ts";
-import { toPublicBan, type PublicBan } from "../../../shared/schema/bans.ts";
+import { toPublicBan, type PublicBan } from "../../../shared/schema/platformBans.ts";
 
 const BAN_CHANNEL = "appealy:bans:changed";
 const FULL_RELOAD_MS = 300_000;
@@ -52,11 +52,11 @@ let loaded = false;
 async function reload(): Promise<void> {
   const rows = await db
     .select()
-    .from(schema.bans)
+    .from(schema.platformBans)
     .where(
       and(
-        isNull(schema.bans.revokedAt),
-        or(isNull(schema.bans.expiresAt), gt(schema.bans.expiresAt, new Date())),
+        isNull(schema.platformBans.revokedAt),
+        or(isNull(schema.platformBans.expiresAt), gt(schema.platformBans.expiresAt, new Date())),
       ),
     );
 

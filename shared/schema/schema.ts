@@ -213,6 +213,8 @@ export const matchModeEnum = pgEnum("match_mode", ["has_all", "has_any"]);
 
 export const applicationTypeEnum = pgEnum("application_type", ["in_server", "direct_message"]);
 
+export const formKindEnum = pgEnum("form_kind", ["application", "appeal"]);
+
 export const forms = pgTable(
   "forms",
   {
@@ -230,6 +232,11 @@ export const forms = pgTable(
     // different delivery mechanism than modals (DMs can't show a Discord
     // Modal; the bot has to run a message-based back-and-forth instead).
     applicationType: applicationTypeEnum("application_type").notNull().default("in_server"),
+    // "appeal" forms are only ever reached via the ban-time DM flow (see the
+    // appealConfigs comment below) — never a panel or /apply, since a banned
+    // user can see neither. Enforced at the API layer that kind = "appeal"
+    // always implies applicationType = "direct_message".
+    kind: formKindEnum("kind").notNull().default("application"),
     // Per-outcome log channels, replacing the old single logChannelId.
     // logChannelId is kept as the PENDING-submission channel (existing
     // rows/behavior are unaffected — pending was always where new
@@ -1095,3 +1102,80 @@ export const scheduledJobs = pgTable(
     uniquePending: uniqueIndex("scheduled_job_unique_pending").on(t.kind, t.guildId, t.subjectId),
   }),
 );
+
+// ---------------------------------------------------------------------------
+// Appealy's Appealable Appealing Appeal System — ban appeals.
+//
+// One config row per guild (like welcomerConfigs/antiRaidConfigs above).
+// `formId` designates which appeal-kind form (forms.kind = "appeal") is
+// "the" ban-appeal form for this guild — a guild can have zero-or-more
+// appeal-kind forms defined but at most one active at a time here, same
+// as how a server realistically only wants a single appeal queue.
+//
+// Why this can't be an in-server flow: by the time someone wants to
+// appeal, they have already been removed from the guild, so a panel
+// button or /apply is never reachable for them. The only channel back to
+// them is a DM the bot sends the moment guildBanAdd fires
+// (bot/src/events/guildBanAdd.ts), reusing the exact same
+// direct_message-application machinery (bot/src/services/dmApplicationService.ts)
+// that already exists for in-server "apply by DM" forms.
+//
+// Known reliability caveat, worth stating plainly rather than glossing
+// over (same spirit as the importAppy attachment-resolution note in
+// README.md): Discord only allows a bot to open a DM with a user it
+// shares no guild with if a DM channel already exists between them.
+// guildBanAdd fires after the ban (and the implicit kick) has already
+// happened, so whether the proactive DM lands depends on exactly how
+// Discord's backend sequences the ban vs. the "shared guild" check at
+// the moment `createDm` is called — this is NOT a guaranteed delivery
+// channel. A guild relying on this feature should also tell members
+// (in its rules/ban message) that appeals can be requested by DMing the
+// bot directly if the automatic DM never arrives and a shared-DM-channel
+// already exists from some earlier interaction.
+// ---------------------------------------------------------------------------
+
+export const appealConfigs = pgTable("appeal_configs", {
+  guildId: bigint("guild_id", { mode: "bigint" })
+    .primaryKey()
+    .references(() => guilds.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(false),
+  // Nullable: a guild can enable the feature before it has actually
+  // built/designated an appeal-kind form yet; enforced at the API layer
+  // that this must point at a forms row with kind = "appeal" in the same
+  // guild before dmOnBanEnabled can do anything meaningful.
+  formId: text("form_id").references(() => forms.id, { onDelete: "set null" }),
+  // Best-effort proactive DM at ban time (see reliability caveat above).
+  // When false, the appeal form still exists and can be reached if the
+  // banned user DMs the bot directly (not implemented as an explicit
+  // command here — messageCreate.ts's existing in-progress-application
+  // check only continues a flow already started via startDmApplication,
+  // it doesn't start one from a cold DM; a guild that wants a
+  // DM-triggered entry point should keep this enabled).
+  dmOnBanEnabled: boolean("dm_on_ban_enabled").notNull().default(true),
+  // Optional extra line shown before the form's own confirmationMessage,
+  // e.g. explaining *why* they're suddenly getting a DM from this bot —
+  // distinct from confirmationMessage (which is about the form itself,
+  // reused from the generic forms flow) since this is specifically about
+  // the unsolicited-DM context an appeal recipient is in that an ordinary
+  // applicant never is.
+  dmOnBanNote: text("dm_on_ban_note").default(
+    "You have been banned and are receiving this message because ban appeals are enabled for this server. " +
+      "If you'd like to appeal, answer the questions below. Sending nothing will not appeal the ban.",
+  ),
+  // When true (default), accepting an appeal submission calls Discord's
+  // unban endpoint automatically (bot/src/interactions/buttons/reviewAccept.ts).
+  // When false, staff still see and can accept/deny the appeal as a
+  // normal submission, but must unban manually — useful for guilds that
+  // want a human to double-check before anyone is let back in.
+  autoUnbanOnAccept: boolean("auto_unban_on_accept").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Platform-level bans live in their own file but are re-exported here, because
+// db/client.ts does `import * as schema from "./schema.ts"` — there is no
+// barrel module. Without this line `schema.platformBans` is undefined at
+// runtime and the failure looks like a Drizzle bug rather than a missing
+// export. See shared/schema/platformBans.ts for why they're kept separate.
+// ---------------------------------------------------------------------------
+export * from "./platformBans.ts";

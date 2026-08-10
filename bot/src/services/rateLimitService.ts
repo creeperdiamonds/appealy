@@ -42,8 +42,37 @@ import {
   CUSTOM_CAP_MAXIMUMS,
   type RateLimitCaps,
 } from "../../../shared/schema/pricing.ts";
+import { deployment, env, PRIVILEGED } from "../core/env.ts";
 
 const FREE_CAPS = RATE_LIMIT_PRESETS.free.caps;
+
+/**
+ * Self-hosted caps. Mirrors api/src/services/rateLimitService.ts — both must
+ * resolve identically or a guild's effective cap depends on which process
+ * asked, which is the exact failure this file's header warns about.
+ *
+ * Unmapped keys fall back to tier2, not free: a self-hoster should never be
+ * more restricted than a paying customer on their own hardware.
+ */
+const SELF_HOSTED_CAPS: RateLimitCaps = {
+  ...RATE_LIMIT_PRESETS.tier2.caps,
+  ...env.SELF_HOSTED_CAPS,
+};
+
+/**
+ * Caps for privileged guilds. CUSTOM_CAP_MAXIMUMS unless a PRIVILEGED_CAP_*
+ * says otherwise — "as high as this system was designed to go" is a safer
+ * starting point than an invented number, and the overrides are there for
+ * when it genuinely isn't enough.
+ *
+ * Still finite. Your own server shares the same Postgres pool as every other
+ * guild, so an uncapped runaway loop in it takes everyone down with it.
+ */
+const PRIVILEGED_CAPS: RateLimitCaps = {
+  ...CUSTOM_CAP_MAXIMUMS,
+  ...PRIVILEGED.overrides,
+};
+
 
 export type DailyCapName = "submissionsPerDay" | "ticketsPerDay" | "giveawayEntriesPerDay";
 export type StandingCapName = "formsPerGuild" | "panelsPerGuild";
@@ -51,6 +80,21 @@ export type StandingCapName = "formsPerGuild" | "panelsPerGuild";
 export function resolveEffectiveCaps(
   guild: typeof schema.guilds.$inferSelect,
 ): RateLimitCaps {
+  // Privileged guilds win over everything — tier, custom caps, self mode.
+  // This is the operator's own server, granted by env, and it is deliberately
+  // NOT clamped to CUSTOM_CAP_MAXIMUMS: that ceiling exists to stop a customer
+  // self-serving unbounded throughput, and there is no purchase to bound here.
+  if (PRIVILEGED.ids.has(guild.id.toString())) {
+    return PRIVILEGED_CAPS;
+  }
+
+  // Before the tier is read at all. In self mode `rateLimitTier` defaults to
+  // "free" on every row and means nothing — honouring it would cap a
+  // self-hoster with someone else's price list.
+  if (!deployment.features.tieredRateLimits) {
+    return SELF_HOSTED_CAPS;
+  }
+
   if (guild.rateLimitTier !== "custom") {
     return RATE_LIMIT_PRESETS[guild.rateLimitTier].caps;
   }

@@ -107,7 +107,10 @@ export function interpolateTemplate(template: string, ctx: TemplateContext): str
 export type MatchMode = "has_all" | "has_any";
 export type ApplicationType = "in_server" | "direct_message";
 
+export type FormKind = "application" | "appeal";
+
 export interface FormDTO {
+  kind: FormKind;
   id: string;
   guildId: Snowflake;
   name: string;
@@ -345,4 +348,19 @@ export interface WelcomerConfigDTO {
   leaveEnabled: boolean;
   leaveChannelId: Snowflake | null;
   leaveMessage: string;
+}
+
+// ---------------------------------------------------------------------------
+// Ban appeal DTOs — see shared/schema/schema.ts's appealConfigs comment
+// for the full design rationale (why this has to be DM-based).
+// ---------------------------------------------------------------------------
+
+export interface AppealConfigDTO {
+  guildId: Snowflake;
+  enabled: boolean;
+  formId: string | null;
+  dmOnBanEnabled: boolean;
+  dmOnBanNote: string | null;
+  autoUnbanOnAccept: boolean;
+  updatedAt: string;
 }

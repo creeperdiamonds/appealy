@@ -13,6 +13,24 @@ share one Postgres database and one schema definition:
   This is the single source of truth for the data model and wire format;
   never duplicate a type or table definition in `bot/` or `api/`.
 
+## Quick start
+
+```bash
+git clone https://github.com/creeperdiamonds/appealy.git
+cd appealy
+./setup.sh
+```
+
+The script checks your tools, generates the secrets you shouldn't be typing by
+hand, walks you through the Discord portal, starts the containers, runs the
+migration, and registers slash commands. It's safe to re-run — it never
+overwrites an existing `.env` and skips the migration if your database already
+has tables.
+
+`./setup.sh --check` verifies your tools and changes nothing.
+
+Then read `SETUP.md` for what's deliberately left manual.
+
 ## Why two processes talk over an internal HTTP bridge
 
 Only the bot process holds a live Discord gateway/REST session. Some

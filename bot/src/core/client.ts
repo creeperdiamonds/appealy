@@ -83,7 +83,12 @@ export function createAppealyBot() {
       GatewayIntents.Guilds |
       GatewayIntents.GuildMembers |
       GatewayIntents.GuildMessages |
-      GatewayIntents.MessageContent,
+      GatewayIntents.MessageContent |
+      // Needed for guildBanAdd, which drives the ban-appeal DM. NOTE: renamed
+      // across versions — GuildModeration in Discordeno v18, GuildBans in
+      // older releases. If this fails to compile, check @discordeno/bot's
+      // GatewayIntents export before assuming the feature is broken.
+      GatewayIntents.GuildModeration,
     desiredProperties,
   });
 

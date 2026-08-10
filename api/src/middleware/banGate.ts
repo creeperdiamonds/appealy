@@ -25,7 +25,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { and, eq, isNull } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
-import { toPublicBan, type PublicBan } from "../../../shared/schema/bans.ts";
+import { toPublicBan, type PublicBan } from "../../../shared/schema/platformBans.ts";
 import { redis } from "../lib/redis.ts";
 
 const BAN_CHANNEL = "appealy:bans:changed";
@@ -38,11 +38,11 @@ async function activeBan(subject: "user" | "guild", subjectId: bigint): Promise<
   const cached = await redis.get(key).catch(() => null);
   if (cached) return cached === "\0" ? null : (JSON.parse(cached) as PublicBan);
 
-  const row = await db.query.bans.findFirst({
+  const row = await db.query.platformBans.findFirst({
     where: and(
-      eq(schema.bans.subject, subject),
-      eq(schema.bans.subjectId, subjectId),
-      isNull(schema.bans.revokedAt),
+      eq(schema.platformBans.subject, subject),
+      eq(schema.platformBans.subjectId, subjectId),
+      isNull(schema.platformBans.revokedAt),
     ),
   });
 
@@ -52,8 +52,8 @@ async function activeBan(subject: "user" | "guild", subjectId: bigint): Promise<
     return null;
   }
 
-  const openAppeal = await db.query.banAppeals.findFirst({
-    where: and(eq(schema.banAppeals.banId, live.id), eq(schema.banAppeals.status, "open")),
+  const openAppeal = await db.query.platformBanAppeals.findFirst({
+    where: and(eq(schema.platformBanAppeals.banId, live.id), eq(schema.platformBanAppeals.status, "open")),
     columns: { createdAt: true },
   });
 

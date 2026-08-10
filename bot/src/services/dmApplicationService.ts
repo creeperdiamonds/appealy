@@ -31,6 +31,10 @@ export async function startDmApplication(
   form: FormWithQuestions,
   applicantId: bigint,
   memberRoleIds: bigint[],
+  // Extra line sent as its own DM before the confirmation — used by the
+  // ban-appeal flow to explain why someone just banned is getting an
+  // unsolicited DM. Ordinary DM applications never need this.
+  introNote?: string,
 ) {
   const gate = await checkGateForDm(form, guildId, applicantId, memberRoleIds);
   if (!gate.allowed) {
@@ -55,12 +59,32 @@ export async function startDmApplication(
     expiresAt,
   });
 
+  if (introNote) {
+    const introSent = await dmOrLog(bot, applicantId, introNote);
+    if (!introSent) {
+      // DMs closed — drop the progress row so it doesn't sit forever as an
+      // unreachable "in progress" state the applicant can never clear.
+      await db.delete(schema.dmApplicationProgress).where(
+        and(eq(schema.dmApplicationProgress.formId, form.id), eq(schema.dmApplicationProgress.applicantId, applicantId)),
+      );
+      return;
+    }
+  }
+
   const confirmation = form.confirmationMessage
     ? `${form.confirmationMessage}\n\nI'll send you ${form.questions.length} question(s) one at a time. Just reply with your answer to each.`
     : `I'll send you ${form.questions.length} question(s) one at a time. Just reply with your answer to each.`;
 
   const sent = await dmOrLog(bot, applicantId, confirmation);
-  if (!sent) return; // DMs closed — nothing more we can do
+  if (!sent) {
+    // Same cleanup as the introNote path. This branch existed in the older
+    // tree and was lost in the scaled one, leaving orphan progress rows that
+    // permanently blocked the applicant from restarting.
+    await db.delete(schema.dmApplicationProgress).where(
+      and(eq(schema.dmApplicationProgress.formId, form.id), eq(schema.dmApplicationProgress.applicantId, applicantId)),
+    );
+    return;
+  }
 
   await sendNextQuestion(bot, form, applicantId);
 }
