@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars and fill in. That file is gitignored — it names your
+# project and settings, not secrets, but there's no reason to publish it.
+
+project_id  = "your-gcp-project-id"
+region      = "us-central1"
+github_repo = "creeperdiamonds/appealy"
+
+# db-f1-micro is enough for a few hundred guilds. The app pools at 10
+# connections per process, so a bigger instance buys nothing until that changes.
+db_tier = "db-f1-micro"
+
+# Memorystore plus the VPC connector Cloud Run needs is ~$35/month combined.
+# Everything Redis holds here is reconstructible, so leaving this off while you
+# prove the product out is a reasonable trade. Turn it on when the degradation
+# (caches on TTL, rate limits resetting on restart) starts to matter.
+enable_redis = false
+
+# Leave true once real data exists. Blocks `terraform destroy` from taking the
+# database with it.
+db_deletion_protection = true

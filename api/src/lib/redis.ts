@@ -17,17 +17,32 @@
 
 import Redis from "ioredis";
 import { env } from "../env.ts";
+import { MemoryRedis, useMemoryRedis, MEMORY_REDIS_WARNING } from "../../../shared/lib/memoryRedis.ts";
 
-export const redis = new Redis(env.REDIS_URL, {
-  lazyConnect: true,
-  maxRetriesPerRequest: 2,
-  enableOfflineQueue: false, // fail fast rather than queueing during an outage
-  retryStrategy: (times) => Math.min(times * 200, 5_000),
-});
+// POC mode: no Redis container. See shared/lib/memoryRedis.ts — safe for a
+// single process, not safe for replicas, and it says so at startup.
+//
+// One consequence worth naming: with the shim, the API and the bot each hold
+// their own copy, so a config change in the dashboard publishes an
+// invalidation the bot never receives. The bot's caches then serve stale
+// config until their own TTL expires. Bounded and self-healing, but it means
+// "I changed a setting and nothing happened" is expected for up to a minute.
+export const redis = useMemoryRedis(env.REDIS_URL)
+  ? (new MemoryRedis("api") as unknown as Redis)
+  : new Redis(env.REDIS_URL, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 2,
+      enableOfflineQueue: false, // fail fast rather than queueing during an outage
+      retryStrategy: (times) => Math.min(times * 200, 5_000),
+    });
+
+if (useMemoryRedis(env.REDIS_URL)) console.warn(MEMORY_REDIS_WARNING);
 
 let connectPromise: Promise<void> | null = null;
 
 async function ensureConnected(): Promise<void> {
+  // The shim has no connection to establish and no status field.
+  if (useMemoryRedis(env.REDIS_URL)) return;
   if (redis.status === "ready") return;
   if (!connectPromise) {
     connectPromise = redis.connect().catch((err) => {

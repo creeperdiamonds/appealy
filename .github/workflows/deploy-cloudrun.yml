@@ -133,16 +133,6 @@ jobs:
             APPEALY_ENV=production
             DEPLOYMENT_MODE=platform
             LOG_LEVEL=info
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            REDIS_URL=${{ secrets.REDIS_URL }}
-            DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}
-            DISCORD_APPLICATION_ID=${{ secrets.DISCORD_APPLICATION_ID }}
-            DISCORD_PUBLIC_KEY=${{ secrets.DISCORD_PUBLIC_KEY }}
-            DISCORD_CLIENT_ID=${{ secrets.DISCORD_CLIENT_ID }}
-            DISCORD_CLIENT_SECRET=${{ secrets.DISCORD_CLIENT_SECRET }}
-            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-            TOKEN_ENCRYPTION_KEY=${{ secrets.TOKEN_ENCRYPTION_KEY }}
-            OPS_USER_IDS=${{ vars.OPS_USER_IDS }}
 
           # Secrets come from Secret Manager, NOT from env_vars.
           #

@@ -82,6 +82,9 @@ export const env = {
   DISCORD_APPLICATION_ID: required("DISCORD_APPLICATION_ID"),
   DISCORD_PUBLIC_KEY: required("DISCORD_PUBLIC_KEY"),
   DATABASE_URL: required("DATABASE_URL"),
+  // Empty or "memory" runs without a Redis container — see
+  // shared/lib/memoryRedis.ts. Kept as the localhost default so an existing
+  // compose setup is unaffected.
   REDIS_URL: optional("REDIS_URL", "redis://localhost:6379"),
   LOG_LEVEL: optional("LOG_LEVEL", "info"),
   NODE_ENV: optional("APPEALY_ENV", "development"),

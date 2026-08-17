@@ -30,11 +30,20 @@
 import { connect, type Redis } from "redis";
 import { env } from "./env.ts";
 import { logger } from "../utils/logger.ts";
+import { MemoryRedis, useMemoryRedis, MEMORY_REDIS_WARNING } from "../../../shared/lib/memoryRedis.ts";
 
 let client: Redis | null = null;
 let connecting: Promise<Redis> | null = null;
 
 async function openConnection(): Promise<Redis> {
+  // POC mode: no Redis container. Everything this bot keeps in Redis is
+  // reconstructible, so an in-process substitute is enough to run end to end
+  // — see shared/lib/memoryRedis.ts for exactly where that stops being true.
+  if (useMemoryRedis(env.REDIS_URL)) {
+    logger.warn(MEMORY_REDIS_WARNING);
+    return new MemoryRedis("bot") as unknown as Redis;
+  }
+
   const url = new URL(env.REDIS_URL);
   const redis = await connect({
     hostname: url.hostname,

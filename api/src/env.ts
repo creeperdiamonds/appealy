@@ -69,6 +69,9 @@ export const env = {
   // permission cache, and per-guild API rate limiting. Optional with a
   // localhost default to match the bot's env module, so a dev machine
   // running `docker compose up redis` needs no extra configuration.
+  // Empty or "memory" runs without a Redis container — see
+  // shared/lib/memoryRedis.ts. Kept as the localhost default so an existing
+  // compose setup is unaffected.
   REDIS_URL: optional("REDIS_URL", "redis://localhost:6379"),
   DISCORD_CLIENT_ID: required("DISCORD_CLIENT_ID"),
   DISCORD_CLIENT_SECRET: required("DISCORD_CLIENT_SECRET"),

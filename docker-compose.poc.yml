@@ -1,0 +1,84 @@
+# docker-compose.poc.yml
+#
+# Minimum to run Appealy end to end. Two containers instead of five.
+#
+#   docker compose -f docker-compose.poc.yml up -d
+#
+# What's gone and why it's safe:
+#
+#   redis    replaced by an in-process substitute (shared/lib/memoryRedis.ts).
+#            Everything Redis holds here is reconstructible — cache, rate-limit
+#            counters, pending form answers. Losing it on restart costs a
+#            half-finished application and a cold cache.
+#
+#   web      the dashboard is optional for proving the product works. Every
+#            core flow — apply, review, pick an outcome, apply roles, ban
+#            appeal — happens inside Discord. Add it back with the main compose
+#            file when you want the console.
+#
+# What this is NOT: a production setup. The memory shim is per-process, so the
+# bot and api each keep their own copy — a settings change in the dashboard
+# won't invalidate the bot's cache, and it'll serve stale config until TTL.
+# Bounded and self-healing, and exactly why this is labelled POC.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: appealy
+      POSTGRES_PASSWORD: appealy
+      POSTGRES_DB: appealy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Loopback only. The password is "appealy".
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appealy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging: &poc_logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  bot:
+    build:
+      context: .
+      dockerfile: bot/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://appealy:appealy@postgres:5432/appealy
+      # Empty means the in-memory substitute. This is the whole POC trick.
+      REDIS_URL: ""
+      DEPLOYMENT_MODE: self
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *poc_logging
+
+  # Only needed if you want the dashboard or the ban-appeal web flow. The bot
+  # runs without it.
+  api:
+    profiles: ["dashboard"]
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://appealy:appealy@postgres:5432/appealy
+      REDIS_URL: ""
+      DEPLOYMENT_MODE: self
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *poc_logging
+
+volumes:
+  pgdata:

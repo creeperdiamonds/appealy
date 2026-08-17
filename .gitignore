@@ -32,6 +32,19 @@ secrets/
 appealy-complete.zip
 
 # ---------------------------------------------------------------------------
+# Terraform
+#
+# tfstate holds the generated database password in plaintext, and tfvars names
+# your project. Neither belongs in a public repo.
+# ---------------------------------------------------------------------------
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+!terraform.tfvars.example
+
+# ---------------------------------------------------------------------------
 # Dependencies and build output
 # ---------------------------------------------------------------------------
 node_modules/

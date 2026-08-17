@@ -17,6 +17,30 @@ share one Postgres database and one schema definition:
   This is the single source of truth for the data model and wire format;
   never duplicate a type or table definition in `bot/` or `api/`.
 
+**Stack:** TypeScript · Deno · Node · React · PostgreSQL · Redis · Drizzle ORM
+· Docker · Terraform · Google Cloud Platform (Cloud Run, Cloud SQL,
+Memorystore, Secret Manager, Artifact Registry) · GitHub Actions
+
+## Deployment
+
+Runs on **Google Cloud Platform** — Cloud Run for the API and dashboard,
+Cloud SQL for Postgres, Memorystore for Redis, Secret Manager for
+credentials, and Artifact Registry for images. Infrastructure is defined in
+Terraform (`terraform/`) and deploys through GitHub Actions using Workload
+Identity Federation, so no service account keys are stored anywhere.
+
+It also runs anywhere Docker does — a VPS, a Raspberry Pi, or a laptop. See
+`PI.md` and `SETUP.md`.
+
+| Guide | For |
+|---|---|
+| `POC.md` | Two containers, no Redis, no cloud account — start here |
+| `SETUP.md` | Full local setup and the manual steps |
+| `terraform/README.md` | GCP infrastructure as code, with costs |
+| `DOCKER.md` | Container and Cloud Run specifics |
+| `PI.md` | Raspberry Pi |
+| `SELF_HOSTING.md` | Running it for your own server |
+
 ## Quick start
 
 ```bash
@@ -37,6 +61,33 @@ Running on a Raspberry Pi? See `PI.md` — `setup.sh` detects it and tunes
 itself, but there are two things to get right before you start.
 
 Then read `SETUP.md` for what's deliberately left manual.
+
+### Proving it works first
+
+`POC.md` gets you running on two containers with no Redis and no cloud
+account. Worth doing before touching GCP — deploying to the cloud first means
+debugging the application and the infrastructure at the same time, without
+knowing which one is broken.
+
+### Deploying to GCP
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars    # set project_id
+terraform init && terraform plan                # plan lists what gets billed
+terraform apply
+terraform output github_variables               # paste into repo settings
+```
+
+Then run the **Deploy to GCP Cloud Run** workflow from the Actions tab,
+picking `api` or `web`.
+
+Note on the bot specifically: a Discord gateway connection is a WebSocket that
+must stay open continuously, which is the opposite of what Cloud Run is built
+for. It needs `--min-instances=1 --no-cpu-throttling --max-instances=1` to
+survive, and those flags bill CPU continuously for roughly the price of an
+e2-micro VM. `DOCKER.md` covers why a small Compute Engine instance is the
+better home for it.
 
 ## Why two processes talk over an internal HTTP bridge
 
