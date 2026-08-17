@@ -89,3 +89,6 @@ jobs:
           region: '${{ env.GCP_REGION }}'
           # Set the container port according to the service type
           flags: '--port=${{ steps.prep.outputs.port }}'
+      
+      - name: Print Deployed URL
+        run: echo "Deployed URL is ${{ steps.deploy.outputs.url }}"
