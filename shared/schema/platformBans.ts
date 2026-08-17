@@ -139,13 +139,56 @@ export function toPublicBan(
   };
 }
 
+/**
+ * Appeal limits.
+ *
+ * These exist to protect reviewers from a flooded queue, not to wear down
+ * appellants. One motivated person submitting fifty appeals buries every
+ * genuine one behind them, and the people harmed by that are the other
+ * appellants — so a cap is real protection, not an obstacle.
+ *
+ * But this project exists because a bot told its users "this decision is
+ * final and cannot be appealed", so the limits are shaped to never become
+ * that sentence:
+ *
+ *   - Automated bans get more attempts than reviewed ones. A ban nobody
+ *     looked at is exactly the kind most likely to be wrong, and the
+ *     appellant did nothing to earn a shorter rope than someone a human
+ *     actually considered.
+ *   - Running out of attempts pauses appeals; it does not close the case.
+ *     `reopenAfterDays` is when the counter resets. A ban can always be
+ *     revisited eventually, because a permanent ban with no path back is
+ *     the thing this bot was written in response to.
+ *   - No message anywhere says "final".
+ */
 export const APPEAL_RULES = {
   minLength: 40,
   maxLength: 2000,
-  /** Lifetime cap per ban. Past this the decision stands. */
-  maxAttempts: 3,
-  /** Wait after a denial before another attempt is accepted. */
+
+  /** Attempts before appeals pause, for a ban a human reviewed. */
+  maxAttemptsReviewed: 3,
+  /**
+   * Attempts for an automated ban. Higher on purpose: nobody looked at it
+   * before it landed, and a heuristic misfiring on an innocent user is the
+   * single most likely way this system hurts someone.
+   */
+  maxAttemptsAutomated: 5,
+
+  /** Wait after a denial before the next attempt is accepted. */
   cooldownDays: 30,
+  /**
+   * After attempts are exhausted, appeals reopen this many days later with a
+   * fresh count. Deliberately finite. "You may appeal again in six months" is
+   * a different thing from "you may never appeal again", and only one of them
+   * is a decision a person can live with.
+   */
+  reopenAfterDays: 180,
+
   /** Guild appeals require this permission bit on the appellant. */
   manageGuild: 0x20n,
 } as const;
+
+/** Attempts allowed for a given ban. Automated bans get the longer rope. */
+export function attemptsAllowed(ban: { automated: boolean }): number {
+  return ban.automated ? APPEAL_RULES.maxAttemptsAutomated : APPEAL_RULES.maxAttemptsReviewed;
+}

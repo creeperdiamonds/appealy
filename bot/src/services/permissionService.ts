@@ -10,6 +10,7 @@
 import { eq, and, or, isNull } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
+import { STAFF_RANK, type StaffLevel } from "../../../shared/schema/outcomes.ts";
 
 const ADMINISTRATOR = 0x8n;
 
@@ -58,6 +59,48 @@ export async function canReviewForm(
       (d.userId !== null && d.userId === memberId) ||
       (d.roleId !== null && memberRoleIds.includes(d.roleId)),
   );
+}
+
+/**
+ * The reviewer's highest staff level, for outcome gating.
+ *
+ * Separate from canReviewForm because they answer different questions: that
+ * one is "may you review at all", this is "how far up the outcome list do you
+ * reach". Collapsing them would mean any reviewer can grant any outcome, which
+ * turns the application form into a privilege escalation path — see
+ * shared/schema/outcomes.ts.
+ *
+ * Discord ADMINISTRATOR maps to "owner" deliberately. Someone with that
+ * permission can already assign any role by hand; pretending the bot restricts
+ * them would be theatre, and worse, it would hide a real outcome from someone
+ * who genuinely has the authority to grant it.
+ */
+export async function staffLevelFor(
+  guildId: bigint,
+  memberId: bigint,
+  memberRoleIds: bigint[],
+  memberPermissions: bigint = 0n,
+): Promise<StaffLevel> {
+  if ((memberPermissions & ADMINISTRATOR) === ADMINISTRATOR) return "owner";
+
+  const rows = await db
+    .select()
+    .from(schema.staffPermissions)
+    .where(eq(schema.staffPermissions.guildId, guildId));
+
+  const mine = rows.filter(
+    (d) =>
+      (d.userId !== null && d.userId === memberId) ||
+      (d.roleId !== null && memberRoleIds.includes(d.roleId)),
+  );
+
+  // Highest wins. Someone holding both a manager delegation and an admin one
+  // through different roles is an admin.
+  let best: StaffLevel = "manager";
+  for (const d of mine) {
+    if (STAFF_RANK[d.level as StaffLevel] > STAFF_RANK[best]) best = d.level as StaffLevel;
+  }
+  return best;
 }
 
 export async function canManageForm(

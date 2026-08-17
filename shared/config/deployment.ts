@@ -154,7 +154,10 @@ export function resolveDeployment(
 ): DeploymentConfig {
   const explicit = get("DEPLOYMENT_MODE")?.trim().toLowerCase();
   const stripe = inspectStripe(get);
-  const stripeConfigured = stripe.configured;
+  // Discord subscriptions are the other way to be a paid deployment. If SKUs
+  // are mapped, this is a platform whether or not Stripe is involved.
+  const discordSkus = !!get("DISCORD_SKU_TIERS")?.trim();
+  const stripeConfigured = stripe.configured || discordSkus;
 
   let mode: DeploymentMode;
 
@@ -173,7 +176,7 @@ export function resolveDeployment(
     if (mode === "platform" && !stripeConfigured) {
       throw new Error(
         [
-          "DEPLOYMENT_MODE=platform requires working Stripe configuration.",
+          "DEPLOYMENT_MODE=platform requires a billing source: either working Stripe configuration or DISCORD_SKU_TIERS.",
           ...stripe.problems,
           'If you are self-hosting, remove DEPLOYMENT_MODE (or set it to "self") and no Stripe account is needed.',
         ].join(" "),
@@ -190,9 +193,13 @@ export function resolveDeployment(
     }
   } else {
     mode = stripeConfigured ? "platform" : "self";
+    const why = discordSkus
+      ? "DISCORD_SKU_TIERS is set"
+      : stripe.configured
+      ? "STRIPE_SECRET_KEY is configured"
+      : "no billing is configured";
     note(
-      `[deployment] DEPLOYMENT_MODE not set — inferred "${mode}" ` +
-        `because STRIPE_SECRET_KEY is ${stripeConfigured ? "configured" : "absent"}. ` +
+      `[deployment] DEPLOYMENT_MODE not set — inferred "${mode}" because ${why}. ` +
         "Set DEPLOYMENT_MODE explicitly to remove the guesswork.",
     );
   }

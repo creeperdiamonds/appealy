@@ -75,6 +75,66 @@ if command -v docker >/dev/null 2>&1; then
   fi
 fi
 
+# ---- Raspberry Pi specifics -------------------------------------------------
+IS_PI=0
+COMPOSE_FILES=(-f docker-compose.yml)
+
+if grep -qi "raspberry pi" /proc/device-tree/model 2>/dev/null || \
+   grep -qi "raspberry pi" /sys/firmware/devicetree/base/model 2>/dev/null; then
+  IS_PI=1
+  PI_MODEL=$(tr -d '\0' < /proc/device-tree/model 2>/dev/null || echo "Raspberry Pi")
+  ok "Detected: $PI_MODEL"
+
+  # 64-bit is not optional. Every image in this stack publishes arm64 but not
+  # armhf, and on a 32-bit OS docker pull fails with "no matching manifest" —
+  # which reads like a network error and sends people down the wrong path.
+  ARCH=$(uname -m)
+  if [[ "$ARCH" != "aarch64" && "$ARCH" != "arm64" ]]; then
+    die "This Pi is running a 32-bit OS (uname -m = $ARCH).
+     Postgres, Redis and Deno publish arm64 images only, so nothing here will pull.
+     Reflash with the 64-bit Raspberry Pi OS (Raspberry Pi Imager → Raspberry Pi OS (64-bit))."
+  fi
+  ok "64-bit OS (aarch64)"
+
+  # Swap. A Pi with 1GB of RAM cannot build the web bundle; with 4GB it can,
+  # but only just, and the failure is an opaque "Killed" from the OOM killer
+  # rather than anything mentioning memory.
+  RAM_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+  SWAP_MB=$(( $(grep SwapTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+  info "RAM: ${RAM_MB}MB, swap: ${SWAP_MB}MB"
+
+  if [[ $RAM_MB -lt 3500 ]]; then
+    warn "Under 4GB of RAM. Building the web bundle here may be killed by the OOM killer."
+    if [[ $SWAP_MB -lt 1500 ]]; then
+      cat <<EOF
+
+  ${DIM}Raspberry Pi OS defaults to 100MB of swap, which is not enough to build.
+  Raise it to 2GB before continuing:
+
+    sudo dphys-swapfile swapoff
+    sudo sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
+    sudo dphys-swapfile setup && sudo dphys-swapfile swapon${R}
+
+EOF
+      read -r -p "  Continue anyway? [y/N] " goon < /dev/tty
+      [[ "${goon,,}" == "y" ]] || die "Raise swap, then run this again."
+    fi
+  fi
+
+  # SD cards die from Postgres write volume. This is the most common way a Pi
+  # deployment fails months later, and it fails as corruption, not a warning.
+  ROOT_SRC=$(findmnt -no SOURCE / 2>/dev/null || echo "")
+  if [[ "$ROOT_SRC" == /dev/mmcblk* ]]; then
+    warn "Running from an SD card. Postgres write volume will wear it out — expect corruption, not a warning."
+    info "Strongly consider booting from a USB SSD, or at least moving the pg_data volume to one."
+  else
+    ok "Not on an SD card (${ROOT_SRC:-unknown}) — good for database writes."
+  fi
+
+  COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.pi.yml)
+  info "Pi tuning enabled (docker-compose.pi.yml): capped logs, bounded memory, Postgres tuned for slow storage."
+fi
+
 [[ $MISSING -eq 1 ]] && die "Install the things above, then run this again."
 [[ $CHECK_ONLY -eq 1 ]] && { printf '\n%sAll good.%s\n\n' "$GRN" "$R"; exit 0; }
 
@@ -261,12 +321,12 @@ fi
 step "Starting the database and running migrations"
 # ---------------------------------------------------------------------------
 info "Starting postgres and redis..."
-docker compose up -d postgres redis >/dev/null
+docker compose "${COMPOSE_FILES[@]}" up -d postgres redis >/dev/null
 ok "Containers up"
 
 printf '  '
 for i in $(seq 1 60); do
-  if docker compose exec -T postgres pg_isready -q 2>/dev/null; then
+  if docker compose "${COMPOSE_FILES[@]}" exec -T postgres pg_isready -q 2>/dev/null; then
     printf '\n'; ok "Postgres is accepting connections"; break
   fi
   printf '.'
@@ -278,7 +338,7 @@ done
 # had no migration history. Running it against a database that already has
 # tables will fail partway and leave things in an unclear state — so check
 # first rather than find out from a stack trace.
-EXISTING=$(docker compose exec -T postgres psql -U appealy -d appealy -tAc \
+EXISTING=$(docker compose "${COMPOSE_FILES[@]}" exec -T postgres psql -U appealy -d appealy -tAc \
   "select count(*) from information_schema.tables where table_schema='public' and table_name not like 'drizzle%';" 2>/dev/null || echo 0)
 EXISTING=$(printf '%s' "$EXISTING" | tr -d '[:space:]')
 
@@ -306,8 +366,11 @@ fi
 # ---------------------------------------------------------------------------
 step "Starting everything and registering commands"
 # ---------------------------------------------------------------------------
+if [[ $IS_PI -eq 1 ]]; then
+  info "Building on a Pi takes 10-25 minutes the first time. Later starts are seconds."
+fi
 info "Building and starting bot, api, and web..."
-docker compose up -d --build >/dev/null
+docker compose "${COMPOSE_FILES[@]}" up -d --build >/dev/null
 ok "All services started"
 
 # Deliberately not part of boot — Discord allows only 200 global command

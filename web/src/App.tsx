@@ -11,6 +11,7 @@
 
 import Banned from "./pages/Banned";
 import AppealConfig from "./pages/AppealConfig";
+import OutcomeEditor from "./pages/OutcomeEditor";
 import OpsAppeals from "./pages/OpsAppeals";
 import { BannedError } from "./lib/api";
 import { useEffect, useState } from "react";

@@ -43,6 +43,7 @@ import {
   type RateLimitCaps,
 } from "../../../shared/schema/pricing.ts";
 import { deployment, env, PRIVILEGED } from "../core/env.ts";
+import { entitledTier } from "../core/entitlements.ts";
 
 const FREE_CAPS = RATE_LIMIT_PRESETS.free.caps;
 
@@ -93,6 +94,19 @@ export function resolveEffectiveCaps(
   // self-hoster with someone else's price list.
   if (!deployment.features.tieredRateLimits) {
     return SELF_HOSTED_CAPS;
+  }
+
+  // A live Discord entitlement outranks the stored tier. The database column
+  // lags — it's updated by our own bookkeeping — whereas the entitlement is
+  // what Discord says the customer is currently paying for. When they
+  // disagree, Discord is right.
+  //
+  // Returns null when nothing is entitled OR when entitlements haven't loaded
+  // yet, so an unreconciled cache falls through to the stored tier rather than
+  // downgrading a paying customer to free.
+  const entitled = entitledTier(guild.id);
+  if (entitled) {
+    return RATE_LIMIT_PRESETS[entitled].caps;
   }
 
   if (guild.rateLimitTier !== "custom") {

@@ -1,0 +1,103 @@
+# docker-compose.pi.yml
+#
+# Overrides for running on a Raspberry Pi 4. Use with:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d
+#
+# (setup.sh does this automatically when it detects a Pi.)
+#
+# None of this is about ARM — every image in the stack is multi-arch and runs
+# natively on a 64-bit Pi. It's about three things a Pi has less of than the
+# machine this was written on: RAM, disk write endurance, and disk speed.
+#
+# ---------------------------------------------------------------------------
+# The one that actually kills Pis: logs
+# ---------------------------------------------------------------------------
+# Docker's default json-file driver has NO size limit. A bot logging steadily
+# will fill an SD card over weeks, and when the card fills, Postgres stops
+# accepting writes and the failure looks like a database bug. Every service
+# below is capped. This is the single most valuable thing in this file.
+#
+# ---------------------------------------------------------------------------
+# Memory
+# ---------------------------------------------------------------------------
+# Limits are set so that a leak in one service gets that service OOM-killed
+# and restarted, rather than letting the kernel's OOM killer pick a victim —
+# which on a Pi is usually Postgres, the one process you least want killed.
+#
+# Sized for a 4GB Pi with room to spare. On an 8GB Pi you can raise them, but
+# there's little reason to: this stack is I/O-bound, not memory-bound.
+
+services:
+  postgres:
+    # Tuned for a small machine with slow storage. The defaults assume a
+    # server with fast disks and are actively wrong here.
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c maintenance_work_mem=64MB
+      -c work_mem=8MB
+      -c max_connections=50
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c wal_compression=on
+      -c checkpoint_completion_target=0.9
+      -c max_wal_size=1GB
+      -c min_wal_size=256MB
+    # random_page_cost=1.1 and effective_io_concurrency=200 tell the planner
+    # storage is SSD-like. Correct on a USB SSD, and still better than the
+    # rotational-disk defaults on an SD card.
+    #
+    # max_connections=50 rather than the default 100: db/client.ts pools at
+    # max 10 per process and there are two processes, so 50 is generous. Each
+    # connection slot reserves memory whether used or not.
+    #
+    # wal_compression=on trades a little CPU for noticeably fewer bytes
+    # written — directly extends the life of an SD card.
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging: &pi_logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    # Redis here holds rate-limit counters, cache invalidation, and pending
+    # form answers — all reconstructible. Losing it on a restart costs
+    # nothing, so persistence is off and memory is bounded.
+    command: >
+      redis-server
+      --save ""
+      --appendonly no
+      --maxmemory 192mb
+      --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging: *pi_logging
+
+  bot:
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    logging: *pi_logging
+
+  api:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *pi_logging
+
+  web:
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging: *pi_logging

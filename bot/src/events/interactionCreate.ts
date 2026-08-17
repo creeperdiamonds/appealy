@@ -31,6 +31,7 @@ import { handleVerifyButton } from "../interactions/buttons/verify.ts";
 import { handleVerifyCaptchaModalSubmit } from "../interactions/modals/verifyCaptcha.ts";
 import { routeSlashCommand, routeAutocomplete } from "../commands/index.ts";
 import { passesBanGate } from "../core/banGate.ts";
+import { absorbFromInteraction } from "../core/entitlements.ts";
 
 export function onInteractionCreate(bot: AppealyBot) {
   return async (interaction: Interaction) => {
@@ -38,6 +39,10 @@ export function onInteractionCreate(bot: AppealyBot) {
       // Before routing, before defer, before any database read. A banned
       // subject costs us one in-memory Map lookup and nothing else.
       if (!(await passesBanGate(bot, interaction))) return;
+
+      // Every interaction carries the caller's entitlements. Free, and it
+      // self-heals anything the gateway dropped across a reconnect.
+      absorbFromInteraction((interaction as { entitlements?: never[] }).entitlements);
 
       switch (interaction.type) {
         case InteractionTypes.ApplicationCommand: {
@@ -78,6 +83,33 @@ export function onInteractionCreate(bot: AppealyBot) {
           }
           if (namespace === "review" && action === "accept") {
             return await handleReviewAccept(bot, interaction, entityId);
+          }
+          // Outcome menu: entityId is the submissionId, the chosen outcome id
+          // arrives as the select value. Same handler — it branches on whether
+          // an outcome was chosen rather than duplicating the accept path.
+          if (namespace === "review" && action === "outcome") {
+            const chosen = interaction.data?.values?.[0];
+            if (!chosen) return;
+            return await handleReviewAccept(bot, interaction, entityId, chosen);
+          }
+          // Confirm click. `extra` carries the submissionId; entityId is the
+          // outcome. interaction.message.interaction.token is not available
+          // here, so the staged token is the confirm message's own custom_id
+          // suffix — see outcomeConfirm.ts.
+          if (namespace === "review" && action === "confirm") {
+            if (!extra) return;
+            return await handleReviewAccept(bot, interaction, extra, entityId, extra);
+          }
+          if (namespace === "review" && action === "denyoutcome") {
+            const chosen = interaction.data?.values?.[0];
+            if (!chosen) return;
+            return await handleReviewDeny(bot, interaction, entityId, chosen);
+          }
+          if (namespace === "review" && action === "cancel") {
+            return await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+              type: 7, // update the ephemeral message in place
+              data: { content: "Cancelled — nothing was applied.", embeds: [], components: [] },
+            });
           }
           if (namespace === "review" && action === "deny") {
             return await handleReviewDeny(bot, interaction, entityId);

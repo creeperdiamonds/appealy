@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Appealy">
+  <title>Appealy</title>
+  <!--
+    Favicon variant. Same door, no rounded-square container.
+
+    Browsers draw favicons on the tab background at 16px, so a container eats
+    roughly a third of the area for nothing. Dropping it lets the door fill
+    the frame — at 16px, area is all you have.
+
+    The panel uses currentColor so an inlined copy inherits the page's text
+    colour and works on light and dark from one file. The frame stays blurple
+    so the mark keeps its identity either way.
+  -->
+  <path fill="#5865F2" d="M320 68h92a20 20 0 0 1 20 20v336a20 20 0 0 1-20 20h-92v-52h60V120h-60Z"/>
+  <path fill="currentColor" d="M314 36 128 88a24 24 0 0 0-18 23v290a24 24 0 0 0 18 23l186 52a14 14 0 0 0 18-14V50a14 14 0 0 0-18-14Z"/>
+  <circle cx="176" cy="256" r="21" fill="#5865F2"/>
+</svg>

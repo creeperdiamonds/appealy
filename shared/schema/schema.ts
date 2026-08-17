@@ -398,6 +398,11 @@ export const submissions = pgTable(
     threadId: bigint("thread_id", { mode: "bigint" }),
     reviewerId: bigint("reviewer_id", { mode: "bigint" }),
     reviewReason: text("review_reason"),
+    // Which outcome was chosen, when the form has more than one. Null for
+    // denials and for forms using the single-accept path. outcomeLabel is a
+    // deliberate snapshot — see shared/schema/outcomes.ts.
+    outcomeId: text("outcome_id"),
+    outcomeLabel: text("outcome_label"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     // How long the applicant took from starting to submitting — populated
     // for both application types, shown in the review embed when the
@@ -1179,3 +1184,8 @@ export const appealConfigs = pgTable("appeal_configs", {
 // export. See shared/schema/platformBans.ts for why they're kept separate.
 // ---------------------------------------------------------------------------
 export * from "./platformBans.ts";
+
+// Multiple accept outcomes per form. Kept in its own file for size; re-exported
+// here because db/client.ts does `import * as schema from "./schema.ts"` and
+// there is no barrel module.
+export * from "./outcomes.ts";

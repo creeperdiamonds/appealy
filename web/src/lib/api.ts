@@ -253,6 +253,30 @@ export const api = {
 
   forms: (guildId: string) => request<FormSummary[]>(`/api/guilds/${guildId}/forms`),
 
+  // --- Form accept outcomes ---
+  outcomes: (guildId: string, formId: string, decision?: "accept" | "deny") =>
+    request<{ outcomes: FormOutcomeDTO[] }>(
+      `/api/guilds/${guildId}/forms/${formId}/outcomes${decision ? `?decision=${decision}` : ""}`,
+    ),
+
+  createOutcome: (guildId: string, formId: string, body: Partial<FormOutcomeDTO>) =>
+    request<{ outcome: FormOutcomeDTO; warnings: string[] }>(
+      `/api/guilds/${guildId}/forms/${formId}/outcomes`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+
+  updateOutcome: (guildId: string, formId: string, outcomeId: string, body: Partial<FormOutcomeDTO>) =>
+    request<{ outcome: FormOutcomeDTO }>(
+      `/api/guilds/${guildId}/forms/${formId}/outcomes/${outcomeId}`,
+      { method: "PATCH", body: JSON.stringify(body) },
+    ),
+
+  deleteOutcome: (guildId: string, formId: string, outcomeId: string) =>
+    request<{ deleted: boolean; revertedToSingleAccept: boolean }>(
+      `/api/guilds/${guildId}/forms/${formId}/outcomes/${outcomeId}`,
+      { method: "DELETE" },
+    ),
+
   // --- Guild ban appeals (the product feature) ---
   appealConfig: (guildId: string) =>
     request<AppealConfigDTO>(`/api/guilds/${guildId}/appeal-config`),
@@ -339,4 +363,20 @@ export interface OpsAppeal {
     notes: string | null;
     evidence: Record<string, unknown> | null;
   };
+}
+
+export interface FormOutcomeDTO {
+  id: string;
+  decision: "accept" | "deny";
+  label: string;
+  description: string | null;
+  emoji: string | null;
+  grantRoleIds: string[];
+  removeRoleIds: string[];
+  message: string | null;
+  logChannelId: string | null;
+  minStaffLevel: number;
+  position: number;
+  requiresConfirm: boolean;
+  isNoop?: boolean;
 }

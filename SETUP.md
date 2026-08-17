@@ -101,6 +101,71 @@ as this was designed to go" rather than an invented number.
 A malformed guild ID throws at startup rather than silently never matching —
 otherwise you'd raise your own caps, see nothing change, and have no idea why.
 
+## Sharding
+
+Automatic. The count is `ceil(guilds / GUILDS_PER_SHARD)`, floored at Discord's
+own recommendation, capped at `MAX_SHARDS`, and decided at each startup.
+
+**Why it can't change while running.** Discord assigns guilds with
+`(guild_id >> 22) % total_shards`. The total is in the denominator, so going
+from 2 shards to 3 remaps *every* guild — there's no appending. Growing means
+tearing down all connections and re-identifying, so the count is fixed for the
+life of the process and a watcher tells you when to restart.
+
+**The guard that matters.** Every shard connecting spends a Discord "session
+start", and you get a limited number per day (1000 by default) with no override
+when they run out. A 4-shard bot crash-looping every 30 seconds burns the whole
+day's budget in about two hours and then cannot start at all until the window
+resets — a far worse outage than whatever caused the loop.
+
+So the bot refuses to start when the remaining budget is below a reserve, and
+says so, instead of spending the last of it. If you see that message, something
+has been restarting in a loop; read the logs before trying again.
+
+## Billing via Discord subscriptions
+
+```
+DISCORD_SKU_TIERS=1234567890123456789:tier1,2345678901234567890:tier2
+```
+
+Create the SKUs in the Developer Portal under Monetization, map them here, and
+guilds with a live entitlement get that tier automatically. No Stripe account.
+
+**Why this over Stripe.** Discord is merchant of record — no payment processor
+to onboard, no PCI surface, no VAT handling, no payouts of your own. Purchase
+happens inside Discord rather than via a redirect. And Discord's Monetization
+Requirements policy expects paid apps to offer Premium Apps pricing no higher
+than elsewhere, so Stripe-only was never really on the table.
+
+The costs are real: a platform fee of 15% below $1M cumulative sales and 30%
+after, and eligibility limited to US/UK/EU-based developers.
+
+**The mechanic that catches people out.** Renewals emit *no event at all*.
+`ENTITLEMENT_UPDATE` fires only when a subscription *ends*, carrying `ends_at`.
+So six months of silence is a healthy subscription, not a dropped webhook —
+code that treats silence as expiry cancels every paying customer. Active is
+the default state here; an entitlement is live until a past `ends_at` says
+otherwise.
+
+**Three sources, so a missed event self-heals.** Gateway events are instant but
+missable across a reconnect. Every interaction payload carries the caller's
+entitlements — free, and it repairs the cache on the next command. An hourly
+reconcile against `GET /applications/{id}/entitlements` rebuilds from scratch,
+which is the only way to notice a subscription that ended while disconnected,
+since that produces no event to process.
+
+**Precedence:** privileged guilds → Discord entitlement → self-mode caps →
+stored tier. The entitlement outranks the database column because the column is
+our bookkeeping and the entitlement is what Discord says the customer is
+currently paying for.
+
+If entitlements haven't loaded yet, the resolver returns null and the guild
+falls back to its stored tier. A paying customer briefly on the wrong tier is
+recoverable; one downgraded to free by a slow fetch generates a support ticket.
+
+**Self-hosters need do nothing.** Entitlements belong to the application that
+sold them, so a self-hosted bot with its own token has none by construction.
+
 ## Known gaps, deliberately
 
 - No ban-creation UI. `POST /api/ops/bans` exists; decide who can issue bans

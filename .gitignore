@@ -12,10 +12,24 @@
 .env
 .env.*
 !.env.example
+# Templates end in .example and contain no values. Without this line the
+# .env.* rule above swallows them and they never get committed.
+!.env.production.example
 
 *.pem
 *.key
 secrets/
+
+# ---------------------------------------------------------------------------
+# Distribution archives
+#
+# A zip of the repo, committed into the repo. Every version of it is kept in
+# git history forever, so a 400KB archive pushed a few times becomes megabytes
+# of permanent clone weight for something nobody ever reads from git. Use
+# GitHub Releases for distributables.
+# ---------------------------------------------------------------------------
+*.zip
+appealy-complete.zip
 
 # ---------------------------------------------------------------------------
 # Dependencies and build output

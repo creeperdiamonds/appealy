@@ -16,6 +16,7 @@ import { createBot, GatewayIntents } from "@discordeno/bot";
 import { env } from "./env.ts";
 import { logger } from "../utils/logger.ts";
 import { registerEventHandlers } from "../events/index.ts";
+import { resolveSharding } from "./sharding.ts";
 
 export const desiredProperties = {
   guild: {
@@ -100,7 +101,31 @@ export function createAppealyBot() {
 export type AppealyBot = ReturnType<typeof createAppealyBot>;
 
 export async function startBot(bot: AppealyBot) {
-  logger.info("Starting Appealy gateway connection...");
+  // Shard count is resolved from the live guild count before connecting.
+  // Discord's own recommendation acts as a floor — see core/sharding.ts for
+  // why the count can't change while running.
+  const plan = await resolveSharding(env.DISCORD_BOT_TOKEN);
+
+  // ⚠️ v18 API SURFACE: `bot.gateway.totalShards` is the documented field in
+  // Discordeno v18, but the gateway manager's shape has moved between minor
+  // versions (the note at the top of this file applies here too). Assigning
+  // defensively rather than assuming: if the property is missing, log it
+  // rather than silently running on one shard while believing otherwise.
+  const gw = (bot as unknown as { gateway?: Record<string, unknown> }).gateway;
+  if (gw && "totalShards" in gw) {
+    gw.totalShards = plan.totalShards;
+    if ("lastShardId" in gw) gw.lastShardId = plan.totalShards - 1;
+  } else if (plan.totalShards > 1) {
+    logger.error(
+      "Could not set totalShards on this Discordeno build — the bot will run single-sharded. " +
+        "Check @discordeno/bot's gateway manager API for the current field name.",
+      { wanted: plan.totalShards },
+    );
+  }
+
+  logger.info("Starting Appealy gateway connection...", { shards: plan.totalShards });
   await bot.start();
-  logger.info("Appealy bot connected.");
+  logger.info("Appealy bot connected.", { shards: plan.totalShards });
+
+  return plan;
 }

@@ -11,7 +11,12 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Loopback only. Published so you can psql from the host during
+      # development; NOT published to the LAN, because the password here is
+      # literally "appealy" and a home network with a permissive firewall
+      # would otherwise expose it. Change to "5432:5432" only if you
+      # genuinely need remote access, and change the password first.
+      - "127.0.0.1:5432:5432"
     networks:
       - appealy_internal
     healthcheck:
@@ -79,7 +84,10 @@ services:
         VITE_API_URL: http://localhost:3001
     restart: unless-stopped
     ports:
-      - "5173:80"
+      # Container now listens on ${PORT}, defaulting to 8080 — see
+      # web/Dockerfile. Host port unchanged, so http://localhost:5173 still
+      # works exactly as before.
+      - "5173:8080"
     depends_on:
       - api
     networks:
