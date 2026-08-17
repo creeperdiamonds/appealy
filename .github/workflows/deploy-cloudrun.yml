@@ -1,0 +1,91 @@
+name: Deploy to GCP Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy'
+        required: true
+        type: choice
+        options:
+          - api
+          - web
+          - bot
+      vite_api_url:
+        description: '(Web only) API URL to bake into the frontend'
+        required: false
+        default: 'https://appealy-api-xxxx.a.run.app'
+
+env:
+  # We recommend configuring these via GitHub Repository Variables (vars.*)
+  # Fallbacks are provided here so you know what needs to be set.
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'your-gcp-project-id' }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  ARTIFACT_REGISTRY: ${{ vars.ARTIFACT_REGISTRY || 'us-central1-docker.pkg.dev/your-gcp-project-id/appealy-repo' }}
+
+jobs:
+  deploy:
+    name: Deploy ${{ github.event.inputs.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Required for GCP Workload Identity Federation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          # Prefer Workload Identity Federation:
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          # If you don't use WIF, comment out the two lines above and uncomment below:
+          # credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker push
+        # Extracts the registry hostname (e.g. us-central1-docker.pkg.dev) from ARTIFACT_REGISTRY
+        run: gcloud auth configure-docker $(echo ${{ env.ARTIFACT_REGISTRY }} | cut -d'/' -f1) --quiet
+
+      - name: Prepare build arguments
+        id: prep
+        run: |
+          IMAGE_NAME="${{ env.ARTIFACT_REGISTRY }}/appealy-${{ github.event.inputs.service }}"
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          
+          if [ "${{ github.event.inputs.service }}" == "web" ]; then
+            echo "build_args=--build-arg VITE_API_URL=${{ github.event.inputs.vite_api_url }}" >> $GITHUB_OUTPUT
+            echo "port=80" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.service }}" == "api" ]; then
+            echo "build_args=" >> $GITHUB_OUTPUT
+            echo "port=3001" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.service }}" == "bot" ]; then
+            echo "build_args=" >> $GITHUB_OUTPUT
+            echo "port=9090" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Docker image
+        run: |
+          docker build ${{ steps.prep.outputs.build_args }} \
+            -t ${{ steps.prep.outputs.image_name }}:${{ github.sha }} \
+            -t ${{ steps.prep.outputs.image_name }}:latest \
+            -f ${{ github.event.inputs.service }}/Dockerfile .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ steps.prep.outputs.image_name }}:${{ github.sha }}
+          docker push ${{ steps.prep.outputs.image_name }}:latest
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: 'appealy-${{ github.event.inputs.service }}'
+          image: '${{ steps.prep.outputs.image_name }}:${{ github.sha }}'
+          region: '${{ env.GCP_REGION }}'
+          # Set the container port according to the service type
+          flags: '--port=${{ steps.prep.outputs.port }}'
