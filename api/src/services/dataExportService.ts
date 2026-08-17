@@ -7,7 +7,7 @@
 // but the query logic and exported shape must never drift between them,
 // so changes here should be mirrored there and vice versa.
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 
 export interface AppealyDataExport {
@@ -20,6 +20,11 @@ export interface AppealyDataExport {
   dmTemplates: unknown[];
   ticketConfigs: unknown[];
   tickets: unknown[];
+  // Personal data that was previously missing from exports. Appeal bodies are
+  // free text the user wrote about themselves; ban evidence typically contains
+  // their message content. Both are plainly theirs under any subject-access
+  // request, and omitting them made the export incomplete rather than minimal.
+  banAppeals: unknown[];
   giveaways: unknown[];
   verificationConfig: unknown | null;
   welcomerConfig: unknown | null;
@@ -44,6 +49,7 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
     dmTemplates,
     ticketConfigs,
     tickets,
+    banAppeals,
     giveaways,
     verificationConfig,
     welcomerConfig,
@@ -61,6 +67,28 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
     db.query.dmTemplates.findMany(),
     db.query.ticketConfigs.findMany({ where: eq(schema.ticketConfigs.guildId, guildId) }),
     db.query.tickets.findMany({ where: eq(schema.tickets.guildId, guildId) }),
+    // Appeals against a ban on THIS guild — i.e. the guild owner appealing us
+    // banning their server. Scoped by ban subject, not by member.
+    //
+    // User-level platform appeals are deliberately excluded: they're between
+    // the individual and us, and a guild admin exporting their server should
+    // not be able to read what one of their members wrote to us about a
+    // personal ban. Those belong in a user-scoped export, not this one.
+    db.query.platformBanAppeals.findMany({
+      where: (a, { exists }) =>
+        exists(
+          db
+            .select()
+            .from(schema.platformBans)
+            .where(
+              and(
+                eq(schema.platformBans.id, a.banId),
+                eq(schema.platformBans.subject, "guild"),
+                eq(schema.platformBans.subjectId, guildId),
+              ),
+            ),
+        ),
+    }),
     db.query.giveaways.findMany({ where: eq(schema.giveaways.guildId, guildId), with: { entries: true } }),
     db.query.verificationConfigs.findFirst({ where: eq(schema.verificationConfigs.guildId, guildId) }),
     db.query.welcomerConfigs.findFirst({ where: eq(schema.welcomerConfigs.guildId, guildId) }),

@@ -22,7 +22,10 @@ import { cacheStats } from "./guildConfigCache.ts";
 import { withRedis } from "./redis.ts";
 import { logger } from "../utils/logger.ts";
 
-const PORT = Number(Deno.env.get("BOT_INTERNAL_PORT") ?? "9090");
+// PORT is injected by Cloud Run and the container must listen on it, or the
+// service fails its health check with no useful error. BOT_INTERNAL_PORT stays
+// first so a self-hosted deployment can still pin it explicitly.
+const PORT = Number(Deno.env.get("BOT_INTERNAL_PORT") ?? Deno.env.get("PORT") ?? "9090");
 const SECRET = Deno.env.get("INTERNAL_RPC_SECRET") ?? "";
 
 export function startControlServer(bot: AppealyBot) {

@@ -6,7 +6,7 @@
 import type { Config } from "drizzle-kit";
 
 export default {
-  schema: ["../shared/schema/schema.ts", "../shared/schema/platformBans.ts"],
+  schema: ["../shared/schema/schema.ts", "../shared/schema/platformBans.ts", "../shared/schema/outcomes.ts"],
   out: "../db/migrations",
   dialect: "postgresql",
   dbCredentials: {

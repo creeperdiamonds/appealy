@@ -47,3 +47,45 @@ application in progress" permanently. Both the confirmation and the new
    `application`, so existing rows are unaffected.
 3. **No dashboard UI** for `/appeal-config` or for the ops review queue.
    Both are API-only.
+
+---
+
+# The rules, and why they're shaped this way
+
+Appealy exists because a bot said *"this decision is final and cannot be
+appealed."* The platform ban system in this repo could easily have become the
+same thing — a queue-protection pattern copied from anywhere else — so it's
+shaped deliberately against that.
+
+**Automated bans get more attempts than reviewed ones.** Five versus three. A
+ban nobody looked at is the most likely to be wrong, and the person on the
+other end did nothing to deserve a shorter rope than someone a human actually
+considered.
+
+**Running out of attempts pauses appeals. It never ends them.** After
+`reopenAfterDays` the count resets. The message says how many days, because
+"come back in 34 days" is something a person can plan around and "you're out
+of appeals" is not.
+
+**Denials require a real sentence.** At least twenty characters, enforced by
+the API. "denied" is technically a note and tells the appellant nothing. There
+is a second reason for this: if a ban can't be explained in twenty characters,
+that's worth noticing *before* the denial goes out.
+
+**The word "final" appears nowhere in any user-facing string.** Worth grepping
+for before you merge anything here.
+
+**Ban notices always state the reason and always link the appeal.** In
+`banGate.ts`, unqualified.
+
+The limits are still real — one person submitting fifty appeals buries every
+genuine one behind them, and the people that harms are the other appellants.
+Protecting the queue is protecting them. It just doesn't require telling anyone
+their case is closed forever.
+
+## The structural argument
+
+The strongest thing about Appealy isn't any of this. It's that a self-hosted
+bot means a false ban from *you* is survivable in a way a false ban from a
+hosted bot isn't — they hold the token, you don't. Worth saying in the README
+rather than leaving implied.

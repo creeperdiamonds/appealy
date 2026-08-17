@@ -8,6 +8,20 @@
       "when": 1786374517352,
       "tag": "0000_huge_machine_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786958549913,
+      "tag": "0001_far_microchip",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786959233904,
+      "tag": "0002_famous_morg",
+      "breakpoints": true
     }
   ]
 }

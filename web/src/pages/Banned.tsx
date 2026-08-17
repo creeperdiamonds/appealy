@@ -120,8 +120,9 @@ export function AppealForm({
       </button>
 
       <p className="dim appeal-rules">
-        Appeals are read by a person. The same ban can be appealed three times, and there's a
-        30-day wait after a denial.
+        Appeals are read by a person, not a filter. There's a wait between attempts so the
+        queue stays readable — but a ban is never closed off permanently, and you can always
+        appeal again later if something changes.
       </p>
     </div>
   );
@@ -161,7 +162,10 @@ export default function Banned({ ban, username }: { ban: PublicBan; username: st
 
         <p className="banned-lede">
           If you think this is wrong, tell us what happened. Be specific — what you were doing,
-          which server, roughly when. That's what makes the difference.
+          which server, roughly when. A person reads this, and{" "}
+          {ban.automated
+            ? "this ban was issued automatically, so nobody has looked at your side of it yet."
+            : "they can lift the ban."}
         </p>
 
         <Panel>

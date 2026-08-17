@@ -1,0 +1,49 @@
+# Everything here is excluded from the build context sent to the Docker daemon.
+#
+# Two reasons this matters more than it looks:
+#
+# 1. SECRETS. Both api/Dockerfile and web/Dockerfile do a broad `COPY api ./`
+#    / `COPY web ./`. Without this file, a local .env sitting in either
+#    directory gets baked into the image layer — and an image pushed to
+#    Artifact Registry is readable by anyone with pull access, forever, even
+#    if a later layer deletes the file.
+#
+# 2. SPEED. The context was including node_modules and .git, which on a repo
+#    this size is most of the upload on every build.
+
+.git
+.gitignore
+**/node_modules
+**/dist
+**/build
+
+# Secrets — never in an image.
+.env
+.env.*
+!.env.example
+!.env.production.example
+*.pem
+*.key
+
+# Distribution archives
+*.zip
+
+# Runtime artifacts
+status/status.json
+status/directory.json
+*.log
+logs/
+pgdata/
+redisdata/
+
+# Not needed at build time
+*.md
+!README.md
+.github
+brand
+ops-console
+docker-compose*.yml
+setup.sh
+**/__tests__
+**/*.test.ts
+.DS_Store

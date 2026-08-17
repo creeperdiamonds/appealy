@@ -62,6 +62,7 @@ export const env = {
   OPS_USER_IDS: opsUserIds(),
   /** Only consulted when deployment.features.tieredRateLimits is false. */
   SELF_HOSTED_CAPS: selfHostedCaps((k) => process.env[k]),
+  // Cloud Run injects PORT at runtime; optional() already reads it.
   PORT: Number(optional("PORT", "3001")),
   DATABASE_URL: required("DATABASE_URL"),
   // The API now needs Redis for the OAuth state store, the guild

@@ -1,5 +1,31 @@
 name: Deploy to GCP Cloud Run
 
+# ---------------------------------------------------------------------------
+# READ THIS BEFORE DEPLOYING THE BOT
+#
+# `api` and `web` are a natural fit for Cloud Run: they're request-driven and
+# scaling to zero saves real money.
+#
+# `bot` is not. A Discord gateway connection is a WebSocket that must stay
+# open 24/7, and Cloud Run's default behaviour is to throttle CPU to near zero
+# between requests and shut the instance down when traffic stops. A gateway bot
+# deployed with defaults will connect, go quiet, miss heartbeats, get
+# disconnected by Discord, and reconnect in a loop — spending a Discord session
+# start each time until the daily budget is gone (see bot/src/core/sharding.ts).
+#
+# The three flags below are what make it survivable:
+#
+#   --min-instances=1     never scale to zero
+#   --no-cpu-throttling   keep CPU allocated between requests
+#   --max-instances=1     two instances = two gateway connections for the same
+#                         shard, which Discord will disconnect
+#
+# Even then, Cloud Run is not really the right home for it — it bills for CPU
+# continuously with these flags, so you get e2-micro pricing with more
+# complexity. A small Compute Engine VM is cheaper and simpler for the bot.
+# Deploy api + web here and put the bot on a VM.
+# ---------------------------------------------------------------------------
+
 on:
   workflow_dispatch:
     inputs:
@@ -17,8 +43,6 @@ on:
         default: 'https://appealy-api-xxxx.a.run.app'
 
 env:
-  # We recommend configuring these via GitHub Repository Variables (vars.*)
-  # Fallbacks are provided here so you know what needs to be set.
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'your-gcp-project-id' }}
   GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
   ARTIFACT_REGISTRY: ${{ vars.ARTIFACT_REGISTRY || 'us-central1-docker.pkg.dev/your-gcp-project-id/appealy-repo' }}
@@ -29,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
-      id-token: 'write' # Required for GCP Workload Identity Federation
+      id-token: 'write' # Workload Identity Federation
 
     steps:
       - name: Checkout repository
@@ -39,17 +63,13 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          # Prefer Workload Identity Federation:
           workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
           service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
-          # If you don't use WIF, comment out the two lines above and uncomment below:
-          # credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Authorize Docker push
-        # Extracts the registry hostname (e.g. us-central1-docker.pkg.dev) from ARTIFACT_REGISTRY
         run: gcloud auth configure-docker $(echo ${{ env.ARTIFACT_REGISTRY }} | cut -d'/' -f1) --quiet
 
       - name: Prepare build arguments
@@ -57,17 +77,34 @@ jobs:
         run: |
           IMAGE_NAME="${{ env.ARTIFACT_REGISTRY }}/appealy-${{ github.event.inputs.service }}"
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
-          
-          if [ "${{ github.event.inputs.service }}" == "web" ]; then
-            echo "build_args=--build-arg VITE_API_URL=${{ github.event.inputs.vite_api_url }}" >> $GITHUB_OUTPUT
-            echo "port=80" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.inputs.service }}" == "api" ]; then
-            echo "build_args=" >> $GITHUB_OUTPUT
-            echo "port=3001" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.inputs.service }}" == "bot" ]; then
-            echo "build_args=" >> $GITHUB_OUTPUT
-            echo "port=9090" >> $GITHUB_OUTPUT
-          fi
+
+          case "${{ github.event.inputs.service }}" in
+            web)
+              echo "build_args=--build-arg VITE_API_URL=${{ github.event.inputs.vite_api_url }}" >> $GITHUB_OUTPUT
+              echo "port=8080" >> $GITHUB_OUTPUT
+              # 8080, not 80: nginx now templates ${PORT} at container start
+              # (web/nginx.conf), and Cloud Run's default is 8080. A container
+              # listening on the wrong port fails its health check with no
+              # error message that says so.
+              # Stateless and request-driven, so scale to zero is correct.
+              echo "flags=--port=8080 --min-instances=0 --allow-unauthenticated" >> $GITHUB_OUTPUT
+              ;;
+            api)
+              echo "build_args=" >> $GITHUB_OUTPUT
+              echo "port=3001" >> $GITHUB_OUTPUT
+              # min-instances=1 avoids a cold start on the OAuth callback,
+              # which is the one request a user is actively waiting on.
+              echo "flags=--port=3001 --min-instances=1 --allow-unauthenticated" >> $GITHUB_OUTPUT
+              ;;
+            bot)
+              echo "build_args=" >> $GITHUB_OUTPUT
+              echo "port=9090" >> $GITHUB_OUTPUT
+              # See the header. All three flags are load-bearing.
+              # --no-allow-unauthenticated because nothing should reach the
+              # bot's internal control server from the internet.
+              echo "flags=--port=9090 --min-instances=1 --max-instances=1 --no-cpu-throttling --no-allow-unauthenticated" >> $GITHUB_OUTPUT
+              ;;
+          esac
 
       - name: Build Docker image
         run: |
@@ -82,18 +119,43 @@ jobs:
           docker push ${{ steps.prep.outputs.image_name }}:latest
 
       - name: Deploy to Cloud Run
+        id: deploy   # needed for steps.deploy.outputs.url below
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: 'appealy-${{ github.event.inputs.service }}'
           image: '${{ steps.prep.outputs.image_name }}:${{ github.sha }}'
           region: '${{ env.GCP_REGION }}'
-          # Set the container port according to the service type
-          flags: '--port=${{ steps.prep.outputs.port }}'
+          flags: '${{ steps.prep.outputs.flags }}'
+
+          # Non-secret config only.
           env_vars: |
             NODE_ENV=production
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            REDIS_URL=${{ secrets.REDIS_URL }}
+            APPEALY_ENV=production
+            DEPLOYMENT_MODE=platform
+            LOG_LEVEL=info
 
-      
-      - name: Print Deployed URL
-        run: echo "Deployed URL is ${{ steps.deploy.outputs.url }}"
+          # Secrets come from Secret Manager, NOT from env_vars.
+          #
+          # Anything in env_vars is stored in the Cloud Run service config in
+          # plaintext and visible to anyone with roles/viewer on the project —
+          # which is not where a bot token or an AES key belongs. Secret
+          # Manager keeps them out of the service definition, gives you access
+          # logs, and lets you rotate without redeploying.
+          #
+          # Create them once:
+          #   echo -n "$VALUE" | gcloud secrets create discord-bot-token --data-file=-
+          # and grant the runtime service account roles/secretmanager.secretAccessor.
+          secrets: |
+            DATABASE_URL=appealy-database-url:latest
+            REDIS_URL=appealy-redis-url:latest
+            DISCORD_BOT_TOKEN=appealy-discord-bot-token:latest
+            DISCORD_APPLICATION_ID=appealy-discord-application-id:latest
+            DISCORD_PUBLIC_KEY=appealy-discord-public-key:latest
+            DISCORD_CLIENT_ID=appealy-discord-client-id:latest
+            DISCORD_CLIENT_SECRET=appealy-discord-client-secret:latest
+            SESSION_SECRET=appealy-session-secret:latest
+            TOKEN_ENCRYPTION_KEY=appealy-token-encryption-key:latest
+            OPS_USER_IDS=appealy-ops-user-ids:latest
+
+      - name: Print deployed URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"

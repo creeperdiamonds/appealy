@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Appealy">
+  <title>Appealy</title>
+
+  <!--
+    An open door.
+
+    Chosen over an up-arrow, a speech bubble and an undo symbol because those
+    describe a mechanism and none of them describe this product. A door left
+    open is the argument itself: Appy's ban message says "this decision is
+    final and cannot be appealed", and this is the opposite of that sentence
+    in one shape.
+
+    It also survives being small, which is what killed the others — tested at
+    32px, where the speech bubble read as "send a message" and the document
+    behind the undo arrow disappeared entirely.
+
+    Construction:
+      - Frame at 35%: the doorway the door swung out of. Deliberately low
+        contrast so the silhouette at 16px is the door alone rather than a
+        busy rectangle inside a rectangle.
+      - Door panel in white, in perspective — shorter at the hinge, taller at
+        the leading edge. That taper is the only thing making it read as open
+        rather than as a card lying flat.
+      - Handle as negative space, cut out rather than drawn in a second
+        colour, so it can't mud into the panel at small sizes.
+  -->
+
+  <rect width="512" height="512" rx="114" fill="#5865F2"/>
+
+  <!-- Doorway: the frame the door has swung away from. -->
+  <path fill="#fff" opacity=".35" d="M300 104h84a16 16 0 0 1 16 16v272a16 16 0 0 1-16 16h-84v-40h60V144h-60Z"/>
+
+  <!-- Door panel. Hinge edge left, leading edge right. -->
+  <path fill="#fff" d="M296 76 148 118a20 20 0 0 0-15 19v238a20 20 0 0 0 15 19l148 42a12 12 0 0 0 15-12V88a12 12 0 0 0-15-12Z"/>
+
+  <!-- Handle, cut out of the panel. -->
+  <circle cx="188" cy="256" r="17" fill="#5865F2"/>
+</svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" width="720" height="160" role="img" aria-label="Appealy">
+  <title>Appealy</title>
+
+  <!--
+    Wordmark for READMEs, the dashboard header, and anywhere the icon alone
+    isn't enough context.
+
+    The letterforms are outlined paths, not <text>. A <text> element renders
+    with whatever font the viewer happens to have, which on GitHub means it
+    silently falls back and the wordmark looks different on every machine.
+    Outlines render identically everywhere and need no font file shipped.
+
+    Geometry is deliberately plain — a humanist sans at a single weight. The
+    icon carries the idea; the word only has to be readable next to it.
+  -->
+
+  <g transform="translate(20 20)">
+    <rect width="120" height="120" rx="27" fill="#5865F2"/>
+    <path fill="#fff" opacity=".35" d="M70.3 24.4h19.7a3.8 3.8 0 0 1 3.8 3.8v63.8a3.8 3.8 0 0 1-3.8 3.8H70.3v-9.4h14.1V33.8H70.3Z"/>
+    <path fill="#fff" d="M69.4 17.8 34.7 27.7a4.7 4.7 0 0 0-3.5 4.5v55.8a4.7 4.7 0 0 0 3.5 4.5l34.7 9.8a2.8 2.8 0 0 0 3.5-2.8V20.6a2.8 2.8 0 0 0-3.5-2.8Z"/>
+    <circle cx="44.1" cy="60" r="4" fill="#5865F2"/>
+  </g>
+
+  <!--
+    "Appealy" — set at 62px cap height on the 160 grid so it optically matches
+    the 120px icon block rather than mathematically matching it. Type always
+    reads smaller than a solid shape of the same measured height.
+  -->
+  <g fill="#E6E8F0" transform="translate(176 42)">
+    <!-- A -->
+    <path d="M0 76 L26.5 0 h15.6 L68.6 76 H53.2 L47.6 58.4 H21 L15.4 76 Z M25.1 45.6 h18.4 L34.3 16.8 Z"/>
+    <!-- p -->
+    <path d="M78 96 V20.4 h13.4 v7.6 q6.4-9 18.4-9 11.6 0 18.6 8.4 7 8.4 7 22.4 0 14-7 22.4-7 8.4-18.6 8.4-11.6 0-18-8.6V96 Z M109.8 31.6 q-6.8 0-10.8 5.2-4 5.2-4 12.6 0 7.4 4 12.6 4 5.2 10.8 5.2 6.8 0 10.6-5.2 3.8-5.2 3.8-12.6 0-7.4-3.8-12.6-3.8-5.2-10.6-5.2Z"/>
+    <!-- p -->
+    <path d="M148 96 V20.4 h13.4 v7.6 q6.4-9 18.4-9 11.6 0 18.6 8.4 7 8.4 7 22.4 0 14-7 22.4-7 8.4-18.6 8.4-11.6 0-18-8.6V96 Z M179.8 31.6 q-6.8 0-10.8 5.2-4 5.2-4 12.6 0 7.4 4 12.6 4 5.2 10.8 5.2 6.8 0 10.6-5.2 3.8-5.2 3.8-12.6 0-7.4-3.8-12.6-3.8-5.2-10.6-5.2Z"/>
+    <!-- e -->
+    <path d="M244.4 77.6 q-14 0-22.4-8.4-8.4-8.4-8.4-22.4 0-13.6 8.2-22.2 8.2-8.6 21.6-8.6 13.6 0 21.4 8.4 7.8 8.4 7.8 23 v3.8 h-45 q.8 6.8 5.2 10.6 4.4 3.8 11.6 3.8 9.4 0 14.2-6 l9.8 8 q-8.6 10-24 10Z M227.8 41.6 h30.4 q-.8-6-4.8-9.4-4-3.4-10-3.4-6 0-10.2 3.4-4.2 3.4-5.4 9.4Z"/>
+    <!-- a -->
+    <path d="M300.6 77.6 q-9.4 0-15.2-5-5.8-5-5.8-13 0-8.6 6.4-13.4 6.4-4.8 17.8-4.8 h15.4 v-2 q0-5.6-3.4-8.6-3.4-3-9.6-3-10 0-16.6 6.6 l-8.4-8.8 q9.6-10.6 26-10.6 12.4 0 19.6 6 7.2 6 7.2 17 V76 h-13.4 v-8 q-6.2 9.6-20 9.6Z M304 66.4 q6.8 0 11.2-4 4.4-4 4.4-10.2 v-1.4 h-14.4 q-11.2 0-11.2 7.4 0 3.6 2.8 5.9 2.8 2.3 7.2 2.3Z"/>
+    <!-- l -->
+    <path d="M354 76 V-8 h14 V76 Z"/>
+    <!-- y -->
+    <path d="M389.4 96 l10.6-24.8 L376.4 20.4 h15.4 l16 37.4 15.2-37.4 h15 L400.4 96 Z"/>
+  </g>
+</svg>

@@ -53,8 +53,19 @@ opsRouter.post("/appeals/:id/accept", async (req, res) => {
 
 opsRouter.post("/appeals/:id/deny", async (req, res) => {
   const { note } = req.body as { note?: string };
-  if (!note?.trim()) {
-    return res.status(422).json({ error: "note_required", message: "Write what you're telling them." });
+
+  // A denial that says nothing is the thing this project was built against.
+  // "no", "denied", "nope" — each is technically a note and none of them tell
+  // the person anything they can act on, so the minimum is a real sentence.
+  // This is not busywork for reviewers: if a ban can't be explained in twenty
+  // characters, that's worth noticing before the denial goes out.
+  if (!note?.trim() || note.trim().length < 20) {
+    return res.status(422).json({
+      error: "note_required",
+      message:
+        "Denials need a real reason — at least a sentence. They'll read this, and " +
+        "\"denied\" tells them nothing they can do anything with.",
+    });
   }
   // Denial does not touch the ban — only the appeal status and the note the
   // appellant reads. The 30-day cooldown keys off decidedAt.

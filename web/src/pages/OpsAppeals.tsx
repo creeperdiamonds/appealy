@@ -97,7 +97,11 @@ export default function OpsAppeals() {
                 filed by {a.appellantId}
               </span>
             </div>
-            {a.ban.automated && <span className="pill is-watch">Automated</span>}
+            {a.ban.automated && (
+              <span className="pill is-watch" title="Nobody reviewed this before it landed — most likely to be wrong">
+                Automated
+              </span>
+            )}
           </div>
 
           <dl className="ban-facts">
@@ -155,7 +159,8 @@ export default function OpsAppeals() {
               Deny
             </button>
             <span className="dim">
-              Denying starts a 30-day wait before they can appeal again.
+              Denying starts a 30-day wait. It doesn't close the case — they can appeal again
+              after that, and again later even if attempts run out.
             </span>
           </div>
         </Panel>

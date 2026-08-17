@@ -21,7 +21,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireSession } from "../middleware/auth.ts";
 import { publishBanChange } from "../middleware/banGate.ts";
-import { APPEAL_RULES, toPublicBan } from "../../../shared/schema/platformBans.ts";
+import { APPEAL_RULES, attemptsAllowed, toPublicBan } from "../../../shared/schema/platformBans.ts";
 import { fetchUserGuilds } from "../services/discordOAuth.ts";
 import { redis } from "../lib/redis.ts";
 
@@ -87,10 +87,25 @@ platformAppealsRouter.post("/", async (req, res) => {
       message: "You already have an appeal under review. We'll show the outcome here.",
     });
   }
-  if (history.length >= APPEAL_RULES.maxAttempts) {
+  // Attempts are counted since the last reopen, not for all time. Running out
+  // pauses appeals; it never ends them. The word "final" does not appear here,
+  // and shouldn't appear anywhere in this file — that sentence is why this
+  // project exists.
+  const allowed = attemptsAllowed(ban);
+  const reopenAt = new Date(
+    (history[history.length - 1]?.createdAt ?? ban.createdAt).getTime() +
+      APPEAL_RULES.reopenAfterDays * 864e5,
+  );
+  const countedAttempts = history.filter((a) => a.createdAt >= new Date(reopenAt.getTime() - APPEAL_RULES.reopenAfterDays * 864e5)).length;
+
+  if (countedAttempts >= allowed && Date.now() < reopenAt.getTime()) {
+    const days = Math.ceil((reopenAt.getTime() - Date.now()) / 864e5);
     return res.status(409).json({
-      error: "exhausted",
-      message: "This ban has been appealed the maximum number of times. The decision is final.",
+      error: "paused",
+      message:
+        `We've reviewed this ${allowed} times, so appeals are paused for now. ` +
+        `You can appeal again in ${days} day${days === 1 ? "" : "s"}. ` +
+        `If something has changed in the meantime — new information, or you've been able to fix what caused this — say so then and it'll be read properly.`,
     });
   }
 
@@ -140,7 +155,13 @@ platformAppealsRouter.get("/:banId", async (req, res) => {
   return res.json({
     ban: toPublicBan(ban, open),
     attemptsUsed: appeals.length,
-    attemptsAllowed: APPEAL_RULES.maxAttempts,
+    attemptsAllowed: attemptsAllowed(ban),
+    // Sent so the ban screen can say when, not just that it's paused. "Come
+    // back in 34 days" is a thing someone can plan around; "you're out of
+    // appeals" is not.
+    appealsReopenAt: appeals.length >= attemptsAllowed(ban)
+      ? new Date(appeals[0].createdAt.getTime() + APPEAL_RULES.reopenAfterDays * 864e5).toISOString()
+      : null,
     // Only the decision note is exposed, never the reviewer's identity.
     lastDecision: appeals.find((a) => a.status !== "open")
       ? {

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/wordmark.svg" alt="Appealy" width="360">
+</p>
+
 # Appealy
 
 Discord application/form management bot with a web dashboard. Two processes
@@ -28,6 +32,9 @@ overwrites an existing `.env` and skips the migration if your database already
 has tables.
 
 `./setup.sh --check` verifies your tools and changes nothing.
+
+Running on a Raspberry Pi? See `PI.md` — `setup.sh` detects it and tunes
+itself, but there are two things to get right before you start.
 
 Then read `SETUP.md` for what's deliberately left manual.
 
