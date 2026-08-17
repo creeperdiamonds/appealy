@@ -89,6 +89,11 @@ jobs:
           region: '${{ env.GCP_REGION }}'
           # Set the container port according to the service type
           flags: '--port=${{ steps.prep.outputs.port }}'
+          env_vars: |
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
+
       
       - name: Print Deployed URL
         run: echo "Deployed URL is ${{ steps.deploy.outputs.url }}"
