@@ -8,13 +8,13 @@
 //     admin always sees the real price before ever reaching checkout.
 //     Delegates entirely to shared/schema/pricing.ts so this can never
 //     disagree with what the bot enforces or what checkout actually charges.
-//   POST /checkout — creates a Stripe Checkout Session for a chosen plan
-//     and returns the URL to redirect the admin to. This is the only route
-//     that talks to Stripe directly; the actual plan change is applied by
-//     applyPlanChange() (services/billingService.ts) ONLY from the
-//     webhook handler in routes/stripeWebhook.ts once Stripe confirms
-//     payment succeeded — never from this route, and never from client
-//     input alone. See routes/stripeWebhook.ts for why.
+//   POST /checkout — creates a Tebex checkout for a chosen plan and returns
+//     the URL to redirect the admin to. This is the only route that talks to
+//     Tebex directly; the actual plan change is applied by applyPlanChange()
+//     (services/billingService.ts) ONLY from the webhook handler in
+//     routes/tebexWebhook.ts once Tebex confirms payment succeeded — never
+//     from this route, and never from client input alone. See
+//     routes/tebexWebhook.ts for why.
 //
 // ALL BILLING HERE IS ANNUAL-ONLY. See the comment at the top of
 // shared/schema/pricing.ts for why: standard card-processing fees are
@@ -31,7 +31,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
-import { createCheckoutSession } from "../services/stripeService.ts";
+import { createTebexCheckout } from "../services/tebexService.ts";
 import {
   calculateFullQuote,
   CUSTOM_CAP_MAXIMUMS,
@@ -90,7 +90,7 @@ billingRouter.get("/", async (req, res) => {
 });
 
 // Pure quote — safe to call as often as the UI needs, never persists
-// anything and never talks to Stripe. This is what makes "see the price
+// anything and never talks to Tebex. This is what makes "see the price
 // before checkout" possible: the dashboard calls this on every change to
 // the throughput/hosting selection and renders the response directly.
 billingRouter.post("/quote", async (req, res) => {
@@ -101,13 +101,12 @@ billingRouter.post("/quote", async (req, res) => {
   res.json(quote);
 });
 
-// Creates a Stripe Checkout Session for the requested plan and returns the
-// URL to send the admin to. Does NOT change the guild's plan — that only
-// happens once Stripe's webhook confirms the payment actually succeeded
-// (routes/stripeWebhook.ts). The requested plan is embedded in the
-// session's metadata so the webhook handler can recover exactly what was
-// being purchased without trusting anything the client sends at
-// webhook-time — see the warning in that file about why.
+// Creates a Tebex checkout for the requested plan and returns the URL to send
+// the admin to. Does NOT change the guild's plan — that only happens once
+// Tebex's webhook confirms the payment actually succeeded
+// (routes/tebexWebhook.ts). The requested plan is attached to the basket as
+// custom data so the webhook can recover exactly what was bought without
+// trusting anything its caller sends — see the warning in that file.
 billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
   const parsed = quoteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
@@ -137,13 +136,13 @@ billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
   }
 
   try {
-    const session = await createCheckoutSession({
+    const checkout = await createTebexCheckout({
       guildId: routeParams(req).guildId,
       userId: req.userId!.toString(),
       plan: data,
       quote,
     });
-    res.json({ checkoutUrl: session.url });
+    res.json({ checkoutUrl: checkout.checkoutUrl });
   } catch (err) {
     res.status(502).json({ error: "checkout_creation_failed", detail: String(err) });
   }

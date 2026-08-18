@@ -17,7 +17,7 @@ import { giveawaysRouter } from "./routes/giveaways.ts";
 import { verificationRouter } from "./routes/verification.ts";
 import { welcomerRouter } from "./routes/welcomer.ts";
 import { billingRouter } from "./routes/billing.ts";
-import { stripeWebhookRouter } from "./routes/stripeWebhook.ts";
+import { tebexWebhookRouter } from "./routes/tebexWebhook.ts";
 import { roleMenusRouter } from "./routes/roleMenus.ts";
 import { antiRaidRouter } from "./routes/antiRaid.ts";
 import { quickResponsesRouter } from "./routes/quickResponses.ts";
@@ -46,11 +46,12 @@ export function createApp() {
     }),
   );
 
-  // Mounted BEFORE express.json() and using its own raw() body parser
-  // (see routes/stripeWebhook.ts) — Stripe's signature is computed over
-  // the exact raw request bytes, so this route must never see a body
-  // that's already been parsed and would be re-serialized differently.
-  app.use("/webhooks", stripeWebhookRouter);
+  // Mounted BEFORE express.json() and using its own raw() body parser (see
+  // routes/tebexWebhook.ts) — the signature is computed over the exact raw
+  // request bytes, so this route must never see a body that has already been
+  // parsed and would re-serialise differently. Tebex's docs call out Express
+  // by name for exactly this.
+  app.use("/webhooks", tebexWebhookRouter);
 
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());

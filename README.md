@@ -205,33 +205,54 @@ the API (`api/src/routes/billing.ts`), and the bot's enforcement
 (`bot/src/services/rateLimitService.ts`) can never disagree about a price
 or a cap.
 
-### Payment: Stripe, with a strict quote → checkout → webhook separation
+### Payment: Tebex, with a strict quote → checkout → webhook separation
 
-`POST /billing/checkout` creates a Stripe Checkout Session for a computed,
-non-catalog annual amount (Stripe's `price_data` supports this directly,
-which is what makes it workable for the custom-caps tier — a fixed-package
-storefront like Tebex's headless API was evaluated and ruled out for this
-project specifically because it can't accept an arbitrary computed price
-without pre-created SKUs). The chosen plan travels in the session's
-metadata.
+Tebex is the **merchant of record**: it sells to the customer, collects the
+money, and owns sales-tax and VAT registration and remittance in the
+jurisdictions it sells into. Taking cards directly would mean being the
+merchant — which starts with handing a processor a taxpayer identification
+number (an SSN or ITIN for an individual, an EIN for a company) and continues
+with owning tax registration wherever customers are.
+
+`POST /billing/checkout` creates a Tebex checkout for a computed, non-catalog
+annual amount. The Checkout API takes items with an **inline package** carrying
+a `name` and a `price` chosen at request time, which is what makes it workable
+for the custom-caps tier. Earlier revisions of this document claimed the
+opposite — that Tebex could not price anything without pre-created SKUs — and
+that is no longer true; nothing about the pricing model had to change to move,
+because `shared/schema/pricing.ts` still computes the number and the service
+still just hands it over. The chosen plan travels in the basket's `custom`
+object.
+
+Items are created as annual **subscriptions**, so Tebex emits the recurring
+lifecycle events. That is how a plan now ends when a customer stops paying —
+the previous integration handled only the first payment, so a plan bought once
+never lapsed.
 
 The guild's plan is changed in exactly one place:
 `api/src/services/billingService.ts::applyPlanChange`, called only from
-`api/src/routes/stripeWebhook.ts` after Stripe confirms payment succeeded.
+`api/src/routes/tebexWebhook.ts` after Tebex confirms payment succeeded.
 That webhook handler does three things worth knowing if you're auditing
 or extending it:
 
-1. **Verifies the Stripe signature** against the raw request body (mounted
+1. **Verifies the signature** against the raw request body (mounted
    before `express.json()` for exactly this reason — a re-serialized body
-   won't match the signature Stripe computed over the original bytes).
+   won't match the signature computed over the original bytes — Tebex's own
+   docs call out Express by name for this).
 2. **Re-derives the plan from the session's server-set metadata**, never
    from anything a client sends to the webhook directly.
-3. **Recalculates what the plan should cost and compares it to what Stripe
-   says was actually paid before applying anything.** This generalizes a
-   warning from Tebex's own webhook docs — a webhook's signature proves it
-   came from the payment provider, not that its contents match what you
-   intended to charge for. A mismatch is logged and the plan change is
-   refused rather than applied at the wrong price.
+3. **Recalculates what the plan should cost and compares it to what Tebex
+   says was actually paid before applying anything** — currency included,
+   since 60 of the wrong unit is not the price. This is Tebex's own webhook
+   documentation's warning: a signature proves the message came from the
+   payment provider, not that its contents match what you intended to charge
+   for. A mismatch is logged and the plan change is refused rather than
+   applied at the wrong price.
+4. **Ends plans that end.** `recurring-payment.ended` and `payment.refunded`
+   return the guild to the free selection. The subscription is matched back to
+   its guild through `guilds.tebex_recurring_reference`, recorded when the
+   first payment was applied, because the lifecycle events identify themselves
+   by that reference and do not carry the basket's custom data.
 
 Downgrading to the fully-free selection is the one plan change that
 bypasses checkout entirely (`PUT /billing/downgrade-to-free`) since it

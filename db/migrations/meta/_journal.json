@@ -22,6 +22,13 @@
       "when": 1786959233904,
       "tag": "0002_famous_morg",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787049211905,
+      "tag": "0003_tearful_havok",
+      "breakpoints": true
     }
   ]
 }

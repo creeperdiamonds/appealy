@@ -129,13 +129,15 @@ DISCORD_SKU_TIERS=1234567890123456789:tier1,2345678901234567890:tier2
 ```
 
 Create the SKUs in the Developer Portal under Monetization, map them here, and
-guilds with a live entitlement get that tier automatically. No Stripe account.
+guilds with a live entitlement get that tier automatically. No Tebex account.
 
-**Why this over Stripe.** Discord is merchant of record — no payment processor
-to onboard, no PCI surface, no VAT handling, no payouts of your own. Purchase
-happens inside Discord rather than via a redirect. And Discord's Monetization
-Requirements policy expects paid apps to offer Premium Apps pricing no higher
-than elsewhere, so Stripe-only was never really on the table.
+**Why this alongside Tebex.** Both are merchant of record — no payment
+processor to onboard, no PCI surface, no VAT handling, no payouts of your own.
+Discord's advantage is that purchase happens inside Discord rather than via a
+redirect, and its Monetization Requirements policy expects paid apps to offer
+Premium Apps pricing no higher than elsewhere, so a web-checkout-only setup was
+never really on the table. Its limit is that SKUs are a fixed catalogue, which
+the custom-caps tier cannot be expressed as — that case goes through Tebex.
 
 The costs are real: a platform fee of 15% below $1M cumulative sales and 30%
 after, and eligibility limited to US/UK/EU-based developers.

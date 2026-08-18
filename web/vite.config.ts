@@ -22,7 +22,7 @@ export default defineConfig({
     // hostnames, and developing against the lenient case is how the
     // difference stays invisible until it is in front of users.
     //
-    // Only the API's real prefixes are proxied; /webhooks (Stripe) and
+    // Only the API's real prefixes are proxied; /webhooks (Tebex) and
     // /health are hit on the API directly and have no reason to be reachable
     // through the console.
     proxy: {

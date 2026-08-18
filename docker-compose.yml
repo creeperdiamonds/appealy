@@ -90,7 +90,7 @@ services:
     environment:
       # Runtime config for the nginx proxy, not baked into the bundle.
       # Reaches the api service over the internal network. Port 3001 is still
-      # published on the host for direct API calls (curl, Stripe CLI), but the
+      # published on the host for direct API calls (curl, webhook replays), but the
       # browser should never use it — go through http://localhost:5173.
       API_ORIGIN: http://api:3001
       # Docker's embedded DNS, needed because nginx resolves the proxy target

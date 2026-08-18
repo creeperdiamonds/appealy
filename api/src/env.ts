@@ -14,8 +14,9 @@ function optional(name: string, fallback: string): string {
 /**
  * Required in platform mode, absent in self-hosted.
  *
- * Stripe keys were unconditionally required, which meant a fresh clone of an
- * open-source project crashed on startup asking for a payment processor.
+ * The payment credentials were unconditionally required, which meant a fresh
+ * clone of an open-source project crashed on startup asking for a merchant
+ * account it had no reason to have.
  */
 function requiredInPlatformMode(name: string): string {
   if (deployment.mode !== "platform") return "";
@@ -79,8 +80,16 @@ export const env = {
   DISCORD_BOT_TOKEN: required("DISCORD_BOT_TOKEN"),
   SESSION_SECRET: required("SESSION_SECRET"),
   TOKEN_ENCRYPTION_KEY: required("TOKEN_ENCRYPTION_KEY"), // 32-byte hex key for AES-256-GCM
-  STRIPE_SECRET_KEY: requiredInPlatformMode("STRIPE_SECRET_KEY"),
-  STRIPE_WEBHOOK_SECRET: requiredInPlatformMode("STRIPE_WEBHOOK_SECRET"),
+  // Tebex is the merchant of record — it sells to the customer, collects the
+  // money, and owns sales tax and VAT registration and remittance. That is
+  // what removes the need for a taxpayer identification number of our own.
+  //
+  // Both halves of the Basic auth pair are configured rather than derived:
+  // Tebex names them differently in different places, and guessing produces a
+  // 401 at request time that says nothing about which half was wrong.
+  TEBEX_PROJECT_ID: requiredInPlatformMode("TEBEX_PROJECT_ID"),
+  TEBEX_PRIVATE_KEY: requiredInPlatformMode("TEBEX_PRIVATE_KEY"),
+  TEBEX_WEBHOOK_SECRET: requiredInPlatformMode("TEBEX_WEBHOOK_SECRET"),
   FRONTEND_ORIGIN: optional("FRONTEND_ORIGIN", "http://localhost:5173"),
   NODE_ENV: optional("NODE_ENV", "development"),
 } as const;

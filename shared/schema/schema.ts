@@ -119,6 +119,15 @@ export const guilds = pgTable("guilds", {
   // throughput tier and still pay for custom hosting, or vice versa.
   hostingMode: hostingModeEnum("hosting_mode").notNull().default("shared"),
   customBillingRenewsAt: timestamp("custom_billing_renews_at", { withTimezone: true }),
+  // Tebex's reference for the recurring payment behind the current paid plan.
+  //
+  // Needed because the subscription lifecycle events — renewed, ended,
+  // cancellation requested — identify themselves by this reference and do not
+  // necessarily carry back the custom data the original checkout set. Without
+  // somewhere to correlate it, a cancellation is a webhook about a
+  // subscription we cannot match to a guild, and the plan would simply never
+  // end. Null for guilds on the free selection.
+  tebexRecurringReference: text("tebex_recurring_reference"),
   timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

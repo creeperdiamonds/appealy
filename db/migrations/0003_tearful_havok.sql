@@ -1,0 +1,1 @@
+ALTER TABLE "guilds" ADD COLUMN "tebex_recurring_reference" text;

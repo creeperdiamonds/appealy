@@ -1,7 +1,7 @@
 # Running this yourself
 
 `.env.example` ships with `DEPLOYMENT_MODE=self`. Leave it. Billing is off, no
-Stripe account is needed, and caps come from the `CAP_*` values.
+Tebex account is needed, and caps come from the `CAP_*` values.
 
 ```bash
 cp .env.example .env
@@ -12,13 +12,13 @@ docker compose up
 deno task sync-commands      # once, and after changing commands
 ```
 
-No Stripe key needed. That was the blocker — `STRIPE_SECRET_KEY` was
+No Tebex account needed. That was the blocker — the payment credentials were
 unconditionally required, so a clone of an open-source project crashed on
-startup asking for a payment processor.
+startup asking for a merchant account.
 
 | | `platform` | `self` |
 |---|---|---|
-| Stripe / billing | required | off, keys unread |
+| Tebex / billing | required | off, credentials unread |
 | Rate limits | tier from `pricing.ts` | flat `CAP_*` |
 | Appeal link in ban notice | dashboard | `SUPPORT_URL`, or omitted |
 | Public status page | on | off |
@@ -27,37 +27,48 @@ startup asking for a payment processor.
 ## Three decisions
 
 **The template pins `self`; the inference is the fallback.** An explicit
-`DEPLOYMENT_MODE` always wins. Blank it and the mode is inferred — a Stripe key
-means `platform`, no Stripe key means `self`.
+`DEPLOYMENT_MODE` always wins. Blank it and the mode is inferred — Tebex
+credentials mean `platform`, none mean `self`.
 
-Pinned rather than left blank because `.env.example` is a file everybody
+Pinned rather than left blank because `.env.example` is a file *everybody*
 copies. Inference is right for a deployment someone deliberately configured and
-wrong for a shared template: a stray Stripe key in a cloned `.env` would
+wrong for a shared template: stray Tebex credentials in a cloned `.env` would
 silently promote a self-hosted instance into platform mode and switch on
 billing routes nobody asked for. An explicit value can't be surprised into
 changing.
 
 A plain default was worse in both directions. Defaulting to `platform` crashed
-a fresh clone on a missing Stripe key — a terrible first five minutes with an
-open-source project. Defaulting to `self` silently downgraded the hosted
+a fresh clone on missing payment credentials — a terrible first five minutes
+with an open-source project. Defaulting to `self` silently downgraded the hosted
 deployment whenever someone forgot the flag: billing routes gone, every guild
 on flat caps, and nothing to notice until a customer asked why they couldn't
 upgrade.
 
-Stripe keys are the honest signal. Nobody sets one by accident, and nobody
-running this for their own server has one. The inference is logged every
-startup — a mode nobody chose and nobody can see is how you lose an afternoon
-to the wrong bug.
+Tebex credentials are the honest signal. Nobody sets them by accident, and
+nobody running this for their own server has them. The inference is logged
+every startup — a mode nobody chose and nobody can see is how you lose an
+afternoon to the wrong bug.
 
-The check is on shape, not presence, because "non-empty" turned out to be a bad
+Placeholders are treated as blank, because "non-empty" turned out to be a bad
 proxy for "configured":
 
 | In `.env` | Result |
 |---|---|
 | blank | `self` |
-| `your_stripe_key_here` | `self`, and says the placeholder was ignored |
-| `pk_live_…` (publishable key) | `self`, and points at the right key |
-| `sk_test_…` | `platform`, warns that no real charges happen |
+| `your_tebex_key_here` | `self`, and says the placeholder was ignored |
+| real credentials, no `TEBEX_WEBHOOK_SECRET` | refuses to start, see below |
+| all three set | `platform` |
+
+There is deliberately no format check on the credentials themselves. The Stripe
+integration this replaced could match `sk_live_…` and `whsec_…` because those
+formats are documented and stable. Tebex does not publish one for the Checkout
+API pair, and a pattern guessed from a few observed keys would eventually
+reject a valid key and refuse to boot — a worse failure than not catching a
+typo.
+
+What is still enforced is the pairing: credentials without
+`TEBEX_WEBHOOK_SECRET` refuse to start, because that combination means
+checkout succeeds, the customer is charged, and no plan ever activates.
 | `sk_live_…` without webhook secret | **refuses to start** |
 | `sk_live_…` + `whsec_…` | `platform` |
 
@@ -68,7 +79,7 @@ request.
 
 **Caps still exist.** No longer a price ladder, but they still protect your
 Postgres pool — `max: 10`, and a runaway loop takes the gateway with it.
-Defaults are roughly tier2. Raise them; it's your hardware.
+Defaults are roughly tier2. Raise them; **it's your hardware**, not mine.
 
 **Empty `SUPPORT_URL` omits the appeal line** rather than falling back to the
 upstream dashboard. Sending your users to someone else's support queue is worse
