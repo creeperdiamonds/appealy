@@ -37,6 +37,26 @@ name: Terraform (GCP infrastructure)
 # `plan` reads and reports. `apply` creates billable resources — Cloud SQL
 # above all — so it is never the default and never automatic. Read the plan
 # before running it.
+#
+# TARGET EXISTS SO THE CHEAP HALF CAN GO FIRST
+#
+# The pieces here do not cost the same. Artifact Registry is pennies a month;
+# Cloud SQL is the bill. But the deploy workflow needs the registry to exist
+# before it can push an image at all, so with no way to create one without the
+# other, "I want to push an image" quietly meant "I want a database" — and the
+# registry not existing is exactly how that gets found out, as a
+# `name unknown: Repository "appealy-repo" not found` at the end of a build
+# that otherwise worked.
+#
+# So `target` narrows an apply to named resources. Leave it empty for
+# everything. The one that unblocks a push:
+#
+#   google_artifact_registry_repository.appealy
+#
+# Terraform still owns whatever it creates, which is the point of doing this
+# here rather than reaching for gcloud — a repository created out of band is
+# one the next full apply tries to create again and fails on, and untangling
+# that means a `terraform import` nobody remembers is needed.
 # ---------------------------------------------------------------------------
 
 on:
@@ -50,6 +70,11 @@ on:
         options:
           - plan
           - apply
+      target:
+        description: 'Optional. Limit to one resource, e.g. google_artifact_registry_repository.appealy. Empty means everything.'
+        required: false
+        type: string
+        default: ''
 
 env:
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
@@ -122,11 +147,21 @@ jobs:
 
       - name: Terraform plan
         id: plan
+        env:
+          TF_TARGET: ${{ github.event.inputs.target }}
         run: |
-          terraform plan \
-            -var="project_id=${GCP_PROJECT_ID}" \
-            -var="region=${GCP_REGION}" \
-            -out=tfplan
+          # Built as an array so an empty target contributes no argument
+          # at all. An unquoted `-target=` with nothing after it is not
+          # the same as omitting it: terraform reads it as targeting the
+          # empty address and plans nothing, which reads exactly like a
+          # clean no-op plan and is how you apply nothing while believing
+          # you applied something.
+          ARGS=(-var="project_id=${GCP_PROJECT_ID}" -var="region=${GCP_REGION}" -out=tfplan)
+          if [ -n "$TF_TARGET" ]; then
+            echo "::warning::Targeted plan: only $TF_TARGET and what it depends on. The rest of the infrastructure is untouched AND unreported — this plan is not a statement about it."
+            ARGS+=(-target="$TF_TARGET")
+          fi
+          terraform plan "${ARGS[@]}"
           echo "--- summary ---"
           terraform show -no-color tfplan | tail -40
 

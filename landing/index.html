@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>creeperdiamonds — Appealy is up</title>
+<meta name="description" content="Appealy, an open-source Discord application and ban-appeal bot, is running at appealy.creeperdiamonds.xyz.">
+
+<link rel="canonical" href="https://creeperdiamonds.xyz/">
+<meta name="theme-color" content="#0e1420">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Appealy is up">
+<meta property="og:description" content="An open-source Discord application and ban-appeal bot, running at appealy.creeperdiamonds.xyz.">
+<meta property="og:url" content="https://creeperdiamonds.xyz/">
+<meta name="twitter:card" content="summary">
+
+<!--
+  Everything is inline: the styles, the mark, the icon.
+
+  This page is served from a different host than the app, so it cannot borrow
+  site/site.css or /brand/icon.svg the way the marketing site does — those
+  paths resolve inside the Appealy deployment and nowhere else. A relative
+  reference here would 404, which is the same mistake the marketing site
+  already made once with ../brand/. One file with no dependencies drops onto
+  GitHub Pages, Cloudflare Pages, Netlify or a plain nginx root unchanged.
+
+  The colours are the console palette from web/src/index.css, copied rather
+  than imported for the same reason.
+-->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='114' fill='%235865F2'/%3E%3Cpath fill='%23fff' opacity='.35' d='M300 104h84a16 16 0 0 1 16 16v272a16 16 0 0 1-16 16h-84v-40h60V144h-60Z'/%3E%3Cpath fill='%23fff' d='M296 76 148 118a20 20 0 0 0-15 19v238a20 20 0 0 0 15 19l148 42a12 12 0 0 0 15-12V88a12 12 0 0 0-15-12Z'/%3E%3Ccircle cx='188' cy='256' r='17' fill='%235865F2'/%3E%3C/svg%3E">
+
+<style>
+  :root {
+    --ink: #0e1420;
+    --surface: #161d2c;
+    --line: #2a3547;
+    --text: #e8ecf3;
+    --text-dim: #a3b0c4;
+    --text-muted: #7987a0;
+    --accent: #5865f2;
+    --accent-line: #5865f259;
+    /* --accent on --ink is 4.09:1, under AA for body text. Links get the
+       lifted tone; the button keeps the true accent, where white on it
+       clears 4.5:1. Same split as site.css. */
+    --accent-lift: #8b94f7;
+    --ok: #3dd9a4;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 2rem 1.25rem;
+    background: var(--ink);
+    color: var(--text);
+    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  main { width: 100%; max-width: 34rem; }
+
+  .mark { display: block; width: 64px; height: 64px; margin-bottom: 1.75rem; }
+
+  /* The status line is the whole point of the page, so it leads. A dot that
+     is merely decorative would be worse than none — this one is not wired to
+     a health check, so it says "is running" rather than claiming a live
+     reading, and /status/ is linked below for the real answer. */
+  .status {
+    display: inline-flex; align-items: center; gap: .5rem;
+    font-size: .8125rem; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--ok); margin-bottom: 1rem;
+  }
+  .dot {
+    width: .5rem; height: .5rem; border-radius: 50%;
+    background: var(--ok); box-shadow: 0 0 0 3px #3dd9a41f;
+  }
+
+  h1 { font-size: clamp(1.75rem, 6vw, 2.5rem); line-height: 1.15; margin: 0 0 1rem; letter-spacing: -.02em; }
+  p { margin: 0 0 1rem; color: var(--text-dim); }
+  a { color: var(--accent-lift); }
+  a:hover { color: var(--text); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: .625rem; margin: 1.75rem 0 0; }
+  .btn {
+    display: inline-block; padding: .75rem 1.25rem; border-radius: 3px;
+    border: 1px solid var(--line); color: var(--text);
+    text-decoration: none; font-size: .9375rem;
+  }
+  .btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4752e0; border-color: #4752e0; color: #fff; }
+  .btn:focus-visible { outline: 2px solid var(--accent-lift); outline-offset: 2px; }
+
+  .note {
+    margin-top: 2.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line);
+    font-size: .875rem; color: var(--text-muted);
+  }
+  .note code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .875em; color: var(--text-dim);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    main { animation: rise .4s ease-out; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Appealy">
+    <title>Appealy</title>
+    <rect width="512" height="512" rx="114" fill="#5865F2"/>
+    <path fill="#fff" opacity=".35" d="M300 104h84a16 16 0 0 1 16 16v272a16 16 0 0 1-16 16h-84v-40h60V144h-60Z"/>
+    <path fill="#fff" d="M296 76 148 118a20 20 0 0 0-15 19v238a20 20 0 0 0 15 19l148 42a12 12 0 0 0 15-12V88a12 12 0 0 0-15-12Z"/>
+    <circle cx="188" cy="256" r="17" fill="#5865F2"/>
+  </svg>
+
+  <div class="status"><span class="dot" aria-hidden="true"></span>Appealy is up</div>
+
+  <h1>Appealy is running.</h1>
+
+  <p>
+    An open-source Discord bot for applications, tickets and ban appeals &mdash; built around the
+    idea that a ban should never come with the sentence &ldquo;this decision is final and cannot be
+    appealed&rdquo;.
+  </p>
+  <p>
+    Every feature is available on the free tier. Paid plans raise throughput caps and nothing else,
+    and the calculator that decides what you are charged is in the repository along with everything
+    else.
+  </p>
+
+  <div class="actions">
+    <a class="btn btn-primary" href="https://appealy.creeperdiamonds.xyz/">Open Appealy</a>
+    <a class="btn" href="https://appealy.creeperdiamonds.xyz/status/">Service status</a>
+    <a class="btn" href="https://github.com/creeperdiamonds/appealy">Source on GitHub</a>
+  </div>
+
+  <p class="note">
+    Appealy currently lives at <code>appealy.creeperdiamonds.xyz</code>, which is a temporary home
+    while a permanent domain is sorted out. Links here will follow it when it moves &mdash; nothing
+    you set up in the meantime is tied to the address.
+  </p>
+</main>
+
+</body>
+</html>
