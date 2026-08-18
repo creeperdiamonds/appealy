@@ -1026,6 +1026,18 @@ export const pollsRelations = relations(polls, ({ many }) => ({
   votes: many(pollVotes),
 }));
 
+// The other half of polls.votes. Drizzle infers a join from BOTH sides, so a
+// many() with no matching one() is not a half-defined relation — it is an
+// unusable one, and asking for it fails at runtime with "not enough
+// information to infer relation \"polls.votes\"".
+//
+// It went unnoticed because nothing queried `with: { votes: true }` until the
+// data export started including polls. Every other many() here has its
+// counterpart; see giveawayEntriesRelations directly below.
+export const pollVotesRelations = relations(pollVotes, ({ one }) => ({
+  poll: one(polls, { fields: [pollVotes.pollId], references: [polls.id] }),
+}));
+
 export const ticketConfigsRelations = relations(ticketConfigs, ({ one, many }) => ({
   guild: one(guilds, { fields: [ticketConfigs.guildId], references: [guilds.id] }),
   tickets: many(tickets),
