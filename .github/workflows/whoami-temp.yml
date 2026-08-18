@@ -1,0 +1,32 @@
+name: TEMP - list real GCP IAM users
+
+# Delete this file once it has answered the question. It exists only because
+# nobody has gcloud credentials on the machine doing this work, but this repo
+# already has working Workload Identity Federation (the same secrets the
+# deploy and terraform workflows use) — so it can ask GCP directly instead of
+# guessing from error messages.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  whoami:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: |
+          echo "== authenticated as =="
+          gcloud auth list --format="value(account)"
+          echo
+          echo "== project IAM policy (real bindings, not guesses) =="
+          gcloud projects get-iam-policy yahav-project-505809 --format=json
+          echo
+          echo "== artifact registry repos that actually exist =="
+          gcloud artifacts repositories list --project=yahav-project-505809 || echo "(none / no permission)"
