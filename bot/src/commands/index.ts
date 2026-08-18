@@ -24,6 +24,7 @@ import * as roleMenu from "./roleMenu.ts";
 import * as antiRaid from "./antiRaid.ts";
 import * as exportData from "./exportData.ts";
 import * as importAppy from "./importAppy.ts";
+import * as importAppealy from "./importAppealy.ts";
 
 const commands = [
   panelCreate,
@@ -42,6 +43,7 @@ const commands = [
   antiRaid,
   exportData,
   importAppy,
+  importAppealy,
 ];
 
 /** Commands that implement an autocomplete() export get routed

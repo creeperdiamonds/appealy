@@ -30,6 +30,6 @@
     "@types/node": "^24.0.0",
     "drizzle-kit": "^0.24.0",
     "tsx": "^4.16.2",
-    "typescript": "^5.7.0"
+    "typescript": "^7.0.2"
   }
 }

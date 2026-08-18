@@ -393,6 +393,32 @@ any change to the heuristics.
   a full data dump — or a bulk import of historical applicant data — can't
   be triggered by any admin they've delegated day-to-day management to,
   only by themselves.
+- **`/import-appealy`** (bot slash command, file upload) and
+  **`POST /api/guilds/:guildId/migrate/import`** (dashboard) take an export
+  from one server and stand the same configuration up in another. Owner-only,
+  and for a sharper reason than the export is: exporting reads your own server,
+  importing writes to this one and in `replace` mode deletes what is already
+  there.
+
+  The hard part is not the data, it is that an export is not portable — every
+  channel and role id in it names something in the source server. So the
+  importer re-keys every row and rewrites the references between them, then
+  resolves each snowflake through an optional source→target map. What it cannot
+  resolve it clears, or points at a required fallback channel, and every one of
+  those comes back in a report of what to reconnect.
+
+  One rule is worth stating on its own: **a form that loses its role gating is
+  imported switched off.** A staff application whose gate referenced roles that
+  mean nothing here would otherwise import not as broken but as *open* — and an
+  open staff application is a worse outcome than a missing one. The same
+  reasoning skips a role menu whose options all failed to resolve rather than
+  creating an empty one.
+
+  Submissions, answers, tickets, ban appeals, giveaway entries and gate
+  overrides are never imported. They are not configuration; they are what
+  people in the source server wrote, much of it about themselves. Staff
+  delegations are excluded too, on the grounds that an import should never be a
+  way to hand someone review access.
 - **`/import-appy`** (bot slash command, file upload) and
   **`POST /api/guilds/:guildId/migrate/appy-submissions`** (dashboard,
   JSON body) import a submissions-history export from Appy — a different,
