@@ -63,6 +63,29 @@ export function createApp() {
   // by name for exactly this.
   app.use("/webhooks", tebexWebhookRouter);
 
+  // Nothing this API returns may be cached, ever.
+  //
+  // Two separate reasons, either sufficient on its own:
+  //
+  //   Staleness. Express sets an ETag and no Cache-Control, which leaves the
+  //   browser to guess — and it guesses "reusable". A soft reload (F5) then
+  //   serves the previous body without asking. That is how a one-off degraded
+  //   response — /auth/me/guilds answering 200 with an empty list because
+  //   Discord was briefly unreachable — kept rendering "No servers yet" long
+  //   after the real list was available again, on every reload but a hard one.
+  //
+  //   Disclosure. Every response here is scoped to one session: which servers
+  //   someone administers, submission answers, ban appeals. Without no-store
+  //   that sits in the browser's on-disk cache, and in any intermediary that
+  //   takes the absence of a directive as permission.
+  //
+  // Mounted before the routers so it covers all of them rather than being
+  // remembered per route.
+  app.use((_req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+  });
+
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
