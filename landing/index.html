@@ -105,6 +105,23 @@
     font-size: .875em; color: var(--text-dim);
   }
 
+  /* Addressed to roughly one reader a year, so it is set apart rather than
+     given any prominence — a payment reviewer will find a bordered block on a
+     one-screen page, and everyone else can see at a glance it is not for
+     them. */
+  .review {
+    margin-top: 2rem; padding: 1.125rem 1.25rem;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+    font-size: .875rem;
+  }
+  .review h2 {
+    margin: 0 0 .5rem; font-size: .9375rem; font-weight: 600; color: var(--text);
+  }
+  .review p { margin: 0 0 .75rem; color: var(--text-dim); }
+  .review ul { margin: 0; padding-left: 1.125rem; color: var(--text-dim); }
+  .review li { margin-bottom: .3125rem; }
+  .review li:last-child { margin-bottom: 0; }
+
   @media (prefers-reduced-motion: no-preference) {
     main { animation: rise .4s ease-out; }
     @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
@@ -142,6 +159,34 @@
     <a class="btn" href="https://appealy.creeperdiamonds.xyz/status/">Service status</a>
     <a class="btn" href="https://github.com/creeperdiamonds/appealy">Source on GitHub</a>
   </div>
+
+  <aside class="review">
+    <h2>Reviewing this domain for Tebex?</h2>
+    <p>
+      You want <a href="https://appealy.creeperdiamonds.xyz/">appealy.creeperdiamonds.xyz</a>, not
+      this page. The apex is a signpost; the product, and everything a review needs, is on the site
+      itself:
+    </p>
+    <ul>
+      <li>
+        <a href="https://appealy.creeperdiamonds.xyz/pricing">Pricing</a> &mdash; what is sold, in
+        full. Two annual plans and a per-unit builder, no subscriptions and no consumables.
+      </li>
+      <li>
+        <a href="https://appealy.creeperdiamonds.xyz/terms">Terms of Service</a> and
+        <a href="https://appealy.creeperdiamonds.xyz/privacy">Privacy</a> &mdash; including how
+        refunds are handled, which is through Tebex as merchant of record.
+      </li>
+      <li>
+        <a href="https://appealy.creeperdiamonds.xyz/#support">Support</a> &mdash; the routes for
+        problems, billing questions and security reports.
+      </li>
+      <li>
+        <a href="https://github.com/creeperdiamonds/appealy">The source</a> &mdash; the whole
+        product is open, so the code that charges people is readable alongside the rest.
+      </li>
+    </ul>
+  </aside>
 
   <p class="note">
     Appealy currently lives at <code>appealy.creeperdiamonds.xyz</code>, which is a temporary home
