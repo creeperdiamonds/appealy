@@ -29,6 +29,22 @@ async function callBot(path: string, body: unknown) {
   return res.json();
 }
 
+/**
+ * Clear an anti-raid lockdown through the bot.
+ *
+ * Goes through the bot rather than being done here because the lockdown's
+ * "is it active" answer is cached in the bot's process, and the bot's own
+ * clearLockdown() evicts that cache as well as writing the row. Doing only the
+ * write here left the cache saying "still locked" for up to its TTL — during
+ * which members joining were still kicked, after an admin had been told the
+ * lockdown was cleared.
+ */
+export function requestLockdownClear(guildId: string, clearedBy: string) {
+  return callBot("/internal/anti-raid/clear-lockdown", { guildId, clearedBy }) as Promise<{
+    cleared: boolean;
+  }>;
+}
+
 export function requestPanelPublish(panelId: string) {
   return callBot("/internal/panels/publish", { panelId });
 }

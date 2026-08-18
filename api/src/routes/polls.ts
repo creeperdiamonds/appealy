@@ -28,8 +28,28 @@ const pollSchema = z.object({
 pollsRouter.use(requireGuildAccess);
 
 pollsRouter.get("/", async (req, res) => {
-  const polls = await db.query.polls.findMany({ where: eq(schema.polls.guildId, BigInt(routeParams(req).guildId)) });
-  res.json(polls.map(toDTO));
+  const polls = await db.query.polls.findMany({
+    where: eq(schema.polls.guildId, BigInt(routeParams(req).guildId)),
+    with: { votes: true },
+  });
+
+  // Tallied per option rather than returning the votes themselves. A poll's
+  // ballots are who-voted-for-what, and the dashboard needs the shape of the
+  // result, not the record of each person's choice — sending the raw rows
+  // would hand every admin a list of exactly how each member voted, which is
+  // not a thing a poll implies consent to.
+  res.json(
+    polls.map((poll) => {
+      const counts: Record<string, number> = {};
+      for (const option of poll.options) counts[option.id] = 0;
+      for (const vote of poll.votes) {
+        for (const optionId of vote.optionIds ?? []) {
+          if (optionId in counts) counts[optionId] += 1;
+        }
+      }
+      return { ...toDTO(poll), voteCounts: counts, voterCount: poll.votes.length };
+    }),
+  );
 });
 
 pollsRouter.post("/", requireAdminAccess, async (req, res) => {
@@ -115,6 +135,36 @@ pollsRouter.post("/:pollId/publish", requireAdminAccess, async (req, res) => {
     return res.status(502).json({ error: "bot_unreachable", detail: String(err) });
   }
   res.status(202).json({ status: "publish_requested" });
+});
+
+/**
+ * Close a published poll now, rather than waiting for its own closesAt.
+ *
+ * This sets closesAt to now instead of closing the poll here. The scheduler
+ * already closes polls whose time has passed — tallying, editing the Discord
+ * message, marking the row — and that path is the one that has been exercised.
+ * Duplicating it in the API would be a second implementation of the same
+ * thing, and the two would drift the first time either changed.
+ *
+ * So the poll closes on the next scheduler tick, within about 30 seconds. The
+ * response says so rather than claiming it is already done.
+ */
+pollsRouter.post("/:pollId/close", requireAdminAccess, async (req, res) => {
+  const guildId = BigInt(routeParams(req).guildId);
+  const poll = await db.query.polls.findFirst({
+    where: and(eq(schema.polls.id, routeParams(req).pollId), eq(schema.polls.guildId, guildId)),
+  });
+  if (!poll) return res.status(404).json({ error: "poll_not_found" });
+  if (poll.status === "closed") return res.status(409).json({ error: "already_closed" });
+  if (poll.status !== "published") {
+    return res.status(409).json({
+      error: "not_published",
+      detail: "Only a published poll can be closed. Delete a draft instead.",
+    });
+  }
+
+  await db.update(schema.polls).set({ closesAt: new Date() }).where(eq(schema.polls.id, poll.id));
+  res.status(202).json({ status: "close_requested", closesWithinSeconds: 30 });
 });
 
 pollsRouter.delete("/:pollId", requireAdminAccess, async (req, res) => {

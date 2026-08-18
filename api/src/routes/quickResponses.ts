@@ -41,6 +41,40 @@ quickResponsesRouter.post("/categories", requireAdminAccess, async (req, res) =>
   res.status(201).json(created);
 });
 
+/**
+ * Rename or reorder a category.
+ *
+ * Without this the only way to fix a typo was to delete and recreate — and the
+ * responses' categoryId is ON DELETE SET NULL, so that silently unfiles every
+ * reply in it. A rename should not cost you the filing.
+ */
+quickResponsesRouter.patch("/categories/:categoryId", requireAdminAccess, async (req, res) => {
+  const parsed = categorySchema.partial().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
+  const guildId = BigInt(routeParams(req).guildId);
+
+  const updateSet: Record<string, unknown> = {};
+  if (parsed.data.name !== undefined) updateSet.name = parsed.data.name;
+  if (parsed.data.sortOrder !== undefined) updateSet.sortOrder = parsed.data.sortOrder;
+  if (Object.keys(updateSet).length === 0) {
+    return res.status(400).json({ error: "nothing_to_update" });
+  }
+
+  const [updated] = await db
+    .update(schema.quickResponseCategories)
+    .set(updateSet)
+    .where(
+      and(
+        eq(schema.quickResponseCategories.id, routeParams(req).categoryId),
+        eq(schema.quickResponseCategories.guildId, guildId),
+      ),
+    )
+    .returning();
+
+  if (!updated) return res.status(404).json({ error: "category_not_found" });
+  res.json(updated);
+});
+
 quickResponsesRouter.delete("/categories/:categoryId", requireAdminAccess, async (req, res) => {
   const guildId = BigInt(routeParams(req).guildId);
   const result = await db

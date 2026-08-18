@@ -488,6 +488,19 @@ button {
   background: #4a56d9;
   border-color: #4a56d9;
 }
+.btn-secondary {
+  /* Used in four places and never defined, so those buttons silently rendered
+     as the bare .btn. Defined here as what the name implies — a quieter .btn —
+     rather than deleting the usages, because "secondary" is the right word for
+     what they are and three separate pages independently reached for it. */
+  background: transparent;
+  color: var(--dim);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--raised);
+  color: var(--text);
+}
+
 .btn-danger {
   color: var(--act);
   border-color: color-mix(in srgb, var(--act) 40%, transparent);

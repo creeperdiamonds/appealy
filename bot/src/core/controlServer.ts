@@ -131,6 +131,19 @@ export function startControlServer(bot: AppealyBot) {
         return Response.json({ status: "published" });
       }
 
+      // Clearing a lockdown is not a Discord call — it is a cache eviction,
+      // and the cache belongs to this process. The API cannot do it itself:
+      // with the in-memory Redis substitute the two processes hold separate
+      // copies, so an eviction on the API side reaches nothing, and even with
+      // a real Redis the key format would have to be duplicated there and kept
+      // in step. Delegating keeps one implementation.
+      if (url.pathname === "/internal/anti-raid/clear-lockdown" && req.method === "POST") {
+        const { guildId, clearedBy } = await req.json();
+        const { clearLockdown } = await import("../services/antiRaidService.ts");
+        const cleared = await clearLockdown(BigInt(guildId), BigInt(clearedBy));
+        return Response.json({ cleared });
+      }
+
       if (url.pathname === "/internal/sticky-messages/publish" && req.method === "POST") {
         const { stickyId } = await req.json();
         const { publishStickyMessage } = await import("../services/stickyMessageService.ts");

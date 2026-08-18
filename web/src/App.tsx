@@ -31,6 +31,7 @@ import Polls from "./pages/Polls";
 import QuickResponses from "./pages/QuickResponses";
 import StaffPermissions from "./pages/StaffPermissions";
 import Billing from "./pages/Billing";
+import AntiRaid from "./pages/AntiRaid";
 
 type View =
   | "overview"
@@ -42,6 +43,7 @@ type View =
   | "tickets"
   | "quick-responses"
   | "verification"
+  | "anti-raid"
   | "welcomer"
   | "role-menus"
   | "sticky"
@@ -91,6 +93,7 @@ const NAV_GROUPS: {
       { id: "tickets", label: "Tickets", hint: "Ticket types, support roles, transcripts" },
       { id: "quick-responses", label: "Quick responses", hint: "Saved replies for staff" },
       { id: "verification", label: "Verification", hint: "Screen new members before they can talk" },
+      { id: "anti-raid", label: "Anti-raid", hint: "Join-velocity detection and lockdown" },
     ],
   },
   {
@@ -396,6 +399,7 @@ export default function App() {
               {guildId && view === "tickets" && <Tickets guildId={guildId} />}
               {guildId && view === "quick-responses" && <QuickResponses guildId={guildId} />}
               {guildId && view === "verification" && <Verification guildId={guildId} />}
+              {guildId && view === "anti-raid" && <AntiRaid guildId={guildId} />}
               {guildId && view === "welcomer" && <Welcomer guildId={guildId} />}
               {guildId && view === "role-menus" && <RoleMenus guildId={guildId} />}
               {guildId && view === "sticky" && <StickyMessages guildId={guildId} />}

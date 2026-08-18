@@ -2,6 +2,7 @@
 // Mounted at /api/guilds/:guildId/anti-raid
 
 import { Router } from "express";
+import { requestLockdownClear } from "../services/botBridge.ts";
 import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
@@ -69,12 +70,35 @@ antiRaidRouter.get("/lockdown", async (req, res) => {
 
 antiRaidRouter.post("/lockdown/clear", requireAdminAccess, async (req, res) => {
   const guildId = BigInt(routeParams(req).guildId);
-  const [updated] = await db
-    .update(schema.raidLockdowns)
-    .set({ expiresAt: new Date(), clearedBy: req.userId! })
-    .where(eq(schema.raidLockdowns.guildId, guildId))
-    .returning();
-  res.json({ cleared: Boolean(updated) });
+
+  // Delegated to the bot, which clears the row AND evicts its cached "is a
+  // lockdown active" answer. Writing the row here alone — which is what this
+  // did — left that cache saying locked for up to its TTL, so members who
+  // joined in the next couple of seconds were still kicked after an admin had
+  // been told the lockdown was cleared. Under the in-memory Redis substitute
+  // the API cannot reach that cache at all, since each process holds its own.
+  try {
+    const result = await requestLockdownClear(guildId.toString(), req.userId!.toString());
+    return res.json(result);
+  } catch (err) {
+    // The bot being unreachable is not a reason to leave the lockdown in
+    // place, so the row is still written. But the cache is not evicted, and
+    // saying "cleared" without qualification would be the same lie in a
+    // narrower window — so the response says what is actually true.
+    const [updated] = await db
+      .update(schema.raidLockdowns)
+      .set({ expiresAt: new Date(), clearedBy: req.userId! })
+      .where(eq(schema.raidLockdowns.guildId, guildId))
+      .returning();
+
+    return res.status(202).json({
+      cleared: Boolean(updated),
+      cacheEvicted: false,
+      detail:
+        "The lockdown is cleared in the database, but the bot could not be reached to drop its cached copy. New joins may still be treated as locked for up to a minute.",
+      error: String(err),
+    });
+  }
 });
 
 function toDTO(c: typeof schema.antiRaidConfigs.$inferSelect) {
