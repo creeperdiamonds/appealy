@@ -4,7 +4,9 @@
 # session cookie a browser would send anyway, so there is no reason to keep a
 # Node process alive to serve it.
 
-FROM node:20-alpine AS build
+# Node 24 (LTS "Krypton"), matching api/Dockerfile. Only the build stage runs
+# Node; the image that ships is nginx serving a static bundle.
+FROM node:24-alpine AS build
 WORKDIR /app
 
 # Deps first, so a source change doesn't reinstall node_modules.
