@@ -176,33 +176,33 @@
           </tr>
           <tr>
             <th scope="row">Forms per server</th>
-            <td class="num">5</td><td class="num">50</td><td class="num">100</td><td class="num">300</td>
+            <td class="num">5</td><td class="num">20</td><td class="num">50</td><td class="num">300</td>
           </tr>
           <tr>
             <th scope="row">Panels per server</th>
-            <td class="num">5</td><td class="num">50</td><td class="num">100</td><td class="num">300</td>
+            <td class="num">5</td><td class="num">20</td><td class="num">50</td><td class="num">300</td>
           </tr>
           <tr>
             <th scope="row">Roles per rule type</th>
-            <td class="num">3</td><td class="num">15</td><td class="num">25</td><td class="num">100</td>
+            <td class="num">3</td><td class="num">10</td><td class="num">25</td><td class="num">100</td>
           </tr>
           <tr>
             <th scope="row">History retention (days)</th>
-            <td class="num">30</td><td class="num">365</td><td class="num">730</td><td class="num">1,825</td>
+            <td class="num">30</td><td class="num">180</td><td class="num">730</td><td class="num">1,825</td>
           </tr>
           <tr>
             <th scope="row">Price</th>
             <td class="num">$0</td>
             <td class="num">$60/year</td>
             <td class="num">$180/year</td>
-            <td class="num">see below</td>
+            <td class="num">up to $1,295.21/year</td>
           </tr>
           <tr>
             <th scope="row">Monthly equivalent</th>
             <td class="num">&mdash;</td>
             <td class="num">$5.00</td>
             <td class="num">$15.00</td>
-            <td class="num">computed</td>
+            <td class="num">up to $107.93</td>
           </tr>
         </tbody>
       </table>
@@ -233,14 +233,14 @@
           </tr>
         </thead>
         <tbody>
-          <tr><th scope="row">Submissions per day</th><td>100</td><td class="num">$0.12</td></tr>
-          <tr><th scope="row">Tickets per day</th><td>50</td><td class="num">$0.12</td></tr>
-          <tr><th scope="row">Giveaway entries per day</th><td>500</td><td class="num">$0.24 per 10</td></tr>
-          <tr><th scope="row">Dashboard API requests per minute</th><td>60</td><td class="num">$0.60</td></tr>
-          <tr><th scope="row">Forms per server</th><td>5</td><td class="num">$12.00</td></tr>
-          <tr><th scope="row">Panels per server</th><td>5</td><td class="num">$12.00</td></tr>
-          <tr><th scope="row">Roles per rule type</th><td>3</td><td class="num">$6.00</td></tr>
-          <tr><th scope="row">History retention (days)</th><td>30</td><td class="num">$0.24</td></tr>
+          <tr><th scope="row">Submissions per day</th><td>100</td><td class="num">$0.05</td></tr>
+          <tr><th scope="row">Tickets per day</th><td>50</td><td class="num">$0.05</td></tr>
+          <tr><th scope="row">Giveaway entries per day</th><td>500</td><td class="num">$0.25 per 100</td></tr>
+          <tr><th scope="row">Dashboard API requests per minute</th><td>60</td><td class="num">$0.09</td></tr>
+          <tr><th scope="row">Forms per server</th><td>5</td><td class="num">$0.33</td></tr>
+          <tr><th scope="row">Panels per server</th><td>5</td><td class="num">$0.33</td></tr>
+          <tr><th scope="row">Roles per rule type</th><td>3</td><td class="num">$0.43</td></tr>
+          <tr><th scope="row">History retention (days)</th><td>30</td><td class="num">$0.01</td></tr>
         </tbody>
       </table>
     </div>
@@ -248,11 +248,19 @@
     <p>
       Worked example, because a per-unit table is not a price until someone does the multiplication.
       A server wanting 1,000 submissions a day and nothing else changed is 900 units above the
-      baseline of 100, at $0.12 each: <strong>$108 a year</strong>. Adding 90 days of retention on
-      top of the free 30 is 90 more units at $0.24: <strong>$21.60</strong>, for $129.60 in total.
-      At that point tier 2 is $180 for considerably more headroom &mdash; and the tier selector on
-      the dashboard carries each preset&rsquo;s annual price next to it, so that comparison is on
-      screen rather than in your head.
+      baseline of 100, at $0.05 each: <strong>$45 a year</strong>. Adding 90 days of retention on
+      top of the free 30 is 90 more units at a cent each: <strong>90&cent;</strong>, for $45.90 in
+      total. Tier 1 tops out at 500 submissions a day so it will not cover that server at all, and
+      tier 2 &mdash; the only preset that does &mdash; is $180. Raising the one cap that binds is
+      the cheaper answer by a wide margin, which is the entire reason the builder exists.
+    </p>
+    <p>
+      It is worth being explicit about the other direction too: buying a preset&rsquo;s <em>exact</em>
+      caps through the builder always costs at least what the preset costs, because presets are a
+      bundle discount. Tier 1&rsquo;s caps price out at $60.21 against $60, and tier 2&rsquo;s at
+      $261.01 against $180. Use the builder when one or two caps bind and the rest do not; take the
+      preset when most of them move together. The dashboard shows both numbers side by side rather
+      than making you work that out.
     </p>
 
     <div class="callout">
@@ -395,7 +403,7 @@
         <h2>Legal</h2>
         <ul>
           <li><a href="/privacy">Privacy</a></li>
-          <li><a href="/terms">Terms</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
         </ul>
       </section>
     </div>

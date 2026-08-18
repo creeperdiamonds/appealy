@@ -43,6 +43,13 @@
       "when": 1787063975362,
       "tag": "0005_nervous_energizer",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787065006004,
+      "tag": "0006_giant_doctor_faustus",
+      "breakpoints": true
     }
   ]
 }

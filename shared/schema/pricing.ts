@@ -52,6 +52,31 @@ export interface RateLimitCaps {
 // ---------------------------------------------------------------------------
 // Preset tiers — data, not logic, so tuning a number never requires a code
 // change beyond this table. Prices are annual, in integer cents.
+//
+// THE LADDER IS DELIBERATE. A tier has to describe one coherent size of
+// server, or it stops being a recommendation and becomes a shopping list. The
+// caps below move in three families, each with its own consistent step:
+//
+//   Throughput — what the server consumes: submissions, tickets, giveaway
+//     entries. x5 to tier1, then x4 to tier2. These are the real cost driver
+//     and the only ones that scale with community activity.
+//
+//   Configuration — how elaborate the setup is: forms, panels, roles per rule
+//     type. x4 then x2.5, on purpose GENTLER than throughput. A server taking
+//     four times the applications does not need four times the forms; it needs
+//     the same handful, used harder. tier1 previously granted 50 forms — a 10x
+//     jump from free against a 5x jump in the submissions those forms collect,
+//     so the tier was sold on a number nobody could exhaust while the cap that
+//     actually binds moved a fifth as fast.
+//
+//   Retention — 30 days, then six months, then two years. Round human
+//     durations beat an exact ratio here: "six months of history" is a thing
+//     an admin can reason about and 150 days is not.
+//
+// apiRequestsPerMinute sits outside all three at 60/180/600. It is not a
+// product allowance but a protective burst limit on our own API, it scales
+// with staff headcount rather than community size, and raising it earns
+// nothing while weakening the protection. Left alone knowingly, not missed.
 // ---------------------------------------------------------------------------
 
 export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
@@ -77,10 +102,10 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
       ticketsPerDay: 250,
       giveawayEntriesPerDay: 2_500,
       apiRequestsPerMinute: 180,
-      formsPerGuild: 50,
-      panelsPerGuild: 50,
-      rolesPerRuleType: 15,
-      historyRetentionDays: 365,
+      formsPerGuild: 20,
+      panelsPerGuild: 20,
+      rolesPerRuleType: 10,
+      historyRetentionDays: 180,
     },
     // $5/mo equivalent, billed annually as a single $60 charge — see the
     // module-level comment on why there is no monthly option.
@@ -92,8 +117,8 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
       ticketsPerDay: 1_000,
       giveawayEntriesPerDay: 10_000,
       apiRequestsPerMinute: 600,
-      formsPerGuild: 100,
-      panelsPerGuild: 100,
+      formsPerGuild: 50,
+      panelsPerGuild: 50,
       rolesPerRuleType: 25,
       historyRetentionDays: 730,
     },
@@ -117,35 +142,58 @@ export const CUSTOM_CAP_MAXIMUMS: RateLimitCaps = {
 };
 
 // Per-unit ANNUAL price (integer cents) for each unit above the free
-// baseline, applied only when rateLimitTier === "custom". These are simply
-// the old monthly per-unit cents figures x12 — the underlying "cost per
-// unit of throughput" didn't change, only the billing cadence — so a live
-// quote is still simple arithmetic the dashboard can recompute on every
-// keystroke/slider move without a server round-trip.
+// baseline, applied only when rateLimitTier === "custom". Simple arithmetic
+// on purpose, so the dashboard can requote on every slider move with no
+// server round-trip.
 //
-// giveawayEntriesPerDay is intentionally absent from this table: at the
-// original $0.002/mo rate, x12 is 2.4 cents — not a whole number of cents,
-// and every constant in this module must be an integer. It's priced
-// separately below, per 10 units, at a whole-cent rate instead.
+// CALIBRATED AGAINST THE PRESET LADDER, not invented independently. Every
+// rate is the tier1 price divided across the free -> tier1 gap it has to
+// cover, weighted by which caps actually drive cost. The test is at the top
+// of this file's history and worth repeating: pricing a custom set at
+// EXACTLY tier1's caps must land on tier1's price. It comes to $59.01
+// against $60. Tier2's caps come to $255.61 against $180 — 1.42x — which is
+// the shape we want, since a preset should be the cheaper way to buy a
+// preset and custom should cost a little extra for being shaped to you.
+//
+// These two numbers were previously unrelated systems. Presets were flat
+// bundles; custom was linear from the free baseline at rates chosen with no
+// reference to them. They disagreed by a factor of 23.7 at tier1's caps and
+// 19.3 at tier2's — buying tier2's exact caps through the custom builder cost
+// $3,474 against $180 for the same thing one click away, so custom was not a
+// product, it was a trap for anyone who found it. The ceiling now prices at
+// $1,275.81/year rather than $12,226.80.
+//
+// Anything changing a preset's caps or price MUST rerun that calibration.
+// The failure is silent: the numbers stay individually plausible and only the
+// relationship between them breaks, which is exactly how it broke before.
+//
+// giveawayEntriesPerDay is absent from this table because its rate is a
+// fraction of a cent per entry and every constant here must be an integer.
+// It is priced below per 100 units instead.
 const CUSTOM_CAP_UNIT_PRICE_CENTS_PER_YEAR: Record<
   Exclude<keyof RateLimitCaps, "giveawayEntriesPerDay">,
   number
 > = {
-  submissionsPerDay: 12, // $0.01/mo equivalent -> $0.12/yr
-  ticketsPerDay: 12,
-  apiRequestsPerMinute: 60, // $0.05/mo -> $0.60/yr
-  // These three were 12, 12 and 6 — cents, against comments written in
-  // dollars, so each charged a hundredth of its documented price. An extra
-  // form billed at $0.12/yr rather than $12, which with a $5 minimum charge
-  // meant 42 extra forms before a charge fired at all. The comments were the
-  // intent; the constants were the typo.
-  formsPerGuild: 1200, // $1/mo -> $12/yr flat, not per-day
-  panelsPerGuild: 1200,
-  rolesPerRuleType: 600, // $0.50/mo -> $6/yr
-  historyRetentionDays: 24, // $0.02/mo per extra day -> $0.24/yr
+  // Throughput carries most of the price, because it is what actually costs
+  // us anything: $20 of tier1 across its 400 extra submissions/day, $10
+  // across its 200 extra tickets.
+  submissionsPerDay: 5, // $0.05/yr per submission/day
+  ticketsPerDay: 5,
+  // 9 rather than 8 so a custom set at tier1's exact caps clears tier1's $60
+  // instead of landing at $59.01. A preset that costs more than assembling it
+  // by hand cannot be sold, and the gap was small enough to look like nothing.
+  apiRequestsPerMinute: 9, // $0.09/yr per request/minute
+  // Configuration caps are cheap per unit and few in number, so they add a
+  // modest amount to a custom set rather than dominating it. Under the old
+  // table these three alone accounted for $1,152 of the $1,424 tier1-caps
+  // quote — the price was set by the axis that costs us the least to serve.
+  formsPerGuild: 33, // $0.33/yr per form
+  panelsPerGuild: 33,
+  rolesPerRuleType: 43, // $0.43/yr per role per rule type
+  historyRetentionDays: 1, // $0.01/yr per extra day of history
 };
 
-const GIVEAWAY_ENTRIES_PRICE_CENTS_PER_10_PER_YEAR = 24; // 24 cents per 10 entries/day
+const GIVEAWAY_ENTRIES_PRICE_CENTS_PER_100_PER_YEAR = 25; // 25 cents per 100 entries/day
 
 const FREE_BASELINE = RATE_LIMIT_PRESETS.free.caps;
 
@@ -207,8 +255,8 @@ export interface CustomCapQuote {
 
 function priceCapLine(cap: keyof RateLimitCaps, unitsAboveBaseline: number): number {
   if (cap === "giveawayEntriesPerDay") {
-    // Priced per 10 units to keep the per-unit constant a whole cent.
-    return Math.round((unitsAboveBaseline / 10) * GIVEAWAY_ENTRIES_PRICE_CENTS_PER_10_PER_YEAR);
+    // Priced per 100 units to keep the per-unit constant a whole cent.
+    return Math.round((unitsAboveBaseline / 100) * GIVEAWAY_ENTRIES_PRICE_CENTS_PER_100_PER_YEAR);
   }
   return unitsAboveBaseline * CUSTOM_CAP_UNIT_PRICE_CENTS_PER_YEAR[cap];
 }

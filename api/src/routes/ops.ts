@@ -33,6 +33,11 @@ opsRouter.get("/appeals", async (_req, res) => {
       .map((a) => ({
         id: a.id,
         body: a.body,
+        // An apology concedes the ban was right and asks anyway; an appeal
+        // argues it was wrong. Reading one as the other wastes the reviewer's
+        // time and does the appellant a disservice — an apology judged as a
+        // failed argument gets denied for not making one.
+        kind: a.kind,
         appellantId: a.appellantId.toString(),
         createdAt: a.createdAt.toISOString(),
         // Operators see the internal fields. This is the only place they leave

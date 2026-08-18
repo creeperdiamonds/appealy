@@ -31,6 +31,25 @@ export const platformAppealStatusEnum = pgEnum("platform_appeal_status", [
   "open", "accepted", "denied", "withdrawn",
 ]);
 
+/**
+ * What the person filing is actually claiming.
+ *
+ * An APPEAL says the ban was wrong. An APOLOGY says it was right and asks for
+ * another chance anyway. They are genuinely different submissions and it is
+ * worth not collapsing them: most people who want back in do not dispute what
+ * they did, and an appeal form is the wrong shape for them — it makes someone
+ * argue a case they do not believe in order to say the one thing they mean.
+ * Reviewers get a worse signal too, since a fabricated argument reads much
+ * like a real one and takes as long to disprove.
+ *
+ * Apologies are capped hard and for life (see maxApologiesLifetime). That is
+ * the whole mechanism: the reason an apology carries weight is that there are
+ * almost none of them. Grant it per-ban or refill it and it becomes another
+ * form to submit, at which point it means nothing and reviewers start
+ * skipping them.
+ */
+export const platformAppealKindEnum = pgEnum("platform_appeal_kind", ["appeal", "apology"]);
+
 export const platformBans = pgTable(
   "platform_bans",
   {
@@ -81,6 +100,11 @@ export const platformBanAppeals = pgTable(
     appellantId: bigint("appellant_id", { mode: "bigint" }).notNull(),
     body: text("body").notNull(),
 
+    // Defaults to "appeal" so every existing row keeps its meaning — they were
+    // all appeals, and a backfill that guessed otherwise would misrepresent
+    // what people actually wrote.
+    kind: platformAppealKindEnum("kind").notNull().default("appeal"),
+
     status: platformAppealStatusEnum("status").notNull().default("open"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
@@ -95,6 +119,10 @@ export const platformBanAppeals = pgTable(
       .on(t.banId).where(sql`status = 'open'`),
     triageIdx: index("platform_ban_appeals_triage_idx").on(t.status, t.createdAt),
     appellantIdx: index("platform_ban_appeals_appellant_idx").on(t.appellantId),
+    // The lifetime apology count is read on every apology submission and on
+    // every ban screen, and it spans all of one person's bans rather than one
+    // row — so it is a lookup by appellant, not by ban.
+    apologyIdx: index("platform_ban_appeals_apology_idx").on(t.appellantId, t.kind),
   }),
 );
 
@@ -183,6 +211,22 @@ export const APPEAL_RULES = {
    */
   reopenAfterDays: 180,
 
+  /**
+   * Apologies a person may ever file, across every ban they have had.
+   *
+   * Two, for life, never reset — deliberately unlike every other limit here,
+   * which pause and reopen. That looks like a contradiction of this module's
+   * rule that nothing is ever final, so it is worth being precise: running
+   * out of apologies takes nothing away. The appeal path stays open on its own
+   * schedule, and it is the path that can actually overturn a ban. An apology
+   * is an extra lane offered on top, and it only works because it is scarce.
+   *
+   * Two rather than one because the first is often spent early and clumsily,
+   * by someone who has just been banned and is not thinking well. Two rather
+   * than three because by the third, "I am sorry" is a form response.
+   */
+  maxApologiesLifetime: 2,
+
   /** Guild appeals require this permission bit on the appellant. */
   manageGuild: 0x20n,
 } as const;
@@ -190,4 +234,36 @@ export const APPEAL_RULES = {
 /** Attempts allowed for a given ban. Automated bans get the longer rope. */
 export function attemptsAllowed(ban: { automated: boolean }): number {
   return ban.automated ? APPEAL_RULES.maxAttemptsAutomated : APPEAL_RULES.maxAttemptsReviewed;
+}
+
+export interface ApologyEligibility {
+  /** False when this ban cannot take an apology at all — see `reason`. */
+  available: boolean;
+  remaining: number;
+  reason: "ok" | "not_a_user_ban" | "none_left";
+}
+
+/**
+ * Whether this person may apologise for this ban.
+ *
+ * Guild bans are excluded on purpose. An apology is a personal statement and a
+ * server is not a person: whoever holds Manage Server today may have had
+ * nothing to do with what happened, and may not be the same account that holds
+ * it next month. Letting one member spend a scarce, lifetime-limited apology
+ * on behalf of an organisation — or on behalf of whoever comes after them —
+ * is not a trade anybody consented to. Guild bans keep the appeal path, which
+ * argues facts rather than intent and is the right instrument for them.
+ *
+ * `usedLifetime` counts every apology this appellant has ever filed, on any
+ * ban. Scoping it per-ban would let someone accumulate bans and an allowance
+ * with each one, which inverts the intent exactly.
+ */
+export function apologyEligibility(
+  ban: { subject: "user" | "guild" },
+  usedLifetime: number,
+): ApologyEligibility {
+  const remaining = Math.max(0, APPEAL_RULES.maxApologiesLifetime - usedLifetime);
+  if (ban.subject !== "user") return { available: false, remaining, reason: "not_a_user_ban" };
+  if (remaining === 0) return { available: false, remaining: 0, reason: "none_left" };
+  return { available: true, remaining, reason: "ok" };
 }

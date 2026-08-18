@@ -14,7 +14,7 @@
 // What it deliberately does not say: which rule fired, what the detection
 // threshold was, or who reviewed it. Those live in bans.notes and stay there.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Panel } from "../components/ui";
 import { api } from "../lib/api";
 import type { PublicBan } from "../../../shared/types";
@@ -28,6 +28,13 @@ function formatDay(iso: string): string {
     month: "long",
     day: "numeric",
   });
+}
+
+interface ApologyState {
+  available: boolean;
+  remaining: number;
+  reason: "ok" | "not_a_user_ban" | "none_left";
+  allowedLifetime: number;
 }
 
 export function AppealForm({
@@ -44,12 +51,41 @@ export function AppealForm({
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(!!ban.openAppeal);
 
+  // "appeal" argues the ban was wrong; "apology" accepts it and asks anyway.
+  // Two different claims, so the placeholder, the button and the explanation
+  // all change with it — a form that only relabels its own button is asking
+  // for the same paragraph twice.
+  const [kind, setKind] = useState<"appeal" | "apology">("appeal");
+  const [apology, setApology] = useState<ApologyState | null>(null);
+
+  // Availability lives on the server: the allowance is per person across every
+  // ban they have had, so it cannot be worked out from this one ban.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/platform-appeals/${ban.id}`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.apology) setApology(d.apology as ApologyState);
+      })
+      .catch(() => {
+        // Non-fatal. The appeal form is the important path and works without
+        // this; failing to learn about the apology option should not take the
+        // whole screen down with it.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ban.id]);
+
   const len = body.trim().length;
+  const canApologise = Boolean(apology?.available) && subject === "user";
 
   if (sent) {
     return (
       <div className="appeal-sent">
-        <div className="appeal-sent-title">Appeal under review</div>
+        <div className="appeal-sent-title">
+          {kind === "apology" ? "Apology under review" : "Appeal under review"}
+        </div>
         <p className="dim">
           Submitted {formatDay(ban.openAppeal?.createdAt ?? new Date().toISOString())}. Most are
           decided within a few days. The outcome shows up here — there's nothing else to do.
@@ -62,11 +98,16 @@ export function AppealForm({
     setSending(true);
     setError(null);
     try {
-      const res = await fetch("/api/appeals", {
+      // Was "/api/appeals", which is mounted nowhere — the router lives at
+      // /api/platform-appeals (api/src/app.ts). Every submission from this
+      // screen 404'd, so the message came back "that didn't send" and the ban
+      // was, in practice, unappealable. Which is the one outcome this whole
+      // project exists to prevent.
+      const res = await fetch("/api/platform-appeals", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ banId: ban.id, body: body.trim() }),
+        body: JSON.stringify({ banId: ban.id, body: body.trim(), kind }),
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
@@ -82,8 +123,59 @@ export function AppealForm({
 
   return (
     <div className="appeal-form">
+      {canApologise && (
+        <>
+          <div className="appeal-kind" role="radiogroup" aria-label="What you want to send">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={kind === "appeal"}
+              className={kind === "appeal" ? "btn-toggle is-on" : "btn-toggle"}
+              onClick={() => setKind("appeal")}
+            >
+              Appeal this ban
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={kind === "apology"}
+              className={kind === "apology" ? "btn-toggle is-on" : "btn-toggle"}
+              onClick={() => setKind("apology")}
+            >
+              Apologise
+            </button>
+          </div>
+          <p className="dim">
+            {kind === "appeal" ? (
+              <>
+                An appeal says the decision was wrong, and asks us to look again at what
+                happened.
+              </>
+            ) : (
+              <>
+                An apology says the decision was right, and asks for another chance anyway. It
+                carries weight precisely because there are so few of them:{" "}
+                <strong>
+                  you get {apology?.allowedLifetime ?? 2} in total, ever, and{" "}
+                  {apology?.remaining === 1 ? "this is your last one" : `you have ${apology?.remaining} left`}
+                </strong>
+                . Using them both changes nothing about appealing — that route runs on its own
+                schedule and is the one that can actually overturn this.
+              </>
+            )}
+          </p>
+        </>
+      )}
+
+      {apology?.reason === "none_left" && subject === "user" && (
+        <p className="dim">
+          You've used both of your apologies. Appeals for this ban are unaffected and run on
+          their own schedule.
+        </p>
+      )}
+
       <label className="eyebrow" htmlFor="appeal-body">
-        Your appeal
+        {kind === "apology" ? "Your apology" : "Your appeal"}
       </label>
       <textarea
         id="appeal-body"
@@ -94,9 +186,11 @@ export function AppealForm({
           setError(null);
         }}
         placeholder={
-          subject === "guild"
-            ? "What was happening in the server around this time, and what has changed since?"
-            : "What were you doing when this happened, and why do you think the decision was wrong?"
+          kind === "apology"
+            ? "What you did, why it was a problem, and what would be different now."
+            : subject === "guild"
+              ? "What was happening in the server around this time, and what has changed since?"
+              : "What were you doing when this happened, and why do you think the decision was wrong?"
         }
         aria-describedby="appeal-count"
       />
@@ -117,13 +211,23 @@ export function AppealForm({
       )}
 
       <button className="btn-primary" disabled={len < MIN || sending} onClick={submit}>
-        {sending ? "Sending…" : "Send appeal"}
+        {sending ? "Sending…" : kind === "apology" ? "Send apology" : "Send appeal"}
       </button>
 
       <p className="dim appeal-rules">
-        Appeals are read by a person, not a filter. There's a wait between attempts so the
-        queue stays readable — but a ban is never closed off permanently, and you can always
-        appeal again later if something changes.
+        {kind === "apology" ? (
+          <>
+            Apologies are read by a person, not a filter. There's no waiting period on one — but
+            you only ever get {apology?.allowedLifetime ?? 2}, so it is worth spending on
+            something you mean.
+          </>
+        ) : (
+          <>
+            Appeals are read by a person, not a filter. There's a wait between attempts so the
+            queue stays readable — but a ban is never closed off permanently, and you can always
+            appeal again later if something changes.
+          </>
+        )}
       </p>
     </div>
   );
