@@ -56,7 +56,9 @@ export function onMessageCreate(bot: AppealyBot) {
     // path ever — a banned guild is by definition one we don't want to be
     // sending messages into, and it already got its one ephemeral notice
     // from the interaction path.
-    if (!passesBanGateForMessage(message.authorId ?? message.author?.id, message.guildId)) return;
+    const authorId = message.author?.id;
+    if (!authorId) return;
+    if (!passesBanGateForMessage(authorId, message.guildId)) return;
 
     // Bot and webhook messages are ignored entirely. Checked first because
     // it's free and because letting them through would make the sticky

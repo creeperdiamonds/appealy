@@ -10,6 +10,7 @@
 //     doesn't accumulate stale entries for people who are gone.
 
 import { eq, and } from "drizzle-orm";
+import { getGuild } from "../core/guildLookup.ts";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { closeTicket } from "../services/ticketService.ts";
@@ -31,7 +32,7 @@ async function handleWelcomerLeaveMessage(
   const config = await db.query.welcomerConfigs.findFirst({ where: eq(schema.welcomerConfigs.guildId, payload.guildId) });
   if (!config || !config.leaveEnabled || !config.leaveChannelId) return;
 
-  const guild = await bot.cache?.guilds?.get(payload.guildId);
+  const guild = await getGuild(bot, payload.guildId);
   const message = interpolateTemplate(config.leaveMessage ?? "{username} has left {guild}.", {
     username: payload.user.username ?? "Someone",
     userTag: payload.user.username ?? "Someone",

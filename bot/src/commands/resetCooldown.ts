@@ -8,7 +8,8 @@
 // only throughput restrictions).
 
 import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq, and, like } from "drizzle-orm";
@@ -21,7 +22,10 @@ export const definition: CreateApplicationCommand = {
   name: "reset-cooldown",
   description: "Clear a user's cooldown/limit for one application form",
   type: ApplicationCommandTypes.ChatInput,
-  defaultMemberPermissions: ADMINISTRATOR.toString(),
+  // Discordeno takes permission NAMES here, not a bitfield string. The
+  // old form type-checked against nothing and would have registered the
+  // command with a permission value Discord could not parse.
+  defaultMemberPermissions: ["ADMINISTRATOR"],
   options: [
     {
       name: "application_name",
@@ -65,7 +69,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     form.id,
     staffMember.id,
     interaction.member?.roles ?? [],
-    interaction.member?.permissions ?? 0n,
+    interaction.member?.permissions?.bitfield ?? 0n,
   );
   if (!allowed) {
     return respond(bot, interaction, "You don't have permission to manage this application's applicants.");

@@ -1,10 +1,10 @@
 // bot/src/core/client.ts
 //
-// Discordeno v18 client construction.
+// Discordeno v20 client construction.
 //
 // NOTE ON API STABILITY: Discordeno's low-level gateway manager APIs
 // (createGatewayManager, handleDiscordPayload wiring) have changed shape
-// across v17/v18 releases. Rather than hand-roll that wiring and risk
+// across releases. Rather than hand-roll that wiring and risk
 // silently drifting from whatever patch version you install, this file
 // uses the high-level `bot.start()` helper that createBot() attaches,
 // which Discordeno maintains as the stable entrypoint for single-process
@@ -25,6 +25,9 @@ export const desiredProperties = {
     ownerId: true,
     roles: true,
     icon: true,
+    // Read by the welcomer and the leave handler for the "you're member #N"
+    // line. Undeclared, it is absent at runtime, not just untyped.
+    memberCount: true,
   },
   role: {
     id: true,
@@ -39,6 +42,13 @@ export const desiredProperties = {
     user: true,
     nick: true,
     communicationDisabledUntil: true,
+    // Every staff gate reads this: reviewing, denying, closing a ticket,
+    // resetting a cooldown. Undeclared, the checks would see undefined and
+    // fail closed for everyone.
+    permissions: true,
+    // Needed to know which guild a join belongs to; guildMemberAdd hands the
+    // member and the user separately and only the member carries it.
+    guildId: true,
   },
   user: {
     id: true,
@@ -53,6 +63,11 @@ export const desiredProperties = {
     guildId: true,
     author: true,
     content: true,
+    // Ticket transcripts include what was attached, not just what was typed.
+    attachments: true,
+    // Review and denial flows edit the original review message in place, which
+    // means reading the embed they are about to rewrite.
+    embeds: true,
   },
   channel: {
     id: true,
@@ -60,6 +75,16 @@ export const desiredProperties = {
     name: true,
     type: true,
     permissionOverwrites: true,
+    // Used when creating a ticket channel under the right category.
+    position: true,
+  },
+  // /import-appy takes a file upload, so it needs the parts of an attachment
+  // that identify and fetch it.
+  attachment: {
+    id: true,
+    filename: true,
+    size: true,
+    url: true,
   },
   interaction: {
     id: true,
@@ -79,16 +104,17 @@ export const desiredProperties = {
 export function createAppealyBot() {
   const bot = createBot({
     token: env.DISCORD_BOT_TOKEN,
-    botId: BigInt(env.DISCORD_APPLICATION_ID),
+    // botId is no longer an option — the library derives it from the token,
+    // which is the same value and one fewer thing to get wrong.
     intents:
       GatewayIntents.Guilds |
       GatewayIntents.GuildMembers |
       GatewayIntents.GuildMessages |
       GatewayIntents.MessageContent |
-      // Needed for guildBanAdd, which drives the ban-appeal DM. NOTE: renamed
-      // across versions — GuildModeration in Discordeno v18, GuildBans in
-      // older releases. If this fails to compile, check @discordeno/bot's
-      // GatewayIntents export before assuming the feature is broken.
+      // Needed for guildBanAdd, which drives the ban-appeal DM. Renamed across
+      // releases: GuildModeration here, GuildBans in older ones. If this stops
+      // compiling, check the GatewayIntents export before assuming the feature
+      // is broken.
       GatewayIntents.GuildModeration,
     desiredProperties,
   });
@@ -100,14 +126,29 @@ export function createAppealyBot() {
 
 export type AppealyBot = ReturnType<typeof createAppealyBot>;
 
+// The library types every payload against `desiredProperties` above, so the
+// raw `Interaction`/`Guild`/`Member` types from @discordeno/bot are wider than
+// what a handler is actually handed and are not assignable to it. Deriving the
+// types from the bot instance keeps them correct by construction: change
+// desiredProperties and these follow, instead of drifting until something
+// reads a field that was never requested.
+type EventArgs<K extends keyof AppealyBot["events"]> =
+  Parameters<NonNullable<AppealyBot["events"][K]>>;
+
+export type AppealyInteraction = EventArgs<"interactionCreate">[0];
+export type AppealyGuild = EventArgs<"guildCreate">[0];
+export type AppealyMember = EventArgs<"guildMemberAdd">[0];
+export type AppealyUser = EventArgs<"guildBanAdd">[0];
+export type AppealyMessage = EventArgs<"messageCreate">[0];
+
 export async function startBot(bot: AppealyBot) {
   // Shard count is resolved from the live guild count before connecting.
   // Discord's own recommendation acts as a floor — see core/sharding.ts for
   // why the count can't change while running.
   const plan = await resolveSharding(env.DISCORD_BOT_TOKEN);
 
-  // ⚠️ v18 API SURFACE: `bot.gateway.totalShards` is the documented field in
-  // Discordeno v18, but the gateway manager's shape has moved between minor
+  // ⚠️ GATEWAY SHAPE: `bot.gateway.totalShards` is the documented field, but
+  // the gateway manager's shape has moved between minor
   // versions (the note at the top of this file applies here too). Assigning
   // defensively rather than assuming: if the property is missing, log it
   // rather than silently running on one shard while believing otherwise.

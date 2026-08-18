@@ -39,7 +39,7 @@ interface ShardProfile {
   lastGuildAt: number | null;
   handlerMs: number;
   slowest: { guildId: string; ms: number } | null;
-  timer: number | null;
+  timer: ReturnType<typeof setTimeout> | null;
   reported: boolean;
 }
 

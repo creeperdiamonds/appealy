@@ -6,7 +6,8 @@
 // member has that aren't part of this menu.
 
 import { eq } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";

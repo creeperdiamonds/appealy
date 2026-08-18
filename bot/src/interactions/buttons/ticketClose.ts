@@ -2,7 +2,8 @@
 // Close and Claim buttons attached to every ticket's welcome message.
 
 import { eq } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { closeTicket } from "../../services/ticketService.ts";
@@ -32,7 +33,7 @@ export async function handleTicketCloseButton(
     ticket.config,
     actor.id,
     interaction.member?.roles ?? [],
-    interaction.member?.permissions ?? 0n,
+    interaction.member?.permissions?.bitfield ?? 0n,
   );
   const isOpener = ticket.openerId === actor.id;
   // creatorCanClose gates whether the opener themselves may close — staff
@@ -93,7 +94,7 @@ export async function handleTicketClaimButton(
     ticket.config,
     actor.id,
     interaction.member?.roles ?? [],
-    interaction.member?.permissions ?? 0n,
+    interaction.member?.permissions?.bitfield ?? 0n,
   );
   if (!allowed) {
     return respond(bot, interaction, "Only support staff can claim tickets.");

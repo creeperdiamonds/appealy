@@ -11,7 +11,9 @@
 //      custom template (if configured) or a sane default.
 
 import { eq } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+import { getGuild } from "../../core/guildLookup.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import {
@@ -279,7 +281,7 @@ export async function postReviewEmbedForSubmission(
     userId: applicantId,
     username: applicantUser?.username ?? "there",
     userTag: applicantUser ? `${applicantUser.username}#${applicantUser.discriminator ?? "0"}` : applicantId.toString(),
-    guildName: (await bot.cache?.guilds?.get(guildId))?.name ?? "the server",
+    guildName: (await getGuild(bot, guildId))?.name ?? "the server",
     formName: form.name,
   });
 }

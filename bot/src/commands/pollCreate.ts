@@ -8,7 +8,8 @@
 // without exceeding the 25-option command-option limit awkwardly.
 
 import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { publishPoll } from "../services/pollService.ts";

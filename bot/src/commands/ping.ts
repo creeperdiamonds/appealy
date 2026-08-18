@@ -4,7 +4,8 @@
 // responsive before troubleshooting anything else.
 
 import { ApplicationCommandTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 
 const EPHEMERAL = 64;

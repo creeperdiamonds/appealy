@@ -1,0 +1,104 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:@discordeno/bot@20": "20.0.0",
+    "npm:drizzle-orm@0.33": "0.33.0_postgres@3.4.9",
+    "npm:postgres@^3.4.4": "3.4.9"
+  },
+  "npm": {
+    "@discordeno/bot@20.0.0": {
+      "integrity": "sha512-fc5oBeI8LkDIkai0hgOz/g5ttmUOlNv2JqReiZcYk+Fs5V+fvWhLipvHJvE0Z1qjvgTguGjqCwoXyKeL5tFP6g==",
+      "dependencies": [
+        "@discordeno/gateway",
+        "@discordeno/rest",
+        "@discordeno/types",
+        "@discordeno/utils"
+      ]
+    },
+    "@discordeno/gateway@20.0.0": {
+      "integrity": "sha512-S3CzIi7ZGvgsxm3otEuCuLT7q2QTgaqkoIbx+IBEUIUasZnvdORcReUyxQKSaSLtHhavR7duUJbLsO6FeNLbRg==",
+      "dependencies": [
+        "@discordeno/types",
+        "@discordeno/utils",
+        "ws"
+      ],
+      "optionalDependencies": [
+        "fzstd"
+      ]
+    },
+    "@discordeno/rest@20.0.0": {
+      "integrity": "sha512-ZZ5ecWmWSgRvDlGiT2yzhfGQ0wynF8lmHqqjcn+zEpYrsUMk9F9WBUqSDqiIWSABU82vyqqTGiOB1NEDcQ86og==",
+      "dependencies": [
+        "@discordeno/types",
+        "@discordeno/utils"
+      ]
+    },
+    "@discordeno/types@20.0.0": {
+      "integrity": "sha512-1NC+VxxseXTF0BvPa8Xq8qIhSF7CZmQ4/5ahQ7/zshSEAqqq/TWooG7fPncPm9SCBJkGbGdzHJ2oh9OCKngoag=="
+    },
+    "@discordeno/utils@20.0.0": {
+      "integrity": "sha512-Hku0nmgcnFI4GzznIbWeiJ1aLE/5/eQPnBIBlJNf2Zxg5yvOFE3XiEA6QpMQKexd01abe7C27rDyLCdvMqMdAQ==",
+      "dependencies": [
+        "@discordeno/types"
+      ]
+    },
+    "drizzle-orm@0.33.0_postgres@3.4.9": {
+      "integrity": "sha512-SHy72R2Rdkz0LEq0PSG/IdvnT3nGiWuRk+2tXZQ90GVq/XQhpCzu/EFT3V2rox+w8MlkBQxifF8pCStNYnERfA==",
+      "dependencies": [
+        "postgres"
+      ],
+      "optionalPeers": [
+        "postgres"
+      ]
+    },
+    "fzstd@0.1.1": {
+      "integrity": "sha512-dkuVSOKKwh3eas5VkJy1AW1vFpet8TA/fGmVA5krThl8YcOVE/8ZIoEA1+U1vEn5ckxxhLirSdY837azmbaNHA=="
+    },
+    "postgres@3.4.9": {
+      "integrity": "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="
+    },
+    "ws@8.21.3": {
+      "integrity": "sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw=="
+    }
+  },
+  "remote": {
+    "https://deno.land/std@0.218.0/assert/assert.ts": "bec068b2fccdd434c138a555b19a2c2393b71dfaada02b7d568a01541e67cdc5",
+    "https://deno.land/std@0.218.0/assert/assertion_error.ts": "9f689a101ee586c4ce92f52fa7ddd362e86434ffdf1f848e45987dc7689976b8",
+    "https://deno.land/std@0.218.0/async/delay.ts": "8e1d18fe8b28ff95885e2bc54eccec1713f57f756053576d8228e6ca110793ad",
+    "https://deno.land/std@0.218.0/bytes/concat.ts": "9cac3b4376afbef98ff03588eb3cf948e0d1eb6c27cfe81a7651ab6dd3adc54a",
+    "https://deno.land/std@0.218.0/bytes/copy.ts": "f29c03168853720dfe82eaa57793d0b9e3543ebfe5306684182f0f1e3bfd422a",
+    "https://deno.land/std@0.218.0/io/buf_reader.ts": "c73aad99491ee6db3d6b001fa4a780e9245c67b9296f5bad9c0fa7384e35d47a",
+    "https://deno.land/std@0.218.0/io/buf_writer.ts": "f82f640c8b3a820f600a8da429ad0537037c7d6a78426bbca2396fb1f75d3ef4",
+    "https://deno.land/std@0.218.0/io/types.ts": "acecb3074c730b5ff487ba4fe9ce51e67bd982aa07c95e5f5679b7b2f24ad129",
+    "https://deno.land/x/redis@v0.32.3/backoff.ts": "33e4a6e245f8743fbae0ce583993a671a3ac2ecee433a3e7f0bd77b5dd541d84",
+    "https://deno.land/x/redis@v0.32.3/command.ts": "aa2312d4093ec7c72d61d32a71d3d13a33cc6302ca78c8f026e1994e76541e6e",
+    "https://deno.land/x/redis@v0.32.3/connection.ts": "393f1960f7ea2569ef5542c1dd7b54d5549487cf21443778553005f762bad879",
+    "https://deno.land/x/redis@v0.32.3/errors.ts": "4c47b278c8a87e0f49c0f7a96c74c5bee09e4d5ea19f892923b0281707112d04",
+    "https://deno.land/x/redis@v0.32.3/executor.ts": "5ac4c1f7bec44d12ebc0f3702bf074bd3ba6c1aae74953582f6358d2948718e7",
+    "https://deno.land/x/redis@v0.32.3/internal/encoding.ts": "0525f7f444a96b92cd36423abdfe221f8d8de4a018dc5cb6750a428a5fc897c2",
+    "https://deno.land/x/redis@v0.32.3/internal/symbols.ts": "e36097bab1da1c9fe84a3bb9cb0ed1ec10c3dc7dd0b557769c5c54e15d110dd2",
+    "https://deno.land/x/redis@v0.32.3/mod.ts": "a2a2318e67db704c799a13cc840114b9f344a82cf682c933a293e90b1a02b3fa",
+    "https://deno.land/x/redis@v0.32.3/pipeline.ts": "f0ec80f58a88e9b9b157155882c2bb3568890e6b4d67ad99760a6fc2c51b47ba",
+    "https://deno.land/x/redis@v0.32.3/protocol/deno_streams/command.ts": "8e1e84f6d94637d8814abfac91de0916e97c6ea7d2ccab9ea9e3c9f2de283602",
+    "https://deno.land/x/redis@v0.32.3/protocol/deno_streams/mod.ts": "346d473bd4e834e397ca25bbbf1021f44e577adda8d6391a41bd03b7bc8c72f4",
+    "https://deno.land/x/redis@v0.32.3/protocol/deno_streams/reply.ts": "2707e9fe18608c1a9a49b4f0094397c7400141b8208170c7bcb128ceb5ddd790",
+    "https://deno.land/x/redis@v0.32.3/protocol/shared/command.ts": "71639adc162dac95fa41d701a7112bcd5d5cf3fd22c1307c8840f983628540be",
+    "https://deno.land/x/redis@v0.32.3/protocol/shared/protocol.ts": "5b9284ee28ec74dfc723c7c7f07dca8d5f9d303414f36689503622dfdde12551",
+    "https://deno.land/x/redis@v0.32.3/protocol/shared/reply.ts": "3311ff66357bacbd60785cb43b97539c341d8a7d963bc5e80cb864ac81909ea5",
+    "https://deno.land/x/redis@v0.32.3/protocol/shared/types.ts": "3d1ff5983abc1e4e56c751aaf4672042c87334cd004ce2fc0493575432151e1f",
+    "https://deno.land/x/redis@v0.32.3/pubsub.ts": "a36892455b0a4a50af169332a165b0985cc90d84486087f036e507e3137b2afb",
+    "https://deno.land/x/redis@v0.32.3/redis.ts": "6ec7be95f64174078279518afff0535d04d7f96d90da36f2e9a9ab9f388cbaa1",
+    "https://deno.land/x/redis@v0.32.3/stream.ts": "73b286174d4a02006720c9e2d193754d10e041e8e1450188e32f203a188bbecb",
+    "https://deno.land/x/redis@v0.32.3/vendor/https/deno.land/std/async/delay.ts": "947f04fe13f433772d7f2ffdedec7ca61f6246f6fc14ef812ec86c816b6a7442",
+    "https://deno.land/x/redis@v0.32.3/vendor/https/deno.land/std/bytes/concat.ts": "1854d7390359fdafdf361a936d066780df08478bbb9cf0a43aecb662cda080f2",
+    "https://deno.land/x/redis@v0.32.3/vendor/https/deno.land/std/io/buf_reader.ts": "77a914a2ca9f16a306946599cccfd56f566fbb7d93649216658808457a4232aa",
+    "https://deno.land/x/redis@v0.32.3/vendor/https/deno.land/std/io/buf_writer.ts": "906355019613a2b719fda99a59cfcf7c4654694cbbb7ccaa73651a8616c0444a"
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:@discordeno/bot@20",
+      "npm:drizzle-orm@0.33",
+      "npm:postgres@^3.4.4"
+    ]
+  }
+}

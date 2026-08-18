@@ -2,7 +2,8 @@
 // Handles submission of the retype-the-code captcha modal.
 
 import { eq, and, desc } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { grantVerifiedRole } from "../buttons/verify.ts";

@@ -219,11 +219,13 @@ export async function resolveSharding(token: string, guildCountHint = 0): Promis
  */
 export function startReshardWatcher(
   currentShards: number,
-  getGuildCount: () => number,
+  // Async because the count comes from Postgres now rather than an in-memory
+  // cache. This runs hourly, so the query cost is irrelevant.
+  getGuildCount: () => number | Promise<number>,
   intervalMs = 3_600_000,
 ) {
-  const check = () => {
-    const guilds = getGuildCount();
+  const check = async () => {
+    const guilds = await getGuildCount();
     const wanted = Math.max(1, Math.ceil(guilds / env.GUILDS_PER_SHARD));
 
     if (wanted > currentShards && guilds > currentShards * env.GUILDS_PER_SHARD * 1.2) {

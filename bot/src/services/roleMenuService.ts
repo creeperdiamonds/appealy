@@ -2,6 +2,8 @@
 // Publishes/re-syncs a self-assignable role menu's message.
 
 import { eq } from "drizzle-orm";
+import type { MessageComponent } from "@discordeno/bot";
+import { MessageComponentTypes, ButtonStyles } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
@@ -14,14 +16,14 @@ export async function publishRoleMenu(bot: AppealyBot, menuId: string) {
   if (!menu) throw new Error("role_menu_not_found");
   if (menu.options.length === 0) throw new Error("role_menu_has_no_options");
 
-  const payload = {
-    embeds: [{ title: menu.title, description: menu.description ?? "", color: 0x5865f2 }],
-    components: [
+  // Annotated so the nested arrays are checked against the action-row tuple
+  // types rather than inferred as plain arrays, which nothing accepts.
+  const components: MessageComponent[] = [
       {
-        type: 1,
+        type: MessageComponentTypes.ActionRow,
         components: [
           {
-            type: 3,
+            type: MessageComponentTypes.SelectMenu,
             customId: encodeCustomId("rolemenu", "select", menu.id),
             placeholder: "Choose your roles",
             minValues: 0,
@@ -35,7 +37,11 @@ export async function publishRoleMenu(bot: AppealyBot, menuId: string) {
           },
         ],
       },
-    ],
+  ];
+
+  const payload = {
+    embeds: [{ title: menu.title, description: menu.description ?? "", color: 0x5865f2 }],
+    components,
   };
 
   if (menu.messageId) {

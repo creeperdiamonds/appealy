@@ -13,7 +13,9 @@
 // history.
 
 import { ApplicationCommandTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import { getGuild } from "../core/guildLookup.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { isGuildOwner } from "../services/permissionService.ts";
 import { buildFullDataExport } from "../services/dataExportService.ts";
@@ -44,16 +46,20 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     const json = JSON.stringify(exportData, null, 2);
     const fileBytes = new TextEncoder().encode(json);
 
-    const guildName = (await bot.cache?.guilds?.get(guildId))?.name ?? guildId.toString();
+    const guildName = (await getGuild(bot, guildId))?.name ?? guildId.toString();
     const filename = `appealy-export-${guildName.replace(/[^a-z0-9]/gi, "_")}-${new Date().toISOString().slice(0, 10)}.json`;
 
     const dmChannel = await bot.helpers.getDmChannel(requester.id);
     await bot.helpers.sendMessage(dmChannel.id, {
       content: `Here's your full data export for **${guildName}**. This includes forms, panels, submissions, tickets, and every other Appealy config for this server — keep it somewhere safe, it contains applicant answers and other member data.`,
-      file: {
-        blob: new Blob([fileBytes], { type: "application/json" }),
-        name: filename,
-      },
+      // Renamed to a list in Discordeno v19+; a single-element array is the
+      // same request.
+      files: [
+        {
+          blob: new Blob([fileBytes], { type: "application/json" }),
+          name: filename,
+        },
+      ],
     });
 
     logger.info("Full data export completed", { guildId: guildId.toString(), requesterId: requester.id.toString() });

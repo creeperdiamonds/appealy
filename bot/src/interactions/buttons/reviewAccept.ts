@@ -1,7 +1,11 @@
 // bot/src/interactions/buttons/reviewAccept.ts
 
 import { eq } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import { MessageComponentTypes } from "@discordeno/bot";
+import type { MessageComponent } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+import { getGuild } from "../../core/guildLookup.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { canReviewForm, findUnmanageableRoles, staffLevelFor } from "../../services/permissionService.ts";
@@ -49,7 +53,7 @@ export async function handleReviewAccept(
     submission.formId,
     reviewer.id,
     interaction.member?.roles ?? [],
-    interaction.member?.permissions ?? 0n,
+    interaction.member?.permissions?.bitfield ?? 0n,
   );
   if (!allowed) {
     const noun = submission.form.kind === "appeal" ? "appeal" : "application";
@@ -82,7 +86,7 @@ export async function handleReviewAccept(
       guildId,
       reviewer.id,
       interaction.member?.roles ?? [],
-      interaction.member?.permissions ?? 0n,
+      interaction.member?.permissions?.bitfield ?? 0n,
     );
     const allowed = visibleOutcomes(outcomes, level);
 
@@ -100,9 +104,22 @@ export async function handleReviewAccept(
     if (!chosenOutcomeId) {
       // First click: show the menu instead of accepting.
       const menu = buildOutcomeMenu(allowed, level, submissionId);
+      // Null when there is nothing this reviewer may pick. The check above
+      // covers the usual case, but the builder is allowed to return nothing
+      // and a row containing null is not a message Discord will accept.
+      if (!menu) {
+        return respond(
+          bot,
+          interaction,
+          "No outcomes are available to you on this form right now.",
+        );
+      }
+      const components: MessageComponent[] = [
+        { type: MessageComponentTypes.ActionRow, components: [menu] },
+      ];
       return bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
         type: 4,
-        data: { flags: EPHEMERAL, components: [{ type: 1, components: [menu] }] },
+        data: { flags: EPHEMERAL, components },
       });
     }
 
@@ -124,9 +141,9 @@ export async function handleReviewAccept(
     //
     // Skipped for ADMINISTRATOR, who can assign any role by hand anyway;
     // blocking them here would be theatre.
-    const isAdmin = ((interaction.member?.permissions ?? 0n) & 8n) === 8n;
+    const isAdmin = interaction.member?.permissions?.has("ADMINISTRATOR") ?? false;
     if (!isAdmin) {
-      const guildRoles = (await bot.cache?.guilds?.get(guildId))?.roles;
+      const guildRoles = (await getGuild(bot, guildId))?.roles;
       if (guildRoles) {
         const positionOf = (id: bigint) => Number(guildRoles.get(id)?.position ?? 0);
         const reviewerTop = Math.max(
@@ -306,7 +323,7 @@ export async function handleReviewAccept(
     }
   }
 
-  const guildName = (await bot.cache?.guilds?.get(guildId))?.name ?? "the server";
+  const guildName = (await getGuild(bot, guildId))?.name ?? "the server";
   const applicantUser = await bot.helpers.getUser(submission.applicantId).catch(() => null);
   await sendTemplatedDm(bot, {
     formId: form.id,

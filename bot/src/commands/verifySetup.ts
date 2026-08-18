@@ -2,7 +2,8 @@
 // /verify-setup — configures and publishes the verification panel.
 
 import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { publishVerificationPanel } from "../services/verificationPanelService.ts";
@@ -14,7 +15,10 @@ export const definition: CreateApplicationCommand = {
   name: "verify-setup",
   description: "Configure and publish server verification",
   type: ApplicationCommandTypes.ChatInput,
-  defaultMemberPermissions: ADMINISTRATOR.toString(),
+  // Discordeno takes permission NAMES here, not a bitfield string. The
+  // old form type-checked against nothing and would have registered the
+  // command with a permission value Discord could not parse.
+  defaultMemberPermissions: ["ADMINISTRATOR"],
   options: [
     { name: "verified_role", description: "Role granted upon verification", type: ApplicationCommandOptionTypes.Role, required: true },
     { name: "method", description: "Verification method", type: ApplicationCommandOptionTypes.String, required: false, choices: [

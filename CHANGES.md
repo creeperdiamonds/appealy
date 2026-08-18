@@ -50,4 +50,4 @@ interfaces with the password `appealy`.
 
 - Outcome CRUD has no nav entry in `App.tsx` (page exists, unreachable).
 - `dataExportService` doesn't include user-level platform appeals by design.
-- The ops console in `ops-console/` targets Discordeno v21; `bot/` is v18.
+- The ops console in `ops-console/` targets Discordeno v21; `bot/` is v20.

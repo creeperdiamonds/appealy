@@ -9,7 +9,8 @@ import {
   ApplicationCommandTypes,
   ApplicationCommandOptionTypes,
 } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq, and, like } from "drizzle-orm";

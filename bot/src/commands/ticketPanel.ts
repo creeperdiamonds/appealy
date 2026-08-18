@@ -5,7 +5,8 @@
 // defaults and immediately publishes its open-ticket button.
 
 import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { publishTicketPanel } from "../services/ticketPanelService.ts";
@@ -17,7 +18,10 @@ export const definition: CreateApplicationCommand = {
   name: "ticket-panel",
   description: "Manage ticket panels",
   type: ApplicationCommandTypes.ChatInput,
-  defaultMemberPermissions: ADMINISTRATOR.toString(),
+  // Discordeno takes permission NAMES here, not a bitfield string. The
+  // old form type-checked against nothing and would have registered the
+  // command with a permission value Discord could not parse.
+  defaultMemberPermissions: ["ADMINISTRATOR"],
   options: [
     {
       name: "create",

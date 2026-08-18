@@ -113,7 +113,7 @@ async function withLock(name: string, ttlSeconds: number, fn: () => Promise<unkn
   const token = crypto.randomUUID();
 
   const acquired = await withRedis(
-    (r) => r.set(key, token, { ex: ttlSeconds, nx: true }),
+    (r) => r.set(key, token, { ex: ttlSeconds, mode: "NX" }),
     null,
   );
   if (!acquired) return;

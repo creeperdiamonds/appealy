@@ -8,6 +8,7 @@
 //      Discord's role hierarchy rules — otherwise the API call 403s)
 
 import { eq, and, or, isNull } from "drizzle-orm";
+import { getGuild } from "../core/guildLookup.ts";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { STAFF_RANK, type StaffLevel } from "../../../shared/schema/outcomes.ts";
@@ -24,13 +25,11 @@ const ADMINISTRATOR = 0x8n;
  * could drift apart.
  */
 export async function isGuildOwner(bot: AppealyBot, guildId: bigint, userId: bigint): Promise<boolean> {
-  const cached = await bot.cache?.guilds?.get(guildId);
-  if (cached?.ownerId) return cached.ownerId === userId;
-
-  // Cache miss — fall back to a live fetch rather than fail closed
-  // silently or fail open, since a wrong answer here is a real trust
-  // boundary, not a cosmetic one.
-  const guild = await bot.helpers.getGuild(guildId);
+  // Fetched live, never inferred. A wrong answer here is a real trust
+  // boundary, not a cosmetic one, so this deliberately does not fall back to
+  // anything when the fetch fails — it throws and the caller refuses.
+  const guild = await getGuild(bot, guildId);
+  if (!guild) throw new Error(`Cannot verify ownership: guild ${guildId} unreachable`);
   return guild.ownerId === userId;
 }
 

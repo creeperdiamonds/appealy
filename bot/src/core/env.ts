@@ -2,6 +2,7 @@
 // Centralized, validated environment configuration for the bot process.
 
 import { resolveDeployment, selfHostedCaps, privilegedGuilds } from "../../../shared/config/deployment.ts";
+import type { RateLimitTier } from "../../../shared/schema/pricing.ts";
 
 function required(name: string): string {
   const v = Deno.env.get(name);
@@ -20,20 +21,23 @@ function required(name: string): string {
  * nothing, and that failure is completely silent otherwise — no error, no
  * event, just a subscription that does nothing.
  */
-function skuTierMap(): Record<string, string> {
+function skuTierMap(): Record<string, RateLimitTier> {
   const raw = Deno.env.get("DISCORD_SKU_TIERS")?.trim();
   if (!raw) return {};
-  const out: Record<string, string> = {};
-  const valid = ["free", "tier1", "tier2", "tier3", "custom"];
+  const out: Record<string, RateLimitTier> = {};
+  // The real union from shared/schema/pricing.ts. This list also accepted
+  // "tier3", which is not a tier anywhere in the system: a SKU mapped to it
+  // passed validation and then matched no preset.
+  const valid: RateLimitTier[] = ["free", "tier1", "tier2", "custom"];
   for (const pair of raw.split(",").map((x) => x.trim()).filter(Boolean)) {
     const [sku, tier] = pair.split(":").map((x) => x?.trim());
     if (!/^\d{15,25}$/.test(sku ?? "")) {
       throw new Error(`DISCORD_SKU_TIERS: ${JSON.stringify(sku)} is not a SKU id (15-25 digits)`);
     }
-    if (!valid.includes(tier ?? "")) {
+    if (!valid.includes((tier ?? "") as RateLimitTier)) {
       throw new Error(`DISCORD_SKU_TIERS: ${JSON.stringify(tier)} is not a tier (${valid.join(", ")})`);
     }
-    out[sku] = tier;
+    out[sku] = tier as RateLimitTier;
   }
   return out;
 }
@@ -71,6 +75,12 @@ export const env = {
   // connections, memory and session starts. See core/sharding.ts.
   /** Discord SKU id -> tier. Empty means Discord subscriptions are off. */
   DISCORD_SKU_TIERS: skuTierMap(),
+
+  // Registers slash commands during boot instead of as a separate task.
+  // main.ts reads this and it was never defined here, so the bot did not
+  // compile. Off by default: with more than one replica every one of them
+  // would race to register the same command set on every restart.
+  SYNC_COMMANDS_ON_BOOT: (Deno.env.get("SYNC_COMMANDS_ON_BOOT") ?? "").toLowerCase() === "true",
 
   GUILDS_PER_SHARD: intOption("GUILDS_PER_SHARD", 1000, 100, 2500),
 

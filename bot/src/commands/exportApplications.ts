@@ -6,7 +6,8 @@
 // readable in an embed.
 
 import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq, and, like } from "drizzle-orm";
@@ -18,7 +19,10 @@ export const definition: CreateApplicationCommand = {
   name: "export_applications",
   description: "Export submitted applications to a CSV file",
   type: ApplicationCommandTypes.ChatInput,
-  defaultMemberPermissions: ADMINISTRATOR.toString(),
+  // Discordeno takes permission NAMES here, not a bitfield string. The
+  // old form type-checked against nothing and would have registered the
+  // command with a permission value Discord could not parse.
+  defaultMemberPermissions: ["ADMINISTRATOR"],
   options: [
     {
       name: "application_name",
@@ -88,10 +92,14 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   // initial deferred/ephemeral response data payload in all clients.
   await bot.helpers.sendFollowupMessage(interaction.token, {
     flags: EPHEMERAL,
-    file: {
-      blob: new Blob([fileBytes], { type: "text/csv" }),
-      name: `${form.name.replace(/[^a-z0-9]/gi, "_")}_export.csv`,
-    },
+    // Renamed to a list in Discordeno v19+; a single-element array is the
+    // same request.
+    files: [
+      {
+        blob: new Blob([fileBytes], { type: "text/csv" }),
+        name: `${form.name.replace(/[^a-z0-9]/gi, "_")}_export.csv`,
+      },
+    ],
   });
 }
 

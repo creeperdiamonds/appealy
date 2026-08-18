@@ -6,10 +6,22 @@
 // aggregated rating display.
 
 import { eq } from "drizzle-orm";
+import type { ButtonComponent } from "@discordeno/bot";
+import { MessageComponentTypes, ButtonStyles } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { logger } from "../utils/logger.ts";
+
+/** One rating button. Split out so the row below stays readable. */
+function star(ticketId: string, n: number): ButtonComponent {
+  return {
+    type: MessageComponentTypes.Button,
+    style: ButtonStyles.Secondary,
+    label: "⭐".repeat(n),
+    customId: encodeCustomId("ticket", "rate", ticketId, String(n)),
+  };
+}
 
 export async function sendRatingPrompt(bot: AppealyBot, ticketId: string, openerId: bigint) {
   try {
@@ -18,13 +30,17 @@ export async function sendRatingPrompt(bot: AppealyBot, ticketId: string, opener
       content: "How was your support experience? Tap a rating below.",
       components: [
         {
-          type: 1,
-          components: [1, 2, 3, 4, 5].map((n) => ({
-            type: 2,
-            style: 2,
-            label: "⭐".repeat(n),
-            customId: encodeCustomId("ticket", "rate", ticketId, String(n)),
-          })),
+          type: MessageComponentTypes.ActionRow,
+          // Written out rather than mapped: an action row's components are
+          // typed as fixed-length tuples (one through five), and a mapped
+          // array can never satisfy one. There are exactly five ratings.
+          components: [1, 2, 3, 4, 5].map((n) => star(ticketId, n)) as [
+            ButtonComponent,
+            ButtonComponent,
+            ButtonComponent,
+            ButtonComponent,
+            ButtonComponent,
+          ],
         },
       ],
     });

@@ -24,10 +24,11 @@
 // dashboard shows a freshly-invited server is imperceptible.
 
 import { sql } from "drizzle-orm";
+import { iconBigintToHash } from "@discordeno/bot";
 import { db, schema } from "../db/client.ts";
 import { logger } from "../utils/logger.ts";
 import { trackGuildCreate } from "../core/startupProfile.ts";
-import type { Guild } from "@discordeno/bot";
+import type { AppealyGuild } from "../core/client.ts";
 
 const BATCH_SIZE = 500;
 const FLUSH_AFTER_MS = 250;
@@ -40,7 +41,7 @@ type PendingGuild = {
 };
 
 let buffer: PendingGuild[] = [];
-let flushTimer: number | null = null;
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let inFlight: Promise<void> = Promise.resolve();
 
 async function flush(): Promise<void> {
@@ -91,12 +92,15 @@ async function flush(): Promise<void> {
   return inFlight;
 }
 
-export async function onGuildCreate(guild: Guild, shardId = 0) {
+export async function onGuildCreate(guild: AppealyGuild, shardId = 0) {
   await trackGuildCreate(shardId, guild.id, async () => {
     buffer.push({
       id: guild.id,
       name: guild.name,
-      iconHash: guild.icon ?? null,
+      // guild.icon is a bigint here: Discordeno packs the hash into one to
+      // save memory. Stored as the hash string the dashboard renders, so the
+      // packing stays inside the bot rather than leaking into the schema.
+      iconHash: guild.icon ? iconBigintToHash(guild.icon) : null,
       ownerId: guild.ownerId,
     });
 

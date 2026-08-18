@@ -16,6 +16,7 @@
 import { eq, and, desc } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { evaluateGate, gateReasonToMessage } from "../../../shared/schema/gating.ts";
 import { validateAnswerAgainstPattern } from "../../../shared/schema/regexValidation.ts";
 import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "./rateLimitService.ts";
@@ -229,11 +230,11 @@ async function checkGateForDm(
     .orderBy(desc(schema.submissions.createdAt))
     .limit(1);
 
-  const pendingCount = await db.$count(
+  const pendingCount = await countRows(
     schema.submissions,
     and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId), eq(schema.submissions.status, "pending")),
   );
-  const totalCount = await db.$count(
+  const totalCount = await countRows(
     schema.submissions,
     and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId)),
   );

@@ -1,7 +1,9 @@
 // bot/src/interactions/modals/denyReason.ts
 
 import { eq } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+import { getGuild } from "../../core/guildLookup.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
@@ -110,7 +112,7 @@ export async function handleDenyReasonModalSubmit(
     }
   }
 
-  const guildName = (await bot.cache?.guilds?.get(guildId))?.name ?? "the server";
+  const guildName = (await getGuild(bot, guildId))?.name ?? "the server";
   const applicantUser = await bot.helpers.getUser(submission.applicantId).catch(() => null);
   await sendTemplatedDm(bot, {
     formId: form.id,

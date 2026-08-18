@@ -10,6 +10,9 @@
 // this is service-to-service, not user-facing.
 
 import { eq } from "drizzle-orm";
+import type { MessageComponent } from "@discordeno/bot";
+import type { ActionRow } from "@discordeno/bot";
+import { MessageComponentTypes, ButtonStyles } from "@discordeno/bot";
 import type { AppealyBot } from "./client.ts";
 import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
@@ -170,7 +173,12 @@ async function syncPanel(bot: AppealyBot, panelId: string) {
   await bot.helpers.editMessage(panel.channelId, panel.messageId, buildPanelMessage(panel));
 }
 
-const STYLE_MAP: Record<string, number> = { primary: 1, secondary: 2, success: 3, danger: 4 };
+const STYLE_MAP: Record<string, ButtonStyles> = {
+  primary: ButtonStyles.Primary,
+  secondary: ButtonStyles.Secondary,
+  success: ButtonStyles.Success,
+  danger: ButtonStyles.Danger,
+};
 
 function buildPanelMessage(
   panel: typeof schema.panels.$inferSelect & {
@@ -191,14 +199,14 @@ function buildPanelMessage(
     // Discord select menus cap at 25 options, well above the 5-button
     // action-row limit, which is the whole point of offering this mode.
     const options = panel.buttons.slice(0, 25);
-    return {
-      embeds: [embed],
-      components: [
+    // Annotated rather than inferred: without a contextual type the `type`
+    // fields widen to the enum itself and no payload will accept them.
+    const components: MessageComponent[] = [
         {
-          type: 1,
+          type: MessageComponentTypes.ActionRow,
           components: [
             {
-              type: 3,
+              type: MessageComponentTypes.SelectMenu,
               customId: encodeCustomId("panel", "select_open", panel.id),
               placeholder: "Choose an application to apply for",
               minValues: 1,
@@ -209,31 +217,31 @@ function buildPanelMessage(
                 emoji: b.emoji ? { name: b.emoji } : undefined,
               })),
             },
-          ],
+          ] as ActionRow["components"],
         },
-      ],
-    };
+    ];
+    return { embeds: [embed], components };
   }
 
   // Discord caps 5 components per action row; panels supporting more than
   // 5 forms in button mode should split into multiple panels or switch to
   // dropdown mode (enforced/suggested dashboard-side).
   const buttons = panel.buttons.slice(0, 5);
-  return {
-    embeds: [embed],
-    components: [
-      {
-        type: 1,
-        components: buttons.map((b) => ({
-          type: 2,
-          style: STYLE_MAP[b.style] ?? 1,
-          label: b.label,
-          emoji: b.emoji ? { name: b.emoji } : undefined,
-          customId: encodeCustomId("panel", "open", b.formId),
-        })),
-      },
-    ],
-  };
+  const components: MessageComponent[] = [
+    {
+      type: MessageComponentTypes.ActionRow,
+      // One to five buttons, decided by how many forms the panel has — a
+      // length the tuple types cannot express.
+      components: buttons.map((b) => ({
+        type: MessageComponentTypes.Button as const,
+        style: STYLE_MAP[b.style] ?? ButtonStyles.Primary,
+        label: b.label,
+        emoji: b.emoji ? { name: b.emoji } : undefined,
+        customId: encodeCustomId("panel", "open", b.formId),
+      })) as unknown as ActionRow["components"],
+    },
+  ];
+  return { embeds: [embed], components };
 }
 
 

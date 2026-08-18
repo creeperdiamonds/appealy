@@ -1,6 +1,8 @@
 // bot/src/events/ready.ts
 
 import { logger } from "../utils/logger.ts";
+import { schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { markShardReady } from "../core/startupProfile.ts";
 import { startBanCache } from "../core/banCache.ts";
 import { startStatusPublisher } from "../core/statusPublisher.ts";
@@ -36,7 +38,10 @@ export function onReady(
     // on its own — see core/sharding.ts.
     startReshardWatcher(
       bot.gateway?.totalShards ?? 1,
-      () => bot.cache?.guilds?.size ?? 0,
+      // Counted from the guilds table, which guildCreate upserts. There is no
+      // in-memory guild cache to size any more, and this is the more honest
+      // number regardless — it does not drop to zero after a restart.
+      () => countRows(schema.guilds),
     );
   }
 }

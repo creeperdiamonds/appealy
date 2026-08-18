@@ -105,7 +105,10 @@ export function resolveEffectiveCaps(
   // yet, so an unreconciled cache falls through to the stored tier rather than
   // downgrading a paying customer to free.
   const entitled = entitledTier(guild.id);
-  if (entitled) {
+  // "custom" is a tier but not a preset: its caps are per-guild and live on
+  // the row, so an entitlement claiming it falls through to the stored config
+  // below rather than indexing a table with no entry for it.
+  if (entitled && entitled !== "custom") {
     return RATE_LIMIT_PRESETS[entitled].caps;
   }
 

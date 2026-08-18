@@ -5,7 +5,8 @@
 // and upserts votes so re-voting changes rather than duplicates a choice.
 
 import { eq, and } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { renderPollEmbed } from "../../services/pollService.ts";

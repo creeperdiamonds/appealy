@@ -11,7 +11,8 @@
 //     majority of naive auto-join bots without that added complexity.
 
 import { eq } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { encodeCustomId } from "../../../../shared/types/index.ts";

@@ -6,7 +6,8 @@
 // separate command.
 
 import { eq } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { canReviewForm, staffLevelFor } from "../../services/permissionService.ts";
@@ -41,7 +42,7 @@ export async function handleReviewDeny(
     submission.formId,
     reviewer.id,
     interaction.member?.roles ?? [],
-    interaction.member?.permissions ?? 0n,
+    interaction.member?.permissions?.bitfield ?? 0n,
   );
   if (!allowed) {
     return respond(bot, interaction, "You don't have permission to review this application.");
@@ -71,7 +72,7 @@ export async function handleReviewDeny(
       guildId,
       reviewer.id,
       interaction.member?.roles ?? [],
-      interaction.member?.permissions ?? 0n,
+      interaction.member?.permissions?.bitfield ?? 0n,
     );
     const menu = buildOutcomeMenu(
       visibleOutcomes(denyOutcomes, level),

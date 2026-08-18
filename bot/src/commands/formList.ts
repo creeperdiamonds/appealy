@@ -2,7 +2,8 @@
 // /forms — lists all forms configured for the guild with quick status info.
 
 import { ApplicationCommandTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";

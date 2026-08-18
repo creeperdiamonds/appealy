@@ -47,6 +47,7 @@
 //    by the scheduler with a proper guild-scoped verification check.
 
 import { and, eq } from "drizzle-orm";
+import { getGuild } from "../core/guildLookup.ts";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { interpolateTemplate } from "../../../shared/types/index.ts";
@@ -55,6 +56,9 @@ import { recordJoinAndCheckRaid, isLockdownActiveCached } from "../services/anti
 import { getGuildConfig, type GuildConfigBundle } from "../core/guildConfigCache.ts";
 import { logger } from "../utils/logger.ts";
 
+// Assembled by events/index.ts from the (member, user) pair the gateway now
+// delivers separately. Kept as one object because every consumer below wants
+// both halves and neither is useful alone.
 type JoiningMember = {
   guildId: bigint;
   user: { id: bigint; username: string; discriminator?: string };
@@ -156,7 +160,7 @@ async function applyWelcomer(bot: AppealyBot, member: JoiningMember, config: Gui
   const welcomer = config.welcomer;
   if (!welcomer) return;
 
-  const guild = await bot.cache?.guilds?.get(member.guildId);
+  const guild = await getGuild(bot, member.guildId);
   const guildName = guild?.name ?? config.guild?.name ?? "the server";
   const memberCount = guild?.memberCount;
 

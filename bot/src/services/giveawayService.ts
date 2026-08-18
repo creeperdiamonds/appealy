@@ -8,6 +8,7 @@
 import { eq, and, sql } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { logger } from "../utils/logger.ts";
 
@@ -37,7 +38,7 @@ export function checkEntryEligibility(
 }
 
 export async function renderGiveawayEmbed(giveaway: typeof schema.giveaways.$inferSelect) {
-  const entryCount = await db.$count(schema.giveawayEntries, eq(schema.giveawayEntries.giveawayId, giveaway.id));
+  const entryCount = await countRows(schema.giveawayEntries, eq(schema.giveawayEntries.giveawayId, giveaway.id));
 
   const isEnded = giveaway.status === "ended";
   return {

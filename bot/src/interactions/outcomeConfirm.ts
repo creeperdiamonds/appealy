@@ -49,6 +49,9 @@
 // than trusting the state from when the menu was opened.
 
 import type { FormOutcomeDTO } from "../../../shared/schema/outcomes.ts";
+import type { MessageComponent } from "@discordeno/bot";
+import type { ActionRow } from "@discordeno/bot";
+import { MessageComponentTypes, ButtonStyles } from "@discordeno/bot";
 
 const CONFIRM_TTL_MS = 120_000;
 
@@ -190,20 +193,26 @@ export function buildConfirm(
     ],
     components: [
       {
-        type: 1,
+        type: MessageComponentTypes.ActionRow,
+        // Exactly two: confirm and cancel.
         components: [
           {
-            type: 2,
+            type: MessageComponentTypes.Button,
             // Red for privileged outcomes. Discord's destructive style is the
             // only visual signal that survives a reviewer skim-reading.
-            style: privileged ? 4 : 3,
+            style: privileged ? ButtonStyles.Danger : ButtonStyles.Success,
             label: privileged ? `Yes — grant ${outcome.label}` : "Confirm",
             // namespace:action:entityId:extra — outcome id, then submission id.
             customId: `review:confirm:${outcome.id}:${submissionId}`,
           },
-          { type: 2, style: 2, label: "Cancel", customId: "review:cancel" },
-        ],
+          {
+            type: MessageComponentTypes.Button,
+            style: ButtonStyles.Secondary,
+            label: "Cancel",
+            customId: "review:cancel",
+          },
+        ] as ActionRow["components"],
       },
-    ],
+    ] as MessageComponent[],
   };
 }

@@ -9,8 +9,9 @@
 // and lets us wrap all of them in the same error boundary + defer logic.
 
 import { InteractionTypes, MessageComponentTypes } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
 import type { AppealyBot } from "../core/client.ts";
-import type { Interaction } from "@discordeno/bot";
+
 import { decodeCustomId } from "../../../shared/types/index.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";

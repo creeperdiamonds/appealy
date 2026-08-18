@@ -16,9 +16,11 @@
 // state diagram.
 
 import { eq, and, gte, desc } from "drizzle-orm";
-import type { Interaction } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
+
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
+import { countRows } from "../../db/count.ts";
 import { evaluateGate, gateReasonToMessage } from "../../../../shared/schema/gating.ts";
 import { encodeCustomId } from "../../../../shared/types/index.ts";
 import { logger } from "../../utils/logger.ts";
@@ -218,7 +220,7 @@ async function checkGate(
     .orderBy(desc(schema.submissions.createdAt))
     .limit(1);
 
-  const pendingCount = await db.$count(
+  const pendingCount = await countRows(
     schema.submissions,
     and(
       eq(schema.submissions.formId, form.id),
@@ -227,7 +229,7 @@ async function checkGate(
     ),
   );
 
-  const totalCount = await db.$count(
+  const totalCount = await countRows(
     schema.submissions,
     and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId)),
   );
@@ -235,7 +237,7 @@ async function checkGate(
   let windowCount = 0;
   if (form.maxSubmissionsWindowSeconds && form.maxSubmissionsInWindow) {
     const windowStart = new Date(Date.now() - form.maxSubmissionsWindowSeconds * 1000);
-    windowCount = await db.$count(
+    windowCount = await countRows(
       schema.submissions,
       and(eq(schema.submissions.formId, form.id), gte(schema.submissions.createdAt, windowStart)),
     );

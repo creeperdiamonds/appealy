@@ -22,10 +22,11 @@
 // every bot replica would send its own copy of the "once per hour" message.
 
 import { withRedis } from "./redis.ts";
+import type { AppealyInteraction as Interaction } from "./client.ts";
 import { isBanned } from "./banCache.ts";
 import { logger } from "../utils/logger.ts";
 import type { AppealyBot } from "./client.ts";
-import type { Interaction } from "@discordeno/bot";
+
 import { env } from "./env.ts";
 
 const NOTIFY_COOLDOWN_SECONDS = 3600;
@@ -56,7 +57,11 @@ export async function passesBanGate(
   // Reply at most once per subject per hour, across all replicas. SET NX EX
   // is the whole lock — if we lose the race, another replica already told them.
   const first = await withRedis(
-    (r) => r.set(`bans:notified:${ban.subject}:${ban.subjectId}`, "1", "EX", NOTIFY_COOLDOWN_SECONDS, "NX"),
+    (r) =>
+      r.set(`bans:notified:${ban.subject}:${ban.subjectId}`, "1", {
+        ex: NOTIFY_COOLDOWN_SECONDS,
+        mode: "NX",
+      }),
     null,
   );
 

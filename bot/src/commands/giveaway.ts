@@ -2,7 +2,8 @@
 // /giveaway create|end|reroll — subcommand group for giveaway management.
 
 import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";
@@ -15,7 +16,10 @@ export const definition: CreateApplicationCommand = {
   name: "giveaway",
   description: "Manage giveaways",
   type: ApplicationCommandTypes.ChatInput,
-  defaultMemberPermissions: ADMINISTRATOR.toString(),
+  // Discordeno takes permission NAMES here, not a bitfield string. The
+  // old form type-checked against nothing and would have registered the
+  // command with a permission value Discord could not parse.
+  defaultMemberPermissions: ["ADMINISTRATOR"],
   options: [
     {
       name: "create",

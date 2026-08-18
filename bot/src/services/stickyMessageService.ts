@@ -96,7 +96,7 @@ export async function bumpStickyMessageCounter(bot: AppealyBot, channelId: bigin
   // SET NX returns null when the key already exists, meaning another
   // message won the race to repost.
   const acquired = await withRedis(
-    (r) => r.set(lockKey(channelId), "1", { ex: REPOST_LOCK_SECONDS, nx: true }),
+    (r) => r.set(lockKey(channelId), "1", { ex: REPOST_LOCK_SECONDS, mode: "NX" }),
     null,
   );
   if (!acquired) return;

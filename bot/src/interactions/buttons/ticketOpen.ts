@@ -1,8 +1,8 @@
 // bot/src/interactions/buttons/ticketOpen.ts
 // Fires when a user clicks a ticket-panel's "Open Ticket" button.
 
-import type { Interaction } from "@discordeno/bot";
 import type { AppealyBot } from "../../core/client.ts";
+import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 import { openTicket } from "../../services/ticketService.ts";
 
 const EPHEMERAL = 64;

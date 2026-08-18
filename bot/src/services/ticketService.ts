@@ -5,8 +5,13 @@
 // channelType modes uniformly so callers don't need to branch.
 
 import { eq, and } from "drizzle-orm";
+import type { ActionRow } from "@discordeno/bot";
+import type { PermissionStrings } from "@discordeno/bot";
+import { OverwriteTypes } from "@discordeno/bot";
+import { MessageComponentTypes, ButtonStyles } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { checkAndConsumeDailyCap } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
@@ -39,7 +44,7 @@ export async function openTicket(
     return { ok: false, reason: "guild_rate_limited" };
   }
 
-  const openCount = await db.$count(
+  const openCount = await countRows(
     schema.tickets,
     and(
       eq(schema.tickets.configId, configId),
@@ -82,11 +87,13 @@ export async function openTicket(
     ],
     components: [
       {
-        type: 1,
-        components: [
+        type: MessageComponentTypes.ActionRow,
+        // One or two buttons depending on whether claiming is enabled, which
+        // the tuple types above cannot express — hence the assertion.
+        components: ([
           {
-            type: 2,
-            style: 4, // danger
+            type: MessageComponentTypes.Button,
+            style: ButtonStyles.Danger,
             label: "Close Ticket",
             customId: encodeCustomId("ticket", "close", ticket.id),
           },
@@ -97,14 +104,14 @@ export async function openTicket(
           ...(config.claimingEnabled
             ? [
                 {
-                  type: 2,
-                  style: 2, // secondary
+                  type: MessageComponentTypes.Button,
+                  style: ButtonStyles.Secondary,
                   label: "Claim",
                   customId: encodeCustomId("ticket", "claim", ticket.id),
                 },
               ]
             : []),
-        ],
+        ] as unknown as ActionRow["components"]),
       },
     ],
   });
@@ -127,12 +134,19 @@ async function createTicketChannel(
       // Deny @everyone, allow the opener and each support role explicitly.
       // This is the standard "private ticket channel" permission pattern.
       permissionOverwrites: [
-        { id: guildId, type: 0, deny: "1024" /* VIEW_CHANNEL */ },
-        { id: openerId, type: 1, allow: "3072" /* VIEW_CHANNEL + SEND_MESSAGES */ },
+        // Permission NAMES, not a bitfield string. The numeric form was never
+        // a valid overwrite for this client and the comments were the only
+        // thing saying which bits they were.
+        { id: guildId, type: OverwriteTypes.Role, deny: ["VIEW_CHANNEL"] },
+        {
+          id: openerId,
+          type: OverwriteTypes.Member,
+          allow: ["VIEW_CHANNEL", "SEND_MESSAGES"],
+        },
         ...config.supportRoleIds.map((roleId) => ({
           id: BigInt(roleId),
-          type: 0 as const,
-          allow: "3072",
+          type: OverwriteTypes.Role,
+          allow: ["VIEW_CHANNEL", "SEND_MESSAGES"] as PermissionStrings[],
         })),
       ],
     });
@@ -222,7 +236,7 @@ async function generateAndPostTranscript(
 
   const posted = await bot.helpers.sendMessage(ticket.config.transcriptChannelId, {
     content: `Transcript for ticket \`${ticket.id}\` (opened by <@${ticket.openerId}>)`,
-    file,
+    files: [file],
   });
 
   const attachment = posted.attachments?.[0];

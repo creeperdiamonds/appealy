@@ -2,9 +2,11 @@
 // /botstats — bot health and per-guild usage stats.
 
 import { ApplicationCommandTypes } from "@discordeno/bot";
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
+import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { sql } from "drizzle-orm";
 
 const EPHEMERAL = 64;
@@ -26,9 +28,9 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   let guildSubmissionCount = 0;
   let guildOpenTicketCount = 0;
   if (guildId) {
-    guildFormCount = await db.$count(schema.forms, sql`${schema.forms.guildId} = ${guildId}`);
-    guildSubmissionCount = await db.$count(schema.submissions, sql`${schema.submissions.guildId} = ${guildId}`);
-    guildOpenTicketCount = await db.$count(
+    guildFormCount = await countRows(schema.forms, sql`${schema.forms.guildId} = ${guildId}`);
+    guildSubmissionCount = await countRows(schema.submissions, sql`${schema.submissions.guildId} = ${guildId}`);
+    guildOpenTicketCount = await countRows(
       schema.tickets,
       sql`${schema.tickets.guildId} = ${guildId} AND ${schema.tickets.status} = 'open'`,
     );
@@ -44,7 +46,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
           color: 0x5865f2,
           fields: [
             { name: "Uptime", value: uptimeText, inline: true },
-            { name: "Guilds cached", value: String(bot.cache?.guilds?.size ?? "unknown"), inline: true },
+            { name: "Guilds", value: String(await countRows(schema.guilds)), inline: true },
             { name: "This server's forms", value: String(guildFormCount), inline: true },
             { name: "This server's submissions", value: String(guildSubmissionCount), inline: true },
             { name: "This server's open tickets", value: String(guildOpenTicketCount), inline: true },

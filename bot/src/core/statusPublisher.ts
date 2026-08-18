@@ -59,7 +59,7 @@ async function publish(bot: AppealyBot): Promise<void> {
   const shards: StatusSnapshot["shards"] = [];
   const summary = { up: 0, degraded: 0, down: 0 };
 
-  // ⚠️ v18: adjust to however your gateway exposes shard state. The shape this
+  // ⚠️ Adjust to however your gateway exposes shard state. The shape this
   // needs is only { id, connected, rtt } — everything else stays internal.
   for (const shard of bot.gateway.shards.values()) {
     const state = classify(shard as never);

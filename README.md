@@ -7,7 +7,7 @@
 Discord application/form management bot with a web dashboard. Two processes
 share one Postgres database and one schema definition:
 
-- **`bot/`** — Discordeno v18 (Deno) gateway bot. Owns the live Discord
+- **`bot/`** — Discordeno v20 (Deno) gateway bot. Owns the live Discord
   connection: publishing panels, showing modals, posting review embeds,
   managing roles, sending DMs, running scheduled poll publish/close.
 - **`api/`** — Express (Node) REST API. Stateless, horizontally scalable.
@@ -385,8 +385,8 @@ any change to the heuristics.
   rather than inventing them. Unmatched questions are surfaced in the
   response rather than silently dropped or guessed at.
 - **Known uncertainty**: `importAppy.ts`'s file-attachment resolution
-  (`interaction.data.resolved.attachments`) is written to the Discordeno
-  v18 pattern as best understood, but — like the gateway-wiring caveat in
+  (`interaction.data.resolved.attachments`) type-checks against Discordeno
+  v20, but — like the gateway-wiring caveat in
   `bot/src/core/client.ts` — attachment-option resolution APIs shift
   across library versions and this hasn't been smoke-tested against a
   live bot token. Verify this specifically before relying on it.

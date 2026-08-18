@@ -91,20 +91,35 @@ export async function startBanCache(): Promise<void> {
 
   // Own connection: a Redis subscriber cannot serve ordinary commands, same
   // constraint documented in guildConfigCache.
+  // duplicate()/on("message") is the ioredis shape. This client opens its own
+  // connection and hands back a subscription you iterate — the same pattern
+  // guildConfigCache.subscribeToInvalidations already uses, kept identical so
+  // there is one way to subscribe in this process rather than two.
   try {
-    const sub = (await getRedis()).duplicate();
-    await sub.subscribe(BAN_CHANNEL);
-    sub.on("message", (_channel, raw) => {
-      try {
-        const msg = JSON.parse(raw) as { op: "add" | "remove"; ban: PublicBan };
-        const map = msg.ban.subject === "user" ? userBans : guildBans;
-        if (msg.op === "add") map.set(msg.ban.subjectId, msg.ban);
-        else map.delete(msg.ban.subjectId);
-      } catch (err) {
-        logger.warn("Malformed ban invalidation message", { err });
-      }
+    const { connect } = await import("redis");
+    const { env } = await import("./env.ts");
+    const url = new URL(env.REDIS_URL);
+    const sub = await connect({
+      hostname: url.hostname,
+      port: Number(url.port || 6379),
+      password: url.password || undefined,
     });
+
+    const subscription = await sub.subscribe(BAN_CHANNEL);
     logger.info("Subscribed to ban changes", { channel: BAN_CHANNEL });
+
+    (async () => {
+      for await (const { message } of subscription.receive()) {
+        try {
+          const msg = JSON.parse(message) as { op: "add" | "remove"; ban: PublicBan };
+          const map = msg.ban.subject === "user" ? userBans : guildBans;
+          if (msg.op === "add") map.set(msg.ban.subjectId, msg.ban);
+          else map.delete(msg.ban.subjectId);
+        } catch (err) {
+          logger.warn("Malformed ban invalidation message", { err });
+        }
+      }
+    })();
   } catch (err) {
     logger.error("Ban subscriber failed to start; falling back to periodic reload", { err });
   }

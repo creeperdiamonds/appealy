@@ -3,7 +3,8 @@
 // bulk-overwrite registration) and its execute() handler live together in
 // its own file, exported here.
 
-import type { Interaction, CreateApplicationCommand } from "@discordeno/bot";
+import type { CreateApplicationCommand } from "@discordeno/bot";
+import type { AppealyInteraction as Interaction } from "../core/client.ts";
 import type { AppealyBot } from "../core/client.ts";
 import { logger } from "../utils/logger.ts";
 
