@@ -14,7 +14,7 @@ import AppealConfig from "./pages/AppealConfig";
 import OpsAppeals from "./pages/OpsAppeals";
 import { BannedError } from "./lib/api";
 import { useEffect, useState } from "react";
-import { api, ApiError, type GuildSummary } from "./lib/api";
+import { api, ApiError, http, type GuildSummary } from "./lib/api";
 import { Banner, Pill } from "./components/ui";
 import Overview from "./pages/Overview";
 import Submissions from "./pages/Submissions";
@@ -31,6 +31,27 @@ const NAV: { id: View; label: string; hint: string }[] = [
 
 const LAST_GUILD_KEY = "appealy:lastGuild";
 
+/**
+ * What the server says about itself.
+ *
+ * The console was written for the hosted platform and assumed it: billing
+ * screens, tier ladders, an ops surface. A self-hosted instance has no account
+ * behind any of that, and rendering it anyway is the same class of mistake as
+ * showing a console for a server the bot was never invited to — a UI asserting
+ * something untrue about the world it is running in.
+ */
+interface DeploymentConfig {
+  mode: "platform" | "self" | "test";
+  brandName: string;
+  supportUrl: string;
+  features: {
+    billing: boolean;
+    tieredRateLimits: boolean;
+    bans: boolean;
+    publicStatus: boolean;
+  };
+}
+
 export default function App() {
   // Set by any API call that throws BannedError. Not a route — see the
   // comment on BannedError in lib/api.ts.
@@ -44,6 +65,20 @@ export default function App() {
   const [isOperator, setIsOperator] = useState(false);
   useEffect(() => {
     api.opsAppeals().then(() => setIsOperator(true)).catch(() => setIsOperator(false));
+  }, []);
+
+  // Null until it arrives. Nothing that depends on the mode renders before
+  // then, because guessing and correcting is worse than waiting a moment —
+  // a billing tab that appears and vanishes reads as a bug.
+  const [config, setConfig] = useState<DeploymentConfig | null>(null);
+  useEffect(() => {
+    http
+      .get<DeploymentConfig>("/api/config")
+      .then(setConfig)
+      // A failure here is not fatal: an older server without this endpoint
+      // still runs, and the console falls back to showing everything, which
+      // is what it did before this existed.
+      .catch(() => setConfig(null));
   }, []);
 
   useEffect(() => {
@@ -118,8 +153,13 @@ export default function App() {
     <div className="shell">
       <aside className="rail">
         <div className="brand">
-          <span className="brand-name">Appealy</span>
-          <span className="brand-tag">console</span>
+          {/* From the server. A self-hosted instance is not "Appealy" — it is
+              whoever runs it, and BRAND_NAME is how they say so. Falls back
+              only until the config arrives. */}
+          <span className="brand-name">{config?.brandName ?? "Appealy"}</span>
+          <span className="brand-tag">
+            {config?.mode === "test" ? "test console" : "console"}
+          </span>
         </div>
 
         <nav className="nav" aria-label="Sections">
@@ -197,6 +237,16 @@ export default function App() {
         </header>
 
         <main className="content">
+          {/* Persistent, not dismissible. The whole hazard of test mode is
+              someone forgetting which deployment they are looking at and
+              believing a real customer is being served by it. */}
+          {config?.mode === "test" && (
+            <Banner level="watch" title="Test deployment">
+              Everything here behaves as production except billing, which is off — no payment
+              can be taken and no plan can be bought. Do not point real users at this.
+            </Banner>
+          )}
+
           {fatal && (
             <Banner level="act" title="Couldn't start">
               {fatal}

@@ -40,7 +40,27 @@
 // nobody chose and nobody can see is how you end up debugging the wrong
 // thing for an afternoon.
 
-export type DeploymentMode = "platform" | "self";
+export type DeploymentMode = "platform" | "self" | "test";
+
+/**
+ * What each mode is for.
+ *
+ *   platform  The hosted deployment. Billing on, tiers enforced, real money.
+ *
+ *   self      Someone running this for their own servers. No billing account
+ *             of any kind, caps come from CAP_* rather than a price list.
+ *
+ *   test      Production in every respect EXCEPT money. Tiers, bans, the ops
+ *             surface and every feature behave exactly as they do on the
+ *             platform, so what is exercised here is what ships — but no
+ *             payment credentials are required and no checkout exists.
+ *
+ * The reason test is its own mode rather than "platform without keys": those
+ * are not the same deployment. Platform-with-no-keys is a misconfiguration
+ * that should refuse to boot, because it means customers can be shown prices
+ * they cannot pay. Test is a deliberate state, and saying so lets the first
+ * case keep failing loudly while the second works.
+ */
 
 export interface DeploymentConfig {
   mode: DeploymentMode;
@@ -150,9 +170,9 @@ export function resolveDeployment(
   let mode: DeploymentMode;
 
   if (explicit) {
-    if (explicit !== "platform" && explicit !== "self") {
+    if (explicit !== "platform" && explicit !== "self" && explicit !== "test") {
       throw new Error(
-        `DEPLOYMENT_MODE must be "platform" or "self", got ${JSON.stringify(explicit)}`,
+        `DEPLOYMENT_MODE must be "platform", "self" or "test", got ${JSON.stringify(explicit)}`,
       );
     }
     mode = explicit;
@@ -161,6 +181,9 @@ export function resolveDeployment(
     // requiredInPlatformMode — but it fails with "Missing required environment
     // variable: TEBEX_PROJECT_ID", which doesn't mention the mode that made it
     // required. Say so here, while the reason is still obvious.
+    // Deliberately platform-only. Test mode is the supported way to run
+    // everything-but-money, so a platform deployment with no billing source
+    // stays an error rather than quietly becoming one.
     if (mode === "platform" && !billingConfigured) {
       throw new Error(
         [
@@ -173,6 +196,12 @@ export function resolveDeployment(
     // The reverse is harmless but almost always a leftover from copying a
     // production .env, and leftover live keys in a self-hosted deployment are
     // worth one line of noise.
+    if (mode === "test") {
+      note(
+        "[deployment] DEPLOYMENT_MODE=test — everything behaves as production except billing, " +
+          "which is off. Nothing here can take a payment. Do not point real customers at this.",
+      );
+    }
     if (mode === "self" && billingConfigured) {
       note(
         "[deployment] DEPLOYMENT_MODE=self — Tebex credentials are set but will be ignored. " +
@@ -193,6 +222,9 @@ export function resolveDeployment(
   }
 
   const isPlatform = mode === "platform";
+  // Test gets the platform's feature surface. That is the whole point: what
+  // gets exercised in test should be what ships, minus the money.
+  const hasPlatformFeatures = mode === "platform" || mode === "test";
 
   // Surface every shape problem regardless of how the mode was reached. A
   // placeholder or a pk_ key that quietly demoted the deployment to `self` is
@@ -209,7 +241,7 @@ export function resolveDeployment(
     // way to tell a test credential from a live one, so that exemption cannot
     // be made safely and is gone: if billing is configured at all, the half
     // that grants what was bought has to be configured too.
-    if (tebex.configured && !tebex.complete) {
+    if (isPlatform && tebex.configured && !tebex.complete) {
       throw new Error(
         "Refusing to start in platform mode with Tebex credentials and no TEBEX_WEBHOOK_SECRET. " +
           "Checkout would succeed and no plan would ever activate. " +
@@ -224,13 +256,13 @@ export function resolveDeployment(
     brandName: get("BRAND_NAME")?.trim() || (isPlatform ? "Appealy" : "This bot"),
     supportUrl: get("SUPPORT_URL")?.trim() ?? "",
     features: {
-      // Never available self-hosted: there is no second Tebex account to
-      // point at.
+      // Never available self-hosted: there is no second Tebex account to point
+      // at. Off in test too — that is what makes it test.
       billing: isPlatform,
       // Self-hosters get flat caps from env instead of a price-derived tier.
       // Caps still exist — they protect the host's own Postgres pool, which
       // is the real constraint — they're just not a product ladder.
-      tieredRateLimits: isPlatform,
+      tieredRateLimits: hasPlatformFeatures,
       // Stays available: an abusive user is an abusive user. Appeals need
       // somewhere to go, so they key off SUPPORT_URL rather than the mode.
       bans: bool(get("ENABLE_BANS"), true),

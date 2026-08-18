@@ -337,6 +337,31 @@ export interface FormSummary {
 // Endpoints
 // ---------------------------------------------------------------------------
 
+/**
+ * Typed escape hatch for pages that own their own request shapes.
+ *
+ * The named methods on `api` below stay the front door for anything shared.
+ * This exists so a page covering one router can declare its own DTOs next to
+ * the screen that renders them, instead of every shape in the product piling
+ * into this file — and so those pages get the 401 re-auth, the 429 retry and
+ * the ban handling for free rather than reimplementing fetch.
+ */
+export function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>(path, init);
+}
+
+/** Convenience wrappers, so a page body reads as what it does. */
+export const http = {
+  get: <T,>(path: string) => apiRequest<T>(path),
+  post: <T,>(path: string, body: unknown) =>
+    apiRequest<T>(path, { method: "POST", body: JSON.stringify(body) }),
+  put: <T,>(path: string, body: unknown) =>
+    apiRequest<T>(path, { method: "PUT", body: JSON.stringify(body) }),
+  patch: <T,>(path: string, body: unknown) =>
+    apiRequest<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
+  del: <T,>(path: string) => apiRequest<T>(path, { method: "DELETE" }),
+};
+
 export const api = {
   loginUrl: () => `${BASE}/auth/discord/login`,
 

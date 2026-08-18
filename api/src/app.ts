@@ -13,6 +13,7 @@ import cookieParser from "cookie-parser";
 import "express-async-errors";
 import cors from "cors";
 import { env } from "./env.ts";
+import { deployment } from "./env.ts";
 import { useMemoryRedis } from "../../shared/lib/memoryRedis.ts";
 import { authRouter } from "./routes/auth.ts";
 import { formsRouter } from "./routes/forms.ts";
@@ -94,6 +95,30 @@ export function createApp() {
   // healthy API and one that's up but can't reach Redis — the second still
   // serves traffic here (see the fail-open notes in lib/redis.ts) but at
   // reduced protection, and that should be visible rather than silent.
+  // What kind of deployment this is, for the dashboard.
+  //
+  // The console had no way to ask. It was written for the hosted platform and
+  // assumed it: billing screens, tier ladders and an ops surface that a
+  // self-hosted instance has no account behind and no use for. Rendering them
+  // anyway is the same failure as the uninvited-server one — a UI asserting
+  // something untrue about the deployment it is running in.
+  //
+  // Unauthenticated on purpose. None of it is secret — a brand name, a support
+  // link, and which features exist — and the login screen needs the brand
+  // before anyone has a session to authenticate with.
+  //
+  // Under /api rather than /config so the dev proxy and nginx already forward
+  // it; a third prefix would have to be added in two places and remembered in
+  // a third.
+  app.get("/api/config", (_req, res) => {
+    res.json({
+      mode: deployment.mode,
+      brandName: deployment.brandName,
+      supportUrl: deployment.supportUrl,
+      features: deployment.features,
+    });
+  });
+
   app.get("/health", async (_req, res) => {
     // "memory" is a third state, not a degraded second one. Running on the
     // in-process substitute is a deliberate configuration (POC.md), and
