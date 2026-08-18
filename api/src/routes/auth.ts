@@ -65,6 +65,7 @@ import { encrypt } from "../utils/crypto.ts";
 import { requireSession } from "../middleware/auth.ts";
 import { invalidateGuildAccessCache } from "../middleware/guildAccess.ts";
 import { withRedis } from "../lib/redis.ts";
+import { logger } from "../utils/logger.ts";
 
 export const authRouter = Router();
 
@@ -178,6 +179,9 @@ authRouter.get("/discord/callback", async (req, res) => {
     // one path that cannot know whether it was a popup. The page handles both:
     // it messages an opener if there is one and otherwise reads as a plain
     // error page, which beats returning JSON to a window a human is looking at.
+    logger.warn("Discord OAuth callback rejected: state nonce not found", {
+      hint: "Expired (over 5 minutes), already used, or issued by a different process.",
+    });
     return res.status(400).type("html").send(authResultPage(env.FRONTEND_ORIGIN, false, "invalid_state"));
   }
 
@@ -224,6 +228,12 @@ authRouter.get("/discord/callback", async (req, res) => {
 
     res.redirect(`${env.FRONTEND_ORIGIN}/dashboard`);
   } catch (err) {
+    // Logged server-side as well as returned. Without this the only copy of
+    // Discord's actual complaint — which names the reason, e.g. a redirect_uri
+    // that doesn't match the registered one — was in a response body someone
+    // had to think to read, and the server log said nothing at all.
+    logger.error("Discord OAuth callback failed", { error: String(err) });
+
     // Deliberately no `detail` in popup mode: that string is an exception
     // message from the Discord exchange, and it ends up rendered in a window
     // rather than read by a developer.

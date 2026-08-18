@@ -2,6 +2,15 @@
 
 import express from "express";
 import cookieParser from "cookie-parser";
+// Must be imported before any router is defined. Express 4 does not await an
+// async handler, so a route that throws becomes an unhandled rejection and
+// Node exits — one bad request takes the whole API down for everyone, which is
+// exactly what a missing db.query table did. This patches Express to forward
+// async errors to the errorHandler mounted at the bottom of this file, which
+// was always the intent; it simply never received them.
+//
+// Express 5 does this natively. Remove this import when upgrading.
+import "express-async-errors";
 import cors from "cors";
 import { env } from "./env.ts";
 import { useMemoryRedis } from "../../shared/lib/memoryRedis.ts";
