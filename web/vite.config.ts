@@ -56,7 +56,12 @@ function marketingSite(): Plugin {
         }
 
         // Everything the app owns keeps its normal handling.
-        if (url.startsWith("/dashboard") || url.startsWith("/api") || url.startsWith("/auth")) {
+        if (
+          url.startsWith("/dashboard") ||
+          url.startsWith("/api") ||
+          url.startsWith("/auth") ||
+          url.startsWith("/webhooks")
+        ) {
           return next();
         }
 
@@ -131,6 +136,12 @@ export default defineConfig({
     proxy: {
       "/auth": { target: "http://localhost:3001" },
       "/api": { target: "http://localhost:3001" },
+      // Matches the nginx passthrough. Only reachable locally through a
+      // tunnel, since Tebex has to be able to call it — but when someone does
+      // point a tunnel here to test a payment, the alternative is the
+      // marketing middleware below answering the callback with a 404 and the
+      // test looking like a Tebex problem.
+      "/webhooks": { target: "http://localhost:3001" },
     },
   },
   build: {

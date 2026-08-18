@@ -182,6 +182,9 @@ jobs:
             SESSION_SECRET=appealy-session-secret:latest
             TOKEN_ENCRYPTION_KEY=appealy-token-encryption-key:latest
             OPS_USER_IDS=appealy-ops-user-ids:latest
+            TEBEX_PROJECT_ID=appealy-tebex-project-id:latest
+            TEBEX_PRIVATE_KEY=appealy-tebex-private-key:latest
+            TEBEX_WEBHOOK_SECRET=appealy-tebex-webhook-secret:latest
 
       - name: Print deployed URL
         run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
