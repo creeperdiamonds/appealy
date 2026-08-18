@@ -33,7 +33,7 @@
 // Scope
 // ---------------------------------------------------------------------------
 // Implements only the commands this codebase actually calls — get, set, del,
-// incr, expire, mget, publish, subscribe, duplicate. Deliberately not a
+// incr, expire, mget, getdel, publish, subscribe, duplicate. Deliberately not a
 // general Redis emulator: an incomplete one that pretends to be complete fails
 // in ways that look like application bugs. Anything unimplemented throws with
 // a message naming the command, so it surfaces immediately rather than
@@ -48,6 +48,8 @@ export class MemoryRedis {
   private sweeper: number | undefined;
 
   constructor(private label = "primary") {
+    // See the note on the index signature at the bottom of this class for why
+    // the constructor returns a Proxy rather than `this`.
     // Expiry is lazy on read, so a key written once and never read again would
     // sit in memory forever. This bounds it. 60s is far more often than
     // anything here needs.
@@ -61,6 +63,25 @@ export class MemoryRedis {
     } else if (typeof this.sweeper === "object") {
       (this.sweeper as unknown as { unref(): void }).unref?.();
     }
+
+    return new Proxy(this, {
+      get(target, prop, receiver) {
+        if (typeof prop !== "string" || prop in target) {
+          return Reflect.get(target, prop, receiver);
+        }
+        // Must stay undefined: a `then` that is a function would make every
+        // instance look like a promise and hang the first await on it.
+        if (prop === "then") return undefined;
+
+        return () => {
+          throw new Error(
+            `MemoryRedis: the ${prop.toUpperCase()} command is not implemented. ` +
+              `shared/lib/memoryRedis.ts covers only what this codebase calls; ` +
+              `add it there, or set REDIS_URL to run against a real Redis.`,
+          );
+        };
+      },
+    });
   }
 
   private sweep() {
@@ -87,6 +108,25 @@ export class MemoryRedis {
 
   async mget(...keys: string[]): Promise<(string | null)[]> {
     return Promise.all(keys.flat().map((k) => this.get(k)));
+  }
+
+  /**
+   * GETDEL — read and remove in one step.
+   *
+   * The OAuth callback consumes its state nonce with this, and the atomicity
+   * is the point: two callbacks carrying the same state must not both find it
+   * present, which a get-then-delete pair cannot promise. Nothing here runs
+   * concurrently with itself, so the pair below is atomic by construction.
+   *
+   * This was missing, and its absence is what made dashboard sign-in fail on
+   * the substitute: the call threw, withRedis turned the throw into its
+   * fallback of null, and the callback read that as a nonce that was never
+   * issued.
+   */
+  async getdel(key: string): Promise<string | null> {
+    const value = this.live(key)?.value ?? null;
+    this.store.delete(key);
+    return value;
   }
 
   /**
@@ -198,7 +238,18 @@ export class MemoryRedis {
     this.listeners.clear();
   }
 
-  /** Anything not implemented above fails loudly rather than silently. */
+  /**
+   * Anything not implemented above fails loudly rather than silently.
+   *
+   * This index signature is a TYPE-level allowance only — it makes the
+   * compiler accept `r.getdel(...)` on a value typed as this class. At runtime
+   * the property is simply undefined, so the call is "undefined is not a
+   * function": no command name, and swallowed whole by withRedis's catch. The
+   * header above claimed unknown commands throw by name; they did not, and
+   * OAuth sign-in failed silently on a missing GETDEL because of it.
+   *
+   * The Proxy installed in the constructor makes the claim true.
+   */
   // deno-lint-ignore no-explicit-any
   [key: string]: any;
 }
