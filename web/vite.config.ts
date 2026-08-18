@@ -19,6 +19,13 @@ function marketingSite(): Plugin {
   // brand/ is served at /brand rather than copied into site/, so the marks
   // have one home. nginx does the same in the built image.
   const brand = path.resolve(__dirname, "../brand");
+  // The status page is a sibling of the site, not part of it — production
+  // copies status/ into the nginx root alongside site/. Serving it here too
+  // keeps /status/ from 404ing in development, which mattered more than it
+  // sounds: the footer links it on every page and the support section tells
+  // people to check it before reporting anything, so a dead link there sends
+  // them to report the outage they were meant to rule out first.
+  const status = path.resolve(__dirname, "../status");
   const types: Record<string, string> = {
     ".html": "text/html",
     ".css": "text/css",
@@ -53,9 +60,14 @@ function marketingSite(): Plugin {
           return next();
         }
 
-        if (url.startsWith("/brand/")) {
-          const file = path.resolve(brand, url.slice("/brand/".length));
-          if (file.startsWith(brand) && fs.existsSync(file)) {
+        // Both directories are read by request path, which is the shape of a
+        // traversal bug — hence the startsWith guard on the resolved path in
+        // each, same as the site root below.
+        for (const [prefix, root] of [["/brand/", brand], ["/status/", status]] as const) {
+          if (!url.startsWith(prefix)) continue;
+          const rest = url.slice(prefix.length);
+          const file = path.resolve(root, rest === "" ? "index.html" : rest);
+          if (file.startsWith(root) && fs.existsSync(file) && fs.statSync(file).isFile()) {
             res.setHeader("Content-Type", types[path.extname(file)] ?? "application/octet-stream");
             res.end(fs.readFileSync(file));
             return;

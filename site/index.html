@@ -108,6 +108,7 @@
       <a href="#features">Features</a>
       <a href="/pricing">Pricing</a>
       <a href="#self-hosting">Self-hosting</a>
+      <a href="#support">Support</a>
       <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
       <a href="/dashboard">Dashboard</a>
     </nav>
@@ -487,6 +488,150 @@
     </div>
   </section>
 
+  <section id="faq">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Before you ask</p>
+        <h2>The questions that actually get asked.</h2>
+        <p class="dim">
+          Answered plainly, including where the answer is a limitation. A FAQ that only lists
+          things the product is good at is an advertisement wearing a question mark.
+        </p>
+      </div>
+
+      <ul class="cards cols-2">
+        <li class="card">
+          <h3>What happens when I hit a cap?</h3>
+          <p>
+            The action is refused and the person doing it is told which cap and when it resets.
+            Nothing is deleted and nothing is silently dropped &mdash; a submission that would
+            exceed the daily cap is never accepted and then discarded, because an applicant who
+            believes they applied and did not is worse off than one who was told no.
+          </p>
+        </li>
+        <li class="card">
+          <h3>What permissions does the bot need?</h3>
+          <p>
+            Manage Roles for the roles it grants, Manage Channels for tickets, Ban Members only if
+            you use ban appeals, plus the usual read and send. Discord&rsquo;s own role hierarchy
+            still applies: the bot cannot grant a role positioned above its own, and the dashboard
+            marks those roles in every picker rather than failing at the moment it matters.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Do I lose my data if I stop paying?</h3>
+          <p>
+            No. Dropping to the free tier lowers your caps; it does not delete forms, submissions
+            or tickets. History retention is the one cap that removes anything, it only ever
+            removes reviewed submissions past your window, and pending ones are never purged
+            &mdash; that is live work sitting in somebody&rsquo;s queue.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Can I move to another server, or off the platform?</h3>
+          <p>
+            Both. <code>/export</code> writes one JSON file with everything, and the importer
+            rebuilds it elsewhere &mdash; remapping channels and roles, and reporting anything it
+            could not. Where a setting cannot be carried safely it fails in the cautious direction
+            and says so, rather than importing something that looks configured and is not.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Is my application data used to train anything?</h3>
+          <p>
+            No. There is no telemetry and no analytics pipeline; the assertion lives in
+            <code>shared/config/deployment.ts</code> as a constant rather than in prose here, so a
+            change to it would appear in a diff. If you would rather not take that on trust, the
+            self-hosted mode never talks to us at all.
+          </p>
+        </li>
+        <li class="card">
+          <h3>What is not built yet?</h3>
+          <p>
+            Worth saying out loud: there is no mobile app, no localisation beyond English, and no
+            SLA on the hosted service. Self-hosting has no support contract either &mdash; it has
+            the source, the setup guide and the issue tracker.
+          </p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="support">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Support</p>
+        <h2>Where to get help, and what to expect.</h2>
+        <p class="dim">
+          This is a small project rather than a company with a support desk, and it is better to
+          say so than to imply a response time nobody is on call to meet.
+        </p>
+      </div>
+
+      <ul class="cards cols-3">
+        <li class="card">
+          <h3>Something is broken</h3>
+          <p>
+            Open an issue on
+            <a href="https://github.com/creeperdiamonds/appealy/issues">the issue tracker</a>.
+            Include what you did, what happened, and the server id if it is specific to one
+            &mdash; those three things are the difference between a fix and a conversation.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Is it me, or is it down?</h3>
+          <p>
+            <a href="/status/">The status page</a> is served independently of the app, so it still
+            answers when the app does not. Check there first: an outage and a misconfiguration
+            look identical from inside a Discord server.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Setting it up yourself</h3>
+          <p>
+            <a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">SETUP.md</a>
+            covers the hosted path and
+            <a href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md">SELF_HOSTING.md</a>
+            the standalone one, including the environment variables that decide which mode you are
+            in. Most setup questions are answered in one of those two files.
+          </p>
+        </li>
+        <li class="card">
+          <h3>A security problem</h3>
+          <p>
+            Please do not open a public issue for anything exploitable. Use GitHub&rsquo;s
+            <a href="https://github.com/creeperdiamonds/appealy/security/advisories/new">private
+            vulnerability reporting</a> instead, which reaches the maintainer without publishing
+            the details first.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Billing and payment</h3>
+          <p>
+            Payments are processed by Tebex as merchant of record, so refunds and payment-method
+            problems go through their support with your order reference. What a plan actually
+            grants is a different question &mdash; that one belongs on the issue tracker, or is
+            readable directly in <code>pricing.ts</code>.
+          </p>
+        </li>
+        <li class="card">
+          <h3>You were banned from the platform</h3>
+          <p>
+            That has its own route, and it does not run through the issue tracker. Sign in and the
+            ban screen carries the reason and the form &mdash; these are read by a person, they
+            pause rather than close when attempts run out, and they are never described as final.
+          </p>
+        </li>
+      </ul>
+
+      <p class="muted">
+        There is no paid support tier and no plan for one. Paying for a higher throughput cap does
+        not buy a faster answer, which would be a strange thing to sell given the whole service is
+        a set of numbers you can read in the repository.
+      </p>
+    </div>
+  </section>
+
   <section id="start">
     <div class="wrap">
       <div class="section-head">
@@ -515,6 +660,15 @@
           <li><a href="/pricing">Pricing</a></li>
           <li><a href="/dashboard">Dashboard</a></li>
           <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Support</h2>
+        <ul>
+          <li><a href="#support">Getting help</a></li>
+          <li><a href="#faq">Common questions</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/issues">Report a problem</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/security/advisories/new">Report a vulnerability</a></li>
         </ul>
       </section>
       <section>

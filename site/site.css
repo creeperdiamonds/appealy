@@ -721,14 +721,24 @@ th.num {
     width: min(260px, 100%);
     opacity: 0.9;
   }
+  /* Two columns is what .cards already does from 640px up, so this rule is
+     the class earning its name rather than changing anything: cols-2 marked a
+     grid that only looked right by coincidence, and would have silently become
+     three columns the day the default changed. */
+  .cards.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .cards.cols-3 {
     grid-template-columns: repeat(3, 1fr);
   }
   .cards.cols-4 {
     grid-template-columns: repeat(4, 1fr);
   }
+  /* auto-fit rather than a fixed count: the footer grew a fifth column when
+     Support was added, and a hard repeat(4) drops the last one onto a row of
+     its own looking like an afterthought. This packs whatever fits. */
   .footer-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   }
 }
 
