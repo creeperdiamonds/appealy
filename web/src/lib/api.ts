@@ -129,14 +129,53 @@ export class BannedError extends Error {
   }
 }
 
+/** What a zod `flatten()` looks like once it reaches the browser. */
+export interface FieldErrors {
+  formErrors?: string[];
+  fieldErrors?: Record<string, string[] | undefined>;
+}
+
 export class ApiError extends Error {
+  /**
+   * The API's `detail`, unflattened.
+   *
+   * The routes validate with zod and return `detail: error.flatten()` on a
+   * 400 — an object naming each field and what is wrong with it, which is by
+   * far the most useful thing the server ever says. It used to be handed
+   * straight to `Error(...)`, where an object stringifies to "[object
+   * Object]": every field error destroyed at the boundary, and a page left
+   * showing that literal text to someone who mistyped one input.
+   *
+   * Kept structured here so a form can put the message next to the field it
+   * belongs to. `message` stays a readable sentence for callers that only
+   * want one.
+   */
+  public detail?: string | FieldErrors;
+
   constructor(
     public status: number,
     public code: string,
     message: string,
     public retryAfter?: number,
+    detail?: string | FieldErrors,
   ) {
     super(message);
+    this.detail = detail;
+  }
+
+  /**
+   * Field errors as flat "field: problem" lines, or null if the API did not
+   * send any. For the common case of listing what went wrong without building
+   * a per-field UI.
+   */
+  get fieldMessages(): string[] | null {
+    const d = this.detail;
+    if (!d || typeof d === "string") return null;
+    const out: string[] = [...(d.formErrors ?? [])];
+    for (const [field, msgs] of Object.entries(d.fieldErrors ?? {})) {
+      for (const m of msgs ?? []) out.push(`${field}: ${m}`);
+    }
+    return out.length > 0 ? out : null;
   }
 
   /** True when the API couldn't verify permissions, as opposed to
@@ -144,6 +183,17 @@ export class ApiError extends Error {
   get isUnavailable() {
     return this.status === 503 || this.code === "permission_check_unavailable";
   }
+}
+
+/** One sentence from a zod flatten, for callers that only want a message. */
+function summarise(detail: FieldErrors): string | null {
+  const parts: string[] = [...(detail.formErrors ?? [])];
+  for (const [field, msgs] of Object.entries(detail.fieldErrors ?? {})) {
+    if (msgs?.length) parts.push(`${field}: ${msgs[0]}`);
+  }
+  if (parts.length === 0) return null;
+  // Two is enough to be useful without becoming a wall in a toast.
+  return parts.length <= 2 ? parts.join("; ") : `${parts.slice(0, 2).join("; ")} (+${parts.length - 2} more)`;
 }
 
 async function request<T>(
@@ -189,12 +239,19 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(
-      res.status,
-      body.error ?? "unknown_error",
-      body.detail ?? body.error ?? `Request failed (${res.status})`,
-      body.retryAfter,
-    );
+
+    // A readable sentence for `message`, and the original structure kept on
+    // `detail`. Passing an object as the message is what turned every zod
+    // validation failure into "[object Object]".
+    const detail = body.detail;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : detail && typeof detail === "object"
+        ? summarise(detail as FieldErrors) ?? body.error ?? `Request failed (${res.status})`
+        : body.error ?? `Request failed (${res.status})`;
+
+    throw new ApiError(res.status, body.error ?? "unknown_error", message, body.retryAfter, detail);
   }
 
   if (res.status === 204) return undefined as T;

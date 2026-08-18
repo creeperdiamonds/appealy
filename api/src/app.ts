@@ -82,6 +82,21 @@ export function createApp() {
   //
   // Mounted before the routers so it covers all of them rather than being
   // remembered per route.
+  // Every snowflake in this schema is a Postgres bigint, and JSON.stringify
+  // throws on one rather than guessing — so any route that returns a row
+  // straight from drizzle dies with "Do not know how to serialize a BigInt"
+  // the moment that table has data in it. Several did. It stayed hidden
+  // because an empty table serialises fine, so the routes look healthy until
+  // someone actually creates something.
+  //
+  // Strings, not numbers: a Discord snowflake exceeds Number.MAX_SAFE_INTEGER,
+  // and JSON has one numeric type. Silently rounding an id is worse than
+  // failing to send it. This is the convention the DTOs already follow by
+  // hand; this makes it true for the routes that don't.
+  app.set("json replacer", (_key: string, value: unknown) =>
+    typeof value === "bigint" ? value.toString() : value,
+  );
+
   app.use((_req, res, next) => {
     res.set("Cache-Control", "no-store");
     next();

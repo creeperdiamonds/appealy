@@ -19,14 +19,97 @@ import { Banner, Pill } from "./components/ui";
 import Overview from "./pages/Overview";
 import Submissions from "./pages/Submissions";
 import Operations from "./pages/Operations";
+import Forms from "./pages/Forms";
+import Panels from "./pages/Panels";
+import Tickets from "./pages/Tickets";
+import Verification from "./pages/Verification";
+import Welcomer from "./pages/Welcomer";
+import RoleMenus from "./pages/RoleMenus";
+import StickyMessages from "./pages/StickyMessages";
+import Giveaways from "./pages/Giveaways";
+import Polls from "./pages/Polls";
+import QuickResponses from "./pages/QuickResponses";
+import StaffPermissions from "./pages/StaffPermissions";
+import Billing from "./pages/Billing";
 
-type View = "overview" | "submissions" | "operations" | "appeals" | "ops-appeals";
+type View =
+  | "overview"
+  | "submissions"
+  | "operations"
+  | "forms"
+  | "panels"
+  | "appeals"
+  | "tickets"
+  | "quick-responses"
+  | "verification"
+  | "welcomer"
+  | "role-menus"
+  | "sticky"
+  | "giveaways"
+  | "polls"
+  | "staff"
+  | "billing"
+  | "ops-appeals";
 
-const NAV: { id: View; label: string; hint: string }[] = [
-  { id: "overview", label: "Overview", hint: "Capacity, activity, and health" },
-  { id: "submissions", label: "Applications", hint: "The review queue" },
-  { id: "operations", label: "Operations", hint: "Queued work and audit log" },
-  { id: "appeals", label: "Ban appeals", hint: "DM banned members a form" },
+/**
+ * Grouped, because a flat list stopped working.
+ *
+ * Four items did not need headings; eighteen do. The grouping is by what
+ * someone is trying to DO — run the server, take applications, keep people
+ * engaged, support them, administer access — rather than by which API router
+ * happens to back each screen, which is an implementation detail nobody
+ * configuring a Discord bot should have to learn.
+ *
+ * `needs` gates an entry on a deployment feature. Billing does not exist in
+ * self or test mode, and a tab that 404s is worse than one that is absent.
+ */
+type FeatureKey = "billing" | "tieredRateLimits" | "bans";
+
+const NAV_GROUPS: {
+  group: string;
+  items: { id: View; label: string; hint: string; needs?: FeatureKey }[];
+}[] = [
+  {
+    group: "Server",
+    items: [
+      { id: "overview", label: "Overview", hint: "Capacity, activity, and health" },
+      { id: "submissions", label: "Applications", hint: "The review queue" },
+      { id: "operations", label: "Operations", hint: "Queued work and audit log" },
+    ],
+  },
+  {
+    group: "Applications",
+    items: [
+      { id: "forms", label: "Forms", hint: "Questions, gating, and the roles a decision applies" },
+      { id: "panels", label: "Panels", hint: "The message people apply from" },
+      { id: "appeals", label: "Ban appeals", hint: "DM banned members a form" },
+    ],
+  },
+  {
+    group: "Support",
+    items: [
+      { id: "tickets", label: "Tickets", hint: "Ticket types, support roles, transcripts" },
+      { id: "quick-responses", label: "Quick responses", hint: "Saved replies for staff" },
+      { id: "verification", label: "Verification", hint: "Screen new members before they can talk" },
+    ],
+  },
+  {
+    group: "Engagement",
+    items: [
+      { id: "welcomer", label: "Welcomer", hint: "Join and leave messages, auto-roles" },
+      { id: "role-menus", label: "Role menus", hint: "Self-assignable roles" },
+      { id: "sticky", label: "Sticky messages", hint: "Keep a message at the bottom of a channel" },
+      { id: "giveaways", label: "Giveaways", hint: "Entries, weighting, and draws" },
+      { id: "polls", label: "Polls", hint: "Scheduled and live polls" },
+    ],
+  },
+  {
+    group: "Administration",
+    items: [
+      { id: "staff", label: "Staff access", hint: "Review rights without Administrator" },
+      { id: "billing", label: "Billing", hint: "Plan, caps, and renewal", needs: "billing" },
+    ],
+  },
 ];
 
 const LAST_GUILD_KEY = "appealy:lastGuild";
@@ -163,18 +246,31 @@ export default function App() {
         </div>
 
         <nav className="nav" aria-label="Sections">
-          <div className="nav-group eyebrow">Server</div>
-          {NAV.map((item) => (
-            <button
-              key={item.id}
-              className="nav-item"
-              aria-current={view === item.id ? "page" : undefined}
-              onClick={() => setView(item.id)}
-              title={item.hint}
-            >
-              {item.label}
-            </button>
-          ))}
+          {NAV_GROUPS.map(({ group, items }) => {
+            // An entry whose feature is off is not rendered at all. Disabling
+            // it would still assert the feature exists here, which in a
+            // self-hosted deployment it does not.
+            const visible = items.filter(
+              (item) => !item.needs || config?.features?.[item.needs] !== false,
+            );
+            if (visible.length === 0) return null;
+            return (
+              <div key={group}>
+                <div className="nav-group eyebrow">{group}</div>
+                {visible.map((item) => (
+                  <button
+                    key={item.id}
+                    className="nav-item"
+                    aria-current={view === item.id ? "page" : undefined}
+                    onClick={() => setView(item.id)}
+                    title={item.hint}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
           {isOperator && (
             <>
               <div className="nav-group eyebrow">Operator</div>
@@ -232,7 +328,7 @@ export default function App() {
           )}
 
           <span style={{ marginLeft: "auto" }} className="eyebrow">
-            {NAV.find((n) => n.id === view)?.hint}
+            {NAV_GROUPS.flatMap((g) => g.items).find((n) => n.id === view)?.hint}
           </span>
         </header>
 
@@ -294,7 +390,19 @@ export default function App() {
               {guildId && view === "overview" && <Overview guildId={guildId} />}
               {guildId && view === "submissions" && <Submissions guildId={guildId} />}
               {guildId && view === "operations" && <Operations guildId={guildId} />}
+              {guildId && view === "forms" && <Forms guildId={guildId} />}
+              {guildId && view === "panels" && <Panels guildId={guildId} />}
               {guildId && view === "appeals" && <AppealConfig guildId={guildId} />}
+              {guildId && view === "tickets" && <Tickets guildId={guildId} />}
+              {guildId && view === "quick-responses" && <QuickResponses guildId={guildId} />}
+              {guildId && view === "verification" && <Verification guildId={guildId} />}
+              {guildId && view === "welcomer" && <Welcomer guildId={guildId} />}
+              {guildId && view === "role-menus" && <RoleMenus guildId={guildId} />}
+              {guildId && view === "sticky" && <StickyMessages guildId={guildId} />}
+              {guildId && view === "giveaways" && <Giveaways guildId={guildId} />}
+              {guildId && view === "polls" && <Polls guildId={guildId} />}
+              {guildId && view === "staff" && <StaffPermissions guildId={guildId} />}
+              {guildId && view === "billing" && <Billing guildId={guildId} />}
             </>
           )}
           {view === "ops-appeals" && <OpsAppeals />}
