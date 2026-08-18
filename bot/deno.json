@@ -1,8 +1,8 @@
 {
   "tasks": {
-    "start": "deno run --allow-net --allow-env --allow-read bot/src/main.ts",
-    "dev": "deno run --watch --allow-net --allow-env --allow-read bot/src/main.ts",
-    "sync-commands": "deno run --allow-net --allow-env --allow-read src/tasks/syncCommands.ts"
+    "start": "deno run --allow-net --allow-env --allow-read --allow-sys=hostname bot/src/main.ts",
+    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-sys=hostname bot/src/main.ts",
+    "sync-commands": "deno run --allow-net --allow-env --allow-read --allow-sys=hostname src/tasks/syncCommands.ts"
   },
   "imports": {
     "@discordeno/bot": "npm:@discordeno/bot@^20.0.0",

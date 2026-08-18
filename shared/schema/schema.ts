@@ -16,7 +16,7 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -310,8 +310,13 @@ export const forms = pgTable(
     // Shown before the first question, asking the applicant to confirm
     // they want to proceed — distinct from the post-submit "completion"
     // DM (dmTemplates type="submission" already covers completion).
+    // sql`` and a doubled apostrophe, not a plain string: drizzle-kit emits a
+    // string default straight into the migration without escaping it, so
+    // "you'll" closes the SQL literal early and the migration cannot be
+    // applied at all. It was written as a plain string, and this table could
+    // never be created. See the note on dmOnBanNote below.
     confirmationMessage: text("confirmation_message").default(
-      "Are you sure you want to apply? Once you start, you'll be asked a series of questions.",
+      sql`'Are you sure you want to apply? Once you start, you''ll be asked a series of questions.'`,
     ),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -1172,9 +1177,12 @@ export const appealConfigs = pgTable("appeal_configs", {
   // reused from the generic forms flow) since this is specifically about
   // the unsolicited-DM context an appeal recipient is in that an ordinary
   // applicant never is.
+  // sql`` with the apostrophe doubled, for the reason given on
+  // confirmationMessage above: a plain string default containing an
+  // apostrophe is emitted unescaped and breaks the generated migration. Any
+  // prose default added here needs the same treatment, or no apostrophe.
   dmOnBanNote: text("dm_on_ban_note").default(
-    "You have been banned and are receiving this message because ban appeals are enabled for this server. " +
-      "If you'd like to appeal, answer the questions below. Sending nothing will not appeal the ban.",
+    sql`'You have been banned and are receiving this message because ban appeals are enabled for this server. If you''d like to appeal, answer the questions below. Sending nothing will not appeal the ban.'`,
   ),
   // When true (default), accepting an appeal submission calls Discord's
   // unban endpoint automatically (bot/src/interactions/buttons/reviewAccept.ts).

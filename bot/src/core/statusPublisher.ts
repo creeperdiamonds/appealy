@@ -86,10 +86,33 @@ async function publish(bot: AppealyBot): Promise<void> {
 }
 
 export function startStatusPublisher(bot: AppealyBot): void {
+  let timer: number | undefined;
+
   const tick = () =>
-    publish(bot).catch((err) => logger.warn("Status publish failed", { err }));
+    publish(bot).catch((err) => {
+      // A permission or missing-directory failure will not fix itself on the
+      // next tick. Outside a container OUT_DIR is /srv/status, which does not
+      // exist, and the bot runs without --allow-write regardless — so this
+      // used to log a warning every ten seconds forever, which buries the
+      // warnings that do mean something.
+      const fatal =
+        err instanceof Deno.errors.NotCapable || err instanceof Deno.errors.NotFound;
+
+      if (fatal) {
+        if (timer !== undefined) clearInterval(timer);
+        logger.warn(
+          "Status publishing disabled: cannot write to the output directory. " +
+            "Set STATUS_OUT_DIR to a writable path and grant --allow-write to enable it.",
+          { dir: OUT_DIR, error: err.name },
+        );
+        return;
+      }
+
+      logger.warn("Status publish failed", { error: String(err) });
+    });
+
   tick();
-  setInterval(tick, INTERVAL_MS);
+  timer = setInterval(tick, INTERVAL_MS) as unknown as number;
   logger.info("Status publisher started", { dir: OUT_DIR, intervalMs: INTERVAL_MS });
 }
 

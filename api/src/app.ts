@@ -4,6 +4,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { env } from "./env.ts";
+import { useMemoryRedis } from "../../shared/lib/memoryRedis.ts";
 import { authRouter } from "./routes/auth.ts";
 import { formsRouter } from "./routes/forms.ts";
 import { panelsRouter } from "./routes/panels.ts";
@@ -62,10 +63,15 @@ export function createApp() {
   // serves traffic here (see the fail-open notes in lib/redis.ts) but at
   // reduced protection, and that should be visible rather than silent.
   app.get("/health", async (_req, res) => {
-    const redisOk = await redisHealthy();
+    // "memory" is a third state, not a degraded second one. Running on the
+    // in-process substitute is a deliberate configuration (POC.md), and
+    // reporting it as redis:down made a working deployment look broken —
+    // which is how a real outage gets ignored later.
+    const usingShim = useMemoryRedis(env.REDIS_URL);
+    const redisOk = usingShim ? true : await redisHealthy();
     res.status(200).json({
       status: redisOk ? "ok" : "degraded",
-      redis: redisOk ? "up" : "down",
+      redis: usingShim ? "memory" : redisOk ? "up" : "down",
     });
   });
 

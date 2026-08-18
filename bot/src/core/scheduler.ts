@@ -178,8 +178,13 @@ async function closeDuePolls(bot: AppealyBot) {
  * disjoint set of rows without blocking on each other's locks.
  */
 async function drainScheduledJobs(bot: AppealyBot) {
-  const now = new Date();
-  const staleClaimCutoff = new Date(now.getTime() - CLAIM_VISIBILITY_MS);
+  // ISO strings, not Dates. db.execute() hands parameters to postgres.js
+  // unconverted, and it rejects a Date — Postgres coerces the string to
+  // timestamptz from the column type. Using the query builder instead would
+  // convert them, but this claim needs FOR UPDATE SKIP LOCKED, which the
+  // builder cannot express.
+  const now = new Date().toISOString();
+  const staleClaimCutoff = new Date(Date.now() - CLAIM_VISIBILITY_MS).toISOString();
 
   const claimed = await db.execute(sql`
     UPDATE ${schema.scheduledJobs}

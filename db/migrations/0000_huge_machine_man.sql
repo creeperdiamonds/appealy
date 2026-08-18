@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS "appeal_configs" (
 	"enabled" boolean DEFAULT false NOT NULL,
 	"form_id" text,
 	"dm_on_ban_enabled" boolean DEFAULT true NOT NULL,
-	"dm_on_ban_note" text DEFAULT 'You have been banned and are receiving this message because ban appeals are enabled for this server. If you'd like to appeal, answer the questions below. Sending nothing will not appeal the ban.',
+	"dm_on_ban_note" text DEFAULT 'You have been banned and are receiving this message because ban appeals are enabled for this server. If you''d like to appeal, answer the questions below. Sending nothing will not appeal the ban.',
 	"auto_unban_on_accept" boolean DEFAULT true NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -217,7 +217,7 @@ CREATE TABLE IF NOT EXISTS "forms" (
 	"thread_name" varchar(100) DEFAULT 'Review: {username}',
 	"auto_archive_on_decision" boolean DEFAULT true NOT NULL,
 	"hide_answers_in_embed" boolean DEFAULT false NOT NULL,
-	"confirmation_message" text DEFAULT 'Are you sure you want to apply? Once you start, you'll be asked a series of questions.',
+	"confirmation_message" text DEFAULT 'Are you sure you want to apply? Once you start, you''ll be asked a series of questions.',
 	"active" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL

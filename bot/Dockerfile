@@ -12,4 +12,4 @@ WORKDIR /app/bot
 RUN deno cache src/main.ts
 
 EXPOSE 9090
-CMD ["run", "--allow-net", "--allow-env", "--allow-read", "src/main.ts"]
+CMD ["run", "--allow-net", "--allow-env", "--allow-read", "--allow-sys=hostname", "src/main.ts"]
