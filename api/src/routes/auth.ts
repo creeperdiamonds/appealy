@@ -4,6 +4,21 @@
 // session id; the Discord tokens are encrypted at rest in Postgres and
 // never reach the browser. That design was right and is unchanged.
 //
+// TWO THINGS THAT DEPEND ON THIS BEING SERVED SAME-ORIGIN WITH THE CONSOLE
+//
+//   The session cookie below is SameSite=Lax, which is the right default and
+//   is deliberately not relaxed to SameSite=None. Lax means the browser only
+//   attaches it to cross-origin requests that are still same-SITE, so the
+//   console must reach this router on its own origin. web/nginx.conf proxies
+//   /auth and /api for exactly that reason, and DISCORD_REDIRECT_URI points
+//   at the console's origin rather than the API's so that the callback
+//   response carrying Set-Cookie is first-party. Getting this wrong is not a
+//   visible error: login succeeds, and every request afterwards is anonymous.
+//
+//   Popup sign-in (mode=popup below) needs window.opener alive in the popup.
+//   The console sends Cross-Origin-Opener-Policy: same-origin-allow-popups
+//   for the same reason — see web/nginx.conf.
+//
 // WHAT CHANGED
 // ------------
 // The OAuth `state` nonce store was an in-process `Map`, with its own
@@ -60,11 +75,62 @@ function stateKey(state: string) {
   return `appealy:oauth:state:${state}`;
 }
 
-authRouter.get("/discord/login", async (_req, res) => {
+type LoginMode = "redirect" | "popup";
+
+/**
+ * The completed-sign-in page for popup mode.
+ *
+ * Carries no token and no session id — the session is already an httpOnly
+ * cookie set on this very response, so the opener has everything it needs the
+ * moment this document loads. All that crosses the postMessage boundary is
+ * "it worked" or "it didn't", which is why this can be a fire-and-forget
+ * message rather than a channel that needs securing in both directions.
+ *
+ * `targetOrigin` is FRONTEND_ORIGIN exactly, never "*" — a wildcard would
+ * hand the message to whatever origin happened to open the popup.
+ */
+function authResultPage(origin: string, ok: boolean, error?: string): string {
+  // JSON.stringify escaped for inline <script>: a literal </script> inside a
+  // string would close the element early. None of these values are
+  // user-controlled today, but the page should not depend on that staying true.
+  const json = (v: unknown) =>
+    JSON.stringify(v).replace(/</g, "\u003c").replace(/>/g, "\u003e");
+
+  return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>${ok ? "Signed in" : "Sign-in failed"}</title></head>
+<body style="font:14px system-ui;padding:2rem;text-align:center">
+<p>${ok ? "Signed in. You can close this window." : "Sign-in failed. You can close this window."}</p>
+<script>
+(function () {
+  var payload = ${json({ type: "appealy:auth", ok, error: error ?? null })};
+  try {
+    // No opener means this was a redirect-mode login that failed, or a popup
+    // the browser reopened as a tab. Either way the message has nowhere to go
+    // and the text above is the whole response.
+    if (window.opener) window.opener.postMessage(payload, ${json(origin)});
+  } catch (e) {}
+  // Only a script-opened window may close itself. When the "popup" was
+  // actually a new tab this silently does nothing, which is why the message
+  // above tells the user rather than assuming the window disappears.
+  window.close();
+})();
+</script>
+</body></html>`;
+}
+
+authRouter.get("/discord/login", async (req, res) => {
   const state = crypto.randomBytes(32).toString("hex");
 
+  // The mode rides the state entry rather than the callback URL. Discord
+  // requires redirect_uri to match the registered value character for
+  // character, so it cannot carry a per-request query param — and a mode read
+  // off the callback would be caller-controlled anyway. Stored here, it comes
+  // back from the same atomic GETDEL that already proves the nonce is genuine.
+  const mode: LoginMode = req.query.mode === "popup" ? "popup" : "redirect";
+
   const stored = await withRedis(
-    (r) => r.set(stateKey(state), "1", "EX", STATE_TTL_SECONDS, "NX"),
+    (r) => r.set(stateKey(state), mode, "EX", STATE_TTL_SECONDS, "NX"),
     null,
   );
 
@@ -89,7 +155,9 @@ authRouter.get("/discord/callback", async (req, res) => {
   const { code, state } = req.query as { code?: string; state?: string };
 
   if (!code || !state) {
-    return res.status(400).json({ error: "invalid_state" });
+    // Same reasoning as the consume failure below: this is a window a person
+    // is looking at, not a fetch() response.
+    return res.status(400).type("html").send(authResultPage(env.FRONTEND_ORIGIN, false, "invalid_state"));
   }
 
   // Consume atomically. GETDEL means a replayed callback — the same state
@@ -105,8 +173,15 @@ authRouter.get("/discord/callback", async (req, res) => {
     // Covers all of: never issued, already used, expired, and Redis down.
     // Deliberately one message — distinguishing them for the caller would
     // tell an attacker which states exist.
-    return res.status(400).json({ error: "invalid_state" });
+    //
+    // The mode lived in the entry that just failed to resolve, so this is the
+    // one path that cannot know whether it was a popup. The page handles both:
+    // it messages an opener if there is one and otherwise reads as a plain
+    // error page, which beats returning JSON to a window a human is looking at.
+    return res.status(400).type("html").send(authResultPage(env.FRONTEND_ORIGIN, false, "invalid_state"));
   }
+
+  const mode: LoginMode = consumed === "popup" ? "popup" : "redirect";
 
   try {
     const token = await exchangeCodeForToken(
@@ -127,6 +202,13 @@ authRouter.get("/discord/callback", async (req, res) => {
       })
       .returning();
 
+    // sameSite "lax", not "none". Lax is the safer default and it is
+    // sufficient here because the console reaches this router on its own
+    // origin (web/nginx.conf proxies /auth and /api). "none" would paper over
+    // a split-origin deployment and then fail anyway in Safari and Firefox,
+    // which block third-party cookies outright — so the proxy is the fix and
+    // this stays strict. No `domain` is set on purpose: the cookie is scoped
+    // to whichever host served this response, which is the console.
     res.cookie("appealy_session", session.id, {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
@@ -134,8 +216,20 @@ authRouter.get("/discord/callback", async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
+    if (mode === "popup") {
+      // The cookie above is already on this response; the opener only needs to
+      // hear that it can retry whatever it was doing.
+      return res.type("html").send(authResultPage(env.FRONTEND_ORIGIN, true));
+    }
+
     res.redirect(`${env.FRONTEND_ORIGIN}/dashboard`);
   } catch (err) {
+    // Deliberately no `detail` in popup mode: that string is an exception
+    // message from the Discord exchange, and it ends up rendered in a window
+    // rather than read by a developer.
+    if (mode === "popup") {
+      return res.status(500).type("html").send(authResultPage(env.FRONTEND_ORIGIN, false, "oauth_failed"));
+    }
     res.status(500).json({ error: "oauth_failed", detail: String(err) });
   }
 });

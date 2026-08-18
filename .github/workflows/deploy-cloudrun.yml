@@ -38,7 +38,11 @@ on:
           - web
           - bot
       vite_api_url:
-        description: '(Web only) API URL to bake into the frontend'
+        description: '(Web only) Leave EMPTY — the console proxies the API on its own origin'
+        required: false
+        default: ''
+      api_origin:
+        description: '(Web only) API service URL that nginx proxies /auth and /api to'
         required: false
         default: 'https://appealy-api-xxxx.a.run.app'
 
@@ -78,8 +82,34 @@ jobs:
           IMAGE_NAME="${{ env.ARTIFACT_REGISTRY }}/appealy-${{ github.event.inputs.service }}"
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
+          # env_vars is emitted as one multi-line output and consumed as a
+          # single expression below. Expressions are substituted after the
+          # workflow YAML is parsed, so a multi-line value needs no indenting
+          # and cannot break the block it lands in.
+          {
+            echo "env_vars<<APPEALY_EOF"
+            echo "NODE_ENV=production"
+            echo "APPEALY_ENV=production"
+            echo "DEPLOYMENT_MODE=platform"
+            echo "LOG_LEVEL=info"
+            if [ "${{ github.event.inputs.service }}" = "web" ]; then
+              # Read by nginx at container start, not baked into the bundle —
+              # see web/nginx.conf for why the API is proxied through the
+              # console's origin rather than called directly.
+              echo "API_ORIGIN=${{ github.event.inputs.api_origin }}"
+              # GCP's metadata server. nginx resolves the proxy target at
+              # request time, and Docker's 127.0.0.11 does not exist here.
+              echo "DNS_RESOLVER=169.254.169.254"
+            fi
+            echo "APPEALY_EOF"
+          } >> $GITHUB_OUTPUT
+
           case "${{ github.event.inputs.service }}" in
             web)
+              # Empty on purpose: the bundle calls /auth and /api as
+              # same-origin relative paths so the session cookie stays
+              # first-party. Passing a URL here reintroduces the cross-site
+              # cookie problem web/nginx.conf exists to avoid.
               echo "build_args=--build-arg VITE_API_URL=${{ github.event.inputs.vite_api_url }}" >> $GITHUB_OUTPUT
               echo "port=8080" >> $GITHUB_OUTPUT
               # 8080, not 80: nginx now templates ${PORT} at container start
@@ -127,12 +157,8 @@ jobs:
           region: '${{ env.GCP_REGION }}'
           flags: '${{ steps.prep.outputs.flags }}'
 
-          # Non-secret config only.
-          env_vars: |
-            NODE_ENV=production
-            APPEALY_ENV=production
-            DEPLOYMENT_MODE=platform
-            LOG_LEVEL=info
+          # Non-secret config only. Built per-service in the prep step above.
+          env_vars: ${{ steps.prep.outputs.env_vars }}
 
           # Secrets come from Secret Manager, NOT from env_vars.
           #

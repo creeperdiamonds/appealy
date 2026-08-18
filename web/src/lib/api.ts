@@ -23,7 +23,97 @@
 //   from 403, because "you can't do this" and "we couldn't check" need
 //   different words in the UI and the old code conflated them.
 
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+// Empty by default, and empty is the right answer for every normal
+// deployment: the API is reached through this same origin (the Vite dev
+// server proxies /auth and /api in development, nginx does it in the built
+// image), so these are relative paths and the session cookie is first-party.
+//
+// The cookie is SameSite=Lax. Pointing this at a different hostname than the
+// console is served from means the browser stops attaching it and every
+// request 401s — and CORS being configured correctly does not change that,
+// because CORS governs reading the response, not sending the cookie.
+const BASE = import.meta.env.VITE_API_URL ?? "";
+
+// Where the OAuth popup's final page will be served from, which is this
+// origin in the normal same-origin setup and the API's origin if someone has
+// deliberately split them. Used to reject postMessage from anywhere else.
+const AUTH_ORIGIN = new URL(BASE || "/", window.location.href).origin;
+
+/**
+ * Sign in through a popup, falling back to a full-page redirect.
+ *
+ * Why a popup at all: the redirect throws away the SPA. A session that
+ * expires while someone is halfway through building a form costs them the
+ * form. The popup leaves the page — and its unsaved state — untouched, and
+ * the caller can simply retry the request that failed.
+ *
+ * Why the fallback is not optional:
+ *
+ *   - Popup blockers allow window.open only under user activation. Some 401s
+ *     follow a click ("Save") and land inside the ~5s activation window;
+ *     the fan-out of requests on page load does not, and gets blocked. A
+ *     blocked popup returns null, which is the signal to redirect instead —
+ *     i.e. exactly the behaviour this replaced, so the worst case is no worse.
+ *
+ *   - People reach a Discord bot dashboard from inside Discord, whose
+ *     embedded webview handles popups poorly and often opens them as a tab
+ *     with no window.opener at all. Mobile browsers do much the same.
+ *
+ * Nothing sensitive crosses postMessage: the session is an httpOnly cookie
+ * that the popup's own response already set, so the message is only a signal
+ * to re-check /auth/me.
+ */
+let authInFlight: Promise<boolean> | null = null;
+
+function signIn(): Promise<boolean> {
+  // A page-load fan-out produces several 401s at once. Without this they
+  // would each open their own window.
+  if (authInFlight) return authInFlight;
+
+  authInFlight = new Promise<boolean>((resolve) => {
+    const popup = window.open(
+      `${BASE}/auth/discord/login?mode=popup`,
+      "appealy-auth",
+      "width=520,height=760",
+    );
+
+    if (!popup) {
+      window.location.href = `${BASE}/auth/discord/login`;
+      resolve(false); // the redirect is already underway; nothing to retry
+      return;
+    }
+
+    const done = (ok: boolean) => {
+      window.removeEventListener("message", onMessage);
+      clearInterval(pollClosed);
+      clearTimeout(giveUp);
+      resolve(ok);
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== AUTH_ORIGIN) return;
+      if (event.data?.type !== "appealy:auth") return;
+      done(Boolean(event.data.ok));
+    };
+
+    window.addEventListener("message", onMessage);
+
+    // Covers the window being closed by hand, and the case where it was
+    // opened as a tab and window.close() did nothing — without this the
+    // promise would never settle and the caller would hang forever.
+    const pollClosed = setInterval(() => {
+      if (popup.closed) done(false);
+    }, 500);
+
+    // Matches STATE_TTL_SECONDS in api/src/routes/auth.ts: past this the
+    // nonce is gone and the popup cannot succeed even if it is still open.
+    const giveUp = setTimeout(() => done(false), 5 * 60 * 1000);
+  }).finally(() => {
+    authInFlight = null;
+  });
+
+  return authInFlight;
+}
 
 /**
  * Thrown when the API answers 403 { error: "banned" }. Carries the ban so the
@@ -56,7 +146,12 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  retried = false,
+  reauthed = false,
+): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     credentials: "include", // the session cookie is httpOnly; nothing else authenticates us
@@ -66,7 +161,9 @@ async function request<T>(path: string, init: RequestInit = {}, retried = false)
   if (res.status === 429 && !retried) {
     const wait = Number(res.headers.get("Retry-After") ?? 2);
     await new Promise((r) => setTimeout(r, Math.min(wait, 10) * 1000));
-    return request<T>(path, init, true);
+    // reauthed is carried through, or a 429 landing between a re-auth and its
+    // retry would reset the loop guard.
+    return request<T>(path, init, true, reauthed);
   }
 
   if (res.status === 403) {
@@ -78,9 +175,15 @@ async function request<T>(path: string, init: RequestInit = {}, retried = false)
   }
 
   if (res.status === 401) {
-    // Session expired or was never established. Sending them to login is
-    // the only useful action, so do it rather than rendering an error.
-    window.location.href = `${BASE}/auth/discord/login`;
+    // Session expired or was never established. Sending them to login is the
+    // only useful action, so do it rather than rendering an error — but try
+    // to do it without destroying the page they are standing on.
+    //
+    // `reauthed` stops a loop: if the request still 401s after a sign-in that
+    // reported success, something is wrong that signing in again won't fix.
+    if (!reauthed && (await signIn())) {
+      return request<T>(path, init, retried, true);
+    }
     throw new ApiError(401, "not_authenticated", "Signing you in…");
   }
 
@@ -228,6 +331,15 @@ export interface FormSummary {
 
 export const api = {
   loginUrl: () => `${BASE}/auth/discord/login`,
+
+  /**
+   * Explicit sign-in, for a button. Resolves true once the session exists.
+   *
+   * Prefer this over loginUrl() anywhere a person clicks: called from a click
+   * handler it has user activation, so the popup opens instead of being
+   * blocked, and the dashboard behind it survives.
+   */
+  signIn,
 
   me: () => request<{ userId: string }>("/auth/me"),
 

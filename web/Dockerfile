@@ -24,7 +24,16 @@ COPY web ./web
 WORKDIR /app/web
 # Baked at build time, since Vite inlines env vars into the bundle. Changing
 # this later means rebuilding the image, not restarting the container.
-ARG VITE_API_URL=http://localhost:3001
+#
+# Empty by default, and that is the correct value for every normal deployment:
+# nginx in the runtime stage proxies /auth/ and /api/ to the API, so the bundle
+# calls them as same-origin relative paths and the session cookie stays
+# first-party. See web/nginx.conf for why that matters.
+#
+# Set it to an absolute URL only if you are deliberately serving the console
+# and the API as separate origins — in which case the cookie will not be sent
+# unless both are on the same registrable domain.
+ARG VITE_API_URL=
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
@@ -35,6 +44,23 @@ FROM nginx:1.27-alpine
 # substituted at container start. Defaults to 8080, which is Cloud Run's
 # default, and works unchanged under docker-compose.
 ENV PORT=8080
+
+# Where nginx forwards /auth/ and /api/. Runtime config, not build-time: unlike
+# VITE_API_URL this is read by nginx at container start, so the same image can
+# be pointed at a different API without a rebuild.
+#
+# The compose default reaches the api service over the internal network. On
+# Cloud Run set it to the API service's https URL.
+ENV API_ORIGIN=http://api:3001
+
+# nginx needs an explicit resolver to do runtime DNS for a proxy_pass built
+# from a variable. 127.0.0.11 is Docker's embedded DNS, which is what compose
+# needs; on Cloud Run the backend is a public *.run.app name, so override this
+# with a public resolver (the deploy workflow sets 169.254.169.254, the GCP
+# metadata server).
+ENV DNS_RESOLVER=127.0.0.11
+
 COPY web/nginx.conf /etc/nginx/templates/default.conf.template
+COPY web/appealy-proxy.conf /etc/nginx/appealy-proxy.conf
 COPY --from=build /app/web/dist /usr/share/nginx/html
 EXPOSE 8080

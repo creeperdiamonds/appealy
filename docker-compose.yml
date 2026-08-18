@@ -79,9 +79,23 @@ services:
       context: .
       dockerfile: web/Dockerfile
       args:
-        # Baked into the bundle at build time — Vite inlines env vars, so
-        # this cannot be changed by restarting the container.
-        VITE_API_URL: http://localhost:3001
+        # Empty on purpose. nginx inside this container proxies /auth and /api
+        # to the api service, so the bundle calls them as same-origin relative
+        # paths and the session cookie stays first-party. Pointing this at
+        # http://localhost:3001 makes the console a separate origin from the
+        # API, which happens to work on localhost (same site, different port)
+        # and stops working the moment the two are deployed to real hostnames.
+        # See web/nginx.conf.
+        VITE_API_URL: ""
+    environment:
+      # Runtime config for the nginx proxy, not baked into the bundle.
+      # Reaches the api service over the internal network. Port 3001 is still
+      # published on the host for direct API calls (curl, Stripe CLI), but the
+      # browser should never use it — go through http://localhost:5173.
+      API_ORIGIN: http://api:3001
+      # Docker's embedded DNS, needed because nginx resolves the proxy target
+      # at request time. Cloud Run uses a different resolver; see web/Dockerfile.
+      DNS_RESOLVER: 127.0.0.11
     restart: unless-stopped
     ports:
       # Container now listens on ${PORT}, defaulting to 8080 — see
