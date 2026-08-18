@@ -73,11 +73,52 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      # Cheap, and it saves a genuinely nasty debugging session. Without it an
+      # unset secret produces env_vars containing `TEBEX_PROJECT_ID=`, the
+      # build and deploy both succeed, and the container then crash-loops on
+      # resolveDeployment()'s "platform mode requires a billing source" — which
+      # surfaces as a Cloud Run health check failure, several screens away from
+      # the repository setting that caused it.
+      - name: Fail early if billing credentials are missing
+        if: github.event.inputs.service != 'web'
+        env:
+          TEBEX_PROJECT_ID: ${{ secrets.TEBEX_PROJECT_ID }}
+          TEBEX_PRIVATE_KEY: ${{ secrets.TEBEX_PRIVATE_KEY }}
+          TEBEX_WEBHOOK_SECRET: ${{ secrets.TEBEX_WEBHOOK_SECRET }}
+        run: |
+          # if-blocks rather than `[ -z "$X" ] && missing=...`. This step runs
+          # under `bash -e`, where a && chain whose left side is false makes the
+          # LINE return 1 and the shell exit — so the terse form aborts the step
+          # precisely when the secret is present, which is the one case that
+          # should pass.
+          missing=""
+          if [ -z "$TEBEX_PROJECT_ID" ]; then missing="$missing TEBEX_PROJECT_ID"; fi
+          if [ -z "$TEBEX_PRIVATE_KEY" ]; then missing="$missing TEBEX_PRIVATE_KEY"; fi
+          if [ -z "$TEBEX_WEBHOOK_SECRET" ]; then missing="$missing TEBEX_WEBHOOK_SECRET"; fi
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            echo "Settings -> Secrets and variables -> Actions -> Secrets."
+            echo "DEPLOYMENT_MODE=platform requires a billing source, so the container"
+            echo "would build, deploy, and then fail to start."
+            echo "The first two come from creator.tebex.io -> Developers -> API Keys."
+            echo "The third is in the settings of the webhook endpoint itself."
+            exit 1
+          fi
+
       - name: Authorize Docker push
         run: gcloud auth configure-docker $(echo ${{ env.ARTIFACT_REGISTRY }} | cut -d'/' -f1) --quiet
 
       - name: Prepare build arguments
         id: prep
+        # Mapped into the environment rather than interpolated into the script
+        # below. A ${{ secrets.X }} substituted straight into a shell line is
+        # text the shell then parses, so a value containing a quote or a
+        # backtick stops being data and starts being code. Reading $TEBEX_* is
+        # the same value with none of that.
+        env:
+          TEBEX_PROJECT_ID: ${{ secrets.TEBEX_PROJECT_ID }}
+          TEBEX_PRIVATE_KEY: ${{ secrets.TEBEX_PRIVATE_KEY }}
+          TEBEX_WEBHOOK_SECRET: ${{ secrets.TEBEX_WEBHOOK_SECRET }}
         run: |
           IMAGE_NAME="${{ env.ARTIFACT_REGISTRY }}/appealy-${{ github.event.inputs.service }}"
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
@@ -92,6 +133,24 @@ jobs:
             echo "APPEALY_ENV=production"
             echo "DEPLOYMENT_MODE=platform"
             echo "LOG_LEVEL=info"
+            # Billing, for both services that boot our own code.
+            #
+            # The bot does not charge anybody and never calls Tebex. It needs
+            # these because DEPLOYMENT_MODE=platform is set for every service
+            # and resolveDeployment() refuses to start a platform deployment
+            # with no billing source — a sensible guard for the API, and one
+            # the bot has to satisfy too since it shares the check. Handing the
+            # bot a payment key it never uses is not ideal; changing the guard
+            # to know which runtime is asking is a bigger change than this one.
+            #
+            # web is excluded on purpose: it is nginx serving static files, it
+            # never runs resolveDeployment, and putting a private key in its
+            # service config would be exposure bought for nothing.
+            if [ "${{ github.event.inputs.service }}" != "web" ]; then
+              echo "TEBEX_PROJECT_ID=${TEBEX_PROJECT_ID}"
+              echo "TEBEX_PRIVATE_KEY=${TEBEX_PRIVATE_KEY}"
+              echo "TEBEX_WEBHOOK_SECRET=${TEBEX_WEBHOOK_SECRET}"
+            fi
             if [ "${{ github.event.inputs.service }}" = "web" ]; then
               # Read by nginx at container start, not baked into the bundle —
               # see web/nginx.conf for why the API is proxied through the
@@ -160,13 +219,21 @@ jobs:
           # Non-secret config only. Built per-service in the prep step above.
           env_vars: ${{ steps.prep.outputs.env_vars }}
 
-          # Secrets come from Secret Manager, NOT from env_vars.
+          # These come from Secret Manager, NOT from env_vars.
           #
           # Anything in env_vars is stored in the Cloud Run service config in
           # plaintext and visible to anyone with roles/viewer on the project —
           # which is not where a bot token or an AES key belongs. Secret
           # Manager keeps them out of the service definition, gives you access
           # logs, and lets you rotate without redeploying.
+          #
+          # The TEBEX_* values are the deliberate exception and go through
+          # env_vars from GitHub secrets, so that configuring billing does not
+          # require gcloud access. That is a real downgrade for those three —
+          # they sit in the service config like the rest of env_vars — and it
+          # is a considered trade on a single-maintainer project where the only
+          # account holding roles/viewer is the maintainer's. Moving them back
+          # is reverting one commit.
           #
           # Create them once:
           #   echo -n "$VALUE" | gcloud secrets create discord-bot-token --data-file=-
@@ -182,9 +249,6 @@ jobs:
             SESSION_SECRET=appealy-session-secret:latest
             TOKEN_ENCRYPTION_KEY=appealy-token-encryption-key:latest
             OPS_USER_IDS=appealy-ops-user-ids:latest
-            TEBEX_PROJECT_ID=appealy-tebex-project-id:latest
-            TEBEX_PRIVATE_KEY=appealy-tebex-private-key:latest
-            TEBEX_WEBHOOK_SECRET=appealy-tebex-webhook-secret:latest
 
       - name: Print deployed URL
         run: echo "Deployed to ${{ steps.deploy.outputs.url }}"

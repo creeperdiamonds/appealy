@@ -70,20 +70,13 @@ output "secret_commands" {
     echo -n "SECRET"     | gcloud secrets versions add appealy-discord-client-secret --data-file=-
     echo -n "YOUR_USER_ID" | gcloud secrets versions add appealy-ops-user-ids --data-file=-
 
-    # Billing, from creator.tebex.io. The first two are under Developers ->
-    # API Keys; the webhook secret is in the settings of the webhook endpoint
-    # itself, which is a different screen and easy to miss.
-    #
-    # Point that endpoint at https://<your-domain>/webhooks/tebex .
-    #
-    # Set all three or none. Blank credentials are read as a self-hosted
-    # install and turn billing off; credentials without the webhook secret
-    # refuse to boot, on purpose — checkout would succeed, the customer would
-    # be charged, and no plan would ever activate, because nothing could verify
-    # the callback that grants it.
-    echo -n "PROJECT_ID"     | gcloud secrets versions add appealy-tebex-project-id --data-file=-
-    echo -n "PRIVATE_KEY"    | gcloud secrets versions add appealy-tebex-private-key --data-file=-
-    echo -n "WEBHOOK_SECRET" | gcloud secrets versions add appealy-tebex-webhook-secret --data-file=-
+    # Billing does NOT go here. TEBEX_PROJECT_ID, TEBEX_PRIVATE_KEY and
+    # TEBEX_WEBHOOK_SECRET are GitHub repository secrets, passed to Cloud Run
+    # as env_vars by the deploy workflow, so they can be set without gcloud.
+    # The first two come from creator.tebex.io -> Developers -> API Keys; the
+    # third from the settings of the webhook endpoint itself, which is a
+    # different screen and easy to miss. Point that endpoint at
+    # https://<your-domain>/webhooks/tebex .
 
     # Only if enable_redis = true:
     # terraform output -raw redis_url | gcloud secrets versions add appealy-redis-url --data-file=-

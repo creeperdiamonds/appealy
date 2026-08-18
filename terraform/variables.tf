@@ -89,18 +89,10 @@ variable "app_secrets" {
     "appealy-session-secret",
     "appealy-token-encryption-key",
     "appealy-ops-user-ids",
-    # Billing. Absent until now: the Stripe entries were removed when the
-    # project moved to Tebex and nothing replaced them, so the three variables
-    # the API needs to charge anybody had no home in production.
-    #
-    # The failure that hides behind this is quiet. shared/config/deployment.ts
-    # reads a blank TEBEX_PROJECT_ID as "this is a self-hosted install" and
-    # resolves DEPLOYMENT_MODE to "self" — so the platform deployment would
-    # boot healthy, serve every screen, and simply have billing switched off,
-    # with nothing in the logs saying so. Nobody finds that out until someone
-    # tries to pay.
-    "appealy-tebex-project-id",
-    "appealy-tebex-private-key",
-    "appealy-tebex-webhook-secret",
+    # No TEBEX_* entries on purpose. Those three reach Cloud Run as env_vars
+    # from GitHub secrets instead (see the deploy workflow), so creating
+    # Secret Manager containers here would leave three empty secrets that
+    # nothing ever reads or writes — dead configuration that reads like a
+    # working path until someone traces it.
   ]
 }
