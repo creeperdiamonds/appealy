@@ -109,7 +109,12 @@ export const platformBanAppealsRelations = relations(platformBanAppeals, ({ one 
 // are unaffected. It moved because the console imports it, and this module
 // defines drizzle tables — which the browser bundle would otherwise have to
 // resolve just to name a type.
-export type { PublicBan } from "../types/index.ts";
+//
+// Imported and then re-exported, rather than `export type { X } from`: a bare
+// re-export does not bind the name locally, so toPublicBan's return annotation
+// below would not see it.
+import type { PublicBan } from "../types/index.ts";
+export type { PublicBan };
 
 /**
  * The single serialization boundary for a ban. Every route returning ban data
