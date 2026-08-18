@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/privacy.html
+
+  Written from what the code actually does, not from a template. Every claim
+  below is checkable: the cookie flags are in api/src/routes/auth.ts, the
+  encryption call is on the line above them, the telemetry constant is in
+  shared/config/deployment.ts, and the retention purge is in
+  bot/src/core/scheduler.ts.
+
+  If a claim here stops being true, the code changed. Fix the code or fix this
+  page — do not leave them disagreeing.
+-->
+
+<title>Privacy — Appealy</title>
+<meta name="description" content="What Appealy stores, for how long, who can see it, and what it does not collect. No telemetry, asserted in code rather than promised in prose.">
+<link rel="canonical" href="https://appealy.gg/privacy.html">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.gg/privacy.html">
+<meta property="og:title" content="Privacy — Appealy">
+<meta property="og:description" content="What Appealy stores, for how long, who can see it, and what it does not collect.">
+<meta property="og:image" content="https://appealy.gg/brand/icon.svg">
+<meta property="og:image:alt" content="The Appealy mark: an open door.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Privacy — Appealy">
+<meta name="twitter:description" content="What Appealy stores, for how long, who can see it, and what it does not collect.">
+<meta name="twitter:image" content="https://appealy.gg/brand/icon.svg">
+
+<link rel="icon" href="../brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="index.html">
+      <img src="../brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="index.html#features">Features</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="index.html#self-hosting">Self-hosting</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose">
+
+    <p class="eyebrow">Legal</p>
+    <h1>Privacy</h1>
+    <p class="updated">Last updated 18 August 2026</p>
+
+    <p class="lede">
+      This describes the hosted deployment at appealy.gg. If you self-host, none of it applies to
+      you: your instance talks to Discord and to your own database, and the operator of that
+      instance is the one holding the data.
+    </p>
+
+    <h2>What is stored</h2>
+    <p>
+      Appealy is a bot that runs applications, appeals and tickets for a Discord server. Almost
+      everything it stores is either a Discord identifier or something a person typed into one of
+      your forms.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption>What is written to the database, and why it is there.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Discord IDs</th>
+            <td>User, server, channel, role and message IDs. Everything the bot does is addressed by one of these.</td>
+          </tr>
+          <tr>
+            <th scope="row">Server name and icon hash</th>
+            <td>So the dashboard can show you which server you are looking at.</td>
+          </tr>
+          <tr>
+            <th scope="row">Submissions and answers</th>
+            <td>What an applicant wrote, which form, the outcome, the reviewer, and any denial reason.</td>
+          </tr>
+          <tr>
+            <th scope="row">Ban appeals</th>
+            <td>Same shape as a submission. Created when a server has appeals enabled and someone is banned.</td>
+          </tr>
+          <tr>
+            <th scope="row">Tickets</th>
+            <td>Who opened it, who claimed it, when it closed, the rating if ratings are on, and a link to the transcript if transcripts are on.</td>
+          </tr>
+          <tr>
+            <th scope="row">Giveaway entries, poll votes</th>
+            <td>Which user entered or voted, so the same person cannot enter twice.</td>
+          </tr>
+          <tr>
+            <th scope="row">Server configuration</th>
+            <td>Forms, questions, panels, DM templates, ticket types, verification, welcomer, role menus, anti-raid, quick responses, sticky messages, staff delegations.</td>
+          </tr>
+          <tr>
+            <th scope="row">Session</th>
+            <td>A session row, referenced by the <code>appealy_session</code> cookie.</td>
+          </tr>
+          <tr>
+            <th scope="row">Discord OAuth tokens</th>
+            <td>The access and refresh tokens Discord issues when you sign in, so the dashboard can list the servers you manage. <strong>Encrypted at rest.</strong></td>
+          </tr>
+          <tr>
+            <th scope="row">Billing state</th>
+            <td>Which plan a server is on and the payment provider&rsquo;s subscription reference. No card details, ever &mdash; see below.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>What is not collected</h2>
+    <ul>
+      <li>
+        <strong>No telemetry.</strong> This is asserted as a constant in
+        <code>shared/config/deployment.ts</code> rather than promised in prose, so it would appear
+        in a diff if it ever changed.
+      </li>
+      <li>
+        <strong>No message archive.</strong> The bot uses the Message Content intent to notice when
+        a channel has been busy enough to warrant re-posting a sticky message. No message content is
+        written to the database. The one thing that reads a channel&rsquo;s history is a ticket
+        transcript, generated when that ticket closes and posted as a plain-text file into a channel
+        you configured &mdash; in your server, not ours. Only its URL is stored, and it is only
+        produced if you switched transcripts on.
+      </li>
+      <li>
+        <strong>No card details.</strong> They never reach this service. The payment provider is the
+        merchant of record and collects payment on its own pages.
+      </li>
+      <li>
+        <strong>No analytics on this website.</strong> The page you are reading contains no
+        JavaScript at all. It requests one thing from outside this domain: the two typefaces, from
+        Google Fonts.
+      </li>
+      <li>
+        <strong>No server ID lookup traffic on the status page.</strong> The shard formula is
+        arithmetic, so it runs in your browser. Nothing is sent, which means there is nothing to
+        log, cache or leak.
+      </li>
+    </ul>
+
+    <h2>Cookies</h2>
+    <p>
+      One: <code>appealy_session</code>. It is <code>httpOnly</code> (JavaScript cannot read it),
+      <code>SameSite=Lax</code>, and marked <code>Secure</code> in production. It holds a session
+      identifier and nothing else &mdash; no token, no user data. Signing out clears it.
+    </p>
+    <p>
+      There are no analytics cookies and no third-party cookies. The dashboard is served from the
+      same origin as the API for exactly this reason: it keeps the session cookie first-party by
+      construction instead of relaxing it to something a browser would treat as third-party.
+    </p>
+
+    <h2>How long it is kept</h2>
+    <p>
+      Reviewed submissions &mdash; accepted, denied or withdrawn &mdash; are deleted once they pass
+      your server&rsquo;s history retention window. That window is one of the metered caps: 30 days
+      on the free tier, up to five years at the ceiling. Answers are deleted with the submission
+      they belong to.
+    </p>
+    <p>
+      <strong>Pending submissions are never purged</strong>, at any tier. One of those is live work
+      sitting in a review queue, and deleting it because it aged out would silently drop an
+      application someone is still waiting on.
+    </p>
+    <p>
+      Removing the bot from a server does not delete that server&rsquo;s configuration. It is kept so
+      that re-inviting restores what you had rather than making you rebuild it. If you want it gone
+      instead of dormant, export first and then ask for deletion.
+    </p>
+
+    <h2>Who can see what</h2>
+    <ul>
+      <li>
+        <strong>Applicants</strong> see their own submissions, through the DMs the bot sends them.
+      </li>
+      <li>
+        <strong>Reviewers</strong> see the submissions for the forms they have been given access to.
+        Access can be delegated per person without granting Discord Administrator.
+      </li>
+      <li>
+        <strong>Anyone who can see your review channel</strong> sees whatever the review embed
+        shows. A form can be set to omit the answers from that embed entirely &mdash; the reviewer
+        sees the submission statistics in Discord and reads the answers on the dashboard instead.
+        Worth switching on for any form that asks something personal, because a Discord channel
+        keeps its message history indefinitely.
+      </li>
+      <li>
+        <strong>The server owner alone</strong> can run the full data export or a bulk import. This
+        is deliberately stricter than every other permission in the product: some owners want the
+        assurance that a complete dump of everything applicants wrote cannot be triggered by an
+        admin they delegated day-to-day management to.
+      </li>
+    </ul>
+
+    <h2>Taking your data with you</h2>
+    <p>
+      <code>/export</code> in the server produces one JSON
+      file with every form, question, panel, submission, answer, DM template, ticket, giveaway,
+      verification and welcomer config, role menu, anti-raid config, quick response, sticky message
+      and staff delegation for that server. Billing and session data are deliberately excluded:
+      those are an account concern, not portable server configuration.
+    </p>
+    <p>
+      The point of it is that a server which outgrows the shared bot can move to its own
+      self-hosted instance and take everything with it. There is no lock-in step and no export fee.
+    </p>
+
+    <h2>Who else is involved</h2>
+    <div class="table-scroll">
+      <table>
+        <caption>Third parties in the hosted deployment.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Who</th>
+            <th scope="col">What they get</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Discord</th>
+            <td>Everything the bot sends and receives. They are the platform this runs on.</td>
+          </tr>
+          <tr>
+            <th scope="row">Tebex</th>
+            <td>The merchant of record for paid plans. They handle the payment and own sales tax and VAT registration where they sell. Card details go to them, not to us.</td>
+          </tr>
+          <tr>
+            <th scope="row">Google Cloud</th>
+            <td>Where the hosted deployment runs: Cloud Run, Cloud SQL, Memorystore and Secret Manager.</td>
+          </tr>
+          <tr>
+            <th scope="row">Google Fonts</th>
+            <td>Serves the two typefaces used by this website and the dashboard. Your browser requests them directly.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Nothing is sold, and nothing is shared with anyone not in that table.</p>
+
+    <h2>Asking for deletion</h2>
+    <p>
+      Server owners can export everything and request deletion of their server&rsquo;s data. Individual
+      applicants should ask the staff of the server they applied to first &mdash; that server holds
+      the submission, and its staff can act on it directly.
+    </p>
+    <p>
+      There is no support email address published in this repository, and inventing one here would
+      be worse than saying so. Requests go through the
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a> until one exists.
+    </p>
+
+    <h2>If you self-host</h2>
+    <p>
+      A self-hosted instance sends nothing to us &mdash; there is no telemetry, no licence check and
+      no phone-home. Whoever runs that instance is responsible for the data in its database, and
+      this page describes none of it.
+    </p>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="index.html#features">Features</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="/dashboard">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md">Self-hosting</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Setup guide</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Reading</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts">pricing.ts</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/OUTCOMES.md">Custom outcomes</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/APPEALS.md">Ban appeals</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="privacy.html" aria-current="page">Privacy</a></li>
+          <li><a href="terms.html">Terms</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="../brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

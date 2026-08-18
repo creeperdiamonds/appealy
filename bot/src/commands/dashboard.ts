@@ -8,7 +8,14 @@ import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 
 const EPHEMERAL = 64;
-const DASHBOARD_BASE_URL = Deno.env.get("DASHBOARD_BASE_URL") ?? "https://dashboard.appealy.app";
+// Defaulted to a subdomain that nothing serves. The console lives at
+// /dashboard on the same origin as the marketing site — that is what the OAuth
+// callback redirects to and what nginx routes — so a link to
+// dashboard.appealy.app sent people somewhere that does not exist. One front
+// door; DASHBOARD_BASE_URL overrides it for a deployment that really does split
+// them across hosts.
+const DASHBOARD_BASE_URL =
+  Deno.env.get("DASHBOARD_BASE_URL") ?? "http://localhost:5173/dashboard";
 
 export const definition: CreateApplicationCommand = {
   name: "dashboard",

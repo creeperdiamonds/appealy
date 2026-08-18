@@ -274,6 +274,9 @@ export interface RateLimitCaps {
 }
 
 export interface GuildSummary {
+  /** Ready-to-use CDN URL, or null. The API sends this alongside the raw
+   *  `icon` hash because building it needs the guild id too. */
+  iconUrl: string | null;
   /** Whether the bot is actually in this server. Discord tells us which
    *  servers you can manage; it says nothing about where Appealy is. */
   installed: boolean;

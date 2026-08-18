@@ -1,0 +1,745 @@
+/* site/site.css
+ *
+ * Shared styles for the public marketing pages.
+ *
+ * Tokens are copied verbatim from web/src/index.css rather than re-picked, so
+ * the page someone reads before signing up and the console they land in
+ * afterwards are visibly the same product. If a token changes there, change it
+ * here — there is no build step to keep them in sync, and a marketing site that
+ * no longer matches the app reads as an old page nobody maintains.
+ *
+ * Mobile first. Every layout rule below starts single-column and widens at a
+ * breakpoint, because a Discord bot's invite link is very often opened on a
+ * phone, from inside Discord's own in-app browser.
+ */
+
+:root {
+  /* Ground — from web/src/index.css. */
+  --ink: #0e1420;
+  --surface: #161d2c;
+  --raised: #1e2738;
+  --line: #2a3547;
+  --line-soft: #212b3c;
+
+  --text: #e8ecf3;
+  --text-dim: #a3b0c4;
+  --text-muted: #7987a0;
+
+  --accent: #5865f2;
+  --accent-soft: #5865f229;
+  --accent-line: #5865f259;
+
+  /* Signal. Same three steps as the console, used here only where the page is
+   * actually reporting a state: free vs paid, included vs capped. */
+  --ok: #3dd9a4;
+  --watch: #e8a33d;
+  /* Carried over for parity with the console even though nothing on a
+   * marketing page should ever be in the "act now" state. If a future page
+   * needs to mark something as failed, this is the colour it uses. */
+  --act: #e5484d;
+
+  /* Derived, and the only addition to the console palette.
+   *
+   * --accent on --ink measures 4.09:1, under WCAG AA for body text. It is fine
+   * as a button fill (white on it clears 4.5:1) and fine as a focus ring
+   * (3:1 is the bar for non-text), but not as the colour of a link inside a
+   * paragraph. This is the same hue lightened until it clears 8:1, used for
+   * exactly that and nothing else. */
+  --accent-text: #98a3ff;
+
+  --display: "Space Grotesk", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+
+  --wrap: 1120px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 7vw, 3.25rem);
+}
+h2 {
+  font-size: clamp(1.4rem, 4vw, 2rem);
+}
+h3 {
+  font-size: 1.0625rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+p:last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+a:hover {
+  color: var(--text);
+}
+
+/* Never removed, only restyled. Every page here has to work with a keyboard
+ * alone; there is no pointer-only control anywhere on this site. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+code {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875em;
+  background: var(--raised);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 0.0625rem 0.3125rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Skip link. First thing in the tab order on every page.
+ * ------------------------------------------------------------------ */
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 0 0 var(--r-sm) 0;
+  text-decoration: none;
+}
+.skip:focus {
+  left: 0;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+}
+
+.lede {
+  font-size: clamp(1.0625rem, 2.4vw, 1.3125rem);
+  line-height: 1.5;
+  color: var(--text-dim);
+  max-width: 62ch;
+}
+
+.dim {
+  color: var(--text-dim);
+}
+.muted {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Header. No hamburger and no JS — the nav is four links and it wraps.
+ * ------------------------------------------------------------------ */
+.site-header {
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--ink);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.site-header .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+}
+.site-header .home {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+.site-header .home img {
+  width: 122px;
+}
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 1.25rem;
+  margin-left: auto;
+}
+.site-nav a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+.site-nav a:hover,
+.site-nav a[aria-current="page"] {
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ *
+ * Buttons
+ * ------------------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.btn:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: #4a56d9;
+  border-color: #4a56d9;
+  color: #fff;
+}
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Sections
+ * ------------------------------------------------------------------ */
+/* Scoped to direct children of <main>. The footer also uses <section> for its
+ * link groups, and an unscoped selector gave each of those 3.5rem of padding
+ * and a rule above it. */
+main > section {
+  padding: 3.5rem 0;
+  border-top: 1px solid var(--line-soft);
+}
+main > section:first-child {
+  border-top: 0;
+}
+
+.section-head {
+  max-width: 62ch;
+  margin-bottom: 2rem;
+}
+.section-head h2 {
+  margin-bottom: 0.625rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Hero
+ * ------------------------------------------------------------------ */
+.hero {
+  padding: 3rem 0 3.5rem;
+}
+.hero h1 {
+  max-width: 20ch;
+  margin-bottom: 1.25rem;
+}
+.hero .lede {
+  max-width: 58ch;
+}
+
+/* The door line. Marked up as a blockquote because it quotes someone else's
+ * ban message, and the whole argument is that this product is the answer to
+ * that sentence. */
+.door {
+  margin: 2.5rem 0 0;
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+  border-left: 2px solid var(--accent);
+  background: var(--surface);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  max-width: 62ch;
+}
+.door p {
+  font-family: var(--display);
+  font-size: clamp(1.0625rem, 2.6vw, 1.25rem);
+  line-height: 1.4;
+}
+.door footer {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  margin-top: 0.625rem;
+}
+
+.hero-figure {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Card grids
+ * ------------------------------------------------------------------ */
+.cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  padding: 1.25rem;
+}
+.card h3 {
+  margin-bottom: 0.5rem;
+}
+.card p {
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+.card p + p {
+  margin-top: 0.625rem;
+}
+
+/* Feature group: a heading, then a plain list of what is in it. Deliberately
+ * a list rather than prose — someone scanning for "does it do tickets" should
+ * find the word, not a paragraph about it. */
+.group ul {
+  margin: 0;
+  padding-left: 1.125rem;
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+}
+.group li {
+  margin-bottom: 0.375rem;
+}
+.group li:last-child {
+  margin-bottom: 0;
+}
+.group li strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ *
+ * Steps
+ * ------------------------------------------------------------------ */
+.steps {
+  counter-reset: step;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+}
+.steps li {
+  counter-increment: step;
+  padding-left: 3rem;
+  position: relative;
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+.steps h3 {
+  margin-bottom: 0.25rem;
+}
+.steps p {
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Tables. Every wide table on this site scrolls inside its own box, so the
+ * page body never scrolls sideways on a phone.
+ * ------------------------------------------------------------------ */
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  min-width: 34rem;
+}
+caption {
+  text-align: left;
+  padding: 1rem 1rem 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+thead th {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+tbody th {
+  font-weight: 500;
+  color: var(--text);
+}
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+td.num,
+th.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Price cards
+ * ------------------------------------------------------------------ */
+.price {
+  display: flex;
+  flex-direction: column;
+}
+.price .amount {
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  margin: 0.75rem 0 0.25rem;
+}
+.price .amount .unit {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.price .per {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  margin: 0 0 1rem;
+}
+.price ul {
+  margin: 0;
+  padding-left: 1.125rem;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+}
+.price li {
+  margin-bottom: 0.3125rem;
+}
+.price .badge {
+  align-self: flex-start;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 0.6875rem;
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.badge.is-ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+}
+.badge.is-watch {
+  color: var(--watch);
+  border-color: color-mix(in srgb, var(--watch) 35%, transparent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Callout — a bordered aside for the things that need reading rather than
+ * skimming: annual-only billing, and the no-unlimited rule.
+ * ------------------------------------------------------------------ */
+.callout {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--watch);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--surface);
+  padding: 1.125rem 1.25rem;
+  margin: 1.75rem 0;
+  font-size: 0.9375rem;
+  color: var(--text-dim);
+  max-width: 68ch;
+}
+.callout strong {
+  color: var(--text);
+}
+.callout.is-accent {
+  border-left-color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Prose pages (privacy, terms)
+ * ------------------------------------------------------------------ */
+.prose {
+  max-width: 70ch;
+  padding: 3rem 0 4rem;
+}
+/* The pricing page carries a five-column table. 70ch would force it to scroll
+ * on a desktop, where there is plenty of room — so that page widens, and the
+ * running text inside it is held back to a readable measure on its own. */
+.prose.wide {
+  max-width: 62rem;
+}
+.prose.wide > p,
+.prose.wide > ul,
+.prose.wide > ol,
+.prose.wide > .callout {
+  max-width: 70ch;
+}
+
+.prose h1 {
+  font-size: clamp(1.875rem, 5vw, 2.5rem);
+  margin-bottom: 0.75rem;
+}
+.prose h2 {
+  font-size: 1.25rem;
+  margin: 2.5rem 0 0.75rem;
+}
+.prose h3 {
+  margin: 1.75rem 0 0.5rem;
+}
+.prose p,
+.prose li {
+  color: var(--text-dim);
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.25rem;
+  margin: 0 0 1rem;
+}
+.prose li {
+  margin-bottom: 0.5rem;
+}
+.prose .updated {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+.prose .table-scroll {
+  margin: 1.5rem 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Footer
+ * ------------------------------------------------------------------ */
+.site-footer {
+  border-top: 1px solid var(--line-soft);
+  padding: 2.5rem 0 3rem;
+  font-size: 0.9375rem;
+}
+.footer-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;
+}
+.footer-grid h2 {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+.footer-grid ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.footer-grid li {
+  margin-bottom: 0.4375rem;
+}
+.footer-grid a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+.footer-grid a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.colophon {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-soft);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+.colophon img {
+  width: 24px;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Breakpoints.
+ *
+ * 360px  — the narrowest target. Nothing has a fixed width below this; the
+ *          only elements that could overflow are the tables, and those are
+ *          wrapped in .table-scroll.
+ * 640px  — two columns fit without either dropping below ~40 characters.
+ * 900px  — three columns, and the hero gains the mark beside it.
+ * 1120px — .wrap stops growing. Nothing else changes above this width.
+ * ------------------------------------------------------------------ */
+@media (min-width: 640px) {
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .footer-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .btn {
+    padding: 0.8125rem 1.5rem;
+  }
+}
+
+@media (min-width: 900px) {
+  section {
+    padding: 4.5rem 0;
+  }
+  .hero {
+    padding: 4.5rem 0 5rem;
+  }
+  /* The grid lives on .wrap, not on the section, so the max-width and the
+   * side padding that every other section gets still apply here. */
+  .hero .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 3rem;
+    align-items: center;
+  }
+  .hero-body {
+    min-width: 0;
+  }
+  /* Decorative. The mark already appears in the header with a real alt, so
+   * repeating it here would announce the product name twice to a screen
+   * reader for no added meaning — hence alt="" on the image itself. */
+  .hero-figure {
+    display: block;
+    margin: 0;
+    justify-self: center;
+  }
+  .hero-figure img {
+    width: min(260px, 100%);
+    opacity: 0.9;
+  }
+  .cards.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .cards.cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .footer-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

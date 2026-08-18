@@ -101,6 +101,42 @@ const INVITE_PERMISSION_BITS = INVITE_PERMISSIONS.reduce((acc, [, bit]) => acc |
  * to pick from a list they just came from — and disable_guild_select stops them
  * landing on the wrong one.
  */
+/**
+ * A usable URL for a guild icon, or null.
+ *
+ * Discord sends an icon HASH, not a URL, and every consumer of this endpoint
+ * was reading a field called iconUrl that nothing has ever produced — so every
+ * guild icon in the console resolved to undefined and rendered as a broken
+ * image. Built here rather than in the browser because the CDN path needs the
+ * guild id as well as the hash, and this is the only place that reliably has
+ * both.
+ *
+ * Animated icons are prefixed a_ and must be requested as .gif; asking for
+ * .png returns a still frame, which is worse than the thing the server chose.
+ */
+function guildIconUrl(guildId: string, hash: string | null | undefined): string | null {
+  if (!hash) return null;
+  const ext = hash.startsWith("a_") ? "gif" : "png";
+  return `https://cdn.discordapp.com/icons/${guildId}/${hash}.${ext}?size=64`;
+}
+
+/**
+ * The invite link with no server preselected, for the marketing site.
+ *
+ * Exists as a redirect rather than a URL printed into the HTML because the
+ * site is static and has no way to learn DISCORD_CLIENT_ID. The alternative
+ * was a placeholder substituted at deploy — a build step for a folder of HTML,
+ * and one more thing to get wrong per environment. A 302 costs nothing and is
+ * always right for the deployment serving it.
+ */
+export function genericInviteUrl(): string {
+  const url = new URL("https://discord.com/oauth2/authorize");
+  url.searchParams.set("client_id", env.DISCORD_CLIENT_ID);
+  url.searchParams.set("scope", "bot applications.commands");
+  url.searchParams.set("permissions", INVITE_PERMISSION_BITS.toString());
+  return url.toString();
+}
+
 function inviteUrlFor(guildId: string): string {
   const url = new URL("https://discord.com/oauth2/authorize");
   url.searchParams.set("client_id", env.DISCORD_CLIENT_ID);
@@ -332,6 +368,7 @@ authRouter.get("/me/guilds", requireSession, async (req, res) => {
         id: g.id,
         name: g.name,
         icon: g.icon,
+        iconUrl: guildIconUrl(g.id, g.icon),
         access: g.owner ? "owner" : "admin",
         // Filled in below. Assumed absent until a row says otherwise, because
         // claiming the bot is present when it is not is the failure this is
@@ -359,6 +396,7 @@ authRouter.get("/me/guilds", requireSession, async (req, res) => {
           id,
           name: row.name,
           icon: row.iconHash,
+          iconUrl: guildIconUrl(id, row.iconHash),
           access: "manager",
           installed: row.botPresent,
           inviteUrl: inviteUrlFor(id),

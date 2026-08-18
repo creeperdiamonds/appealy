@@ -29,6 +29,7 @@ import { verificationRouter } from "./routes/verification.ts";
 import { welcomerRouter } from "./routes/welcomer.ts";
 import { billingRouter } from "./routes/billing.ts";
 import { tebexWebhookRouter } from "./routes/tebexWebhook.ts";
+import { genericInviteUrl } from "./routes/auth.ts";
 import { roleMenusRouter } from "./routes/roleMenus.ts";
 import { antiRaidRouter } from "./routes/antiRaid.ts";
 import { quickResponsesRouter } from "./routes/quickResponses.ts";
@@ -125,6 +126,11 @@ export function createApp() {
   // Under /api rather than /config so the dev proxy and nginx already forward
   // it; a third prefix would have to be added in two places and remembered in
   // a third.
+  // Where "Add to Discord" on the marketing site points. See genericInviteUrl.
+  app.get("/api/invite", (_req, res) => {
+    res.redirect(302, genericInviteUrl());
+  });
+
   app.get("/api/config", (_req, res) => {
     res.json({
       mode: deployment.mode,

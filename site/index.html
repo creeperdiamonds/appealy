@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/index.html — the public landing page.
+
+  Static HTML, no framework, no build step, for the same reason status/ is:
+  this page must work when the app does not. A visitor who has never signed in
+  gets the console shell, which 401s and bounces them to Discord OAuth, so
+  until this file existed there was no way to find out what the product was
+  without logging into it first.
+
+  There is no JavaScript on this page. Nothing here needs it, and a marketing
+  page that renders blank while a bundle downloads is a marketing page that
+  loses the visitor.
+
+  THE ONE VALUE THAT MUST BE SUBSTITUTED BEFORE DEPLOY:
+  "Add to Discord" points at /api/invite, a redirect the API serves. The site
+  is static and cannot know DISCORD_CLIENT_ID; the API can, so the link is
+  always correct for whichever deployment is serving it.
+  from .env, which is not in the repository and cannot be. See site/README.md.
+-->
+
+<title>Appealy — applications, ban appeals and tickets for Discord</title>
+<meta name="description" content="Open-source Discord bot for applications, ban appeals, tickets, giveaways, polls, verification and anti-raid, with a web dashboard. Self-host it free, or pay for throughput. Every feature at every tier.">
+<link rel="canonical" href="https://appealy.gg/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.gg/">
+<meta property="og:title" content="Appealy — applications, ban appeals and tickets for Discord">
+<meta property="og:description" content="Open-source Discord bot for applications, ban appeals, tickets, giveaways, polls, verification and anti-raid, with a web dashboard. Self-host it free, or pay for throughput. Every feature at every tier.">
+<meta property="og:image" content="https://appealy.gg/brand/icon.svg">
+<meta property="og:image:alt" content="The Appealy mark: an open door.">
+<!-- summary, not summary_large_image: the only mark that exists is square.
+     A wide card would letterbox it into a field of empty blurple. -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Appealy — applications, ban appeals and tickets for Discord">
+<meta name="twitter:description" content="Open-source Discord bot for applications, ban appeals, tickets, giveaways, polls and anti-raid. Self-host it free. Every feature at every tier.">
+<meta name="twitter:image" content="https://appealy.gg/brand/icon.svg">
+
+<link rel="icon" href="../brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Appealy",
+  "url": "https://appealy.gg/",
+  "applicationCategory": "CommunicationApplication",
+  "applicationSubCategory": "Discord bot",
+  "operatingSystem": "Discord, web browser",
+  "description": "Open-source Discord bot for applications, ban appeals, tickets, giveaways, polls, verification, welcomer, role menus and anti-raid, with a web dashboard. Self-hostable for free; paid tiers raise throughput caps only.",
+  "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+  "isAccessibleForFree": true,
+  "codeRepository": "https://github.com/creeperdiamonds/appealy",
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Free",
+      "price": "0",
+      "priceCurrency": "USD",
+      "url": "https://appealy.gg/pricing.html"
+    },
+    {
+      "@type": "Offer",
+      "name": "Throughput tier 1",
+      "price": "60.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.gg/pricing.html"
+    },
+    {
+      "@type": "Offer",
+      "name": "Throughput tier 2",
+      "price": "180.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.gg/pricing.html"
+    },
+    {
+      "@type": "Offer",
+      "name": "Dedicated hosted instance",
+      "price": "10.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.gg/pricing.html"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="index.html" aria-current="page">
+      <img src="../brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="#self-hosting">Self-hosting</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-body">
+        <p class="eyebrow">Open source · AGPL-3.0</p>
+        <h1>Applications, ban appeals and tickets for your Discord server.</h1>
+        <p class="lede">
+          Members fill in a form from a panel button or <code>/apply</code>. Staff review each
+          submission in a queue and pick an outcome. The role grant, the DM and the unban all
+          happen on that one click.
+        </p>
+
+        <div class="btn-row">
+          <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+          <a class="btn" href="/dashboard">Open dashboard</a>
+        </div>
+
+        <blockquote class="door">
+          <p>
+            Appy&rsquo;s ban message says &ldquo;this decision is final and cannot be appealed.&rdquo;
+            The mark above is an open door, because that is the opposite of that sentence in one shape.
+          </p>
+          <footer>The reasoning is written down in <code>brand/README.md</code>, along with the three concepts it beat.</footer>
+        </blockquote>
+      </div>
+
+      <figure class="hero-figure">
+        <img src="../brand/icon.svg" alt="" width="512" height="512">
+      </figure>
+    </div>
+  </section>
+
+  <section id="why">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">What is different here</p>
+        <h2>Five things most Discord bots in this category do not do.</h2>
+        <p class="dim">
+          These lead because they are the honest differences, not because they test well. Every one
+          of them is checkable against the repository.
+        </p>
+      </div>
+
+      <ul class="cards cols-3">
+        <li class="card">
+          <h3>Fully open source</h3>
+          <p>
+            The gateway bot, the API, the dashboard, the Terraform, and the pricing calculator that
+            decides what you are charged. AGPL-3.0. You can read the code that enforces your caps.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Self-host it for free</h3>
+          <p>
+            No licence key and no feature gate. <code>.env.example</code> ships
+            <code>DEPLOYMENT_MODE=self</code>: billing is off, the payment credentials are never
+            read, and caps come from your own <code>CAP_*</code> values on your own hardware.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Every feature at every tier</h3>
+          <p>
+            Paid plans raise eight throughput caps. That is the entire difference. Dropdown panels,
+            custom outcomes, manager delegation, ban appeals, transcripts &mdash; all of it is on the
+            free tier too.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Complete export, no lock-in</h3>
+          <p>
+            <code>/export</code> writes one JSON file containing every form, question, panel,
+            submission, ticket, giveaway, config and delegation for your server. Import it into a
+            self-hosted instance and leave.
+          </p>
+        </li>
+        <li class="card">
+          <h3>No unlimited tier, anywhere</h3>
+          <p>
+            Every cap has a hard ceiling, including the ones you set yourself. An unbounded cap
+            removes the ability to reason about worst-case cost and makes abuse free to attempt, so
+            it does not exist here by design.
+          </p>
+        </li>
+        <li class="card">
+          <h3>No telemetry</h3>
+          <p>
+            Asserted as <code>TELEMETRY_ENABLED = false</code> in
+            <code>shared/config/deployment.ts</code> rather than promised in prose, so it would show
+            up in a diff if it ever changed.
+          </p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">The whole surface</p>
+        <h2>It is not only an application bot.</h2>
+        <p class="dim">
+          Seventeen slash commands, and a dashboard for configuring what they do. Every one of the
+          subsystems below is available on the free tier.
+        </p>
+      </div>
+
+      <ul class="cards cols-3">
+        <li class="card group">
+          <h3>Applications and forms</h3>
+          <ul>
+            <li>Panels with up to 5 form buttons, or a dropdown of up to 25</li>
+            <li><code>/apply</code> runs the same code path as a panel button, so gating cannot drift between them</li>
+            <li>Text and select questions; selects use a two-step flow because a Discord modal holds text inputs only</li>
+            <li>Optional regex validation per question, alongside min and max length</li>
+            <li>Role gating, cooldowns, and per-user submission limits</li>
+            <li>DM applications, for people who cannot see the channel yet</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Staff review</h3>
+          <ul>
+            <li>A review message with the answers, the applicant, and the roles you asked to be pinged</li>
+            <li><strong>Custom outcomes</strong> &mdash; &ldquo;accept as Trainee&rdquo;, &ldquo;accept as Moderator&rdquo; &mdash; each with its own roles, message and log channel</li>
+            <li>A minimum staff level per outcome, and no reviewer may grant a role at or above their own highest</li>
+            <li>Deny reasons, with a deny-path role grant and removal kept separate from the accept path</li>
+            <li>Auto-deny when the applicant leaves the server before review, so the queue does not fill with people who are gone</li>
+            <li>Manager delegation: review and manage access without handing out Administrator</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Ban appeals</h3>
+          <ul>
+            <li>DM a form the moment someone is banned</li>
+            <li>Accepting the appeal can unban them automatically</li>
+            <li>Appeal forms are forced to DM delivery, because a banned member cannot reach a panel or <code>/apply</code></li>
+            <li>The settings page names the three ways to switch this on and still have it do nothing</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Tickets</h3>
+          <ul>
+            <li>Private channel, private thread or public thread &mdash; chosen per ticket type, not once for the server</li>
+            <li>Claim and close buttons, and an optional transcript posted to a channel on close</li>
+            <li>Optional 1&ndash;5 star rating DMed to the opener after the ticket closes</li>
+            <li>Configurable behaviour when the opener leaves: nothing, close, or notify</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Giveaways</h3>
+          <ul>
+            <li>Button entry, not reactions</li>
+            <li>Role gating in the same shape as form gating, plus optional bonus entries per role</li>
+            <li>Scheduled auto-end</li>
+            <li>Reroll that excludes anyone who already won</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Polls</h3>
+          <ul>
+            <li><code>/poll</code> creates and publishes immediately</li>
+            <li>The dashboard schedules publish and close for later</li>
+            <li>Up to 9 options, optional multiselect</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Verification and welcome</h3>
+          <ul>
+            <li>One-button verification, or a retype-the-code challenge</li>
+            <li>An optional unverified role applied on join and stripped on verify, with an optional auto-kick timer for members who never finish</li>
+            <li>Welcomer: join message, join DM, auto-role, and a leave message</li>
+            <li>Role menus for self-assignable roles</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Anti-raid</h3>
+          <ul>
+            <li>Join-velocity detection over a threshold and window you set</li>
+            <li>Alert staff, or restrict joins for as long as the lockdown is active</li>
+            <li><strong>Never retroactive and never a mass-ban.</strong> A false positive on a public invite going viral does more damage than under-reacting to a real raid</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Staff utilities</h3>
+          <ul>
+            <li>Quick responses: saved replies, organised into categories</li>
+            <li>Sticky messages: keep one message at the bottom of a busy channel</li>
+            <li><code>/reset-cooldown</code>, <code>/forms</code>, <code>/botstats</code></li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>Data portability</h3>
+          <ul>
+            <li><code>/export</code> &mdash; the complete JSON dump, owner-only on purpose so a delegated admin cannot trigger it</li>
+            <li><code>/import-appealy</code> &mdash; stand the same configuration up in another server; every channel and role reference is re-keyed and anything that cannot be resolved comes back in a report</li>
+            <li><code>/import-appy</code> &mdash; bring submission history across from Appy</li>
+            <li><code>/export_applications</code> &mdash; CSV of matching submissions, as a Discord attachment</li>
+          </ul>
+        </li>
+      </ul>
+
+      <div class="callout is-accent">
+        <p>
+          <strong>One rule worth stating on its own.</strong> A form that loses its role gating on
+          import is imported switched off. A staff application whose gate referenced roles that mean
+          nothing in the new server would otherwise arrive not as broken but as <em>open</em>, and an
+          open staff application is a worse outcome than a missing one.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Getting running</p>
+        <h2>Three steps.</h2>
+      </div>
+
+      <ol class="steps">
+        <li>
+          <h3>Add the bot</h3>
+          <p>
+            One invite, nine permissions, every one of them load-bearing: roles for outcome grants,
+            channels for tickets, ban and kick for appeal unbans and verification timeouts. An
+            invite missing one produces a feature that silently does nothing.
+          </p>
+        </li>
+        <li>
+          <h3>Build a form, publish a panel</h3>
+          <p>
+            From the dashboard, or from <code>/panel create</code> in the server. Set the questions,
+            the gating, the roles to grant on each outcome, and the channel staff review in.
+          </p>
+        </li>
+        <li>
+          <h3>Review</h3>
+          <p>
+            Submissions arrive in your review channel and in the dashboard queue. Pick an outcome.
+            Roles, DMs, log entries and unbans follow from it.
+          </p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Pricing</p>
+        <h2>You pay for throughput, or for hosting. Never for features.</h2>
+        <p class="dim">
+          Two independent, additive axes. A server can sit on free throughput with a dedicated
+          instance, or on a paid throughput tier on the shared bot, in any combination. There is no
+          bundle discount and none is planned.
+        </p>
+      </div>
+
+      <ul class="cards cols-4">
+        <li class="card price">
+          <span class="badge is-ok">Free</span>
+          <p class="amount">$0</p>
+          <p class="per">forever, not a trial</p>
+          <ul>
+            <li>100 submissions/day</li>
+            <li>50 tickets/day</li>
+            <li>500 giveaway entries/day</li>
+            <li>5 forms, 5 panels</li>
+            <li>30 days of history</li>
+          </ul>
+        </li>
+        <li class="card price">
+          <span class="badge">Tier 1</span>
+          <p class="amount">$60<span class="unit"> /year</span></p>
+          <p class="per">$5.00/month equivalent, billed once</p>
+          <ul>
+            <li>500 submissions/day</li>
+            <li>250 tickets/day</li>
+            <li>2,500 giveaway entries/day</li>
+            <li>50 forms, 50 panels</li>
+            <li>365 days of history</li>
+          </ul>
+        </li>
+        <li class="card price">
+          <span class="badge">Tier 2</span>
+          <p class="amount">$180<span class="unit"> /year</span></p>
+          <p class="per">$15.00/month equivalent, billed once</p>
+          <ul>
+            <li>2,000 submissions/day</li>
+            <li>1,000 tickets/day</li>
+            <li>10,000 giveaway entries/day</li>
+            <li>100 forms, 100 panels</li>
+            <li>730 days of history</li>
+          </ul>
+        </li>
+        <li class="card price">
+          <span class="badge is-watch">Custom</span>
+          <p class="amount">per unit</p>
+          <p class="per">priced live, before checkout</p>
+          <ul>
+            <li>Set each of the eight caps yourself</li>
+            <li>The dashboard re-prices it as you change each number</li>
+            <li>Never a &ldquo;contact us&rdquo; step</li>
+            <li>Every field still has a ceiling</li>
+          </ul>
+        </li>
+      </ul>
+
+      <div class="callout">
+        <p>
+          <strong>Billing is annual only. There is no monthly option, anywhere, by design.</strong>
+          Card processing runs roughly 2.9% + $0.30 per transaction, and that flat 30 cents is
+          brutal at these amounts: a $5/month tier billed monthly loses about 9% of a year&rsquo;s
+          revenue to fees, and the same tier billed as one $60 charge loses about 3%. Monthly
+          figures on this site are computed from the annual price for comparison. They are never a
+          billing cadence you can select.
+        </p>
+      </div>
+
+      <p><a href="pricing.html">Every cap, every ceiling and the custom per-unit rates &rarr;</a></p>
+    </div>
+  </section>
+
+  <section id="self-hosting">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Self-hosting</p>
+        <h2>Run it yourself, for nothing.</h2>
+      </div>
+
+      <div class="cards cols-3">
+        <div class="card">
+          <h3>Nothing is withheld</h3>
+          <p>
+            A self-hosted instance is this same bot with the same features. Billing is off, the
+            payment credentials are never read, and the caps come from your <code>CAP_*</code>
+            values. Raise them &mdash; it is your hardware.
+          </p>
+        </div>
+        <div class="card">
+          <h3>It boots without a merchant account</h3>
+          <p>
+            That used to be the blocker: the payment credentials were unconditionally required, so a
+            clone of an open-source project crashed on startup asking for a merchant account. It
+            does not any more.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Anywhere Docker runs</h3>
+          <p>
+            A VPS, a Raspberry Pi, or a laptop. <code>./setup.sh</code> checks your tools, generates
+            the secrets you should not be typing by hand, walks you through the Discord portal and
+            starts the containers. It is safe to re-run.
+          </p>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <a class="btn" href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md">Self-hosting guide</a>
+        <a class="btn" href="https://github.com/creeperdiamonds/appealy">Source on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Add it to a server.</h2>
+        <p class="dim">
+          The free tier is a set of caps, not a countdown. Nothing expires, and nothing asks for a
+          card before it works.
+        </p>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+        <a class="btn" href="/dashboard">Open dashboard</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="/dashboard">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md">Self-hosting</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Setup guide</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Reading</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts">pricing.ts</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/OUTCOMES.md">Custom outcomes</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/APPEALS.md">Ban appeals</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="privacy.html">Privacy</a></li>
+          <li><a href="terms.html">Terms</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="../brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

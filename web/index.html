@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
     <title>Appealy Console</title>
+    <!-- Relative, not root-absolute: the console is served under /dashboard/,
+         and a "/favicon.svg" here would resolve against the marketing site at
+         the root instead. There was no favicon at all before, so every tab
+         showed the browser's broken-document placeholder. -->
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <meta name="description" content="Appealy console — configure applications, tickets, appeals and moderation for your Discord server." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>

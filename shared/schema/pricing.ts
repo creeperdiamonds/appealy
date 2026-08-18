@@ -134,9 +134,14 @@ const CUSTOM_CAP_UNIT_PRICE_CENTS_PER_YEAR: Record<
   submissionsPerDay: 12, // $0.01/mo equivalent -> $0.12/yr
   ticketsPerDay: 12,
   apiRequestsPerMinute: 60, // $0.05/mo -> $0.60/yr
-  formsPerGuild: 12, // $1/mo -> $12/yr flat, not per-day
-  panelsPerGuild: 12,
-  rolesPerRuleType: 6, // $0.50/mo -> $6/yr
+  // These three were 12, 12 and 6 — cents, against comments written in
+  // dollars, so each charged a hundredth of its documented price. An extra
+  // form billed at $0.12/yr rather than $12, which with a $5 minimum charge
+  // meant 42 extra forms before a charge fired at all. The comments were the
+  // intent; the constants were the typo.
+  formsPerGuild: 1200, // $1/mo -> $12/yr flat, not per-day
+  panelsPerGuild: 1200,
+  rolesPerRuleType: 600, // $0.50/mo -> $6/yr
   historyRetentionDays: 24, // $0.02/mo per extra day -> $0.24/yr
 };
 

@@ -64,5 +64,16 @@ ENV DNS_RESOLVER=127.0.0.11
 
 COPY web/nginx.conf /etc/nginx/templates/default.conf.template
 COPY web/appealy-proxy.conf /etc/nginx/appealy-proxy.conf
-COPY --from=build /app/web/dist /usr/share/nginx/html
+
+# Three things share one document root, and the layout is what the location
+# blocks in nginx.conf assume:
+#
+#   /            the marketing site — static, no build step, and the only part
+#                a logged-out visitor can see
+#   /dashboard/  the console bundle, which is why vite sets base to match
+#   /status/     the shard status page, deliberately independent of both so it
+#                still answers when the app is down
+COPY site /usr/share/nginx/html
+COPY status /usr/share/nginx/html/status
+COPY --from=build /app/web/dist /usr/share/nginx/html/dashboard
 EXPOSE 8080
