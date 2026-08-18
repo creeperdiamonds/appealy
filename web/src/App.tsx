@@ -118,6 +118,38 @@ const NAV_GROUPS: {
 const LAST_GUILD_KEY = "appealy:lastGuild";
 
 /**
+ * The console lives at /dashboard/ and each view is a real path under it.
+ *
+ * It used to route on the URL hash, which meant every screen was
+ * /dashboard#tickets — a fragment is a position within a document, not an
+ * address for one, and it shows: the server never sees it, so it cannot be
+ * logged, linked meaningfully, or served differently. It also stacked oddly
+ * with the base path, giving URLs with both a directory and a fragment doing
+ * routing work.
+ *
+ * Paths need the server to answer /dashboard/anything with the console's
+ * index, which nginx and the dev middleware both now do.
+ */
+const BASE_PATH = "/dashboard/";
+
+function viewFromLocation(): View {
+  const { pathname, hash } = window.location;
+
+  // Anything already bookmarked as /dashboard#tickets still lands correctly.
+  // Cheap to honour, and the alternative is silently dropping someone on the
+  // overview with no idea why.
+  if (hash.length > 1) return hash.slice(1) as View;
+
+  const rest = pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) : "";
+  return ((rest.split("/")[0] || "overview") as View);
+}
+
+/** Overview is the root, so it reads /dashboard/ rather than /dashboard/overview. */
+function pathForView(view: View): string {
+  return view === "overview" ? BASE_PATH : `${BASE_PATH}${view}`;
+}
+
+/**
  * What the server says about itself.
  *
  * The console was written for the hosted platform and assumed it: billing
@@ -181,9 +213,7 @@ export default function App() {
   const [guilds, setGuilds] = useState<GuildSummary[] | null>(null);
   const [guildId, setGuildId] = useState<string | null>(null);
   const [discordReachable, setDiscordReachable] = useState(true);
-  const [view, setView] = useState<View>(
-    (window.location.hash.slice(1) as View) || "overview",
-  );
+  const [view, setView] = useState<View>(viewFromLocation);
   const [fatal, setFatal] = useState<string | null>(null);
 
   useEffect(() => {
@@ -215,8 +245,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    window.location.hash = view;
+    const path = pathForView(view);
+    if (window.location.pathname === path && !window.location.hash) return;
+    // replaceState for the first paint when a legacy #hash was migrated, so
+    // Back does not return to the same screen under its old URL; pushState
+    // afterwards so Back means what it says.
+    const migrating = Boolean(window.location.hash);
+    window.history[migrating ? "replaceState" : "pushState"]({}, "", path);
   }, [view]);
+
+  // The browser's Back and Forward have to move between screens, which the
+  // hash gave for free and pushState does not.
+  useEffect(() => {
+    const onPop = () => setView(viewFromLocation());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   useEffect(() => {
     if (guildId) localStorage.setItem(LAST_GUILD_KEY, guildId);

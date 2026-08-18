@@ -302,7 +302,7 @@ authRouter.get("/discord/callback", async (req, res) => {
       return res.type("html").send(authResultPage(env.FRONTEND_ORIGIN, true));
     }
 
-    res.redirect(`${env.FRONTEND_ORIGIN}/dashboard`);
+    res.redirect(`${env.FRONTEND_ORIGIN}/dashboard/`);
   } catch (err) {
     // Logged server-side as well as returned. Without this the only copy of
     // Discord's actual complaint — which names the reason, e.g. a redirect_uri

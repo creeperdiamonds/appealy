@@ -31,6 +31,20 @@ function marketingSite(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = (req.url ?? "/").split("?")[0];
+
+        // Vite's base is "/dashboard/", so a request for "/dashboard" with no
+        // trailing slash matches nothing and Vite answers with its own "did
+        // you mean /dashboard/?" page. That is the exact URL the OAuth
+        // callback redirects to and the one every link on the marketing site
+        // uses, so the first thing anyone saw after signing in was a dev-server
+        // error. Normalise it here; nginx does the same in production.
+        if (url === "/dashboard") {
+          res.statusCode = 301;
+          res.setHeader("Location", "/dashboard/");
+          res.end();
+          return;
+        }
+
         // Everything the app owns keeps its normal handling.
         if (url.startsWith("/dashboard") || url.startsWith("/api") || url.startsWith("/auth")) {
           return next();
