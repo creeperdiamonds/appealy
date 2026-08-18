@@ -13,7 +13,8 @@
     // emitted dist/ is valid Node ESM.
     //
     // Without them, `npm run build` fails with 149 TS5097s and no image can be
-    // built. Requires TypeScript >= 5.7 (see package.json).
+    // built. Both survived the TypeScript 7 rewrite; the emit still turns the
+    // .ts specifiers into .js.
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
     "strict": true,
@@ -29,7 +30,9 @@
     // drizzle import there fails to resolve. These point it at the copy this
     // package already installed. Runtime is unaffected: the emitted files land
     // under api/dist, where the ordinary upward lookup does find node_modules.
-    "baseUrl": ".",
+    //
+    // No "baseUrl": TypeScript 7 removed it. These paths are relative to this
+    // file, which is what baseUrl "." meant here anyway.
     "paths": {
       "drizzle-orm": ["./node_modules/drizzle-orm"],
       "drizzle-orm/*": ["./node_modules/drizzle-orm/*"]
