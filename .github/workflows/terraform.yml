@@ -21,6 +21,17 @@ name: Terraform (GCP infrastructure)
 # This also fixes the same risk for local runs — state was previously a file
 # on one machine, holding the generated database password in plaintext.
 #
+# IT NEEDS ITS OWN IDENTITY
+#
+# The deploy service account is deliberately least-privilege — run.admin,
+# artifactregistry.writer, iam.serviceAccountUser (terraform/iam.tf). That is
+# the right set for shipping a revision and the wrong set for creating a
+# database, so Terraform cannot run as it and should not be given the rights
+# to. Point TF_WORKLOAD_IDENTITY_PROVIDER / TF_SERVICE_ACCOUNT at an identity
+# that can administer the project; the workflow falls back to the deploy
+# credentials only so a first run fails at a legible place rather than at
+# `auth`.
+#
 # PLAN IS THE DEFAULT, AND IT COSTS NOTHING
 #
 # `plan` reads and reports. `apply` creates billable resources — Cloud SQL
@@ -71,8 +82,8 @@ jobs:
       - name: Google Auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          workload_identity_provider: '${{ secrets.TF_WORKLOAD_IDENTITY_PROVIDER || secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.TF_SERVICE_ACCOUNT || secrets.GCP_SERVICE_ACCOUNT }}'
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
