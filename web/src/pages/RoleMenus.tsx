@@ -30,6 +30,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
+import { ChannelPicker, useGuildChannels } from "../components/ChannelPicker";
 
 /** Discord's hard cap on select-menu options. Not a policy choice. */
 const MAX_OPTIONS = 25;
@@ -69,11 +70,6 @@ interface Draft {
   description: string;
   selectionMode: SelectionMode;
   options: DraftOption[];
-}
-
-interface GuildChannel {
-  id: string;
-  name: string;
 }
 
 interface GuildRole {
@@ -121,9 +117,9 @@ const hex = (color: number) =>
 
 export default function RoleMenus({ guildId }: { guildId: string }) {
   const [menus, setMenus] = useState<MenuDTO[] | null>(null);
-  const [channels, setChannels] = useState<GuildChannel[] | null>(null);
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
   const [roles, setRoles] = useState<GuildRole[] | null>(null);
-  const [resourcesFailed, setResourcesFailed] = useState(false);
+  const [rolesFailed, setRolesFailed] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -144,17 +140,13 @@ export default function RoleMenus({ guildId }: { guildId: string }) {
 
   // Pickers fail independently of the menus themselves: the bot being down
   // shouldn't turn this page into an error screen when every menu already
-  // saved is still readable and editable by ID.
+  // saved is still readable and editable by ID. The channel list has its own
+  // failure flag inside useGuildChannels; this one covers the roles.
   useEffect(() => {
-    Promise.all([
-      http.get<GuildChannel[]>(`/api/guilds/${guildId}/resources/channels`),
-      http.get<GuildRole[]>(`/api/guilds/${guildId}/resources/roles`),
-    ])
-      .then(([c, r]) => {
-        setChannels(c);
-        setRoles(r);
-      })
-      .catch(() => setResourcesFailed(true));
+    http
+      .get<GuildRole[]>(`/api/guilds/${guildId}/resources/roles`)
+      .then(setRoles)
+      .catch(() => setRolesFailed(true));
   }, [guildId]);
 
   if (error && !menus) return <Banner level="act" title="Couldn't load">{error}</Banner>;
@@ -288,7 +280,7 @@ export default function RoleMenus({ guildId }: { guildId: string }) {
         </p>
       </header>
 
-      {resourcesFailed && (
+      {(channelsFailed || rolesFailed) && (
         <Banner level="watch" title="Can't list channels and roles">
           The bot didn't answer, so the pickers below are ID fields. Everything still saves —
           and publishing won't work until the bot is back, because posting the message needs
@@ -312,11 +304,11 @@ export default function RoleMenus({ guildId }: { guildId: string }) {
           title={draft.id ? "Editing menu" : "New menu"}
           eyebrow={`${draft.options.length} / ${MAX_OPTIONS} options`}
         >
-          <ChannelField
+          <ChannelPicker
             label="Channel"
             value={draft.channelId}
             channels={channels}
-            failed={resourcesFailed}
+            failed={channelsFailed}
             onChange={(channelId) => setDraft({ ...draft, channelId })}
           />
 
@@ -376,7 +368,7 @@ export default function RoleMenus({ guildId }: { guildId: string }) {
                 label="Role"
                 value={o.roleId}
                 roles={roles}
-                failed={resourcesFailed}
+                failed={rolesFailed}
                 onChange={(roleId) => patchOption(draft, setDraft, i, { roleId })}
               />
 
@@ -651,55 +643,6 @@ function move<T>(list: T[], index: number, delta: number): T[] {
   const [item] = copy.splice(index, 1);
   copy.splice(target, 0, item);
   return copy;
-}
-
-/** Same fallback rule as RolePicker: when the bot can't be reached, degrade
- *  to a raw ID rather than blocking the edit entirely. */
-function ChannelField({
-  label,
-  value,
-  channels,
-  failed,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  channels: GuildChannel[] | null;
-  failed: boolean;
-  onChange: (id: string) => void;
-}) {
-  if (failed) {
-    return (
-      <label className="field">
-        <span className="eyebrow">{label}</span>
-        <input
-          value={value}
-          placeholder="Channel ID"
-          onChange={(e) => onChange(e.target.value.trim())}
-        />
-      </label>
-    );
-  }
-  const missing = value !== "" && channels !== null && !channels.some((c) => c.id === value);
-  return (
-    <label className="field">
-      <span className="eyebrow">{label}</span>
-      <select value={value} disabled={channels === null} onChange={(e) => onChange(e.target.value)}>
-        <option value="">— pick a channel —</option>
-        {missing && <option value={value}>Unknown channel ({value})</option>}
-        {(channels ?? []).map((c) => (
-          <option key={c.id} value={c.id}>
-            #{c.name}
-          </option>
-        ))}
-      </select>
-      {missing && (
-        <span className="dim">
-          I can't see this channel any more. Publishing will fail until you pick another.
-        </span>
-      )}
-    </label>
-  );
 }
 
 function RoleField({

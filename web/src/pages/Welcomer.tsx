@@ -25,6 +25,7 @@ import { useEffect, useState, useCallback } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Pill } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
+import { OptionalChannelPicker, useGuildChannels } from "../components/ChannelPicker";
 
 interface WelcomerDTO {
   guildId: string;
@@ -43,13 +44,6 @@ interface WelcomerDTO {
 
 /** The PUT body. guildId comes from the path, never the body. */
 type WelcomerBody = Omit<WelcomerDTO, "guildId">;
-
-interface GuildChannel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
-}
 
 const DEFAULT_COLOR = 0x5865f2;
 
@@ -96,82 +90,11 @@ function apiMessage(e: unknown, fallback: string): string {
 
 const hexOf = (color: number) => `#${(color & 0xffffff).toString(16).padStart(6, "0")}`;
 
-/**
- * Channel select, sharing one fetch across the places that need it.
- *
- * Falls back to a raw ID field when the bot can't be reached, for the reason
- * RolePicker does: a degraded editor beats a blocked one, and the bot being
- * down shouldn't cost someone the rest of their edit.
- */
-function ChannelField({
-  label,
-  hint,
-  channels,
-  failed,
-  value,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  channels: GuildChannel[] | null;
-  failed: boolean;
-  value: string | null;
-  onChange: (id: string | null) => void;
-}) {
-  if (failed) {
-    return (
-      <label className="field">
-        <span className="eyebrow">{label}</span>
-        <input
-          value={value ?? ""}
-          placeholder="Channel ID"
-          onChange={(e) => onChange(e.target.value.trim() || null)}
-        />
-        <span className="dim">
-          Couldn't reach the bot to list channels, so this is an ID for now. The picker comes
-          back on its own once the bot is up.
-        </span>
-      </label>
-    );
-  }
-
-  // A channel that was deleted, or that the bot lost sight of, is still in the
-  // database. Keeping it visible as an option rather than letting the select
-  // snap to "none" is the only thing that explains why posts stopped.
-  const missing = value !== null && channels !== null && !channels.some((c) => c.id === value);
-
-  return (
-    <label className="field">
-      <span className="eyebrow">{label}</span>
-      <select
-        value={value ?? ""}
-        disabled={channels === null}
-        onChange={(e) => onChange(e.target.value || null)}
-      >
-        <option value="">— none —</option>
-        {missing && <option value={value}>Unknown channel ({value})</option>}
-        {(channels ?? []).map((c) => (
-          <option key={c.id} value={c.id}>
-            #{c.name}
-          </option>
-        ))}
-      </select>
-      {channels === null && <span className="dim">Loading channels…</span>}
-      {missing && (
-        <span className="dim">
-          I can't see this channel any more — it was deleted, or I lost access to it. Nothing
-          posts there.
-        </span>
-      )}
-      {hint && <span className="dim">{hint}</span>}
-    </label>
-  );
-}
-
 export default function Welcomer({ guildId }: { guildId: string }) {
   const [config, setConfig] = useState<WelcomerBody | null>(null);
-  const [channels, setChannels] = useState<GuildChannel[] | null>(null);
-  const [channelsFailed, setChannelsFailed] = useState(false);
+  // Separate request, separate failure: the picker being unavailable must not
+  // stop the settings themselves from loading. One fetch for both fields.
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -190,15 +113,6 @@ export default function Welcomer({ guildId }: { guildId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  // Separate request, separate failure: the picker being unavailable must not
-  // stop the settings themselves from loading.
-  useEffect(() => {
-    http
-      .get<GuildChannel[]>(`/api/guilds/${guildId}/resources/channels`)
-      .then(setChannels)
-      .catch(() => setChannelsFailed(true));
-  }, [guildId]);
 
   if (error && !config) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!config) return <Loading rows={5} />;
@@ -300,7 +214,7 @@ export default function Welcomer({ guildId }: { guildId: string }) {
           </span>
         </label>
 
-        <ChannelField
+        <OptionalChannelPicker
           label="Welcome channel"
           channels={channels}
           failed={channelsFailed}
@@ -422,7 +336,7 @@ export default function Welcomer({ guildId }: { guildId: string }) {
           </span>
         </label>
 
-        <ChannelField
+        <OptionalChannelPicker
           label="Goodbye channel"
           channels={channels}
           failed={channelsFailed}

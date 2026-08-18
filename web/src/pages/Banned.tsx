@@ -16,6 +16,7 @@
 
 import { useState } from "react";
 import { Panel } from "../components/ui";
+import { api } from "../lib/api";
 import type { PublicBan } from "../../../shared/types";
 
 const MIN = 40;
@@ -139,9 +140,18 @@ export default function Banned({ ban, username }: { ban: PublicBan; username?: s
       <div className="banned-inner">
         <div className="banned-head">
           {username && <span className="dim">{username}</span>}
-          <a href="/api/auth/logout" className="dim">
+          {/* A button, not a link. This pointed at /api/auth/logout, which is
+              not a route — logout is POST /auth/logout — so the one control on
+              the one screen a banned user can reach did nothing but 404. They
+              had no way to sign out of an account they had just been told they
+              cannot use. */}
+          <button
+            type="button"
+            className="dim btn btn-sm"
+            onClick={() => api.logout().then(() => window.location.reload())}
+          >
             Sign out
-          </a>
+          </button>
         </div>
 
         <span className="ban-tag">Account banned</span>

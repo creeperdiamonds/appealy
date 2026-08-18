@@ -32,6 +32,11 @@ import type { ReactNode } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
+import {
+  OptionalChannelPicker,
+  useGuildChannels,
+  type GuildChannel,
+} from "../components/ChannelPicker";
 
 /* ------------------------------------------------------------------ *
  * Shapes, derived from api/src/routes/tickets.ts
@@ -65,13 +70,6 @@ interface TicketConfigDTO {
 
 /** An unsaved config has no id yet; everything else is the POST body. */
 type Draft = Omit<TicketConfigDTO, "id" | "guildId"> & { id?: string };
-
-interface GuildChannel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
-}
 
 /** Mirrors the zod defaults in the router, so "create" writes what's shown. */
 const blank = (): Draft => ({
@@ -288,75 +286,6 @@ function problemsFor(c: Draft): Problem[] {
   return out;
 }
 
-/* ------------------------------------------------------------------ *
- * Channel picker
- *
- * Deliberately a near-copy of the one on Verification.tsx rather than a third
- * shared file: it's twenty lines, and both pages own their own request shapes
- * by design (see apiRequest's note in lib/api.ts).
- *
- * A channel id that no longer resolves is kept as an option rather than
- * shown as "none" — it's still what the bot will use, and silently offering
- * to erase it on the next save would be worse than showing it as unknown.
- * ------------------------------------------------------------------ */
-
-function ChannelSelect({
-  label,
-  hint,
-  channels,
-  value,
-  onChange,
-  failed,
-}: {
-  label: string;
-  hint?: ReactNode;
-  channels: GuildChannel[];
-  value: string | null;
-  onChange: (id: string | null) => void;
-  failed: boolean;
-}) {
-  if (failed) {
-    return (
-      <label className="field">
-        <span className="eyebrow">{label}</span>
-        <input
-          value={value ?? ""}
-          placeholder="Channel ID"
-          onChange={(e) => onChange(e.target.value.trim() || null)}
-        />
-        <span className="dim">
-          Couldn't reach the bot to list channels, so this is an ID for now. The picker returns on
-          its own once the bot is up.
-        </span>
-      </label>
-    );
-  }
-
-  const missing = !!value && !channels.some((c) => c.id === value);
-
-  return (
-    <label className="field">
-      <span className="eyebrow">{label}</span>
-      <select value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
-        <option value="">— none —</option>
-        {missing && <option value={value ?? ""}>Unknown ({value})</option>}
-        {channels.map((c) => (
-          <option key={c.id} value={c.id}>
-            #{c.name}
-          </option>
-        ))}
-      </select>
-      {missing && (
-        <span className="dim">
-          That channel isn't in this server's text channels any more. It was deleted, or it's a
-          type tickets can't use.
-        </span>
-      )}
-      {hint && <span className="dim">{hint}</span>}
-    </label>
-  );
-}
-
 function Confirm({
   title,
   confirmLabel,
@@ -398,8 +327,9 @@ function Confirm({
 
 export default function Tickets({ guildId }: { guildId: string }) {
   const [configs, setConfigs] = useState<TicketConfigDTO[] | null>(null);
-  const [channels, setChannels] = useState<GuildChannel[]>([]);
-  const [channelsFailed, setChannelsFailed] = useState(false);
+  // One request for the page: two fields use it, and the list above names the
+  // channel each config posts its panel to.
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -421,13 +351,6 @@ export default function Tickets({ guildId }: { guildId: string }) {
     } catch (e) {
       setLoadError(describe(e, "Couldn't load ticket types."));
       return;
-    }
-
-    try {
-      const ch = await http.get<GuildChannel[]>(`/api/guilds/${guildId}/resources/channels`);
-      setChannels([...ch].sort((a, b) => a.position - b.position));
-    } catch {
-      setChannelsFailed(true);
     }
   }, [guildId]);
 
@@ -516,7 +439,7 @@ export default function Tickets({ guildId }: { guildId: string }) {
 
   const channelName = (id: string | null) => {
     if (!id) return null;
-    const found = channels.find((c) => c.id === id);
+    const found = channels?.find((c) => c.id === id);
     return found ? `#${found.name}` : null;
   };
 
@@ -706,7 +629,7 @@ function Editor({
 }: {
   guildId: string;
   draft: Draft;
-  channels: GuildChannel[];
+  channels: GuildChannel[] | null;
   channelsFailed: boolean;
   saving: boolean;
   onPatch: (next: Partial<Draft>) => void;
@@ -806,12 +729,12 @@ function Editor({
           <span className="dim">{typeInfo.detail}</span>
         </label>
 
-        <ChannelSelect
+        <OptionalChannelPicker
           label="Panel channel"
           channels={channels}
+          failed={channelsFailed}
           value={draft.channelId || null}
           onChange={(id) => onPatch({ channelId: id ?? "" })}
-          failed={channelsFailed}
           hint={
             draft.channelType === "private_channel"
               ? "Where the button is posted. Members need to be able to see this channel to open a ticket at all."
@@ -967,12 +890,12 @@ function Editor({
           </span>
         </label>
 
-        <ChannelSelect
+        <OptionalChannelPicker
           label="Transcript channel"
           channels={channels}
+          failed={channelsFailed}
           value={draft.transcriptChannelId}
           onChange={(id) => onPatch({ transcriptChannelId: id })}
-          failed={channelsFailed}
           hint="Staff-only, ideally. Transcripts include everything the member typed, so this channel inherits the sensitivity of every ticket this type opens."
         />
 

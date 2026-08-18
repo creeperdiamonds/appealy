@@ -27,6 +27,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
+import {
+  ChannelPicker,
+  POSTABLE_CHANNEL_TYPES,
+  useGuildChannels,
+  type GuildChannel,
+} from "../components/ChannelPicker";
 
 // --- Shapes, derived from the zod schemas in api/src/routes/panels.ts ---
 
@@ -74,17 +80,6 @@ interface FormSummary {
   active: boolean;
   questions: unknown[];
 }
-
-interface GuildChannel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
-}
-
-// Text, announcement and forum channels. A panel posted anywhere else is a
-// message Discord refuses to send.
-const POSTABLE_CHANNEL_TYPES = [0, 5, 15];
 
 const BUTTON_LIMIT = 5; // Discord: buttons per action row, and the API's own cap
 const SELECT_OPTION_LIMIT = 25; // Discord: options in a select menu
@@ -195,7 +190,10 @@ export default function Panels({ guildId }: { guildId: string }) {
   // a second, differently-worded button between the intent and the act.
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmPublish, setConfirmPublish] = useState<string | null>(null);
-  const [channels, setChannels] = useState<GuildChannel[] | null>(null);
+  // Held here rather than inside the picker so the list above can name the
+  // channel each panel posts to, and the publish confirmation can say it out
+  // loud. A failure is not fatal — see ChannelPicker's fallback.
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
 
   const load = useCallback(async () => {
     try {
@@ -213,16 +211,6 @@ export default function Panels({ guildId }: { guildId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  // Held here rather than inside the picker so the list above can name the
-  // channel each panel posts to, and the publish confirmation can say it out
-  // loud. A failure is not fatal — see ChannelSelect's fallback.
-  useEffect(() => {
-    http
-      .get<GuildChannel[]>(`/api/guilds/${guildId}/resources/channels`)
-      .then(setChannels)
-      .catch(() => setChannels(null));
-  }, [guildId]);
 
   if (error && !panels) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!panels) return <Loading rows={5} />;
@@ -473,10 +461,10 @@ export default function Panels({ guildId }: { guildId: string }) {
       {draft && (
         <PanelEditor
           key={draft.id ?? "new"}
-          guildId={guildId}
           draft={draft}
           forms={forms}
           channels={channels}
+          channelsFailed={channelsFailed}
           saving={saving}
           saved={saved}
           onPatch={patch}
@@ -493,20 +481,20 @@ export default function Panels({ guildId }: { guildId: string }) {
  * ------------------------------------------------------------------ */
 
 function PanelEditor({
-  guildId,
   draft,
   forms,
   channels,
+  channelsFailed,
   saving,
   saved,
   onPatch,
   onSave,
   onCancel,
 }: {
-  guildId: string;
   draft: Draft;
   forms: FormSummary[];
   channels: GuildChannel[] | null;
+  channelsFailed: boolean;
   saving: boolean;
   saved: boolean;
   onPatch: (next: Partial<Draft>) => void;
@@ -529,9 +517,10 @@ function PanelEditor({
   return (
     <>
       <Panel title={draft.id ? "Edit panel" : "New panel"}>
-        <ChannelSelect
-          guildId={guildId}
+        <ChannelPicker
           channels={channels}
+          failed={channelsFailed}
+          types={POSTABLE_CHANNEL_TYPES}
           label="Channel"
           value={draft.channelId}
           onChange={(id) => onPatch({ channelId: id })}
@@ -890,82 +879,3 @@ function UrlField({
   );
 }
 
-/**
- * Channel picker, fed from the page so the list is fetched once.
- *
- * `channels === null` covers both "still loading" and "the bot is down": the
- * bot's REST session is the only source for this list, and an outage there
- * shouldn't trap someone mid-edit, so the raw-ID fallback appears rather than
- * an empty select. Same bargain RolePicker.tsx makes.
- */
-function ChannelSelect({
-  guildId,
-  channels,
-  label,
-  value,
-  onChange,
-  hint,
-}: {
-  guildId: string;
-  channels: GuildChannel[] | null;
-  label: string;
-  value: string;
-  onChange: (id: string) => void;
-  hint?: string;
-}) {
-  const [waited, setWaited] = useState(false);
-
-  // Distinguishes "loading" from "not coming" without a second request:
-  // after a few seconds an absent list is treated as an outage.
-  useEffect(() => {
-    const t = setTimeout(() => setWaited(true), 4000);
-    return () => clearTimeout(t);
-  }, [guildId]);
-
-  if (!channels && waited) {
-    return (
-      <label className="field">
-        <span className="eyebrow">{label}</span>
-        <input
-          value={value}
-          placeholder="Channel ID"
-          onChange={(e) => onChange(e.target.value.trim())}
-        />
-        <span className="dim">
-          Couldn't reach the bot to list channels, so this is an ID for now. It'll come back on
-          its own once the bot is up.
-        </span>
-      </label>
-    );
-  }
-
-  const postable = (channels ?? [])
-    .filter((c) => POSTABLE_CHANNEL_TYPES.includes(c.type))
-    .sort((a, b) => a.position - b.position);
-
-  // Keeps a deleted or now-invisible channel in the list. Dropping it would
-  // silently reassign the panel to whatever happens to sort first.
-  const orphaned = value !== "" && !postable.some((c) => c.id === value);
-
-  return (
-    <label className="field">
-      <span className="eyebrow">{label}</span>
-      <select value={value} disabled={!channels} onChange={(e) => onChange(e.target.value)}>
-        <option value="">{channels ? "— pick a channel —" : "Loading channels…"}</option>
-        {orphaned && <option value={value}>Unknown channel ({value})</option>}
-        {postable.map((c) => (
-          <option key={c.id} value={c.id}>
-            #{c.name}
-          </option>
-        ))}
-      </select>
-      {orphaned && channels && (
-        <span className="dim">
-          The bot can't see this channel any more — it may have been deleted, or its permissions
-          changed. Posting there will fail.
-        </span>
-      )}
-      {hint && <span className="dim">{hint}</span>}
-    </label>
-  );
-}

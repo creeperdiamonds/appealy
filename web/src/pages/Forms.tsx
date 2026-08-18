@@ -35,6 +35,12 @@ import { useCallback, useEffect, useState } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
+import {
+  ChannelPicker,
+  POSTABLE_CHANNEL_TYPES,
+  useGuildChannels,
+  type GuildChannel,
+} from "../components/ChannelPicker";
 
 // --- Shapes, derived from the zod schemas in api/src/routes/forms.ts ---
 
@@ -94,18 +100,6 @@ interface FormDTO {
 }
 
 type Draft = Omit<FormDTO, "id"> & { id?: string };
-
-interface GuildChannel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
-}
-
-// Discord channel types that can hold a log message: text, announcement,
-// and forum. Voice and category rows would be accepted by the select and
-// rejected by Discord at send time.
-const POSTABLE_CHANNEL_TYPES = [0, 5, 15];
 
 const MODAL_INPUT_LIMIT = 5; // Discord: components per modal
 const MODAL_LABEL_LIMIT = 45; // Discord: characters in a text-input label
@@ -240,6 +234,10 @@ export default function Forms({ guildId }: { guildId: string }) {
   // submissions and its panel buttons with it, so the second click is the one
   // that counts — and it is a different button, not the same one twice.
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // One request for the page rather than one per editor mount: switching
+  // between forms remounts the editor, and the channel list doesn't change
+  // because you clicked a different row.
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
 
   const load = useCallback(async () => {
     try {
@@ -451,6 +449,8 @@ export default function Forms({ guildId }: { guildId: string }) {
           key={draft.id ?? "new"}
           guildId={guildId}
           draft={draft}
+          channels={channels}
+          channelsFailed={channelsFailed}
           saving={saving}
           saved={saved}
           onPatch={patch}
@@ -475,6 +475,8 @@ export default function Forms({ guildId }: { guildId: string }) {
 function FormEditor({
   guildId,
   draft,
+  channels,
+  channelsFailed,
   saving,
   saved,
   onPatch,
@@ -485,6 +487,8 @@ function FormEditor({
 }: {
   guildId: string;
   draft: Draft;
+  channels: GuildChannel[] | null;
+  channelsFailed: boolean;
   saving: boolean;
   saved: boolean;
   onPatch: (next: Partial<Draft>) => void;
@@ -566,8 +570,10 @@ function FormEditor({
           </span>
         </label>
 
-        <ChannelSelect
-          guildId={guildId}
+        <ChannelPicker
+          channels={channels}
+          failed={channelsFailed}
+          types={POSTABLE_CHANNEL_TYPES}
           label="Log channel"
           value={draft.logChannelId}
           onChange={(id) => onPatch({ logChannelId: id })}
@@ -1041,83 +1047,3 @@ function QuestionEditor({
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Channel picker
- *
- * Same bargain RolePicker.tsx makes: the channel list comes from the bot's
- * REST session, so when the bot is down the list is gone. Falling back to a
- * raw ID field keeps the editor usable instead of trapping someone mid-edit
- * behind an outage they can't fix.
- * ------------------------------------------------------------------ */
-
-function ChannelSelect({
-  guildId,
-  label,
-  value,
-  onChange,
-  hint,
-}: {
-  guildId: string;
-  label: string;
-  value: string;
-  onChange: (id: string) => void;
-  hint?: string;
-}) {
-  const [channels, setChannels] = useState<GuildChannel[] | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    http
-      .get<GuildChannel[]>(`/api/guilds/${guildId}/resources/channels`)
-      .then(setChannels)
-      .catch(() => setFailed(true));
-  }, [guildId]);
-
-  if (failed) {
-    return (
-      <label className="field">
-        <span className="eyebrow">{label}</span>
-        <input
-          value={value}
-          placeholder="Channel ID"
-          onChange={(e) => onChange(e.target.value.trim())}
-        />
-        <span className="dim">
-          Couldn't reach the bot to list channels, so this is an ID for now. It'll come back on
-          its own once the bot is up.
-        </span>
-      </label>
-    );
-  }
-
-  const postable = (channels ?? [])
-    .filter((c) => POSTABLE_CHANNEL_TYPES.includes(c.type))
-    .sort((a, b) => a.position - b.position);
-
-  // A channel that was deleted, or one the bot can no longer see, would
-  // otherwise vanish from the select and silently reassign the form to
-  // whatever sits at the top of the list.
-  const orphaned = value && !postable.some((c) => c.id === value);
-
-  return (
-    <label className="field">
-      <span className="eyebrow">{label}</span>
-      <select value={value} disabled={!channels} onChange={(e) => onChange(e.target.value)}>
-        <option value="">{channels ? "— pick a channel —" : "Loading channels…"}</option>
-        {orphaned && <option value={value}>Unknown channel ({value})</option>}
-        {postable.map((c) => (
-          <option key={c.id} value={c.id}>
-            #{c.name}
-          </option>
-        ))}
-      </select>
-      {orphaned && (
-        <span className="dim">
-          The bot can't see this channel any more — it may have been deleted, or its permissions
-          changed. Messages sent there will fail.
-        </span>
-      )}
-      {hint && <span className="dim">{hint}</span>}
-    </label>
-  );
-}

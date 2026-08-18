@@ -27,6 +27,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Pill, formatDuration } from "../components/ui";
+import { OptionalChannelPicker, useGuildChannels } from "../components/ChannelPicker";
 
 /* ------------------------------------------------------------------ *
  * Shapes, derived from api/src/routes/verification.ts
@@ -49,13 +50,6 @@ interface VerificationConfigDTO {
 
 /** PUT body. guildId comes from the path and messageId is the bot's to set. */
 type VerificationDraft = Omit<VerificationConfigDTO, "guildId" | "messageId">;
-
-interface GuildChannel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
-}
 
 interface GuildRole {
   id: string;
@@ -132,13 +126,13 @@ const KICK_PRESETS: { value: number | null; label: string }[] = [
  * RolePicker is a multi-select and these two columns hold one role each, so
  * it doesn't fit here — a chip list that silently keeps only the last chip
  * would be worse than a plain select. It is reused as-is on the Tickets page,
- * where the columns really are arrays.
+ * where the columns really are arrays. The channel field is
+ * OptionalChannelPicker, which makes the same bargain in the shared component.
  *
- * Both pickers keep an id that no longer resolves as a visible option. A role
- * or channel that was deleted in Discord is still in the database and still
- * what the bot will try to use; showing "— none —" instead would be a lie,
- * and picking it up as a real change on the next save would erase a setting
- * nobody touched.
+ * This keeps an id that no longer resolves as a visible option. A role that
+ * was deleted in Discord is still in the database and still what the bot will
+ * try to use; showing "— none —" instead would be a lie, and picking it up as
+ * a real change on the next save would erase a setting nobody touched.
  * ------------------------------------------------------------------ */
 
 function ResourceSelect({
@@ -245,9 +239,9 @@ function Confirm({
 export default function Verification({ guildId }: { guildId: string }) {
   const [config, setConfig] = useState<VerificationDraft | null>(null);
   const [messageId, setMessageId] = useState<string | null>(null);
-  const [channels, setChannels] = useState<GuildChannel[]>([]);
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
   const [roles, setRoles] = useState<GuildRole[]>([]);
-  const [resourcesFailed, setResourcesFailed] = useState(false);
+  const [rolesFailed, setRolesFailed] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -286,14 +280,9 @@ export default function Verification({ guildId }: { guildId: string }) {
     }
 
     try {
-      const [ch, rl] = await Promise.all([
-        http.get<GuildChannel[]>(`/api/guilds/${guildId}/resources/channels`),
-        http.get<GuildRole[]>(`/api/guilds/${guildId}/resources/roles`),
-      ]);
-      setChannels(ch);
-      setRoles(rl);
+      setRoles(await http.get<GuildRole[]>(`/api/guilds/${guildId}/resources/roles`));
     } catch {
-      setResourcesFailed(true);
+      setRolesFailed(true);
     }
   }, [guildId]);
 
@@ -364,7 +353,6 @@ export default function Verification({ guildId }: { guildId: string }) {
   // Roles highest-first, matching Discord's own ordering — position is what
   // decides whether the bot can assign a role at all.
   const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
-  const sortedChannels = [...channels].sort((a, b) => a.position - b.position);
 
   const roleName = (id: string | null) =>
     id ? (sortedRoles.find((r) => r.id === id)?.name ?? null) : null;
@@ -388,8 +376,8 @@ export default function Verification({ guildId }: { guildId: string }) {
     config.kickUnverifiedAfterSeconds !== null && config.kickUnverifiedAfterSeconds < 600;
   // Only meaningful once the pickers actually loaded; otherwise every id looks
   // missing and the page would scream at a guild with a perfect config.
-  const rolesKnown = !resourcesFailed && roles.length > 0;
-  const channelsKnown = !resourcesFailed && channels.length > 0;
+  const rolesKnown = !rolesFailed && roles.length > 0;
+  const channelsKnown = !channelsFailed && (channels?.length ?? 0) > 0;
   const missingVerifiedRole =
     rolesKnown && !!config.verifiedRoleId && !roleName(config.verifiedRoleId);
   const missingUnverifiedRole =
@@ -397,7 +385,7 @@ export default function Verification({ guildId }: { guildId: string }) {
   const missingChannel =
     channelsKnown &&
     !!config.channelId &&
-    !sortedChannels.some((c) => c.id === config.channelId);
+    !(channels ?? []).some((c) => c.id === config.channelId);
 
   const kickLabel =
     config.kickUnverifiedAfterSeconds === null
@@ -598,13 +586,12 @@ export default function Verification({ guildId }: { guildId: string }) {
           </Confirm>
         )}
 
-        <ResourceSelect
+        <OptionalChannelPicker
           label="Panel channel"
+          channels={channels}
+          failed={channelsFailed}
           value={config.channelId}
           onChange={(id) => patch({ channelId: id })}
-          options={sortedChannels.map((c) => ({ id: c.id, name: `#${c.name}` }))}
-          failed={resourcesFailed}
-          placeholder="Channel ID"
           hint="Somewhere an unverified member can see. If the unverified role can't read this channel, verification is unreachable for exactly the people who need it."
         />
 
@@ -643,7 +630,7 @@ export default function Verification({ guildId }: { guildId: string }) {
           value={config.verifiedRoleId}
           onChange={(id) => patch({ verifiedRoleId: id })}
           options={sortedRoles.map((r) => ({ id: r.id, name: r.name }))}
-          failed={resourcesFailed}
+          failed={rolesFailed}
           placeholder="Role ID"
           hint="Granted on passing. This is the whole point of the feature — everything else is scaffolding around it. It must sit below the bot's own highest role or the grant fails silently."
         />
@@ -653,7 +640,7 @@ export default function Verification({ guildId }: { guildId: string }) {
           value={config.unverifiedRoleId}
           onChange={(id) => patch({ unverifiedRoleId: id })}
           options={sortedRoles.map((r) => ({ id: r.id, name: r.name }))}
-          failed={resourcesFailed}
+          failed={rolesFailed}
           placeholder="Role ID"
           hint="Optional. Applied on join and removed on verifying — useful if you gate by denying this role instead of by granting the verified one. It's also what the kick timer hangs off, so a kick delay does nothing without it."
         />

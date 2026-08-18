@@ -39,6 +39,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { api, http, ApiError } from "../lib/api";
 import { RolePicker } from "../components/RolePicker";
+import { OptionalChannelPicker, useGuildChannels } from "../components/ChannelPicker";
 import { Panel, Banner, Loading, Pill, Stat, formatDuration, formatRelative } from "../components/ui";
 
 /* ------------------------------------------------------------------ *
@@ -73,13 +74,6 @@ interface LockdownDTO {
   triggeredAt?: string;
   triggeredByJoinCount?: number;
   expiresAt?: string;
-}
-
-interface GuildChannel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
 }
 
 /** Mirrors the zod defaults in the router, so a guild that has never saved
@@ -278,8 +272,9 @@ function Confirm({
 export default function AntiRaid({ guildId }: { guildId: string }) {
   const [config, setConfig] = useState<AntiRaidDraft | null>(null);
   const [lockdown, setLockdown] = useState<LockdownDTO | null>(null);
-  const [channels, setChannels] = useState<GuildChannel[]>([]);
-  const [channelsFailed, setChannelsFailed] = useState(false);
+  // The channel list failing degrades one picker to an ID field; it is not
+  // allowed to stop the settings loading, so it fetches on its own.
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<string[] | null>(null);
@@ -318,15 +313,13 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
       return;
     }
 
-    // Neither of these is required to edit. Lockdown state failing loses a
-    // panel; the channel list failing degrades one picker to an ID field.
-    const [lk, ch] = await Promise.allSettled([
-      http.get<LockdownDTO>(`/api/guilds/${guildId}/anti-raid/lockdown`),
-      http.get<GuildChannel[]>(`/api/guilds/${guildId}/resources/channels`),
-    ]);
-    setLockdown(lk.status === "fulfilled" ? lk.value : null);
-    if (ch.status === "fulfilled") setChannels(ch.value);
-    else setChannelsFailed(true);
+    // Not required to edit: losing the lockdown state loses a panel, not the
+    // page.
+    try {
+      setLockdown(await http.get<LockdownDTO>(`/api/guilds/${guildId}/anti-raid/lockdown`));
+    } catch {
+      setLockdown(null);
+    }
   }, [guildId]);
 
   useEffect(() => {
@@ -413,10 +406,13 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
     patch({ action: next });
   }
 
-  const sortedChannels = [...channels].sort((a, b) => a.position - b.position);
-  const chosenChannel = sortedChannels.find((c) => c.id === config.alertChannelId) ?? null;
-  const channelsKnown = !channelsFailed && channels.length > 0;
-  const missingChannel = channelsKnown && !!config.alertChannelId && !chosenChannel;
+  // Only meaningful once the picker actually loaded; otherwise every saved id
+  // looks missing and the page would shout at a guild with a perfect config.
+  const channelsKnown = !channelsFailed && (channels?.length ?? 0) > 0;
+  const missingChannel =
+    channelsKnown &&
+    !!config.alertChannelId &&
+    !(channels ?? []).some((c) => c.id === config.alertChannelId);
 
   const thresholdValid =
     /^\d+$/.test(thresholdText) && Number(thresholdText) >= 3 && Number(thresholdText) <= 1000;
@@ -791,45 +787,14 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
       </Panel>
 
       <Panel title="Alerts">
-        {channelsFailed ? (
-          <label className="field">
-            <span className="eyebrow">Alert channel</span>
-            <input
-              type="text"
-              value={config.alertChannelId ?? ""}
-              placeholder="Channel ID"
-              onChange={(e) => patch({ alertChannelId: e.target.value.trim() || null })}
-            />
-            <span className="dim">
-              Couldn't reach the bot to list channels, so this is an ID for now. The picker comes
-              back on its own once the bot is up.
-            </span>
-          </label>
-        ) : (
-          <label className="field">
-            <span className="eyebrow">Alert channel</span>
-            <select
-              value={config.alertChannelId ?? ""}
-              onChange={(e) => patch({ alertChannelId: e.target.value || null })}
-            >
-              <option value="">— none —</option>
-              {missingChannel && (
-                <option value={config.alertChannelId ?? ""}>
-                  Unknown ({config.alertChannelId})
-                </option>
-              )}
-              {sortedChannels.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <span className="dim">
-              Where the raid message goes. Somewhere staff actually watch — this is the only
-              notification the feature sends.
-            </span>
-          </label>
-        )}
+        <OptionalChannelPicker
+          label="Alert channel"
+          channels={channels}
+          failed={channelsFailed}
+          value={config.alertChannelId}
+          onChange={(id) => patch({ alertChannelId: id })}
+          hint="Where the raid message goes. Somewhere staff actually watch — this is the only notification the feature sends."
+        />
 
         <RolePicker
           guildId={guildId}

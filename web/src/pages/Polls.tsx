@@ -35,6 +35,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Pill, Empty, Loading, Banner, formatRelative } from "../components/ui";
+import { ChannelPicker, useGuildChannels } from "../components/ChannelPicker";
 
 type PollStatus = "draft" | "scheduled" | "published" | "closed";
 
@@ -55,13 +56,6 @@ interface Poll {
   status: PollStatus;
   scheduledFor: string | null;
   closesAt: string | null;
-}
-
-interface Channel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
 }
 
 /** Mirrors the zod schema in api/src/routes/polls.ts. MAX_OPTIONS is the
@@ -170,7 +164,9 @@ type Action = "publish" | "delete";
 
 export default function Polls({ guildId }: { guildId: string }) {
   const [rows, setRows] = useState<Poll[] | null>(null);
-  const [channels, setChannels] = useState<Channel[]>([]);
+  // Names for the list below as well as the picker's own options, so it is
+  // one request for the page rather than one per field.
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -180,14 +176,7 @@ export default function Polls({ guildId }: { guildId: string }) {
 
   const load = useCallback(async () => {
     try {
-      // The channel list is a label lookup; losing it shouldn't cost anyone
-      // their view of the polls, so only the polls can fail the load.
-      const [p, c] = await Promise.all([
-        http.get<Poll[]>(`/api/guilds/${guildId}/polls`),
-        http.get<Channel[]>(`/api/guilds/${guildId}/resources/channels`).catch(() => [] as Channel[]),
-      ]);
-      setRows(p);
-      setChannels(c.slice().sort((a, b) => a.position - b.position));
+      setRows(await http.get<Poll[]>(`/api/guilds/${guildId}/polls`));
       setError(null);
     } catch (e) {
       setError(explain(e, "Couldn't load polls."));
@@ -201,7 +190,7 @@ export default function Polls({ guildId }: { guildId: string }) {
   if (error && !rows) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!rows) return <Loading rows={5} />;
 
-  const channelName = (id: string) => channels.find((c) => c.id === id)?.name ?? id;
+  const channelName = (id: string) => channels?.find((c) => c.id === id)?.name ?? id;
   const editable = (p: Poll) => p.status === "draft" || p.status === "scheduled";
 
   async function act(id: string, action: Action) {
@@ -469,32 +458,14 @@ export default function Polls({ guildId }: { guildId: string }) {
             </span>
           </label>
 
-          {channels.length > 0 ? (
-            <label className="field">
-              <span className="eyebrow">Channel</span>
-              <select value={draft.channelId} onChange={(e) => patch({ channelId: e.target.value })}>
-                <option value="">— pick a channel —</option>
-                {channels.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    #{c.name}
-                  </option>
-                ))}
-              </select>
-              <span className="dim">Only text and announcement channels the bot can see are listed.</span>
-            </label>
-          ) : (
-            // Same bargain RolePicker makes elsewhere: a degraded editor
-            // beats a blocked one when the bot is the thing that's down.
-            <label className="field">
-              <span className="eyebrow">Channel</span>
-              <input
-                value={draft.channelId}
-                placeholder="Channel ID"
-                onChange={(e) => patch({ channelId: e.target.value })}
-              />
-              <span className="dim">Couldn't reach the bot to list channels, so this is an ID for now.</span>
-            </label>
-          )}
+          <ChannelPicker
+            label="Channel"
+            channels={channels}
+            failed={channelsFailed}
+            value={draft.channelId}
+            onChange={(channelId) => patch({ channelId })}
+            hint="Only text and announcement channels the bot can see are listed."
+          />
 
           <div className="field">
             <span className="eyebrow">Options</span>

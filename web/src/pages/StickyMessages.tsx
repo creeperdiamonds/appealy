@@ -26,6 +26,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
+import { ChannelPicker, useGuildChannels } from "../components/ChannelPicker";
 
 const MIN_REPOST = 1;
 const MAX_REPOST = 100;
@@ -46,11 +47,6 @@ interface Draft {
   content: string;
   repostAfterMessages: number;
   active: boolean;
-}
-
-interface GuildChannel {
-  id: string;
-  name: string;
 }
 
 const blankDraft = (): Draft => ({
@@ -79,8 +75,9 @@ function apiMessage(e: unknown, fallback: string): string {
 
 export default function StickyMessages({ guildId }: { guildId: string }) {
   const [stickies, setStickies] = useState<StickyDTO[] | null>(null);
-  const [channels, setChannels] = useState<GuildChannel[] | null>(null);
-  const [channelsFailed, setChannelsFailed] = useState(false);
+  // Separate failure from the list itself: the bot being unreachable turns
+  // the picker into an ID field, it doesn't take the page down.
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -98,15 +95,6 @@ export default function StickyMessages({ guildId }: { guildId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  // Separate failure from the list itself: the bot being unreachable turns
-  // the picker into an ID field, it doesn't take the page down.
-  useEffect(() => {
-    http
-      .get<GuildChannel[]>(`/api/guilds/${guildId}/resources/channels`)
-      .then(setChannels)
-      .catch(() => setChannelsFailed(true));
-  }, [guildId]);
 
   if (error && !stickies) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!stickies) return <Loading rows={3} />;
@@ -242,12 +230,13 @@ export default function StickyMessages({ guildId }: { guildId: string }) {
 
       {editing && draft && (
         <Panel title={draft.id ? "Editing sticky" : "New sticky"}>
-          <ChannelField
+          <ChannelPicker
             label="Channel"
             value={draft.channelId}
             channels={channels}
             failed={channelsFailed}
-            taken={stickies.filter((s) => s.id !== draft.id).map((s) => s.channelId)}
+            markedIds={stickies.filter((s) => s.id !== draft.id).map((s) => s.channelId)}
+            markedNote="already has one"
             onChange={(channelId) => setDraft({ ...draft, channelId })}
           />
 
@@ -405,52 +394,3 @@ export default function StickyMessages({ guildId }: { guildId: string }) {
   );
 }
 
-/** Same fallback rule as RolePicker: when the bot can't be reached, degrade
- *  to a raw ID rather than blocking the edit. Channels that already hold a
- *  sticky are marked rather than hidden — hiding one makes the picker look
- *  broken to someone who knows the channel exists. */
-function ChannelField({
-  label,
-  value,
-  channels,
-  failed,
-  taken,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  channels: GuildChannel[] | null;
-  failed: boolean;
-  taken: string[];
-  onChange: (id: string) => void;
-}) {
-  if (failed) {
-    return (
-      <label className="field">
-        <span className="eyebrow">{label}</span>
-        <input
-          value={value}
-          placeholder="Channel ID"
-          onChange={(e) => onChange(e.target.value.trim())}
-        />
-      </label>
-    );
-  }
-  const missing = value !== "" && channels !== null && !channels.some((c) => c.id === value);
-  return (
-    <label className="field">
-      <span className="eyebrow">{label}</span>
-      <select value={value} disabled={channels === null} onChange={(e) => onChange(e.target.value)}>
-        <option value="">— pick a channel —</option>
-        {missing && <option value={value}>Unknown channel ({value})</option>}
-        {(channels ?? []).map((c) => (
-          <option key={c.id} value={c.id}>
-            #{c.name}
-            {taken.includes(c.id) ? " — already has one" : ""}
-          </option>
-        ))}
-      </select>
-      {channels === null && <span className="dim">Loading channels…</span>}
-    </label>
-  );
-}

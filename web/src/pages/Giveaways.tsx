@@ -33,6 +33,7 @@ import { useCallback, useEffect, useState } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Stat, Pill, Empty, Loading, Banner, formatRelative } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
+import { ChannelPicker, useGuildChannels } from "../components/ChannelPicker";
 
 type GiveawayStatus = "draft" | "scheduled" | "running" | "ended" | "cancelled";
 
@@ -59,13 +60,6 @@ interface Giveaway {
   /** The list route counts giveaway_entries per row; the create response
    *  hardcodes 0. Optional in the shared DTO, so treated as optional here. */
   entryCount?: number;
-}
-
-interface Channel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
 }
 
 interface Role {
@@ -182,7 +176,9 @@ function confirmCopy(action: Action, g: Giveaway, channelName: string): string {
 
 export default function Giveaways({ guildId }: { guildId: string }) {
   const [rows, setRows] = useState<Giveaway[] | null>(null);
-  const [channels, setChannels] = useState<Channel[]>([]);
+  // Names for the list below as well as the picker's own options, so it is
+  // one request for the page rather than one per field.
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
   const [roles, setRoles] = useState<Role[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -193,16 +189,14 @@ export default function Giveaways({ guildId }: { guildId: string }) {
 
   const load = useCallback(async () => {
     try {
-      // Channels and roles are labels for the giveaway list; a bot that's
-      // down shouldn't blank the page, so only the giveaways themselves are
-      // allowed to fail the load.
-      const [g, c, r] = await Promise.all([
+      // Roles are labels for the giveaway list; a bot that's down shouldn't
+      // blank the page, so only the giveaways themselves are allowed to fail
+      // the load.
+      const [g, r] = await Promise.all([
         http.get<Giveaway[]>(`/api/guilds/${guildId}/giveaways`),
-        http.get<Channel[]>(`/api/guilds/${guildId}/resources/channels`).catch(() => [] as Channel[]),
         http.get<Role[]>(`/api/guilds/${guildId}/resources/roles`).catch(() => [] as Role[]),
       ]);
       setRows(g);
-      setChannels(c.slice().sort((a, b) => a.position - b.position));
       setRoles(r);
       setError(null);
     } catch (e) {
@@ -217,7 +211,7 @@ export default function Giveaways({ guildId }: { guildId: string }) {
   if (error && !rows) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!rows) return <Loading rows={5} />;
 
-  const channelName = (id: string) => channels.find((c) => c.id === id)?.name ?? id;
+  const channelName = (id: string) => channels?.find((c) => c.id === id)?.name ?? id;
   const roleName = (id: string) => roles.find((r) => r.id === id)?.name ?? id;
 
   const running = rows.filter((g) => g.status === "running");
@@ -486,32 +480,14 @@ export default function Giveaways({ guildId }: { guildId: string }) {
             </span>
           </label>
 
-          {channels.length > 0 ? (
-            <label className="field">
-              <span className="eyebrow">Channel</span>
-              <select value={draft.channelId} onChange={(e) => patch({ channelId: e.target.value })}>
-                <option value="">— pick a channel —</option>
-                {channels.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    #{c.name}
-                  </option>
-                ))}
-              </select>
-              <span className="dim">Only text and announcement channels the bot can see are listed.</span>
-            </label>
-          ) : (
-            // Same bargain RolePicker makes: a degraded editor beats a
-            // blocked one when the bot is the thing that's down.
-            <label className="field">
-              <span className="eyebrow">Channel</span>
-              <input
-                value={draft.channelId}
-                placeholder="Channel ID"
-                onChange={(e) => patch({ channelId: e.target.value })}
-              />
-              <span className="dim">Couldn't reach the bot to list channels, so this is an ID for now.</span>
-            </label>
-          )}
+          <ChannelPicker
+            label="Channel"
+            channels={channels}
+            failed={channelsFailed}
+            value={draft.channelId}
+            onChange={(channelId) => patch({ channelId })}
+            hint="Only text and announcement channels the bot can see are listed."
+          />
 
           <label className="field">
             <span className="eyebrow">Winners</span>
