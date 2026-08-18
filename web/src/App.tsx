@@ -11,7 +11,6 @@
 
 import Banned from "./pages/Banned";
 import AppealConfig from "./pages/AppealConfig";
-import OutcomeEditor from "./pages/OutcomeEditor";
 import OpsAppeals from "./pages/OpsAppeals";
 import { BannedError } from "./lib/api";
 import { useEffect, useState } from "react";
@@ -36,7 +35,7 @@ export default function App() {
   // Set by any API call that throws BannedError. Not a route — see the
   // comment on BannedError in lib/api.ts.
   const [platformBan, setPlatformBan] = useState<
-    import("../../shared/schema/platformBans").PublicBan | null
+    import("../../shared/types").PublicBan | null
   >(null);
 
   // Whether to show the Operator nav group. Cosmetic only — every /api/ops
@@ -106,7 +105,7 @@ export default function App() {
 
   // list instead, via ServerBanned.tsx.
 
-  if (platformBan) return <Banned ban={platformBan} username={user?.username ?? ""} />;
+  if (platformBan) return <Banned ban={platformBan} />;
 
 
   return (

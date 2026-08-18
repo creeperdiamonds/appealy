@@ -5,9 +5,11 @@
 // only the bot holds a live gateway/REST session — see services/botBridge.ts
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
 import { requestPanelPublish, requestPanelSync } from "../services/botBridge.ts";
 import { checkStandingCap } from "../services/rateLimitService.ts";
@@ -42,7 +44,7 @@ panelsRouter.use(requireGuildAccess);
 
 panelsRouter.get("/", async (req, res) => {
   const panels = await db.query.panels.findMany({
-    where: eq(schema.panels.guildId, BigInt(req.params.guildId)),
+    where: eq(schema.panels.guildId, BigInt(routeParams(req).guildId)),
     with: { buttons: { orderBy: (b, { asc }) => [asc(b.sortOrder)] } },
   });
   res.json(panels.map(toDTO));
@@ -52,9 +54,9 @@ panelsRouter.post("/", requireAdminAccess, async (req, res) => {
   const parsed = panelSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
-  const existingPanelCount = await db.$count(schema.panels, eq(schema.panels.guildId, guildId));
+  const existingPanelCount = await countRows(schema.panels, eq(schema.panels.guildId, guildId));
   const capCheck = await checkStandingCap(guildId, "panelsPerGuild", existingPanelCount);
   if (!capCheck.allowed) {
     return res.status(429).json({
@@ -106,8 +108,8 @@ panelsRouter.patch("/:panelId", requireAdminAccess, async (req, res) => {
   const parsed = panelSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
-  const panelId = req.params.panelId;
+  const guildId = BigInt(routeParams(req).guildId);
+  const panelId = routeParams(req).panelId;
 
   const existing = await db.query.panels.findFirst({
     where: and(eq(schema.panels.id, panelId), eq(schema.panels.guildId, guildId)),
@@ -157,9 +159,9 @@ panelsRouter.patch("/:panelId", requireAdminAccess, async (req, res) => {
 });
 
 panelsRouter.post("/:panelId/publish", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const panel = await db.query.panels.findFirst({
-    where: and(eq(schema.panels.id, req.params.panelId), eq(schema.panels.guildId, guildId)),
+    where: and(eq(schema.panels.id, routeParams(req).panelId), eq(schema.panels.guildId, guildId)),
   });
   if (!panel) return res.status(404).json({ error: "panel_not_found" });
 
@@ -172,10 +174,10 @@ panelsRouter.post("/:panelId/publish", requireAdminAccess, async (req, res) => {
 });
 
 panelsRouter.delete("/:panelId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.panels)
-    .where(and(eq(schema.panels.id, req.params.panelId), eq(schema.panels.guildId, guildId)))
+    .where(and(eq(schema.panels.id, routeParams(req).panelId), eq(schema.panels.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "panel_not_found" });
   res.status(204).send();

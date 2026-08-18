@@ -105,17 +105,11 @@ export const platformBanAppealsRelations = relations(platformBanAppeals, ({ one 
   ban: one(platformBans, { fields: [platformBanAppeals.banId], references: [platformBans.id] }),
 }));
 
-export interface PublicBan {
-  id: string;
-  subject: "user" | "guild";
-  subjectId: string;
-  reasonCode: string;
-  reasonPublic: string;
-  createdAt: string;
-  expiresAt: string | null;
-  automated: boolean;
-  openAppeal: { createdAt: string } | null;
-}
+// Defined in shared/types/index.ts and re-exported here so existing importers
+// are unaffected. It moved because the console imports it, and this module
+// defines drizzle tables — which the browser bundle would otherwise have to
+// resolve just to name a type.
+export type { PublicBan } from "../types/index.ts";
 
 /**
  * The single serialization boundary for a ban. Every route returning ban data

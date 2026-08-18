@@ -7,6 +7,7 @@
 // pattern as welcomer.ts / antiRaid.ts / verification.ts.
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -26,7 +27,7 @@ const appealConfigSchema = z.object({
 appealConfigRouter.use(requireGuildAccess);
 
 appealConfigRouter.get("/", async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const config = await db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) });
   res.json(toDTO(guildId, config));
 });
@@ -35,7 +36,7 @@ appealConfigRouter.put("/", requireAdminAccess, async (req, res) => {
   const parsed = appealConfigSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
 
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const data = parsed.data;
 
   // A designated appeal form, if any, must actually exist in this guild

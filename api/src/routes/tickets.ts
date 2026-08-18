@@ -3,6 +3,7 @@
 // Mounted at /api/guilds/:guildId/ticket-configs
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -36,7 +37,7 @@ const configSchema = z.object({
 ticketsRouter.use(requireGuildAccess);
 
 ticketsRouter.get("/", async (req, res) => {
-  const configs = await db.select().from(schema.ticketConfigs).where(eq(schema.ticketConfigs.guildId, BigInt(req.params.guildId)));
+  const configs = await db.select().from(schema.ticketConfigs).where(eq(schema.ticketConfigs.guildId, BigInt(routeParams(req).guildId)));
   res.json(configs.map(toConfigDTO));
 });
 
@@ -44,7 +45,7 @@ ticketsRouter.post("/", requireAdminAccess, async (req, res) => {
   const parsed = configSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const [created] = await db
     .insert(schema.ticketConfigs)
@@ -78,8 +79,8 @@ ticketsRouter.patch("/:configId", requireAdminAccess, async (req, res) => {
   const parsed = configSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
-  const configId = req.params.configId;
+  const guildId = BigInt(routeParams(req).guildId);
+  const configId = routeParams(req).configId;
 
   const existing = await db.query.ticketConfigs.findFirst({
     where: and(eq(schema.ticketConfigs.id, configId), eq(schema.ticketConfigs.guildId, guildId)),
@@ -117,9 +118,9 @@ ticketsRouter.patch("/:configId", requireAdminAccess, async (req, res) => {
 });
 
 ticketsRouter.post("/:configId/publish", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const config = await db.query.ticketConfigs.findFirst({
-    where: and(eq(schema.ticketConfigs.id, req.params.configId), eq(schema.ticketConfigs.guildId, guildId)),
+    where: and(eq(schema.ticketConfigs.id, routeParams(req).configId), eq(schema.ticketConfigs.guildId, guildId)),
   });
   if (!config) return res.status(404).json({ error: "config_not_found" });
 
@@ -132,10 +133,10 @@ ticketsRouter.post("/:configId/publish", requireAdminAccess, async (req, res) =>
 });
 
 ticketsRouter.delete("/:configId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.ticketConfigs)
-    .where(and(eq(schema.ticketConfigs.id, req.params.configId), eq(schema.ticketConfigs.guildId, guildId)))
+    .where(and(eq(schema.ticketConfigs.id, routeParams(req).configId), eq(schema.ticketConfigs.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "config_not_found" });
   res.status(204).send();
@@ -146,7 +147,7 @@ ticketsRouter.get("/:configId/tickets", async (req, res) => {
   const rows = await db
     .select()
     .from(schema.tickets)
-    .where(eq(schema.tickets.configId, req.params.configId))
+    .where(eq(schema.tickets.configId, routeParams(req).configId))
     .orderBy(desc(schema.tickets.createdAt))
     .limit(100);
   res.json(rows.map(toTicketDTO));

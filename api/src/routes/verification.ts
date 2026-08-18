@@ -2,6 +2,7 @@
 // Single-row-per-guild verification config. Mounted at /api/guilds/:guildId/verification
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -25,7 +26,7 @@ const configSchema = z.object({
 verificationRouter.use(requireGuildAccess);
 
 verificationRouter.get("/", async (req, res) => {
-  const config = await db.query.verificationConfigs.findFirst({ where: eq(schema.verificationConfigs.guildId, BigInt(req.params.guildId)) });
+  const config = await db.query.verificationConfigs.findFirst({ where: eq(schema.verificationConfigs.guildId, BigInt(routeParams(req).guildId)) });
   res.json(config ? toDTO(config) : null);
 });
 
@@ -33,7 +34,7 @@ verificationRouter.put("/", requireAdminAccess, async (req, res) => {
   const parsed = configSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const [upserted] = await db
     .insert(schema.verificationConfigs)
@@ -68,7 +69,7 @@ verificationRouter.put("/", requireAdminAccess, async (req, res) => {
 });
 
 verificationRouter.post("/publish", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const config = await db.query.verificationConfigs.findFirst({ where: eq(schema.verificationConfigs.guildId, guildId) });
   if (!config || !config.channelId) return res.status(400).json({ error: "channel_not_configured" });
 

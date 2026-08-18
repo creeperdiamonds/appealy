@@ -2,6 +2,7 @@
 // Single-row-per-guild welcomer config. Mounted at /api/guilds/:guildId/welcomer
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -27,7 +28,7 @@ const configSchema = z.object({
 welcomerRouter.use(requireGuildAccess);
 
 welcomerRouter.get("/", async (req, res) => {
-  const config = await db.query.welcomerConfigs.findFirst({ where: eq(schema.welcomerConfigs.guildId, BigInt(req.params.guildId)) });
+  const config = await db.query.welcomerConfigs.findFirst({ where: eq(schema.welcomerConfigs.guildId, BigInt(routeParams(req).guildId)) });
   res.json(config ? toDTO(config) : null);
 });
 
@@ -35,7 +36,7 @@ welcomerRouter.put("/", requireAdminAccess, async (req, res) => {
   const parsed = configSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const values = {
     guildId,

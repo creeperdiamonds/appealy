@@ -8,6 +8,7 @@
 // Mounted at /api/guilds/:guildId/resources
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { requireGuildAccess } from "../middleware/guildAccess.ts";
 
 export const guildResourcesRouter = Router({ mergeParams: true });
@@ -19,7 +20,7 @@ guildResourcesRouter.use(requireGuildAccess);
 
 guildResourcesRouter.get("/channels", async (req, res) => {
   try {
-    const r = await fetch(`${BOT_INTERNAL_URL}/internal/guilds/${req.params.guildId}/channels`, {
+    const r = await fetch(`${BOT_INTERNAL_URL}/internal/guilds/${routeParams(req).guildId}/channels`, {
       headers: { "X-Internal-Secret": INTERNAL_SECRET },
     });
     if (!r.ok) return res.status(502).json({ error: "bot_unreachable" });
@@ -31,7 +32,7 @@ guildResourcesRouter.get("/channels", async (req, res) => {
 
 guildResourcesRouter.get("/roles", async (req, res) => {
   try {
-    const r = await fetch(`${BOT_INTERNAL_URL}/internal/guilds/${req.params.guildId}/roles`, {
+    const r = await fetch(`${BOT_INTERNAL_URL}/internal/guilds/${routeParams(req).guildId}/roles`, {
       headers: { "X-Internal-Secret": INTERNAL_SECRET },
     });
     if (!r.ok) return res.status(502).json({ error: "bot_unreachable" });

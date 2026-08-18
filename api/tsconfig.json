@@ -5,13 +5,41 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "rootDir": "..",
+    // The source is shared verbatim with bot/, which is Deno and requires the
+    // .ts extension on every relative import. Node's NodeNext resolution wants
+    // .js. These two flags are what let one set of files satisfy both:
+    // allowImportingTsExtensions accepts the Deno-style specifier, and
+    // rewriteRelativeImportExtensions turns it into .js on the way out, so the
+    // emitted dist/ is valid Node ESM.
+    //
+    // Without them, `npm run build` fails with 149 TS5097s and no image can be
+    // built. Requires TypeScript >= 5.7 (see package.json).
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowJs": false,
     "declaration": false,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+
+    // shared/ sits outside this package and has no node_modules of its own, so
+    // Node's upward lookup from shared/schema/*.ts finds nothing and every
+    // drizzle import there fails to resolve. These point it at the copy this
+    // package already installed. Runtime is unaffected: the emitted files land
+    // under api/dist, where the ordinary upward lookup does find node_modules.
+    "baseUrl": ".",
+    "paths": {
+      "drizzle-orm": ["./node_modules/drizzle-orm"],
+      "drizzle-orm/*": ["./node_modules/drizzle-orm/*"]
+    }
   },
-  "include": ["src/**/*.ts", "../shared/**/*.ts"]
+  "include": ["src/**/*.ts", "../shared/**/*.ts"],
+
+  // shared/ is compiled by both runtimes, but its tests are Deno-only — they
+  // call Deno.test and import from deno.land. Type-checking them with the Node
+  // compiler reports 20+ errors for code that is not broken and never runs
+  // here. Run them with `deno test` from the repo root.
+  "exclude": ["../shared/**/__tests__/**"]
 }

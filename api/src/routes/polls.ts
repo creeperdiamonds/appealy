@@ -3,6 +3,7 @@
 // Mounted at /api/guilds/:guildId/polls
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -27,7 +28,7 @@ const pollSchema = z.object({
 pollsRouter.use(requireGuildAccess);
 
 pollsRouter.get("/", async (req, res) => {
-  const polls = await db.query.polls.findMany({ where: eq(schema.polls.guildId, BigInt(req.params.guildId)) });
+  const polls = await db.query.polls.findMany({ where: eq(schema.polls.guildId, BigInt(routeParams(req).guildId)) });
   res.json(polls.map(toDTO));
 });
 
@@ -35,7 +36,7 @@ pollsRouter.post("/", requireAdminAccess, async (req, res) => {
   const parsed = pollSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const optionsWithIds = data.options.map((o, i) => ({
     id: o.id ?? crypto.randomUUID(),
@@ -65,8 +66,8 @@ pollsRouter.patch("/:pollId", requireAdminAccess, async (req, res) => {
   const parsed = pollSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
-  const pollId = req.params.pollId;
+  const guildId = BigInt(routeParams(req).guildId);
+  const pollId = routeParams(req).pollId;
 
   const existing = await db.query.polls.findFirst({
     where: and(eq(schema.polls.id, pollId), eq(schema.polls.guildId, guildId)),
@@ -99,9 +100,9 @@ pollsRouter.patch("/:pollId", requireAdminAccess, async (req, res) => {
 });
 
 pollsRouter.post("/:pollId/publish", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const poll = await db.query.polls.findFirst({
-    where: and(eq(schema.polls.id, req.params.pollId), eq(schema.polls.guildId, guildId)),
+    where: and(eq(schema.polls.id, routeParams(req).pollId), eq(schema.polls.guildId, guildId)),
   });
   if (!poll) return res.status(404).json({ error: "poll_not_found" });
   if (poll.status === "published" || poll.status === "closed") {
@@ -117,10 +118,10 @@ pollsRouter.post("/:pollId/publish", requireAdminAccess, async (req, res) => {
 });
 
 pollsRouter.delete("/:pollId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.polls)
-    .where(and(eq(schema.polls.id, req.params.pollId), eq(schema.polls.guildId, guildId)))
+    .where(and(eq(schema.polls.id, routeParams(req).pollId), eq(schema.polls.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "poll_not_found" });
   res.status(204).send();

@@ -8,6 +8,7 @@
 // are exactly the things that shouldn't be enumerable.
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { desc, eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { acceptAppeal } from "./platformAppeals.ts";
@@ -47,7 +48,7 @@ opsRouter.post("/appeals/:id/accept", async (req, res) => {
   if (!note?.trim()) {
     return res.status(422).json({ error: "note_required", message: "Write what you're telling them." });
   }
-  await acceptAppeal(req.params.id, req.userId!, note.trim());
+  await acceptAppeal(routeParams(req).id, req.userId!, note.trim());
   res.status(204).end();
 });
 
@@ -72,7 +73,7 @@ opsRouter.post("/appeals/:id/deny", async (req, res) => {
   await db
     .update(schema.platformBanAppeals)
     .set({ status: "denied", decidedAt: new Date(), decidedBy: req.userId!, decisionNote: note.trim() })
-    .where(eq(schema.platformBanAppeals.id, req.params.id));
+    .where(eq(schema.platformBanAppeals.id, routeParams(req).id));
   res.status(204).end();
 });
 
@@ -116,7 +117,7 @@ opsRouter.delete("/bans/:id", async (req, res) => {
   const [row] = await db
     .update(schema.platformBans)
     .set({ revokedAt: new Date(), revokedBy: req.userId!, revokeReason: "Lifted by operator" })
-    .where(eq(schema.platformBans.id, req.params.id))
+    .where(eq(schema.platformBans.id, routeParams(req).id))
     .returning();
   if (!row) return res.status(404).json({ error: "not_found" });
 

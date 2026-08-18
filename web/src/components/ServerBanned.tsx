@@ -13,7 +13,7 @@
 
 import { useEffect, useRef } from "react";
 import { AppealForm } from "../pages/Banned";
-import type { PublicBan } from "../../../shared/schema/platformBans";
+import type { PublicBan } from "../../../shared/types";
 
 export interface BannableGuild {
   id: string;

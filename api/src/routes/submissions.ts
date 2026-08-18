@@ -5,6 +5,7 @@
 // housekeeping (e.g. withdrawing a stale submission).
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -27,7 +28,7 @@ submissionsRouter.get("/", async (req, res) => {
   const parsed = listQuerySchema.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: "invalid_query" });
   const { formId, status, applicantId, limit, offset } = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const conditions = [eq(schema.submissions.guildId, guildId)];
   if (formId) conditions.push(eq(schema.submissions.formId, formId));
@@ -46,9 +47,9 @@ submissionsRouter.get("/", async (req, res) => {
 });
 
 submissionsRouter.get("/:submissionId", async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const submission = await db.query.submissions.findFirst({
-    where: and(eq(schema.submissions.id, req.params.submissionId), eq(schema.submissions.guildId, guildId)),
+    where: and(eq(schema.submissions.id, routeParams(req).submissionId), eq(schema.submissions.guildId, guildId)),
     with: { answers: { with: { question: true } } },
   });
   if (!submission) return res.status(404).json({ error: "submission_not_found" });
@@ -60,13 +61,13 @@ submissionsRouter.get("/:submissionId", async (req, res) => {
 // or send DMs; those side effects only happen via the bot's accept/deny
 // buttons, which is the intended path for real decisions.
 submissionsRouter.post("/:submissionId/withdraw", async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const [updated] = await db
     .update(schema.submissions)
     .set({ status: "withdrawn" })
     .where(
       and(
-        eq(schema.submissions.id, req.params.submissionId),
+        eq(schema.submissions.id, routeParams(req).submissionId),
         eq(schema.submissions.guildId, guildId),
         eq(schema.submissions.status, "pending"),
       ),

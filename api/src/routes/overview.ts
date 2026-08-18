@@ -19,6 +19,7 @@
 // Mounted at /api/guilds/:guildId/overview
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireGuildAccess } from "../middleware/guildAccess.ts";
@@ -91,7 +92,7 @@ async function fetchBotHealth(): Promise<Record<string, unknown> | null> {
 
 overviewRouter.get("/", async (req, res, next) => {
   try {
-    const guildIdStr = req.params.guildId;
+    const guildIdStr = routeParams(req).guildId;
     const guildId = BigInt(guildIdStr);
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -249,7 +250,7 @@ overviewRouter.get("/", async (req, res, next) => {
  * landing view slower for the majority of visits that never open it. */
 overviewRouter.get("/audit", async (req, res, next) => {
   try {
-    const guildId = BigInt(req.params.guildId);
+    const guildId = BigInt(routeParams(req).guildId);
     const limit = Math.min(Number(req.query.limit) || 50, 200);
     const offset = Math.max(Number(req.query.offset) || 0, 0);
 
@@ -290,7 +291,7 @@ overviewRouter.get("/audit", async (req, res, next) => {
  * discovering them when they fire. */
 overviewRouter.get("/scheduled-jobs", async (req, res, next) => {
   try {
-    const guildId = BigInt(req.params.guildId);
+    const guildId = BigInt(routeParams(req).guildId);
     const jobs = await db.query.scheduledJobs.findMany({
       where: eq(schema.scheduledJobs.guildId, guildId),
       orderBy: [schema.scheduledJobs.runAt],
@@ -318,12 +319,12 @@ overviewRouter.get("/scheduled-jobs", async (req, res, next) => {
  * to restart the bot, which cancelled every other pending kick too. */
 overviewRouter.delete("/scheduled-jobs/:jobId", async (req, res, next) => {
   try {
-    const guildId = BigInt(req.params.guildId);
+    const guildId = BigInt(routeParams(req).guildId);
     const deleted = await db
       .delete(schema.scheduledJobs)
       .where(
         and(
-          eq(schema.scheduledJobs.id, req.params.jobId),
+          eq(schema.scheduledJobs.id, routeParams(req).jobId),
           eq(schema.scheduledJobs.guildId, guildId), // scope to guild: never let one guild cancel another's jobs
         ),
       )

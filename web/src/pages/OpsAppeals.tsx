@@ -65,7 +65,7 @@ export default function OpsAppeals() {
     }
   }
 
-  if (error && !appeals) return <Banner level="act" title="Couldn't load" body={error} />;
+  if (error && !appeals) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!appeals) return <Loading rows={3} />;
 
   return (
@@ -79,7 +79,7 @@ export default function OpsAppeals() {
         </p>
       </header>
 
-      {error && <Banner level="act" title="Couldn't save" body={error} />}
+      {error && <Banner level="act" title="Couldn't save">{error}</Banner>}
 
       {appeals.length === 0 && (
         <Empty title="Queue is clear" hint="New appeals appear here as they're submitted." />

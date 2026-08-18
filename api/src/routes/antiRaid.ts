@@ -2,6 +2,7 @@
 // Mounted at /api/guilds/:guildId/anti-raid
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -22,7 +23,7 @@ const configSchema = z.object({
 antiRaidRouter.use(requireGuildAccess);
 
 antiRaidRouter.get("/", async (req, res) => {
-  const config = await db.query.antiRaidConfigs.findFirst({ where: eq(schema.antiRaidConfigs.guildId, BigInt(req.params.guildId)) });
+  const config = await db.query.antiRaidConfigs.findFirst({ where: eq(schema.antiRaidConfigs.guildId, BigInt(routeParams(req).guildId)) });
   res.json(config ? toDTO(config) : null);
 });
 
@@ -30,7 +31,7 @@ antiRaidRouter.put("/", requireAdminAccess, async (req, res) => {
   const parsed = configSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const values = {
     guildId,
@@ -56,7 +57,7 @@ antiRaidRouter.put("/", requireAdminAccess, async (req, res) => {
 // side — useful for a dashboard "panic button" that doesn't require
 // finding a staff member with Discord access at that moment.
 antiRaidRouter.get("/lockdown", async (req, res) => {
-  const lockdown = await db.query.raidLockdowns.findFirst({ where: eq(schema.raidLockdowns.guildId, BigInt(req.params.guildId)) });
+  const lockdown = await db.query.raidLockdowns.findFirst({ where: eq(schema.raidLockdowns.guildId, BigInt(routeParams(req).guildId)) });
   if (!lockdown) return res.json({ active: false });
   res.json({
     active: lockdown.expiresAt > new Date(),
@@ -67,7 +68,7 @@ antiRaidRouter.get("/lockdown", async (req, res) => {
 });
 
 antiRaidRouter.post("/lockdown/clear", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const [updated] = await db
     .update(schema.raidLockdowns)
     .set({ expiresAt: new Date(), clearedBy: req.userId! })

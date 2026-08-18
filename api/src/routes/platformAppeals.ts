@@ -17,6 +17,7 @@
 // is a partial unique index) so a race or a Redis outage cannot flood the queue.
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireSession } from "../middleware/auth.ts";
@@ -142,7 +143,7 @@ platformAppealsRouter.post("/", async (req, res) => {
 /** Status for the ban screen: the ban plus whatever the appellant is owed. */
 platformAppealsRouter.get("/:banId", async (req, res) => {
   const ban = await db.query.platformBans.findFirst({
-    where: eq(schema.platformBans.id, req.params.banId),
+    where: eq(schema.platformBans.id, routeParams(req).banId),
   });
   if (!ban) return res.status(404).json({ error: "not_found" });
 

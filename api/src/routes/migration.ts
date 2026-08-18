@@ -14,6 +14,7 @@
 // Mounted at /api/guilds/:guildId
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -24,7 +25,7 @@ import { importAppySubmissions, type AppyExportRow } from "../services/appyImpor
 export const migrationRouter = Router({ mergeParams: true });
 
 migrationRouter.get("/export", requireOwnerAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const exportData = await buildFullDataExport(guildId);
 
   const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
@@ -55,7 +56,7 @@ migrationRouter.post("/migrate/appy-submissions", requireOwnerAccess, async (req
   const parsed = importSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const { targetFormId, rows } = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const form = await db.query.forms.findFirst({
     where: and(eq(schema.forms.id, targetFormId), eq(schema.forms.guildId, guildId)),

@@ -2,9 +2,11 @@
 // Mounted at /api/guilds/:guildId/giveaways
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
 import { requestGiveawayPublish, requestGiveawayEnd, requestGiveawayReroll } from "../services/botBridge.ts";
 import type { GiveawayDTO } from "../../../shared/types/index.ts";
@@ -24,11 +26,11 @@ const giveawaySchema = z.object({
 giveawaysRouter.use(requireGuildAccess);
 
 giveawaysRouter.get("/", async (req, res) => {
-  const rows = await db.select().from(schema.giveaways).where(eq(schema.giveaways.guildId, BigInt(req.params.guildId)));
+  const rows = await db.select().from(schema.giveaways).where(eq(schema.giveaways.guildId, BigInt(routeParams(req).guildId)));
   const withCounts = await Promise.all(
     rows.map(async (g) => ({
       ...g,
-      entryCount: await db.$count(schema.giveawayEntries, eq(schema.giveawayEntries.giveawayId, g.id)),
+      entryCount: await countRows(schema.giveawayEntries, eq(schema.giveawayEntries.giveawayId, g.id)),
     })),
   );
   res.json(withCounts.map(toDTO));
@@ -38,7 +40,7 @@ giveawaysRouter.post("/", requireAdminAccess, async (req, res) => {
   const parsed = giveawaySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const [created] = await db
     .insert(schema.giveaways)
@@ -60,9 +62,9 @@ giveawaysRouter.post("/", requireAdminAccess, async (req, res) => {
 });
 
 giveawaysRouter.post("/:giveawayId/publish", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const giveaway = await db.query.giveaways.findFirst({
-    where: and(eq(schema.giveaways.id, req.params.giveawayId), eq(schema.giveaways.guildId, guildId)),
+    where: and(eq(schema.giveaways.id, routeParams(req).giveawayId), eq(schema.giveaways.guildId, guildId)),
   });
   if (!giveaway) return res.status(404).json({ error: "giveaway_not_found" });
   if (giveaway.status !== "draft") return res.status(409).json({ error: "already_published" });
@@ -76,9 +78,9 @@ giveawaysRouter.post("/:giveawayId/publish", requireAdminAccess, async (req, res
 });
 
 giveawaysRouter.post("/:giveawayId/end", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const giveaway = await db.query.giveaways.findFirst({
-    where: and(eq(schema.giveaways.id, req.params.giveawayId), eq(schema.giveaways.guildId, guildId)),
+    where: and(eq(schema.giveaways.id, routeParams(req).giveawayId), eq(schema.giveaways.guildId, guildId)),
   });
   if (!giveaway) return res.status(404).json({ error: "giveaway_not_found" });
   if (giveaway.status !== "running") return res.status(409).json({ error: "not_running" });
@@ -92,9 +94,9 @@ giveawaysRouter.post("/:giveawayId/end", requireAdminAccess, async (req, res) =>
 });
 
 giveawaysRouter.post("/:giveawayId/reroll", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const giveaway = await db.query.giveaways.findFirst({
-    where: and(eq(schema.giveaways.id, req.params.giveawayId), eq(schema.giveaways.guildId, guildId)),
+    where: and(eq(schema.giveaways.id, routeParams(req).giveawayId), eq(schema.giveaways.guildId, guildId)),
   });
   if (!giveaway) return res.status(404).json({ error: "giveaway_not_found" });
   if (giveaway.status !== "ended") return res.status(409).json({ error: "not_ended" });
@@ -108,10 +110,10 @@ giveawaysRouter.post("/:giveawayId/reroll", requireAdminAccess, async (req, res)
 });
 
 giveawaysRouter.delete("/:giveawayId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.giveaways)
-    .where(and(eq(schema.giveaways.id, req.params.giveawayId), eq(schema.giveaways.guildId, guildId)))
+    .where(and(eq(schema.giveaways.id, routeParams(req).giveawayId), eq(schema.giveaways.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "giveaway_not_found" });
   res.status(204).send();

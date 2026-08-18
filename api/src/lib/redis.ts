@@ -15,7 +15,10 @@
 // live Redis and turns a Redis outage at boot into a crash loop rather than
 // degraded service.
 
-import Redis from "ioredis";
+// Named, not default: ioredis's default export resolves to a namespace,
+// so `Redis` used as a type below is "Cannot use namespace as a type" and
+// `new Redis(...)` is "not constructable". The named export is both.
+import { Redis } from "ioredis";
 import { env } from "../env.ts";
 import { MemoryRedis, useMemoryRedis, MEMORY_REDIS_WARNING } from "../../../shared/lib/memoryRedis.ts";
 

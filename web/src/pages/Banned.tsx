@@ -16,7 +16,7 @@
 
 import { useState } from "react";
 import { Panel } from "../components/ui";
-import type { PublicBan } from "../../../shared/schema/platformBans";
+import type { PublicBan } from "../../../shared/types";
 
 const MIN = 40;
 const MAX = 2000;
@@ -128,12 +128,17 @@ export function AppealForm({
   );
 }
 
-export default function Banned({ ban, username }: { ban: PublicBan; username: string }) {
+// `username` is optional because the console genuinely may not know it:
+// GET /auth/me returns only a user id, and nothing else fetches the Discord
+// profile. App.tsx referenced an undefined `user` binding here, so this file
+// never compiled — rather than invent a lookup, the line is omitted when there
+// is no name to show.
+export default function Banned({ ban, username }: { ban: PublicBan; username?: string }) {
   return (
     <div className="banned-shell">
       <div className="banned-inner">
         <div className="banned-head">
-          <span className="dim">{username}</span>
+          {username && <span className="dim">{username}</span>}
           <a href="/api/auth/logout" className="dim">
             Sign out
           </a>

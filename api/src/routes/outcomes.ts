@@ -19,9 +19,11 @@
 //      could quietly create outcomes and lower their own level later.
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { requireAdminAccess } from "../middleware/guildAccess.ts";
 import {
   MAX_OUTCOMES_PER_FORM,
@@ -86,7 +88,7 @@ async function formInGuild(formId: string, guildId: bigint) {
 }
 
 outcomesRouter.get("/", async (req, res) => {
-  const form = await formInGuild(req.params.formId, BigInt(req.params.guildId));
+  const form = await formInGuild(routeParams(req).formId, BigInt(routeParams(req).guildId));
   if (!form) return res.status(404).json({ error: "form_not_found" });
 
   const decision = req.query.decision === "deny" ? "deny" : undefined;
@@ -100,7 +102,7 @@ outcomesRouter.get("/", async (req, res) => {
 });
 
 outcomesRouter.post("/", async (req, res) => {
-  const form = await formInGuild(req.params.formId, BigInt(req.params.guildId));
+  const form = await formInGuild(routeParams(req).formId, BigInt(routeParams(req).guildId));
   if (!form) return res.status(404).json({ error: "form_not_found" });
 
   const parsed = outcomeSchema.safeParse(req.body);
@@ -155,7 +157,7 @@ outcomesRouter.post("/", async (req, res) => {
 });
 
 outcomesRouter.patch("/:outcomeId", async (req, res) => {
-  const form = await formInGuild(req.params.formId, BigInt(req.params.guildId));
+  const form = await formInGuild(routeParams(req).formId, BigInt(routeParams(req).guildId));
   if (!form) return res.status(404).json({ error: "form_not_found" });
 
   const parsed = outcomeSchema.partial().safeParse(req.body);
@@ -176,7 +178,7 @@ outcomesRouter.patch("/:outcomeId", async (req, res) => {
     })
     .where(
       and(
-        eq(schema.formOutcomes.id, req.params.outcomeId),
+        eq(schema.formOutcomes.id, routeParams(req).outcomeId),
         eq(schema.formOutcomes.formId, form.id),
       ),
     )
@@ -187,14 +189,14 @@ outcomesRouter.patch("/:outcomeId", async (req, res) => {
 });
 
 outcomesRouter.delete("/:outcomeId", async (req, res) => {
-  const form = await formInGuild(req.params.formId, BigInt(req.params.guildId));
+  const form = await formInGuild(routeParams(req).formId, BigInt(routeParams(req).guildId));
   if (!form) return res.status(404).json({ error: "form_not_found" });
 
   const [row] = await db
     .delete(schema.formOutcomes)
     .where(
       and(
-        eq(schema.formOutcomes.id, req.params.outcomeId),
+        eq(schema.formOutcomes.id, routeParams(req).outcomeId),
         eq(schema.formOutcomes.formId, form.id),
       ),
     )
@@ -205,7 +207,7 @@ outcomesRouter.delete("/:outcomeId", async (req, res) => {
   // submissions.outcomeId nulls on delete; outcomeLabel survives, so past
   // decisions still read "accepted as Moderator". Say so explicitly, because
   // the natural fear when deleting is that it rewrites history.
-  const remaining = await db.$count(
+  const remaining = await countRows(
     schema.formOutcomes,
     eq(schema.formOutcomes.formId, form.id),
   );

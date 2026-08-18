@@ -2,6 +2,7 @@
 // Mounted at /api/guilds/:guildId/quick-responses and .../quick-response-categories
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -26,7 +27,7 @@ quickResponsesRouter.get("/categories", async (req, res) => {
   const rows = await db
     .select()
     .from(schema.quickResponseCategories)
-    .where(eq(schema.quickResponseCategories.guildId, BigInt(req.params.guildId)));
+    .where(eq(schema.quickResponseCategories.guildId, BigInt(routeParams(req).guildId)));
   res.json(rows);
 });
 
@@ -35,16 +36,16 @@ quickResponsesRouter.post("/categories", requireAdminAccess, async (req, res) =>
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const [created] = await db
     .insert(schema.quickResponseCategories)
-    .values({ guildId: BigInt(req.params.guildId), name: parsed.data.name, sortOrder: parsed.data.sortOrder })
+    .values({ guildId: BigInt(routeParams(req).guildId), name: parsed.data.name, sortOrder: parsed.data.sortOrder })
     .returning();
   res.status(201).json(created);
 });
 
 quickResponsesRouter.delete("/categories/:categoryId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.quickResponseCategories)
-    .where(and(eq(schema.quickResponseCategories.id, req.params.categoryId), eq(schema.quickResponseCategories.guildId, guildId)))
+    .where(and(eq(schema.quickResponseCategories.id, routeParams(req).categoryId), eq(schema.quickResponseCategories.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "category_not_found" });
   res.status(204).send();
@@ -54,7 +55,7 @@ quickResponsesRouter.get("/", async (req, res) => {
   const rows = await db
     .select()
     .from(schema.quickResponses)
-    .where(eq(schema.quickResponses.guildId, BigInt(req.params.guildId)));
+    .where(eq(schema.quickResponses.guildId, BigInt(routeParams(req).guildId)));
   res.json(rows.map(toDTO));
 });
 
@@ -66,7 +67,7 @@ quickResponsesRouter.post("/", requireAdminAccess, async (req, res) => {
   const [created] = await db
     .insert(schema.quickResponses)
     .values({
-      guildId: BigInt(req.params.guildId),
+      guildId: BigInt(routeParams(req).guildId),
       categoryId: data.categoryId ?? null,
       title: data.title,
       body: data.body,
@@ -79,7 +80,7 @@ quickResponsesRouter.post("/", requireAdminAccess, async (req, res) => {
 quickResponsesRouter.patch("/:responseId", requireAdminAccess, async (req, res) => {
   const parsed = responseSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const data = parsed.data;
 
   const updateSet: Record<string, unknown> = {};
@@ -90,17 +91,17 @@ quickResponsesRouter.patch("/:responseId", requireAdminAccess, async (req, res) 
   const [updated] = await db
     .update(schema.quickResponses)
     .set(updateSet)
-    .where(and(eq(schema.quickResponses.id, req.params.responseId), eq(schema.quickResponses.guildId, guildId)))
+    .where(and(eq(schema.quickResponses.id, routeParams(req).responseId), eq(schema.quickResponses.guildId, guildId)))
     .returning();
   if (!updated) return res.status(404).json({ error: "response_not_found" });
   res.json(toDTO(updated));
 });
 
 quickResponsesRouter.delete("/:responseId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.quickResponses)
-    .where(and(eq(schema.quickResponses.id, req.params.responseId), eq(schema.quickResponses.guildId, guildId)))
+    .where(and(eq(schema.quickResponses.id, routeParams(req).responseId), eq(schema.quickResponses.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "response_not_found" });
   res.status(204).send();

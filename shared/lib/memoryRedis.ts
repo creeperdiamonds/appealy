@@ -52,8 +52,12 @@ export class MemoryRedis {
     // sit in memory forever. This bounds it. 60s is far more often than
     // anything here needs.
     this.sweeper = setInterval(() => this.sweep(), 60_000) as unknown as number;
-    if (typeof Deno !== "undefined" && "unrefTimer" in Deno) {
-      (Deno as unknown as { unrefTimer(id: number): void }).unrefTimer(this.sweeper!);
+    // Read off globalThis rather than as a bare `Deno` identifier. This file is
+    // compiled by the Node API build as well, where that name is not declared
+    // and a bare reference is a compile error even inside a typeof guard.
+    const deno = (globalThis as { Deno?: { unrefTimer?: (id: number) => void } }).Deno;
+    if (deno?.unrefTimer) {
+      deno.unrefTimer(this.sweeper!);
     } else if (typeof this.sweeper === "object") {
       (this.sweeper as unknown as { unref(): void }).unref?.();
     }

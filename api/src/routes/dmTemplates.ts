@@ -3,6 +3,7 @@
 // DM templates. Mounted at /api/guilds/:guildId/forms/:formId/dm-templates
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -29,8 +30,8 @@ async function assertFormInGuild(guildId: bigint, formId: string) {
 }
 
 dmTemplatesRouter.get("/", async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
-  const formId = req.params.formId;
+  const guildId = BigInt(routeParams(req).guildId);
+  const formId = routeParams(req).formId;
   if (!(await assertFormInGuild(guildId, formId))) return res.status(404).json({ error: "form_not_found" });
 
   const templates = await db.query.dmTemplates.findMany({ where: eq(schema.dmTemplates.formId, formId) });
@@ -38,9 +39,9 @@ dmTemplatesRouter.get("/", async (req, res) => {
 });
 
 dmTemplatesRouter.put("/:type", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
-  const formId = req.params.formId;
-  const type = req.params.type as "submission" | "acceptance" | "denial";
+  const guildId = BigInt(routeParams(req).guildId);
+  const formId = routeParams(req).formId;
+  const type = routeParams(req).type as "submission" | "acceptance" | "denial";
 
   if (!(await assertFormInGuild(guildId, formId))) return res.status(404).json({ error: "form_not_found" });
 

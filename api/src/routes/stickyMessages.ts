@@ -2,6 +2,7 @@
 // Mounted at /api/guilds/:guildId/sticky-messages
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -20,7 +21,7 @@ const stickySchema = z.object({
 stickyMessagesRouter.use(requireGuildAccess);
 
 stickyMessagesRouter.get("/", async (req, res) => {
-  const rows = await db.select().from(schema.stickyMessages).where(eq(schema.stickyMessages.guildId, BigInt(req.params.guildId)));
+  const rows = await db.select().from(schema.stickyMessages).where(eq(schema.stickyMessages.guildId, BigInt(routeParams(req).guildId)));
   res.json(rows.map(toDTO));
 });
 
@@ -28,7 +29,7 @@ stickyMessagesRouter.post("/", requireAdminAccess, async (req, res) => {
   const parsed = stickySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const existing = await db.query.stickyMessages.findFirst({ where: eq(schema.stickyMessages.channelId, BigInt(data.channelId)) });
   if (existing) {
@@ -57,7 +58,7 @@ stickyMessagesRouter.patch("/:stickyId", requireAdminAccess, async (req, res) =>
   const parsed = stickySchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const updateSet: Record<string, unknown> = {};
   if (data.content !== undefined) updateSet.content = data.content;
@@ -68,7 +69,7 @@ stickyMessagesRouter.patch("/:stickyId", requireAdminAccess, async (req, res) =>
   const [updated] = await db
     .update(schema.stickyMessages)
     .set(updateSet)
-    .where(and(eq(schema.stickyMessages.id, req.params.stickyId), eq(schema.stickyMessages.guildId, guildId)))
+    .where(and(eq(schema.stickyMessages.id, routeParams(req).stickyId), eq(schema.stickyMessages.guildId, guildId)))
     .returning();
   if (!updated) return res.status(404).json({ error: "sticky_not_found" });
 
@@ -80,10 +81,10 @@ stickyMessagesRouter.patch("/:stickyId", requireAdminAccess, async (req, res) =>
 });
 
 stickyMessagesRouter.delete("/:stickyId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.stickyMessages)
-    .where(and(eq(schema.stickyMessages.id, req.params.stickyId), eq(schema.stickyMessages.guildId, guildId)))
+    .where(and(eq(schema.stickyMessages.id, routeParams(req).stickyId), eq(schema.stickyMessages.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "sticky_not_found" });
   res.status(204).send();

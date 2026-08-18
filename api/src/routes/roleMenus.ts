@@ -2,6 +2,7 @@
 // Mounted at /api/guilds/:guildId/role-menus
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -30,7 +31,7 @@ roleMenusRouter.use(requireGuildAccess);
 
 roleMenusRouter.get("/", async (req, res) => {
   const menus = await db.query.roleMenus.findMany({
-    where: eq(schema.roleMenus.guildId, BigInt(req.params.guildId)),
+    where: eq(schema.roleMenus.guildId, BigInt(routeParams(req).guildId)),
     with: { options: { orderBy: (o, { asc }) => [asc(o.sortOrder)] } },
   });
   res.json(menus.map(toDTO));
@@ -40,7 +41,7 @@ roleMenusRouter.post("/", requireAdminAccess, async (req, res) => {
   const parsed = menuSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const menu = await db.transaction(async (tx) => {
     const [created] = await tx
@@ -75,8 +76,8 @@ roleMenusRouter.patch("/:menuId", requireAdminAccess, async (req, res) => {
   const parsed = menuSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
-  const menuId = req.params.menuId;
+  const guildId = BigInt(routeParams(req).guildId);
+  const menuId = routeParams(req).menuId;
 
   const existing = await db.query.roleMenus.findFirst({
     where: and(eq(schema.roleMenus.id, menuId), eq(schema.roleMenus.guildId, guildId)),
@@ -114,9 +115,9 @@ roleMenusRouter.patch("/:menuId", requireAdminAccess, async (req, res) => {
 });
 
 roleMenusRouter.post("/:menuId/publish", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const menu = await db.query.roleMenus.findFirst({
-    where: and(eq(schema.roleMenus.id, req.params.menuId), eq(schema.roleMenus.guildId, guildId)),
+    where: and(eq(schema.roleMenus.id, routeParams(req).menuId), eq(schema.roleMenus.guildId, guildId)),
   });
   if (!menu) return res.status(404).json({ error: "menu_not_found" });
 
@@ -129,10 +130,10 @@ roleMenusRouter.post("/:menuId/publish", requireAdminAccess, async (req, res) =>
 });
 
 roleMenusRouter.delete("/:menuId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.roleMenus)
-    .where(and(eq(schema.roleMenus.id, req.params.menuId), eq(schema.roleMenus.guildId, guildId)))
+    .where(and(eq(schema.roleMenus.id, routeParams(req).menuId), eq(schema.roleMenus.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "menu_not_found" });
   res.status(204).send();

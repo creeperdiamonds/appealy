@@ -34,6 +34,7 @@
 // wall.
 
 import type { Request, Response, NextFunction } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { withRedis } from "../lib/redis.ts";
@@ -69,7 +70,7 @@ export async function invalidateApiLimitCache(guildId: string | bigint): Promise
 }
 
 export async function guildApiRateLimit(req: Request, res: Response, next: NextFunction) {
-  const guildId = req.params.guildId;
+  const guildId = routeParams(req).guildId;
   if (!guildId) return next();
 
   const limit = await limitForGuild(guildId);

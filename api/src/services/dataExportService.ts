@@ -118,6 +118,12 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
     dmTemplates: scopedDmTemplates,
     ticketConfigs,
     tickets,
+    // Queried above and then omitted from this literal, so every export
+    // silently shipped without it — the exact gap the interface comment says
+    // was being closed. It is the user's own free-text appeal bodies and the
+    // evidence attached to them, which is the part of an export that most
+    // needs to be there.
+    banAppeals,
     giveaways,
     verificationConfig: verificationConfig ?? null,
     welcomerConfig: welcomerConfig ?? null,

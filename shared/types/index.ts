@@ -364,3 +364,27 @@ export interface AppealConfigDTO {
   autoUnbanOnAccept: boolean;
   updatedAt: string;
 }
+
+/**
+ * The public shape of a platform ban.
+ *
+ * Lives here rather than in shared/schema/platformBans.ts because the console
+ * needs it and that module defines drizzle tables — importing it from the
+ * browser bundle drags the ORM in as a type dependency the frontend has no
+ * reason to install. Type-only imports still type-check the whole module they
+ * come from, so "it's only a type" does not avoid it.
+ *
+ * shared/schema/platformBans.ts re-exports this and owns the serialization
+ * (toPublicBan), which is still the single boundary a ban row crosses.
+ */
+export interface PublicBan {
+  id: string;
+  subject: "user" | "guild";
+  subjectId: Snowflake;
+  reasonCode: string;
+  reasonPublic: string;
+  createdAt: string;
+  expiresAt: string | null;
+  automated: boolean;
+  openAppeal: { createdAt: string } | null;
+}

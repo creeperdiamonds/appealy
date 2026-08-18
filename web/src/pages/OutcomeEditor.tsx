@@ -33,6 +33,11 @@ const LEVELS = [
 ];
 
 const blank = (): Draft => ({
+  // Required by FormOutcomeDTO and previously omitted, so this file never
+  // compiled. "accept" is the safer default of the two: a new outcome that
+  // silently defaulted to denying would be a bad surprise, and the editor
+  // shows the field for changing it.
+  decision: "accept",
   label: "",
   description: null,
   emoji: null,
@@ -63,7 +68,7 @@ export default function OutcomeEditor({ guildId, formId }: { guildId: string; fo
     void load();
   }, [load]);
 
-  if (error && !outcomes) return <Banner level="act" title="Couldn't load" body={error} />;
+  if (error && !outcomes) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!outcomes) return <Loading rows={3} />;
 
   const patch = (i: number, next: Partial<Draft>) =>
@@ -119,7 +124,7 @@ export default function OutcomeEditor({ guildId, formId }: { guildId: string; fo
         </p>
       </header>
 
-      {error && <Banner level="act" title="Heads up" body={error} />}
+      {error && <Banner level="act" title="Heads up">{error}</Banner>}
 
       {outcomes.length > 0 && (
         <Panel title="What reviewers will see">
@@ -206,19 +211,22 @@ export default function OutcomeEditor({ guildId, formId }: { guildId: string; fo
             {/* The warning that matters. Inline and permanent, because it
                 describes a working configuration rather than an error. */}
             {openToEveryone && (
-              <Banner
-                level="watch"
-                title="Any reviewer can grant these roles"
-                body="If this outcome hands out real power, restrict it. A trainee who can review trainee applications could otherwise use this to promote someone — including themselves, via a friend."
-              />
+              <Banner level="watch" title="Any reviewer can grant these roles">
+                If this outcome hands out real power,
+                restrict it. A trainee who can review
+                trainee applications could otherwise use
+                this to promote someone — including
+                themselves, via a friend.
+              </Banner>
             )}
 
             {noop && (
-              <Banner
-                level="watch"
-                title="This outcome doesn't do anything"
-                body="No roles granted or removed. Fine if you're handling roles manually and just want the decision recorded — otherwise you probably meant to pick some."
-              />
+              <Banner level="watch" title="This outcome doesn't do anything">
+                No roles granted or removed. Fine if you're
+                handling roles manually and just want the
+                decision recorded — otherwise you probably
+                meant to pick some.
+              </Banner>
             )}
 
             <label className="row">

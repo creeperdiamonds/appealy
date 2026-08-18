@@ -42,7 +42,7 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
     void load();
   }, [load]);
 
-  if (error && !config) return <Banner level="act" title="Couldn't load" body={error} />;
+  if (error && !config) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!config) return <Loading rows={4} />;
 
   // Only appeal-kind forms are selectable. A normal application form would be
@@ -92,27 +92,26 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
       </header>
 
       {appealForms.length === 0 && (
-        <Banner
-          level="watch"
-          title="No appeal form yet"
-          body='Create a form with kind "Appeal" and delivery "Direct message" first — a banned member can\u2019t reach a panel or /apply.'
-        />
+        <Banner level="watch" title="No appeal form yet">
+          Create a form with kind "Appeal" and delivery "Direct
+          message" first — a banned member can’t reach a panel or
+          /apply.
+        </Banner>
       )}
 
       {missingForm && (
-        <Banner
-          level="act"
-          title="Enabled, but no form selected"
-          body="Nothing will be sent to banned members until you choose one."
-        />
+        <Banner level="act" title="Enabled, but no form selected">
+          Nothing will be sent to banned members until you choose
+          one.
+        </Banner>
       )}
 
       {noEntryPoint && (
-        <Banner
-          level="watch"
-          title="Nobody can start an appeal"
-          body="The form is set but the ban-time DM is off, and there's no other way in. Turn the DM back on, or tell members in your ban message how to reach you."
-        />
+        <Banner level="watch" title="Nobody can start an appeal">
+          The form is set but the ban-time DM is off, and there's
+          no other way in. Turn the DM back on, or tell members in
+          your ban message how to reach you.
+        </Banner>
       )}
 
       <Panel title="Settings">
@@ -191,7 +190,7 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
         </label>
       </Panel>
 
-      {error && <Banner level="act" title="Couldn't save" body={error} />}
+      {error && <Banner level="act" title="Couldn't save">{error}</Banner>}
 
       <div className="actions">
         <button className="btn-primary" onClick={save} disabled={saving}>

@@ -26,6 +26,7 @@
 // Mounted at /api/guilds/:guildId/billing
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -73,7 +74,7 @@ billingRouter.get("/presets", async (_req, res) => {
 });
 
 billingRouter.get("/", async (req, res) => {
-  const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, BigInt(req.params.guildId)) });
+  const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, BigInt(routeParams(req).guildId)) });
   if (!guild) return res.status(404).json({ error: "guild_not_found" });
 
   const quote = calculateFullQuote({
@@ -137,7 +138,7 @@ billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
 
   try {
     const session = await createCheckoutSession({
-      guildId: req.params.guildId,
+      guildId: routeParams(req).guildId,
       userId: req.userId!.toString(),
       plan: data,
       quote,
@@ -153,7 +154,7 @@ billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
 // applied directly from this route rather than through checkout+webhook.
 // Any selection with a nonzero price must go through POST /checkout.
 billingRouter.put("/downgrade-to-free", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const [updated] = await db
     .update(schema.guilds)
     .set({

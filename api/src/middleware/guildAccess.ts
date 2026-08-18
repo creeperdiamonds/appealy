@@ -44,6 +44,7 @@
 // thing that's still useful.
 
 import type { Request, Response, NextFunction } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { and, eq, isNull } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { withRedis } from "../lib/redis.ts";
@@ -115,7 +116,7 @@ export async function invalidateGuildAccessCache(sessionId: string): Promise<voi
 }
 
 export async function requireGuildAccess(req: Request, res: Response, next: NextFunction) {
-  const guildId = req.params.guildId;
+  const guildId = routeParams(req).guildId;
   if (!guildId) return res.status(400).json({ error: "missing_guild_id" });
   if (!req.userId || !req.discordAccessToken || !req.sessionId) {
     return res.status(401).json({ error: "not_authenticated" });
@@ -183,7 +184,7 @@ export function requireAdminAccess(req: Request, res: Response, next: NextFuncti
  * An owner check that degrades into "probably fine" is not an owner check.
  */
 export async function requireOwnerAccess(req: Request, res: Response, next: NextFunction) {
-  const guildId = req.params.guildId;
+  const guildId = routeParams(req).guildId;
   if (!guildId || !req.discordAccessToken || !req.sessionId) {
     return res.status(401).json({ error: "not_authenticated" });
   }

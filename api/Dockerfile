@@ -13,4 +13,8 @@ COPY --from=build /app/api/dist ./dist
 COPY --from=build /app/api/node_modules ./node_modules
 COPY --from=build /app/shared ./shared
 EXPOSE 3001
-CMD ["node", "dist/main.js"]
+# dist/api/src/main.js, not dist/main.js: tsconfig sets rootDir ".." so that
+# shared/ can be compiled alongside src/, and tsc mirrors that layout under
+# outDir. The old path did not exist and the container exited immediately with
+# MODULE_NOT_FOUND.
+CMD ["node", "dist/api/src/main.js"]

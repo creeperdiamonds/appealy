@@ -2,9 +2,11 @@
 // CRUD for forms and their nested questions. Mounted at /api/guilds/:guildId/forms
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
+import { countRows } from "../db/count.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
 import { checkStandingCap } from "../services/rateLimitService.ts";
 import { checkPatternSafety } from "../../../shared/schema/regexValidation.ts";
@@ -102,7 +104,7 @@ const formSchema = formBaseSchema.refine(
 formsRouter.use(requireGuildAccess);
 
 formsRouter.get("/", async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const forms = await db.query.forms.findMany({
     where: eq(schema.forms.guildId, guildId),
     with: { questions: { orderBy: (q, { asc }) => [asc(q.sortOrder)] } },
@@ -112,7 +114,7 @@ formsRouter.get("/", async (req, res) => {
 
 formsRouter.get("/:formId", async (req, res) => {
   const form = await db.query.forms.findFirst({
-    where: and(eq(schema.forms.id, req.params.formId), eq(schema.forms.guildId, BigInt(req.params.guildId))),
+    where: and(eq(schema.forms.id, routeParams(req).formId), eq(schema.forms.guildId, BigInt(routeParams(req).guildId))),
     with: { questions: { orderBy: (q, { asc }) => [asc(q.sortOrder)] } },
   });
   if (!form) return res.status(404).json({ error: "form_not_found" });
@@ -123,10 +125,10 @@ formsRouter.post("/", requireAdminAccess, async (req, res) => {
   const parsed = formSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
 
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const data = parsed.data;
 
-  const existingFormCount = await db.$count(schema.forms, eq(schema.forms.guildId, guildId));
+  const existingFormCount = await countRows(schema.forms, eq(schema.forms.guildId, guildId));
   const capCheck = await checkStandingCap(guildId, "formsPerGuild", existingFormCount);
   if (!capCheck.allowed) {
     return res.status(429).json({
@@ -208,8 +210,8 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
   const parsed = formBaseSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
 
-  const guildId = BigInt(req.params.guildId);
-  const formId = req.params.formId;
+  const guildId = BigInt(routeParams(req).guildId);
+  const formId = routeParams(req).formId;
   const existing = await db.query.forms.findFirst({
     where: and(eq(schema.forms.id, formId), eq(schema.forms.guildId, guildId)),
   });
@@ -309,10 +311,10 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
 });
 
 formsRouter.delete("/:formId", requireAdminAccess, async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.forms)
-    .where(and(eq(schema.forms.id, req.params.formId), eq(schema.forms.guildId, guildId)))
+    .where(and(eq(schema.forms.id, routeParams(req).formId), eq(schema.forms.guildId, guildId)))
     .returning();
   if (result.length === 0) return res.status(404).json({ error: "form_not_found" });
   res.status(204).send();
@@ -320,6 +322,9 @@ formsRouter.delete("/:formId", requireAdminAccess, async (req, res) => {
 
 function toDTO(form: typeof schema.forms.$inferSelect & { questions: (typeof schema.questions.$inferSelect)[] }): FormDTO {
   return {
+    // Never mapped, so every form came back to the dashboard without its kind
+    // and an appeal form was indistinguishable from an application one.
+    kind: form.kind,
     id: form.id,
     guildId: form.guildId.toString(),
     name: form.name,

@@ -4,6 +4,7 @@
 // Mounted at /api/guilds/:guildId/staff-permissions
 
 import { Router } from "express";
+import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -33,7 +34,7 @@ staffPermissionsRouter.get("/", async (req, res) => {
   const rows = await db
     .select()
     .from(schema.staffPermissions)
-    .where(eq(schema.staffPermissions.guildId, BigInt(req.params.guildId)));
+    .where(eq(schema.staffPermissions.guildId, BigInt(routeParams(req).guildId)));
 
   res.json(
     rows.map((r) => ({
@@ -57,7 +58,7 @@ staffPermissionsRouter.post("/", async (req, res) => {
   const parsed = delegationSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
 
   const [created] = await db
     .insert(schema.staffPermissions)
@@ -77,12 +78,12 @@ staffPermissionsRouter.post("/", async (req, res) => {
 });
 
 staffPermissionsRouter.delete("/:delegationId", async (req, res) => {
-  const guildId = BigInt(req.params.guildId);
+  const guildId = BigInt(routeParams(req).guildId);
   const result = await db
     .delete(schema.staffPermissions)
     .where(
       and(
-        eq(schema.staffPermissions.id, req.params.delegationId),
+        eq(schema.staffPermissions.id, routeParams(req).delegationId),
         eq(schema.staffPermissions.guildId, guildId),
       ),
     )

@@ -300,12 +300,20 @@ export function calculateFullQuote(input: FullQuoteInput): FullQuote {
     // Even on partial invalidity, surface the best-effort resolved caps
     // (clamped to the ceiling for any invalid field) so the UI has
     // something concrete to render alongside the error list.
-    caps = Object.fromEntries(
-      (Object.keys(FREE_BASELINE) as (keyof RateLimitCaps)[]).map((key) => [
-        key,
-        Math.min(input.customCaps?.[key] ?? FREE_BASELINE[key], CUSTOM_CAP_MAXIMUMS[key]),
-      ]),
-    ) as RateLimitCaps;
+    // Built by reduce rather than Object.fromEntries: fromEntries is typed as
+    // returning an index signature, and asserting that onto RateLimitCaps is a
+    // cast TypeScript rejects as insufficiently overlapping. Accumulating into
+    // a typed object keeps every key checked against the interface instead.
+    caps = (Object.keys(FREE_BASELINE) as (keyof RateLimitCaps)[]).reduce(
+      (acc, key) => {
+        acc[key] = Math.min(
+          input.customCaps?.[key] ?? FREE_BASELINE[key],
+          CUSTOM_CAP_MAXIMUMS[key],
+        );
+        return acc;
+      },
+      {} as RateLimitCaps,
+    );
   } else {
     const preset = RATE_LIMIT_PRESETS[input.rateLimitTier];
     caps = preset.caps;

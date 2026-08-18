@@ -123,7 +123,7 @@ function signIn(): Promise<boolean> {
  * /banned is one bad guard away from a redirect loop it cannot escape.
  */
 export class BannedError extends Error {
-  constructor(public ban: import("../../../shared/schema/platformBans.ts").PublicBan) {
+  constructor(public ban: import("../../../shared/types/index.ts").PublicBan) {
     super("banned");
     this.name = "BannedError";
   }
@@ -317,6 +317,9 @@ export interface Submission {
 
 export interface FormSummary {
   id: string;
+  // The API has always sent this (forms.kind, "application" | "appeal") and
+  // AppealConfig filters on it; it was simply never declared here.
+  kind: "application" | "appeal";
   name: string;
   description: string | null;
   applicationType: "in_server" | "direct_message";
