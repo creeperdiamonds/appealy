@@ -16,6 +16,9 @@ import path from "node:path";
  */
 function marketingSite(): Plugin {
   const root = path.resolve(__dirname, "../site");
+  // brand/ is served at /brand rather than copied into site/, so the marks
+  // have one home. nginx does the same in the built image.
+  const brand = path.resolve(__dirname, "../brand");
   const types: Record<string, string> = {
     ".html": "text/html",
     ".css": "text/css",
@@ -48,6 +51,15 @@ function marketingSite(): Plugin {
         // Everything the app owns keeps its normal handling.
         if (url.startsWith("/dashboard") || url.startsWith("/api") || url.startsWith("/auth")) {
           return next();
+        }
+
+        if (url.startsWith("/brand/")) {
+          const file = path.resolve(brand, url.slice("/brand/".length));
+          if (file.startsWith(brand) && fs.existsSync(file)) {
+            res.setHeader("Content-Type", types[path.extname(file)] ?? "application/octet-stream");
+            res.end(fs.readFileSync(file));
+            return;
+          }
         }
 
         const rel = url === "/" ? "index.html" : url.replace(/^\/+/, "");

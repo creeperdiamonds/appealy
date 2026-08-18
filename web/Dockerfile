@@ -74,6 +74,8 @@ COPY web/appealy-proxy.conf /etc/nginx/appealy-proxy.conf
 #   /status/     the shard status page, deliberately independent of both so it
 #                still answers when the app is down
 COPY site /usr/share/nginx/html
+# The marks live in brand/ and are served, not duplicated — see brand/README.md.
+COPY brand /usr/share/nginx/html/brand
 COPY status /usr/share/nginx/html/status
 COPY --from=build /app/web/dist /usr/share/nginx/html/dashboard
 EXPOSE 8080
