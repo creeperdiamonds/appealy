@@ -14,8 +14,17 @@
 // Snowflakes are serialized as strings throughout (never raw bigint, which
 // doesn't round-trip through JSON.stringify), matching the Snowflake
 // convention already used in shared/types/index.ts.
+//
+// KEPT IN STEP WITH api/src/services/dataExportService.ts BY HAND. The two are
+// separate implementations of the same export because they run on different
+// runtimes with different db clients, and they had already drifted: the
+// dashboard's copy included the guild's platform-ban appeals and this one did
+// not, so /export and the dashboard button produced different files for the
+// same guild. Anything added to one belongs in the other in the same change.
+// This is the duplication README.md warns about; the durable fix is to move
+// the builder into shared/ and pass the db in.
 
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 
 export interface AppealyDataExport {
@@ -28,6 +37,20 @@ export interface AppealyDataExport {
   dmTemplates: unknown[];
   ticketConfigs: unknown[];
   tickets: unknown[];
+  // The guild's own appeal against a platform ban on this server. User-level
+  // appeals are excluded on purpose — see the query below.
+  banAppeals: unknown[];
+  // Previously missing entirely: a poll and its votes are a whole feature that
+  // exported as nothing, outcomes and the appeal config are configuration an
+  // admin built by hand, and gate overrides are deliberate per-user exceptions
+  // someone set on purpose.
+  //
+  // dashboardAuditLogs stays out for the reason given at the top of this file.
+  polls: unknown[];
+  formOutcomes: unknown[];
+  appealConfig: unknown | null;
+  gateOverrides: unknown[];
+  raidLockdowns: unknown[];
   giveaways: unknown[];
   verificationConfig: unknown | null;
   welcomerConfig: unknown | null;
@@ -54,6 +77,12 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
     dmTemplates,
     ticketConfigs,
     tickets,
+    banAppeals,
+    polls,
+    formOutcomes,
+    appealConfig,
+    gateOverrides,
+    raidLockdowns,
     giveaways,
     verificationConfig,
     welcomerConfig,
@@ -66,11 +95,73 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
   ] = await Promise.all([
     db.query.forms.findMany({ where: eq(schema.forms.guildId, guildId), with: { questions: true } }),
     db.query.panels.findMany({ where: eq(schema.panels.guildId, guildId) }),
-    db.select().from(schema.panelButtons),
+    // Previously an unfiltered read of every guild's rows, narrowed in memory
+    // afterwards. It produced the right output, but tenant isolation lived in
+    // a .filter() rather than in the query, and it scanned the whole table on
+    // every export. Same for dmTemplates below.
+    db
+      .select()
+      .from(schema.panelButtons)
+      .where(
+        inArray(
+          schema.panelButtons.panelId,
+          db.select({ id: schema.panels.id }).from(schema.panels).where(eq(schema.panels.guildId, guildId)),
+        ),
+      ),
     db.query.submissions.findMany({ where: eq(schema.submissions.guildId, guildId), with: { answers: true } }),
-    db.query.dmTemplates.findMany(),
+    db.query.dmTemplates.findMany({
+      where: inArray(
+        schema.dmTemplates.formId,
+        db.select({ id: schema.forms.id }).from(schema.forms).where(eq(schema.forms.guildId, guildId)),
+      ),
+    }),
     db.query.ticketConfigs.findMany({ where: eq(schema.ticketConfigs.guildId, guildId) }),
     db.query.tickets.findMany({ where: eq(schema.tickets.guildId, guildId) }),
+    // Appeals against a ban on THIS guild — i.e. the guild owner appealing us
+    // banning their server. Scoped by ban subject, not by member.
+    //
+    // User-level platform appeals are deliberately excluded: they're between
+    // the individual and us, and a guild admin exporting their server should
+    // not be able to read what one of their members wrote to us about a
+    // personal ban. Those belong in a user-scoped export, not this one.
+    db.query.platformBanAppeals.findMany({
+      where: (a, { exists }) =>
+        exists(
+          db
+            .select()
+            .from(schema.platformBans)
+            .where(
+              and(
+                eq(schema.platformBans.id, a.banId),
+                eq(schema.platformBans.subject, "guild"),
+                eq(schema.platformBans.subjectId, guildId),
+              ),
+            ),
+        ),
+    }),
+    db.query.polls.findMany({ where: eq(schema.polls.guildId, guildId), with: { votes: true } }),
+    // formOutcomes and gateOverrides hang off a form, not a guild, so they are
+    // fetched for this guild's forms via a subquery.
+    db
+      .select()
+      .from(schema.formOutcomes)
+      .where(
+        inArray(
+          schema.formOutcomes.formId,
+          db.select({ id: schema.forms.id }).from(schema.forms).where(eq(schema.forms.guildId, guildId)),
+        ),
+      ),
+    db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) }),
+    db
+      .select()
+      .from(schema.gateOverrides)
+      .where(
+        inArray(
+          schema.gateOverrides.formId,
+          db.select({ id: schema.forms.id }).from(schema.forms).where(eq(schema.forms.guildId, guildId)),
+        ),
+      ),
+    db.query.raidLockdowns.findMany({ where: eq(schema.raidLockdowns.guildId, guildId) }),
     db.query.giveaways.findMany({ where: eq(schema.giveaways.guildId, guildId), with: { entries: true } }),
     db.query.verificationConfigs.findFirst({ where: eq(schema.verificationConfigs.guildId, guildId) }),
     db.query.welcomerConfigs.findFirst({ where: eq(schema.welcomerConfigs.guildId, guildId) }),
@@ -82,15 +173,14 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
     db.query.staffPermissions.findMany({ where: eq(schema.staffPermissions.guildId, guildId) }),
   ]);
 
-  const formIds = new Set(forms.map((f) => f.id));
-  const panelIds = new Set(panels.map((p) => p.id));
-
+  // Both panelButtons and dmTemplates are scoped by their queries now, so the
+  // in-memory narrowing that used to stand in for it is gone rather than left
+  // in place looking load-bearing. Grouping buttons under their panel is a
+  // shaping step, not a filter.
   const panelsWithButtons = panels.map((p) => ({
     ...p,
-    buttons: panelButtons.filter((b) => panelIds.has(b.panelId) && b.panelId === p.id),
+    buttons: panelButtons.filter((b) => b.panelId === p.id),
   }));
-
-  const scopedDmTemplates = dmTemplates.filter((t) => formIds.has(t.formId));
 
   const exportData: AppealyDataExport = {
     exportVersion: 1,
@@ -99,9 +189,15 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
     forms,
     panels: panelsWithButtons,
     submissions,
-    dmTemplates: scopedDmTemplates,
+    dmTemplates,
     ticketConfigs,
     tickets,
+    banAppeals,
+    polls,
+    formOutcomes,
+    appealConfig: appealConfig ?? null,
+    gateOverrides,
+    raidLockdowns,
     giveaways,
     verificationConfig: verificationConfig ?? null,
     welcomerConfig: welcomerConfig ?? null,
