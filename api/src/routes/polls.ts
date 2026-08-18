@@ -42,12 +42,20 @@ pollsRouter.get("/", async (req, res) => {
     polls.map((poll) => {
       const counts: Record<string, number> = {};
       for (const option of poll.options) counts[option.id] = 0;
+
+      // One row per (user, option) — poll_votes is keyed on all three columns,
+      // so someone picking two options in a multi-select poll leaves two rows.
+      // This read `vote.optionIds`, a field no row has ever had, so the inner
+      // loop never ran and every poll reported zero votes for every option.
       for (const vote of poll.votes) {
-        for (const optionId of vote.optionIds ?? []) {
-          if (optionId in counts) counts[optionId] += 1;
-        }
+        if (vote.optionId in counts) counts[vote.optionId] += 1;
       }
-      return { ...toDTO(poll), voteCounts: counts, voterCount: poll.votes.length };
+
+      // Distinct people, not rows, for the same reason: counting rows on a
+      // multi-select poll reports more voters than the server has members.
+      const voterCount = new Set(poll.votes.map((v) => v.userId.toString())).size;
+
+      return { ...toDTO(poll), voteCounts: counts, voterCount };
     }),
   );
 });

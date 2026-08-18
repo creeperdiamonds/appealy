@@ -141,6 +141,10 @@ export interface FormDTO {
   threadName: string;
   autoArchiveOnDecision: boolean;
   hideAnswersInEmbed: boolean;
+  /** Per-form reviewer whitelist. The rule lives in shared/schema/reviewers.ts. */
+  reviewerWhitelistEnabled: boolean;
+  reviewerUserIds: Snowflake[];
+  reviewerRoleIds: Snowflake[];
   confirmationMessage: string | null;
   active: boolean;
   questions: QuestionDTO[];

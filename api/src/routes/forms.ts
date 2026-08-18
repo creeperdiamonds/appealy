@@ -88,18 +88,35 @@ const formBaseSchema = z.object({
   threadName: z.string().max(100).default("Review: {username}"),
   autoArchiveOnDecision: z.boolean().default(true),
   hideAnswersInEmbed: z.boolean().default(false),
+  reviewerWhitelistEnabled: z.boolean().default(false),
+  reviewerUserIds: z.array(z.string()).default([]),
+  reviewerRoleIds: z.array(z.string()).default([]),
   confirmationMessage: z.string().max(2000).nullable().default(null),
   active: z.boolean().default(true),
   questions: z.array(questionSchema).max(10).default([]),
 });
 
+const EMPTY_WHITELIST_MESSAGE =
+  "Add at least one member or role before switching the reviewer whitelist on — enabling it with an empty list would mean nobody can review this form.";
+
 const APPEAL_KIND_MESSAGE =
   'An appeal-kind form must use applicationType "direct_message" — a banned user can never reach an in_server flow.';
 
-const formSchema = formBaseSchema.refine(
-  (f) => f.kind !== "appeal" || f.applicationType === "direct_message",
-  { message: APPEAL_KIND_MESSAGE, path: ["applicationType"] },
-);
+const formSchema = formBaseSchema
+  .refine(
+    (f) => f.kind !== "appeal" || f.applicationType === "direct_message",
+    { message: APPEAL_KIND_MESSAGE, path: ["applicationType"] },
+  )
+  // An enabled whitelist with nothing on it locks every reviewer out,
+  // including whoever just saved it. shared/schema/reviewers.ts treats that
+  // combination as "no whitelist" so an existing row can never become
+  // unreviewable, but that is a backstop for rows this route did not write —
+  // it is not a reason to accept the mistake and silently ignore it, which
+  // would leave the toggle showing on while doing nothing.
+  .refine(
+    (f) => !f.reviewerWhitelistEnabled || f.reviewerUserIds.length > 0 || f.reviewerRoleIds.length > 0,
+    { message: EMPTY_WHITELIST_MESSAGE, path: ["reviewerWhitelistEnabled"] },
+  );
 
 formsRouter.use(requireGuildAccess);
 
@@ -173,6 +190,9 @@ formsRouter.post("/", requireAdminAccess, async (req, res) => {
         threadName: data.threadName,
         autoArchiveOnDecision: data.autoArchiveOnDecision,
         hideAnswersInEmbed: data.hideAnswersInEmbed,
+        reviewerWhitelistEnabled: data.reviewerWhitelistEnabled,
+        reviewerUserIds: data.reviewerUserIds,
+        reviewerRoleIds: data.reviewerRoleIds,
         confirmationMessage: data.confirmationMessage,
         active: data.active,
       })
@@ -223,6 +243,20 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
   // an in_server form, or PATCH { applicationType: "in_server" } on an appeal
   // form, each look fine alone and each produce an appeal form no banned user
   // can reach. This hole existed in the original.
+  // Same merge-then-validate reasoning for the reviewer whitelist: PATCH
+  // { reviewerWhitelistEnabled: true } with no list, or PATCH
+  // { reviewerUserIds: [] } on a form whose whitelist is already on, each
+  // look harmless alone and each produce a form nobody can review.
+  const mergedEnabled = data.reviewerWhitelistEnabled ?? existing.reviewerWhitelistEnabled;
+  const mergedUsers = data.reviewerUserIds ?? existing.reviewerUserIds;
+  const mergedRoles = data.reviewerRoleIds ?? existing.reviewerRoleIds;
+  if (mergedEnabled && mergedUsers.length === 0 && mergedRoles.length === 0) {
+    return res.status(400).json({
+      error: "invalid_body",
+      detail: { fieldErrors: { reviewerWhitelistEnabled: [EMPTY_WHITELIST_MESSAGE] } },
+    });
+  }
+
   const mergedKind = data.kind ?? existing.kind;
   const mergedType = data.applicationType ?? existing.applicationType;
   if (mergedKind === "appeal" && mergedType !== "direct_message") {
@@ -249,6 +283,9 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
       "threadName",
       "autoArchiveOnDecision",
       "hideAnswersInEmbed",
+      "reviewerWhitelistEnabled",
+      "reviewerUserIds",
+      "reviewerRoleIds",
       "confirmationMessage",
       "active",
       "grantRoleIds",
@@ -355,6 +392,9 @@ function toDTO(form: typeof schema.forms.$inferSelect & { questions: (typeof sch
     threadName: form.threadName ?? "Review: {username}",
     autoArchiveOnDecision: form.autoArchiveOnDecision,
     hideAnswersInEmbed: form.hideAnswersInEmbed,
+    reviewerWhitelistEnabled: form.reviewerWhitelistEnabled,
+    reviewerUserIds: form.reviewerUserIds,
+    reviewerRoleIds: form.reviewerRoleIds,
     confirmationMessage: form.confirmationMessage,
     active: form.active,
     questions: form.questions.map((q) => ({

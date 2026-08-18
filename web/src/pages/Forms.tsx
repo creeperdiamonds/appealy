@@ -96,6 +96,9 @@ interface FormDTO {
   removeRoleIds: string[];
   pendingRoleIds: string[];
   pingRoleIds: string[];
+  reviewerWhitelistEnabled: boolean;
+  reviewerUserIds: string[];
+  reviewerRoleIds: string[];
   questions: QuestionDTO[];
 }
 
@@ -143,6 +146,9 @@ const blankForm = (): Draft => ({
   removeRoleIds: [],
   pendingRoleIds: [],
   pingRoleIds: [],
+  reviewerWhitelistEnabled: false,
+  reviewerUserIds: [],
+  reviewerRoleIds: [],
   questions: [],
 });
 
@@ -307,6 +313,9 @@ export default function Forms({ guildId }: { guildId: string }) {
         removeRoleIds: draft.removeRoleIds,
         pendingRoleIds: draft.pendingRoleIds,
         pingRoleIds: draft.pingRoleIds,
+        reviewerWhitelistEnabled: draft.reviewerWhitelistEnabled,
+        reviewerUserIds: draft.reviewerUserIds,
+        reviewerRoleIds: draft.reviewerRoleIds,
         questions: draft.questions.map((q, i) => ({
           ...q,
           sortOrder: i,
@@ -701,6 +710,8 @@ function FormEditor({
         )}
       </Panel>
 
+      <ReviewerWhitelistPanel guildId={guildId} draft={draft} onPatch={onPatch} />
+
       <Panel
         title="Questions"
         eyebrow={`${draft.questions.length} of ${QUESTION_LIMIT}`}
@@ -763,6 +774,107 @@ function FormEditor({
         {saved && <span className="dim">Saved.</span>}
       </div>
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Who may decide this form
+ *
+ * Its own panel rather than another checkbox under "Behaviour" because it is
+ * the only setting on this page that takes permissions AWAY from someone who
+ * would otherwise have them. Burying that among preferences is how you get an
+ * admin who cannot work out why Accept refuses them.
+ * ------------------------------------------------------------------ */
+
+/** Discord snowflakes run 17-19 digits today; the range is loose on purpose. */
+const SNOWFLAKE = /^\d{15,25}$/;
+
+function ReviewerWhitelistPanel({
+  guildId,
+  draft,
+  onPatch,
+}: {
+  guildId: string;
+  draft: Draft;
+  onPatch: (next: Partial<Draft>) => void;
+}) {
+  // Held as text and parsed on blur, not on every keystroke: splitting as you
+  // type eats a half-entered id the moment a separator is pressed.
+  const [idText, setIdText] = useState(draft.reviewerUserIds.join("\n"));
+  const [idError, setIdError] = useState<string | null>(null);
+
+  const commitIds = (text: string) => {
+    const parts = text.split(/[\s,]+/).map((t) => t.trim()).filter(Boolean);
+    const bad = parts.filter((p) => !SNOWFLAKE.test(p));
+    if (bad.length > 0) {
+      setIdError(
+        `Not a user ID: ${bad.slice(0, 3).join(", ")}${bad.length > 3 ? "..." : ""}. ` +
+          "Turn on Developer Mode in Discord, then right-click a member and Copy User ID.",
+      );
+      return;
+    }
+    setIdError(null);
+    onPatch({ reviewerUserIds: [...new Set(parts)] });
+  };
+
+  const empty = draft.reviewerUserIds.length === 0 && draft.reviewerRoleIds.length === 0;
+
+  return (
+    <Panel title="Who can review this form">
+      <label className="row">
+        <input
+          type="checkbox"
+          checked={draft.reviewerWhitelistEnabled}
+          onChange={(e) => onPatch({ reviewerWhitelistEnabled: e.target.checked })}
+        />
+        <span>
+          <strong>Only let specific people decide these</strong>
+          <span className="dim block">
+            Off, anyone with Administrator or a staff delegation can accept and deny. On, only
+            the roles and members below can — <strong>administrators included</strong>. That is
+            deliberate: in most servers everyone senior already holds Administrator, so a list
+            they ignore would restrict nobody. Built for ban appeals, where the point is usually
+            that two or three named people handle them.
+          </span>
+        </span>
+      </label>
+
+      {draft.reviewerWhitelistEnabled && (
+        <>
+          <RolePicker
+            guildId={guildId}
+            label="Roles that can review"
+            value={draft.reviewerRoleIds}
+            onChange={(ids) => onPatch({ reviewerRoleIds: ids })}
+            hint="Anyone holding one of these can decide, whatever else they do or don't have."
+          />
+
+          <label className="field">
+            <span>Members that can review</span>
+            <textarea
+              rows={3}
+              value={idText}
+              placeholder="123456789012345678"
+              onChange={(e) => setIdText(e.target.value)}
+              onBlur={(e) => commitIds(e.target.value)}
+            />
+            <span className="dim">
+              User IDs, one per line. No member picker here because a server can hold hundreds of
+              thousands of members and the bot would have to download all of them to offer a
+              list — right-click a member with Developer Mode on and Copy User ID.
+            </span>
+          </label>
+          {idError && <span className="error">{idError}</span>}
+
+          {empty && (
+            <span className="error">
+              Nobody is listed yet. Saving like this is refused: the toggle on with an empty list
+              would leave this form unreviewable by anyone, including you.
+            </span>
+          )}
+        </>
+      )}
+    </Panel>
   );
 }
 

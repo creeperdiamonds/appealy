@@ -12,6 +12,7 @@ import { getGuild } from "../core/guildLookup.ts";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { STAFF_RANK, type StaffLevel } from "../../../shared/schema/outcomes.ts";
+import { isWhitelistedReviewer, whitelistActive } from "../../../shared/schema/reviewers.ts";
 
 const ADMINISTRATOR = 0x8n;
 
@@ -33,6 +34,27 @@ export async function isGuildOwner(bot: AppealyBot, guildId: bigint, userId: big
   return guild.ownerId === userId;
 }
 
+/**
+ * Whether this member may accept or deny submissions on this form.
+ *
+ * Two layers, in order:
+ *
+ *   1. A per-form reviewer whitelist, if one is switched on. When active it
+ *      is the ONLY answer — Administrator does not bypass it. See the comment
+ *      on forms.reviewerWhitelistEnabled for why: in a server where everyone
+ *      senior holds Administrator, a whitelist they ignore restricts nobody,
+ *      and the case this exists for (ban appeals handled by three named
+ *      people) is exactly that server.
+ *
+ *   2. Otherwise the guild-wide rule, unchanged: Administrator, or an
+ *      explicit staff_permissions delegation carrying canReview.
+ *
+ * The form is fetched here rather than passed in. Every caller already holds
+ * it, so threading it through would save a primary-key lookup on a path that
+ * runs once per button click — and would leave the whitelist enforceable only
+ * by callers that remembered to pass the right thing, which is the failure
+ * mode this function exists to prevent.
+ */
 export async function canReviewForm(
   guildId: bigint,
   formId: string,
@@ -40,6 +62,25 @@ export async function canReviewForm(
   memberRoleIds: bigint[],
   memberPermissions: bigint,
 ): Promise<boolean> {
+  const form = await db.query.forms.findFirst({
+    where: eq(schema.forms.id, formId),
+    columns: {
+      reviewerWhitelistEnabled: true,
+      reviewerUserIds: true,
+      reviewerRoleIds: true,
+    },
+  });
+
+  // A missing form means the submission's form row is gone. Refuse rather
+  // than fall through to the guild-wide rule: there is nothing left to check
+  // permissions against, and defaulting to "yes, if you're an admin" on a
+  // dangling record is the wrong direction to fail in.
+  if (!form) return false;
+
+  if (whitelistActive(form)) {
+    return isWhitelistedReviewer(form, memberId.toString(), memberRoleIds.map(String));
+  }
+
   if ((memberPermissions & ADMINISTRATOR) === ADMINISTRATOR) return true;
 
   const delegations = await db

@@ -323,6 +323,25 @@ export const forms = pgTable(
     // for sensitive application content staff don't want sitting in a
     // Discord channel's message history indefinitely.
     hideAnswersInEmbed: boolean("hide_answers_in_embed").notNull().default(false),
+    // Restricts who may press Accept/Deny on this form's review posts.
+    //
+    // Distinct from staff_permissions, which answers "who is staff here" for
+    // the whole guild. This answers "who handles THIS form", and the two are
+    // genuinely different questions: ban appeals are the motivating case —
+    // a server can have twenty administrators and still want exactly three
+    // people deciding appeals, because an appeal is a judgement about a
+    // moderation decision rather than a routine approval.
+    //
+    // ADMINISTRATOR does NOT bypass this. That is the whole point: in most
+    // servers everyone senior already holds Administrator, so a whitelist
+    // admins ignore would restrict nobody. It is not a security boundary
+    // against them either — any admin can switch it off on the dashboard in
+    // two clicks, which is also the escape hatch if a whitelisted role gets
+    // deleted. The API refuses to enable it with both lists empty, so it
+    // cannot be turned on into a state where nobody can review.
+    reviewerWhitelistEnabled: boolean("reviewer_whitelist_enabled").notNull().default(false),
+    reviewerUserIds: jsonb("reviewer_user_ids").$type<string[]>().notNull().default([]),
+    reviewerRoleIds: jsonb("reviewer_role_ids").$type<string[]>().notNull().default([]),
     // Shown before the first question, asking the applicant to confirm
     // they want to proceed — distinct from the post-submit "completion"
     // DM (dmTemplates type="submission" already covers completion).

@@ -232,6 +232,23 @@ export async function importGuildData(
     // is an open door, not a missing setting.
     const lostAGate = gates.lost > 0 || blocks.lost > 0;
 
+    // The reviewer whitelist needs the opposite treatment to a gate. A gate
+    // that fails open lets the wrong people IN, so the form is deactivated; a
+    // whitelist that fails empty locks everyone OUT, so it is switched off and
+    // the form falls back to normal staff permissions.
+    //
+    // Member ids carry over verbatim, unlike roles. A snowflake identifies a
+    // person globally rather than per-server, so a named reviewer who is in
+    // both servers stays valid — and one who is not is simply never matched,
+    // which costs nothing. Roles have to be remapped because a role id means
+    // nothing outside the server that created it.
+    const reviewerRoles = resolve.roleList(form.reviewerRoleIds);
+    const reviewerUsers = asRows(form.reviewerUserIds).length
+      ? (form.reviewerUserIds as unknown[]).map(String)
+      : [];
+    const whitelistRequested = Boolean(form.reviewerWhitelistEnabled ?? false);
+    const whitelistUsable = reviewerRoles.ids.length > 0 || reviewerUsers.length > 0;
+
     const [created] = await db
       .insert(schema.forms)
       .values({
@@ -258,11 +275,24 @@ export async function importGuildData(
         pendingRoleIds: resolve.roleList(form.pendingRoleIds).ids,
         removeRolesOnSubmitIds: resolve.roleList(form.removeRolesOnSubmitIds).ids,
         pingRoleIds: resolve.roleList(form.pingRoleIds).ids,
+        reviewerWhitelistEnabled: whitelistRequested && whitelistUsable,
+        reviewerUserIds: reviewerUsers,
+        reviewerRoleIds: reviewerRoles.ids,
       })
       .returning({ id: schema.forms.id });
 
     formIdMap.set(String(form.id), created.id);
     count("forms");
+
+    if (whitelistRequested && !whitelistUsable) {
+      report.deactivated.push({
+        name: `${name} (reviewer whitelist)`,
+        why:
+          "every whitelisted reviewer role came from the source server and could not be mapped, " +
+          "and no whitelisted members were listed — leaving it on would have meant nobody could " +
+          "review this form, so it fell back to your normal staff permissions",
+      });
+    }
 
     if (lostAGate) {
       report.deactivated.push({
