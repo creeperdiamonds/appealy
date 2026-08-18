@@ -217,6 +217,11 @@ export interface RateLimitCaps {
 }
 
 export interface GuildSummary {
+  /** Whether the bot is actually in this server. Discord tells us which
+   *  servers you can manage; it says nothing about where Appealy is. */
+  installed: boolean;
+  /** Where to send someone to add it, with this server preselected. */
+  inviteUrl: string;
   id: string;
   name: string;
   icon: string | null;

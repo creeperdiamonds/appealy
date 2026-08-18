@@ -73,6 +73,9 @@ async function flush(): Promise<void> {
             name: sql`excluded.name`,
             iconHash: sql`excluded.icon_hash`,
             ownerId: sql`excluded.owner_id`,
+            // Re-invited: clear the flag guildDelete set, so a server that was
+            // removed and added back stops being reported as needing an invite.
+            botPresent: true,
             updatedAt: new Date(),
           },
         });

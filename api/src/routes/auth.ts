@@ -70,6 +70,46 @@ import { logger } from "../utils/logger.ts";
 export const authRouter = Router();
 
 const SCOPES = "identify guilds";
+
+/**
+ * Permissions the invite link asks for, named rather than pasted as a number.
+ *
+ * Every one is load-bearing somewhere: roles for accept/deny grants, channels
+ * for ticket creation, ban/kick for appeal unbans and verification timeouts,
+ * message management for sticky messages. An invite that omits one produces a
+ * feature that silently does nothing, which is the failure mode this whole
+ * screen exists to prevent.
+ */
+const INVITE_PERMISSIONS = [
+  ["MANAGE_ROLES", 1n << 28n],
+  ["MANAGE_CHANNELS", 1n << 4n],
+  ["VIEW_CHANNEL", 1n << 10n],
+  ["SEND_MESSAGES", 1n << 11n],
+  ["MANAGE_MESSAGES", 1n << 13n],
+  ["EMBED_LINKS", 1n << 14n],
+  ["READ_MESSAGE_HISTORY", 1n << 16n],
+  ["KICK_MEMBERS", 1n << 1n],
+  ["BAN_MEMBERS", 1n << 2n],
+] as const;
+
+const INVITE_PERMISSION_BITS = INVITE_PERMISSIONS.reduce((acc, [, bit]) => acc | bit, 0n);
+
+/**
+ * Where to send someone to add the bot to a specific server.
+ *
+ * guild_id preselects it in Discord's own dialog, so the person is not asked
+ * to pick from a list they just came from — and disable_guild_select stops them
+ * landing on the wrong one.
+ */
+function inviteUrlFor(guildId: string): string {
+  const url = new URL("https://discord.com/oauth2/authorize");
+  url.searchParams.set("client_id", env.DISCORD_CLIENT_ID);
+  url.searchParams.set("scope", "bot applications.commands");
+  url.searchParams.set("permissions", INVITE_PERMISSION_BITS.toString());
+  url.searchParams.set("guild_id", guildId);
+  url.searchParams.set("disable_guild_select", "true");
+  return url.toString();
+}
 const STATE_TTL_SECONDS = 300;
 
 function stateKey(state: string) {
@@ -288,7 +328,17 @@ authRouter.get("/me/guilds", requireSession, async (req, res) => {
   const byId = new Map(
     manageable.map((g) => [
       g.id,
-      { id: g.id, name: g.name, icon: g.icon, access: g.owner ? "owner" : "admin" },
+      {
+        id: g.id,
+        name: g.name,
+        icon: g.icon,
+        access: g.owner ? "owner" : "admin",
+        // Filled in below. Assumed absent until a row says otherwise, because
+        // claiming the bot is present when it is not is the failure this is
+        // here to stop.
+        installed: false,
+        inviteUrl: inviteUrlFor(g.id),
+      },
     ]),
   );
 
@@ -305,9 +355,38 @@ authRouter.get("/me/guilds", requireSession, async (req, res) => {
     for (const row of rows) {
       const id = row.id.toString();
       if (delegatedGuildIds.includes(id)) {
-        byId.set(id, { id, name: row.name, icon: row.iconHash, access: "manager" });
+        byId.set(id, {
+          id,
+          name: row.name,
+          icon: row.iconHash,
+          access: "manager",
+          installed: row.botPresent,
+          inviteUrl: inviteUrlFor(id),
+        });
       }
     }
+  }
+
+  // Which of these the bot is actually in.
+  //
+  // Discord tells us which servers the person can manage; it says nothing about
+  // whether Appealy is in them. Without this the switcher listed all of them
+  // identically and picking one the bot had never joined produced a console
+  // that looked functional and failed on every request — the dashboard
+  // asserting something untrue about the world.
+  //
+  // A row that exists but has botPresent false is a server that removed the
+  // bot: its configuration is still there, waiting, and re-inviting restores
+  // it. Both cases read as "not installed" here and differ only in what
+  // happens after the invite.
+  const known = await db.query.guilds.findMany({
+    columns: { id: true, botPresent: true },
+  });
+  const presentIds = new Set(
+    known.filter((row) => row.botPresent).map((row) => row.id.toString()),
+  );
+  for (const [id, guild] of byId) {
+    guild.installed = presentIds.has(id);
   }
 
   res.json({

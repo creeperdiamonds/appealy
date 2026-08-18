@@ -128,6 +128,22 @@ export const guilds = pgTable("guilds", {
   // subscription we cannot match to a guild, and the plan would simply never
   // end. Null for guilds on the free selection.
   tebexRecurringReference: text("tebex_recurring_reference"),
+  // Whether the bot is currently in this guild.
+  //
+  // A row here means the bot was in the guild at some point, not that it still
+  // is — someone can remove it and everything they configured stays, which is
+  // deliberate: deleting the row would cascade away every form, panel and
+  // submission over a removal that might be a mistake or last five minutes.
+  //
+  // So presence is a flag rather than the row's existence. guildCreate sets it
+  // true, guildDelete sets it false, and the dashboard uses it to say a server
+  // needs an invite instead of showing a console that cannot work.
+  //
+  // Known gap: a removal that happens while the bot is offline emits no
+  // guildDelete, so the flag stays true until it is added back. The dashboard
+  // would show that server as installed and its requests would fail. Fixing it
+  // properly means reconciling the full guild list on every ready burst.
+  botPresent: boolean("bot_present").notNull().default(true),
   timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

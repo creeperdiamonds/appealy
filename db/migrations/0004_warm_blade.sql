@@ -1,0 +1,3 @@
+ALTER TABLE "appeal_configs" ALTER COLUMN "dm_on_ban_note" SET DEFAULT 'You have been banned and are receiving this message because ban appeals are enabled for this server. If you''d like to appeal, answer the questions below. Sending nothing will not appeal the ban.';--> statement-breakpoint
+ALTER TABLE "forms" ALTER COLUMN "confirmation_message" SET DEFAULT 'Are you sure you want to apply? Once you start, you''ll be asked a series of questions.';--> statement-breakpoint
+ALTER TABLE "guilds" ADD COLUMN "bot_present" boolean DEFAULT true NOT NULL;

@@ -75,9 +75,15 @@ export default function App() {
         // Prefer the last server this browser was looking at. Someone who
         // manages twelve servers should not have to re-find theirs every
         // time they open the console.
+        // Prefer a server the bot is actually in. Opening on one it has never
+        // joined means the first thing anyone sees is a wall telling them to
+        // invite it, even when they have three working servers underneath.
         const remembered = localStorage.getItem(LAST_GUILD_KEY);
         const initial =
-          (remembered && guilds.find((g) => g.id === remembered)?.id) ?? guilds[0]?.id ?? null;
+          (remembered && guilds.find((g) => g.id === remembered)?.id) ??
+          guilds.find((g) => g.installed)?.id ??
+          guilds[0]?.id ??
+          null;
         setGuildId(initial);
       })
       .catch((err) => {
@@ -166,11 +172,16 @@ export default function App() {
               >
                 {guilds.map((g) => (
                   <option key={g.id} value={g.id}>
-                    {g.name}
+                    {/* An <option> renders text and nothing else — no element
+                        inside it survives, so the state has to be in the label.
+                        The coloured tag next to the select carries it for the
+                        selected server. */}
+                    {g.installed ? g.name : `\u26A0 ${g.name} — UNINVITED`}
                   </option>
                 ))}
               </select>
-              {active && (
+              {active && !active.installed && <Pill level="act">UNINVITED</Pill>}
+              {active && active.installed && (
                 <Pill level={active.access === "manager" ? "watch" : undefined}>
                   {active.access}
                 </Pill>
@@ -209,10 +220,33 @@ export default function App() {
             </Banner>
           )}
 
-          {guildId && view === "overview" && <Overview guildId={guildId} />}
-          {guildId && view === "submissions" && <Submissions guildId={guildId} />}
-          {guildId && view === "operations" && <Operations guildId={guildId} />}
-          {guildId && view === "appeals" && <AppealConfig guildId={guildId} />}
+          {/* Replaces the views rather than sitting above them. Showing an
+              empty Overview next to this would be the same false claim in a
+              smaller font: every request it made would fail, and the zeroes it
+              rendered would read as "no applications yet" rather than "the bot
+              is not here". */}
+          {active && !active.installed ? (
+            <Banner
+              level="act"
+              title={`Appealy isn't in ${active.name}`}
+              action={
+                <a className="btn" href={active.inviteUrl} target="_blank" rel="noreferrer">
+                  Invite Appealy
+                </a>
+              }
+            >
+              You can manage this server, but the bot hasn't been added to it — so there is
+              nothing here to configure yet. Inviting it opens Discord with this server already
+              selected. Anything you configured before is kept and comes back with it.
+            </Banner>
+          ) : (
+            <>
+              {guildId && view === "overview" && <Overview guildId={guildId} />}
+              {guildId && view === "submissions" && <Submissions guildId={guildId} />}
+              {guildId && view === "operations" && <Operations guildId={guildId} />}
+              {guildId && view === "appeals" && <AppealConfig guildId={guildId} />}
+            </>
+          )}
           {view === "ops-appeals" && <OpsAppeals />}
         </main>
       </div>

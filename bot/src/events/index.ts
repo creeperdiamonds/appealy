@@ -8,6 +8,7 @@ import { onReady } from "./ready.ts";
 import { onGuildBanAdd } from "./guildBanAdd.ts";
 import { onEntitlementEvent } from "../core/entitlements.ts";
 import { onGuildCreate } from "./guildCreate.ts";
+import { onGuildDelete } from "./guildDelete.ts";
 import { onInteractionCreate } from "./interactionCreate.ts";
 import { onGuildMemberRemove } from "./guildMemberRemove.ts";
 import { onGuildMemberAdd } from "./guildMemberAdd.ts";
@@ -32,6 +33,7 @@ export function registerEventHandlers(bot: AppealyBot) {
   const banAdd = onGuildBanAdd(bot);
   const memberRemove = onGuildMemberRemove(bot);
   const memberAdd = onGuildMemberAdd(bot);
+  const guildDelete = onGuildDelete(bot);
 
   bot.events.ready = (payload) => onReady(bot, payload);
   // (user, guildId) now, not one payload object.
@@ -44,6 +46,7 @@ export function registerEventHandlers(bot: AppealyBot) {
   bot.events.entitlementUpdate = (e) => onEntitlementEvent("update", e as never);
   bot.events.entitlementDelete = (e) => onEntitlementEvent("delete", e as never);
   bot.events.guildCreate = (guild) => onGuildCreate(guild, shardIdForGuild(bot, guild.id));
+  bot.events.guildDelete = guildDelete;
   bot.events.interactionCreate = onInteractionCreate(bot);
   bot.events.guildMemberRemove = (user, guildId) => memberRemove({ guildId, user });
   // (member, user) now. The handler wants them together, and only the member
