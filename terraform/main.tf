@@ -12,15 +12,18 @@ terraform {
     }
   }
 
-  # State is local by default. Fine for one person; a problem for two —
-  # concurrent applies from different machines produce conflicts and can
-  # duplicate resources. Uncomment once you're both working on this, create the
-  # bucket by hand first, then `terraform init -migrate-state`.
+  # State lives in GCS, configured at init time rather than hardcoded here so
+  # the bucket name can carry the project id (bucket names are global).
   #
-  # backend "gcs" {
-  #   bucket = "appealy-tfstate"
-  #   prefix = "prod"
-  # }
+  # It is not local any more, and that is the point: a state file on one
+  # machine is one disk failure away from resources nothing can manage, and it
+  # holds the generated database password in plaintext. The CI workflow
+  # (.github/workflows/terraform.yml) creates the bucket if missing, versioned.
+  #
+  # Running terraform locally now needs the same backend config:
+  #
+  #   terraform init   #     -backend-config="bucket=<project-id>-appealy-tfstate"   #     -backend-config="prefix=prod"
+  backend "gcs" {}
 }
 
 provider "google" {

@@ -1,0 +1,137 @@
+name: Terraform (GCP infrastructure)
+
+# ---------------------------------------------------------------------------
+# WHY THIS EXISTS
+#
+# terraform/ was written to be run from a laptop, which assumes a laptop with
+# terraform and gcloud on it and credentials for the project. Running it here
+# instead reuses the Workload Identity Federation this repo already has — the
+# same auth the deploy workflow uses, no service account keys anywhere — so
+# the infrastructure can be created without installing or authorising anything
+# locally.
+#
+# STATE LIVES IN GCS, NOT ON A RUNNER
+#
+# A runner's disk is gone when the job ends. Terraform state on it would be
+# lost immediately, and lost state means resources nothing can manage: the
+# next run tries to create what already exists and fails. The bucket below is
+# created if missing (versioned, so a bad apply can be rolled back) and the
+# backend is configured at init time.
+#
+# This also fixes the same risk for local runs — state was previously a file
+# on one machine, holding the generated database password in plaintext.
+#
+# PLAN IS THE DEFAULT, AND IT COSTS NOTHING
+#
+# `plan` reads and reports. `apply` creates billable resources — Cloud SQL
+# above all — so it is never the default and never automatic. Read the plan
+# before running it.
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'plan reads only. apply creates billable resources.'
+        required: true
+        type: choice
+        default: plan
+        options:
+          - plan
+          - apply
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+
+jobs:
+  terraform:
+    name: terraform ${{ github.event.inputs.action }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Workload Identity Federation
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fail early if the project id is not set
+        run: |
+          if [ -z "$GCP_PROJECT_ID" ]; then
+            echo "::error::Repository variable GCP_PROJECT_ID is not set."
+            echo "Settings -> Secrets and variables -> Actions -> Variables."
+            exit 1
+          fi
+
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Ensure the state bucket exists
+        run: |
+          # Bucket names are globally unique, so the project id is part of it.
+          BUCKET="${GCP_PROJECT_ID}-appealy-tfstate"
+          if gcloud storage buckets describe "gs://${BUCKET}" >/dev/null 2>&1; then
+            echo "State bucket already exists: gs://${BUCKET}"
+          else
+            echo "Creating state bucket gs://${BUCKET}"
+            gcloud storage buckets create "gs://${BUCKET}" \
+              --project="${GCP_PROJECT_ID}" \
+              --location="${GCP_REGION}" \
+              --uniform-bucket-level-access
+            # Versioned on purpose: state is the only record of what exists,
+            # and an overwrite with no history is unrecoverable.
+            gcloud storage buckets update "gs://${BUCKET}" --versioning
+          fi
+          echo "TF_STATE_BUCKET=${BUCKET}" >> "$GITHUB_ENV"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="prefix=prod"
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        id: plan
+        run: |
+          terraform plan \
+            -var="project_id=${GCP_PROJECT_ID}" \
+            -var="region=${GCP_REGION}" \
+            -out=tfplan
+          echo "--- summary ---"
+          terraform show -no-color tfplan | tail -40
+
+      - name: Upload the plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ github.run_id }}
+          path: terraform/tfplan
+          retention-days: 14
+
+      # Applies the plan that was just shown, not a fresh one — so what runs is
+      # what was reviewed, and a change landing in between cannot slip in.
+      - name: Terraform apply
+        if: github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve tfplan
+
+      - name: Outputs
+        if: github.event.inputs.action == 'apply'
+        run: terraform output
