@@ -165,6 +165,22 @@ spec:
               value: info
             - name: BOT_INTERNAL_URL
               value: "http://127.0.0.1:9090"
+            # Where this deployment is reachable. Rendered from the
+            # PUBLIC_ORIGIN repository variable so moving to a real domain is a
+            # settings change, not a code change.
+            #
+            # DISCORD_REDIRECT_URI must match an entry in the Discord
+            # Developer Portal's OAuth2 redirect list character for character,
+            # or sign-in fails with an error that blames the redirect rather
+            # than the mismatch.
+            #
+            # FRONTEND_ORIGIN is optional in the app but defaults to
+            # http://localhost:5173 — without it every post-login redirect
+            # sends the user to their own machine.
+            - name: DISCORD_REDIRECT_URI
+              value: "PUBLIC_ORIGIN_VALUE/auth/discord/callback"
+            - name: FRONTEND_ORIGIN
+              value: "PUBLIC_ORIGIN_VALUE"
             # Guards the bot's control server. Still set even though the call
             # never leaves the instance — the server checks it unconditionally,
             # and an unauthenticated internal endpoint that happens to be
@@ -228,6 +244,12 @@ spec:
               valueFrom: { secretKeyRef: { name: appealy-discord-bot-token, key: latest } }
             - name: DISCORD_APPLICATION_ID
               valueFrom: { secretKeyRef: { name: appealy-discord-application-id, key: latest } }
+            # Required by bot/src/core/env.ts and missed when this container was
+            # written, because the bot verifies interaction signatures with it
+            # and that is easy to forget when listing "credentials the bot
+            # needs". Its absence is what failed the first revision.
+            - name: DISCORD_PUBLIC_KEY
+              valueFrom: { secretKeyRef: { name: appealy-discord-public-key, key: latest } }
             - name: TOKEN_ENCRYPTION_KEY
               valueFrom: { secretKeyRef: { name: appealy-token-encryption-key, key: latest } }
             - name: TEBEX_PROJECT_ID

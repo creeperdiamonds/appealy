@@ -28,6 +28,10 @@ env:
   # visible in the workflow log rather than masked — it is not a secret, and a
   # masked value here makes a connection failure much harder to read.
   CLOUDSQL_CONNECTION_NAME: ${{ vars.CLOUDSQL_CONNECTION_NAME }}
+  # The origin this deployment is reachable at. A repository variable so
+  # pointing it at a real domain later is a settings change; also not a secret,
+  # and masking a URL makes a redirect mismatch much harder to debug.
+  PUBLIC_ORIGIN: ${{ vars.PUBLIC_ORIGIN }}
   GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
   ARTIFACT_REGISTRY: ${{ vars.ARTIFACT_REGISTRY }}
 
