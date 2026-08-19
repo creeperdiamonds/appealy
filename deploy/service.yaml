@@ -58,12 +58,6 @@ spec:
         autoscaling.knative.dev/maxScale: "1"
         run.googleapis.com/cpu-throttling: "false"
         run.googleapis.com/startup-cpu-boost: "true"
-        # Mounts the Cloud SQL connector as a unix socket at
-        # /cloudsql/<connection-name>, reachable by every container in the
-        # instance. This is why the instance needs no authorized networks: the
-        # connector authenticates with IAM through Google's infrastructure
-        # rather than opening the database to an IP range.
-        run.googleapis.com/cloudsql-instances: CLOUDSQL_CONNECTION_NAME
     spec:
       # Runs as a dedicated identity holding exactly two roles:
       # cloudsql.client and secretmanager.secretAccessor.
@@ -80,8 +74,51 @@ spec:
       containerConcurrency: 80
       containers:
         # ------------------------------------------------------------------
-        # Ingress. The only container with a port, so it is what Cloud Run
-        # routes to; the other two are reachable only from inside the instance.
+        # Cloud SQL Auth Proxy.
+        #
+        # Here because postgres.js cannot reach a unix socket from a connection
+        # URL. Its host comes from the URL's hostname and the socket path is
+        # derived from that containing a "/", which no URL can express — the
+        # ?host= query parameter is read into options but never consulted for
+        # the host. Verified empirically: every socket-style URL produced
+        # path=false and host=["localhost"].
+        #
+        # Changing that would mean teaching three separate call sites (the API
+        # client, the bot client, and drizzle.config.ts) to pass an options
+        # object instead of a string. A proxy listening on TCP keeps
+        # DATABASE_URL an ordinary postgres:// string that works unchanged
+        # here, in CI, and on a laptop — the app stays portable and the
+        # awkwardness stays in the infrastructure where it belongs.
+        #
+        # It authenticates to Google with the service's own IAM identity, so
+        # the instance still needs no authorized networks and no password
+        # crosses the open internet.
+        # ------------------------------------------------------------------
+        - name: cloudsql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
+          args:
+            - "--port=5432"
+            # Without this the proxy binds 127.0.0.1 only, which is what we
+            # want — containers in an instance share the loopback interface.
+            - "--auto-iam-authn=false"
+            - "CLOUDSQL_CONNECTION_NAME"
+          # Nothing else may start before the database is reachable, or the API
+          # and bot spend their first seconds crash-looping on connection
+          # refused.
+          startupProbe:
+            tcpSocket:
+              port: 5432
+            periodSeconds: 2
+            failureThreshold: 30
+          resources:
+            limits:
+              cpu: "100m"
+              memory: 128Mi
+
+        # ------------------------------------------------------------------
+        # Ingress. The only container with a port exposed to Cloud Run, so it
+        # is what traffic routes to; the rest are reachable only from inside
+        # the instance.
         # ------------------------------------------------------------------
         - name: web
           image: IMAGE_WEB
@@ -101,7 +138,7 @@ spec:
               value: "169.254.169.254"
           resources:
             limits:
-              cpu: "250m"
+              cpu: "150m"
               memory: 256Mi
 
         # ------------------------------------------------------------------
@@ -206,9 +243,9 @@ spec:
       # always-allocated vCPUs billed around the clock, for a service with no
       # users yet.
       #
-      # 250m + 750m + 1 = 2 vCPU, and 256Mi + 768Mi + 1Gi = 2Gi. The bot keeps
-      # a full core because it is the only container doing continuous work; the
-      # other two are idle except when somebody loads a page.
+      # 100m + 150m + 750m + 1 = 2 vCPU. The bot keeps a full core because it
+      # is the only container doing continuous work; nginx and the proxy are
+      # near-idle, and the API is idle except when somebody loads a page.
       #
       # If the bill still looks wrong, halving these is the first thing to try
       # — at present traffic 1 vCPU total would very likely do.

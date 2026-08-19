@@ -111,24 +111,25 @@ jobs:
           # Google with this workflow's own IAM identity, so no password
           # crosses the open internet and no IP range has to be trusted.
           #
-          # It listens on the SAME unix socket path Cloud Run mounts
-          # (/cloudsql/<connection-name>), which means the single stored
-          # DATABASE_URL works unchanged here and in the containers. The
-          # alternative — a TCP port plus rewriting the URL's host — needs the
-          # connection string pulled apart and reassembled, and that breaks on
-          # any password containing @ or /.
-          curl -sSL -o cloud-sql-proxy             https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.1/cloud-sql-proxy.linux.amd64
+          # TCP on 5432, matching the proxy sidecar in deploy/service.yaml —
+          # so DATABASE_URL is one ordinary postgres:// string that works here,
+          # in the containers, and on a laptop.
+          #
+          # The socket approach was tried first and does not work: postgres.js
+          # takes its host from the URL's hostname and derives the socket path
+          # from that containing a "/", which a URL cannot express. ?host= is
+          # parsed into options but never consulted. Every socket-style URL
+          # came back with path=false.
+          curl -sSL -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.1/cloud-sql-proxy.linux.amd64
           chmod +x cloud-sql-proxy
-          sudo mkdir -p /cloudsql && sudo chown "$(id -u):$(id -g)" /cloudsql
-          ./cloud-sql-proxy --unix-socket /cloudsql "$CLOUDSQL_CONNECTION_NAME" &
+          ./cloud-sql-proxy --port 5432 "$CLOUDSQL_CONNECTION_NAME" &
           PROXY_PID=$!
           trap 'kill $PROXY_PID 2>/dev/null || true' EXIT
 
-          SOCK="/cloudsql/$CLOUDSQL_CONNECTION_NAME/.s.PGSQL.5432"
           for i in $(seq 1 30); do
-            if [ -S "$SOCK" ]; then break; fi
+            if (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null; then break; fi
             if [ "$i" = "30" ]; then
-              echo "::error::Cloud SQL proxy never created $SOCK"
+              echo "::error::Cloud SQL proxy never accepted a connection on 5432"
               exit 1
             fi
             sleep 1
