@@ -85,8 +85,8 @@ spec:
               value: "169.254.169.254"
           resources:
             limits:
-              cpu: "1"
-              memory: 512Mi
+              cpu: "250m"
+              memory: 256Mi
 
         # ------------------------------------------------------------------
         # API. No ports block — sidecars are not routable from outside.
@@ -141,8 +141,8 @@ spec:
               value: "TEBEX_WEBHOOK_SECRET_VALUE"
           resources:
             limits:
-              cpu: "1"
-              memory: 512Mi
+              cpu: "750m"
+              memory: 768Mi
 
         # ------------------------------------------------------------------
         # Bot. Holds the Discord gateway connection; see the scaling note above
@@ -181,3 +181,19 @@ spec:
             limits:
               cpu: "1"
               memory: 1Gi
+      # ------------------------------------------------------------------
+      # SIZING NOTE
+      #
+      # An instance's CPU is the SUM of its containers' limits, not the max —
+      # so the first version of this file, with cpu "1" on all three, asked for
+      # a 3 vCPU instance. With cpu-throttling off and minScale 1 that is three
+      # always-allocated vCPUs billed around the clock, for a service with no
+      # users yet.
+      #
+      # 250m + 750m + 1 = 2 vCPU, and 256Mi + 768Mi + 1Gi = 2Gi. The bot keeps
+      # a full core because it is the only container doing continuous work; the
+      # other two are idle except when somebody loads a page.
+      #
+      # If the bill still looks wrong, halving these is the first thing to try
+      # — at present traffic 1 vCPU total would very likely do.
+      # ------------------------------------------------------------------
