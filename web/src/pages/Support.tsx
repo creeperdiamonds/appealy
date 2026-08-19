@@ -31,6 +31,16 @@ interface SupportProps {
 
 const REPO = "https://github.com/creeperdiamonds/appealy";
 
+/**
+ * The project's community server.
+ *
+ * A constant rather than SUPPORT_URL, which is a different thing: that is set
+ * per deployment and answers "where does a banned user appeal", so a
+ * self-hoster points it at their own server. This is the Appealy community,
+ * the same for everyone, and belongs next to the repository link.
+ */
+const DISCORD = "https://discord.gg/UwBMug9JyX";
+
 export default function Support({
   guildId,
   guildName,
@@ -85,6 +95,17 @@ export default function Support({
       </Panel>
 
       <div className="support-grid">
+        <Panel title="Ask in Discord">
+          <p className="dim">
+            The quickest route for most questions, and the right one when you are not sure whether
+            what you are seeing is a bug or a setting. Other people running the same bot are in
+            there too, which is often faster than waiting on me.
+          </p>
+          <a className="btn btn-primary" href={DISCORD} target="_blank" rel="noreferrer">
+            Join the Discord
+          </a>
+        </Panel>
+
         <Panel title="Something is broken">
           <p className="dim">
             Open an issue. Include what you did, what happened, and the diagnostics below — those
