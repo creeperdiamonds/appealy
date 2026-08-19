@@ -186,9 +186,16 @@ jobs:
 
           # replace does not manage the invoker policy, and a service nobody
           # may call is not obviously different from one that is broken.
-          gcloud run services add-iam-policy-binding appealy \
-            --region "$GCP_REGION" --project "$GCP_PROJECT_ID" \
-            --member=allUsers --role=roles/run.invoker --quiet
+          # Non-fatal on purpose. The deploy account holds run.developer, which
+          # cannot set an IAM policy, and granting it run.admin so one
+          # idempotent call succeeds would widen its rights permanently. The
+          # binding persists across revisions, so failing after the first
+          # application means nothing — on the run that first succeeded, this
+          # step marked the whole deploy failed AFTER the service was live and
+          # serving traffic.
+          if ! gcloud run services add-iam-policy-binding appealy                  --region "$GCP_REGION" --project "$GCP_PROJECT_ID"                  --member=allUsers --role=roles/run.invoker --quiet 2>/dev/null; then
+            echo "::warning::Could not set the public invoker binding — expected if it is already set. Check the URL below responds."
+          fi
 
           echo "URL: $(gcloud run services describe appealy \
             --region "$GCP_REGION" --project "$GCP_PROJECT_ID" --format='value(status.url)')"
