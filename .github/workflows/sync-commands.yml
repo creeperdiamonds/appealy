@@ -67,23 +67,35 @@ jobs:
           # exactly the credentials the deployed bot runs on. Syncing commands
           # for a different application than the one serving them is a failure
           # that looks like "the commands did not appear".
+          # Emits ONLY the value on stdout. The first version echoed the
+          # ::add-mask:: directive here too, which $( ) captured along with the
+          # secret — so DATABASE_URL became the literal string
+          # "::add-mask::postgres://..." followed by a newline and the value
+          # again, and postgres.js rejected it as an invalid URL. The directive
+          # never reached the runner either, so nothing was masked.
+          #
+          # Masking therefore happens at the call site, after capture.
           fetch() {
-            if ! v="$(gcloud secrets versions access latest --secret="$1" --project="$P" 2>/dev/null)"; then
-              echo "::error::Cannot read $1. The deploy account needs roles/secretmanager.secretAccessor on it."
-              exit 1
+            if ! gcloud secrets versions access latest --secret="$1" --project="$P" 2>/dev/null; then
+              echo "::error::Cannot read $1. The deploy account needs roles/secretmanager.secretAccessor on it." >&2
+              return 1
             fi
-            echo "::add-mask::$v"
-            printf '%s' "$v"
           }
 
           DISCORD_BOT_TOKEN="$(fetch appealy-discord-bot-token)"
+          echo "::add-mask::$DISCORD_BOT_TOKEN"
           DISCORD_APPLICATION_ID="$(fetch appealy-discord-application-id)"
           DISCORD_PUBLIC_KEY="$(fetch appealy-discord-public-key)"
           # Required by bot/src/core/env.ts at import time. Nothing here
           # connects to it — postgres.js is lazy — but the env check runs
           # before any of that and refuses to start without one.
           DATABASE_URL="$(fetch appealy-database-url)"
-          export DISCORD_BOT_TOKEN DISCORD_APPLICATION_ID DISCORD_PUBLIC_KEY DATABASE_URL
+          echo "::add-mask::$DATABASE_URL"
+
+          # Otherwise resolveDeployment() infers "self" and logs guesswork on
+          # every run. Nothing here charges anybody; it just stops the noise.
+          DEPLOYMENT_MODE=platform
+          export DISCORD_BOT_TOKEN DISCORD_APPLICATION_ID DISCORD_PUBLIC_KEY DATABASE_URL DEPLOYMENT_MODE
 
           cd bot
           if [ -n "$GUILD_ID" ]; then
