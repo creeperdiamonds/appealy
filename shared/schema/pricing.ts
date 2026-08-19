@@ -209,7 +209,19 @@ export const MINIMUM_CHARGE_CENTS = 500; // $5.00
 // Custom bot hosting — flat annual fee, unrelated to throughput.
 // ---------------------------------------------------------------------------
 
-export const CUSTOM_BOT_HOSTING_USD_CENTS_PER_YEAR = 1_000; // $10.00/year
+// $30.00/year.
+//
+// Was $10, set before there was anything to host. Now that dedicated hosting
+// actually provisions something, the cost is knowable: a runner process holds
+// MAX_BOTS_PER_RUNNER clients (bot/src/core/dedicatedRunner.ts) on an
+// always-on instance costing roughly $84/year, so about $5.60 per bot.
+//
+// $10 would be a 44% margin on a feature carrying real operational surface —
+// runners to watch, customers' bot tokens to hold, and people who notice
+// within minutes when their own bot goes down. $30 covers that with room for
+// a runner sitting half-empty, which is the normal case at low volume and the
+// case a per-bot average quietly assumes away.
+export const CUSTOM_BOT_HOSTING_USD_CENTS_PER_YEAR = 3_000;
 
 export interface AnnualPrice {
   annualUsdCents: number;

@@ -33,6 +33,7 @@
 // hearing about it.
 
 import { useCallback, useEffect, useState } from "react";
+import { DedicatedBotPanel } from "../components/DedicatedBotPanel";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Stat, Pill } from "../components/ui";
 
@@ -404,6 +405,8 @@ export default function Billing({ guildId }: { guildId: string }) {
           </tbody>
         </table>
       </Panel>
+
+      <DedicatedBotPanel guildId={guildId} />
 
       <Panel title="Change plan">
         <label className="field">
