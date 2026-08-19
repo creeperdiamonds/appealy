@@ -272,9 +272,12 @@ jobs:
           # environment. The deploy account is granted secretAccessor on this
           # one secret and no other.
           DATABASE_URL=$(gcloud secrets versions access latest \
-            --secret=appealy-database-url --project="$GCP_PROJECT_ID")
+            --secret=appealy-database-url --project="$GCP_PROJECT_ID" 2>/dev/null || true)
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::appealy-database-url is empty. Add a version before deploying the API."
+            echo "::error::appealy-database-url has no value yet — the schema cannot be migrated."
+            echo "Add one with:"
+            echo "  echo -n 'postgres://...' | gcloud secrets versions add appealy-database-url --data-file=- --project=$GCP_PROJECT_ID"
+            echo "Or re-run with migrations=skip to deploy without touching the schema."
             exit 1
           fi
           # Masked explicitly. It was read at runtime rather than passed in as a

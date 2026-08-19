@@ -86,9 +86,17 @@ jobs:
             fi
             echo "::warning::Proceeding with destructive migrations at operator request."
           fi
-          DATABASE_URL=$(gcloud secrets versions access latest --secret=appealy-database-url --project="$GCP_PROJECT_ID")
+          # `|| true` because the useful failure is "no versions yet", and
+          # under bash -e gcloud's own non-zero exit kills the step before the
+          # check below can say anything helpful. That is exactly what happened
+          # on the first run: the operator got a raw NOT_FOUND stack instead of
+          # being told which secret to populate.
+          DATABASE_URL=$(gcloud secrets versions access latest             --secret=appealy-database-url --project="$GCP_PROJECT_ID" 2>/dev/null || true)
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::appealy-database-url is empty. Add a version first."
+            echo "::error::appealy-database-url has no value yet — the schema cannot be migrated."
+            echo "Add one with:"
+            echo "  echo -n 'postgres://...' | gcloud secrets versions add appealy-database-url --data-file=- --project=$GCP_PROJECT_ID"
+            echo "Or re-run with migrations=skip to deploy without touching the schema."
             exit 1
           fi
           echo "::add-mask::$DATABASE_URL"
