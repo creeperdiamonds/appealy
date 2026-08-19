@@ -92,9 +92,15 @@ jobs:
           DATABASE_URL="$(fetch appealy-database-url)"
           echo "::add-mask::$DATABASE_URL"
 
-          # Otherwise resolveDeployment() infers "self" and logs guesswork on
-          # every run. Nothing here charges anybody; it just stops the noise.
-          DEPLOYMENT_MODE=platform
+          # "self", not "platform". Platform mode requires a billing source and
+          # this task has no Tebex credentials, so asking for it fails at
+          # startup — which is how the first attempt broke, chasing a log line
+          # that was only noise.
+          #
+          # Safe because command definitions do not vary by deployment mode:
+          # the same seventeen are registered either way. This only stops
+          # resolveDeployment() announcing that it guessed.
+          DEPLOYMENT_MODE=self
           export DISCORD_BOT_TOKEN DISCORD_APPLICATION_ID DISCORD_PUBLIC_KEY DATABASE_URL DEPLOYMENT_MODE
 
           cd bot
