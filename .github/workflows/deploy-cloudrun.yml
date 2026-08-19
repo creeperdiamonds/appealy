@@ -37,6 +37,15 @@ on:
           - api
           - web
           - bot
+      migrations:
+        description: 'apply runs pending migrations before deploying. skip leaves the schema alone. allow-destructive permits DROP/TRUNCATE — read the plan first.'
+        required: false
+        type: choice
+        default: apply
+        options:
+          - apply
+          - skip
+          - allow-destructive
       vite_api_url:
         description: '(Web only) Leave EMPTY — the console proxies the API on its own origin'
         required: false
@@ -104,6 +113,16 @@ jobs:
             echo "The third is in the settings of the webhook endpoint itself."
             exit 1
           fi
+
+      # Only the migrate step needs it — the services themselves are built
+      # inside Docker, which brings its own runtime.
+      - name: Set up Node
+        if: github.event.inputs.service == 'api' && github.event.inputs.migrations != 'skip'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
 
       - name: Authorize Docker push
         run: gcloud auth configure-docker $(echo ${{ env.ARTIFACT_REGISTRY }} | cut -d'/' -f1) --quiet
@@ -206,6 +225,66 @@ jobs:
         run: |
           docker push ${{ steps.prep.outputs.image_name }}:${{ github.sha }}
           docker push ${{ steps.prep.outputs.image_name }}:latest
+
+      # Migrations run BEFORE the new container is live, which is correct for
+      # additive changes — a new nullable column or table exists by the time
+      # anything queries it, and the old container is unaffected because it
+      # never mentions them.
+      #
+      # It is the WRONG order for a destructive change. Dropping a column the
+      # currently-running code still selects breaks the old revision during the
+      # overlap, before the new one takes traffic. That is why destructive
+      # migrations are refused here rather than merely warned about: the safe
+      # sequence for them is deploy-then-migrate, run deliberately, not folded
+      # into a push.
+      #
+      # Nothing ran migrations before this existed — not the workflow, not the
+      # API at startup. A push that added a column deployed happily and then
+      # threw SQL errors at runtime, because deploying and migrating are
+      # different things and only one of them was automated.
+      - name: Apply database migrations
+        if: github.event.inputs.service == 'api' && github.event.inputs.migrations != 'skip'
+        working-directory: api
+        run: |
+          set -eu
+
+          # Scan the SQL rather than trusting the operator to remember. drizzle
+          # skips migrations already applied, so a file listed here may well be
+          # historical — the point is that a destructive statement exists in the
+          # set at all, which is worth a human reading the plan.
+          DESTRUCTIVE=$(grep -rilE 'drop[[:space:]]+(table|column)|truncate|alter[[:space:]]+table[^;]*drop' ../db/migrations/*.sql || true)
+
+          if [ -n "$DESTRUCTIVE" ]; then
+            if [ "${{ github.event.inputs.migrations }}" != "allow-destructive" ]; then
+              echo "::error::Destructive statements found. Re-run with migrations=allow-destructive once you have read them, or migrations=skip to deploy without touching the schema."
+              echo "Files:"
+              echo "$DESTRUCTIVE" | sed 's/^/  /'
+              echo
+              echo "For a destructive change the safe order is deploy first, then migrate —"
+              echo "otherwise the running revision queries a column that is already gone."
+              exit 1
+            fi
+            echo "::warning::Proceeding with destructive migrations at operator request."
+          fi
+
+          # Read here rather than mounting it: this runs on the runner, not in
+          # the container, so it needs the connection string in its own
+          # environment. The deploy account is granted secretAccessor on this
+          # one secret and no other.
+          DATABASE_URL=$(gcloud secrets versions access latest \
+            --secret=appealy-database-url --project="$GCP_PROJECT_ID")
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::appealy-database-url is empty. Add a version before deploying the API."
+            exit 1
+          fi
+          # Masked explicitly. It was read at runtime rather than passed in as a
+          # ${{ secrets.* }} expression, so Actions has never seen the value and
+          # does not know to redact it from anything printed later.
+          echo "::add-mask::$DATABASE_URL"
+          export DATABASE_URL
+
+          npm ci --omit=optional
+          npm run db:migrate
 
       - name: Deploy to Cloud Run
         id: deploy   # needed for steps.deploy.outputs.url below
