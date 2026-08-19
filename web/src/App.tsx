@@ -31,6 +31,7 @@ import Polls from "./pages/Polls";
 import QuickResponses from "./pages/QuickResponses";
 import StaffPermissions from "./pages/StaffPermissions";
 import Billing from "./pages/Billing";
+import Support from "./pages/Support";
 import AntiRaid from "./pages/AntiRaid";
 
 type View =
@@ -51,6 +52,7 @@ type View =
   | "polls"
   | "staff"
   | "billing"
+  | "support"
   | "ops-appeals";
 
 /**
@@ -66,6 +68,59 @@ type View =
  * self or test mode, and a tab that 404s is worse than one that is absent.
  */
 type FeatureKey = "billing" | "tieredRateLimits" | "bans";
+
+/**
+ * One glyph per nav entry.
+ *
+ * Nineteen rows of plain text is a wall — you read it top to bottom every
+ * time because nothing about "Panels" looks different from "Polls" at a
+ * glance, and they sit four rows apart. An icon gives each row a shape the
+ * eye can aim at, which is the difference between scanning and re-reading.
+ *
+ * Inline paths on a shared 24x24 grid, stroked with currentColor so they take
+ * the row's colour in every state without a second rule. No icon library: this
+ * is nineteen shapes, and a dependency for that would ship a few thousand
+ * more, plus a build step, plus a version to keep current.
+ */
+const ICONS: Record<View, string> = {
+  overview: "M3 13h6v8H3zM9 3h6v18H9zM15 9h6v12h-6z",
+  submissions: "M4 4h11l5 5v11H4zM15 4v5h5M8 13h8M8 17h5",
+  operations: "M12 8v4l3 2M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0",
+  forms: "M5 3h14v18H5zM9 8h6M9 12h6M9 16h3",
+  panels: "M3 5h18v14H3zM3 10h18M7 14h6",
+  appeals: "M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7zM9 12l2 2 4-4",
+  tickets: "M3 8h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4zM12 8v8",
+  "quick-responses": "M4 4h16v11H8l-4 4zM8 9h8",
+  verification: "M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z",
+  "anti-raid": "M12 2l9 5v6c0 5-4 9-9 10-5-1-9-5-9-10V7zM12 8v4M12 16h.01",
+  welcomer: "M15 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6",
+  "role-menus": "M4 6h16M4 12h16M4 18h16M8 4v4M14 10v4M10 16v4",
+  sticky: "M5 3h14v13l-7 5-7-5zM9 8h6",
+  giveaways: "M3 9h18v11H3zM3 9l2-5h14l2 5M12 4v16M8 4a2 2 0 1 1 4 2M16 4a2 2 0 1 0-4 2",
+  polls: "M6 20V10M12 20V4M18 20v-7",
+  staff: "M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9.5 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8M18 7l2 2 3-3",
+  billing: "M3 6h18v12H3zM3 10h18M7 15h4",
+  support: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01",
+  "ops-appeals": "M12 3l9 5v6c0 5-4 9-9 10-5-1-9-5-9-10V8zM9 12l2 2 4-4",
+};
+
+/** Icons are decoration next to a text label, so they are hidden from AT. */
+function NavIcon({ view }: { view: View }) {
+  return (
+    <svg
+      className="nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={ICONS[view]} />
+    </svg>
+  );
+}
 
 const NAV_GROUPS: {
   group: string;
@@ -111,6 +166,12 @@ const NAV_GROUPS: {
     items: [
       { id: "staff", label: "Staff access", hint: "Review rights without Administrator" },
       { id: "billing", label: "Billing", hint: "Plan, caps, and renewal", needs: "billing" },
+      // Last, and in Administration rather than the Support group above —
+      // that group is support you PROVIDE to your members (tickets, quick
+      // responses). This is support you RECEIVE. Same word, opposite
+      // direction, and putting them together would be a small daily
+      // confusion for whoever is looking for the other one.
+      { id: "support", label: "Help & support", hint: "Report a problem, check status, diagnostics" },
     ],
   },
 ];
@@ -312,6 +373,7 @@ export default function App() {
                     onClick={() => setView(item.id)}
                     title={item.hint}
                   >
+                    <NavIcon view={item.id} />
                     {item.label}
                   </button>
                 ))}
@@ -326,13 +388,14 @@ export default function App() {
                 aria-current={view === "ops-appeals" ? "page" : undefined}
                 onClick={() => setView("ops-appeals")}
               >
+                <NavIcon view="ops-appeals" />
                 Appeal queue
               </button>
             </>
           )}
         </nav>
 
-        <div style={{ marginTop: "auto", padding: "0 8px" }}>
+        <div className="rail-foot">
           <button
             className="nav-item"
             onClick={() => api.logout().then(() => window.location.reload())}
@@ -374,7 +437,7 @@ export default function App() {
             <span className="dim">Loading servers…</span>
           )}
 
-          <span style={{ marginLeft: "auto" }} className="eyebrow">
+          <span className="eyebrow topbar-hint">
             {NAV_GROUPS.flatMap((g) => g.items).find((n) => n.id === view)?.hint}
           </span>
         </header>
@@ -453,6 +516,20 @@ export default function App() {
               {guildId && view === "billing" && <Billing guildId={guildId} />}
             </>
           )}
+          {view === "support" && config && (
+            <Support
+              guildId={guildId}
+              guildName={active?.name}
+              installed={active?.installed}
+              access={active?.access}
+              mode={config.mode}
+              brandName={config.brandName}
+              supportUrl={config.supportUrl}
+              billingEnabled={config.features?.billing !== false}
+              onOpenBilling={() => setView("billing")}
+            />
+          )}
+
           {view === "ops-appeals" && <OpsAppeals />}
         </main>
       </div>

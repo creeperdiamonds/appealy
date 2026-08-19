@@ -154,23 +154,31 @@ button {
 }
 
 .rail {
-  background: var(--surface);
+  /* A hair darker than --surface at the top, settling into it further down.
+   * The rail and the content area were the same weight, so the eye had only
+   * a 1px line telling it where navigation stopped and the page began. */
+  background: linear-gradient(180deg, #131a28 0%, var(--surface) 220px);
   border-right: 1px solid var(--line-soft);
-  padding: 20px 14px;
+  padding: 20px 12px 12px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 18px;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  /* Firefox; the ::-webkit rules below cover the rest. A rail that gains a
+   * bright scrollbar at nineteen items undoes the calm it is going for. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
 
 .brand {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 0 8px;
+  padding: 0 8px 16px;
+  border-bottom: 1px solid var(--line-soft);
 }
 .brand-name {
   font-family: var(--display);
@@ -190,14 +198,24 @@ button {
   gap: 1px;
 }
 .nav-group {
-  padding: 14px 8px 6px;
+  padding: 16px 10px 6px;
+  /* Was the same muted grey as an inactive row, so the headings read as
+   * disabled items rather than as labels for the group beneath. */
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+}
+/* The first group sits directly under the brand rule and does not need to be
+ * pushed away from it a second time. */
+.nav > div:first-child .nav-group {
+  padding-top: 4px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-radius: var(--r-sm);
   color: var(--text-dim);
   font-size: 13px;
@@ -206,16 +224,57 @@ button {
   background: none;
   width: 100%;
   text-align: left;
+  position: relative;
   transition: background 120ms ease, color 120ms ease;
 }
 .nav-item:hover {
   background: var(--raised);
   color: var(--text);
 }
+.nav-item:hover .nav-icon {
+  color: var(--text-dim);
+}
+
+/* Active row.
+ *
+ * The marker was an inset box-shadow, which sat flush against the rounded
+ * corner and read as a rendering artefact at the top and bottom of the pill.
+ * A real element can be inset vertically so it reads as a deliberate marker. */
 .nav-item[aria-current="page"] {
   background: var(--accent-soft);
   color: var(--text);
-  box-shadow: inset 2px 0 0 var(--accent);
+  font-weight: 600;
+}
+.nav-item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+}
+.nav-item[aria-current="page"] .nav-icon {
+  color: var(--accent);
+}
+
+/* Dimmer than the label by default, so nineteen icons read as texture rather
+ * than as nineteen things competing with the words next to them. */
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--text-muted);
+  transition: color 120ms ease;
+}
+
+/* Sign out, pinned to the bottom. Was positioned with an inline style and no
+ * separation from the last nav group, so it looked like another destination. */
+.rail-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
 }
 .nav-badge {
   margin-left: auto;
@@ -254,6 +313,20 @@ button {
   gap: 20px;
   max-width: 1240px;
   width: 100%;
+}
+
+/* The hint the top bar shows for the current screen. Right-aligned and quiet:
+ * it is orientation, not instruction, and it should never compete with the
+ * server selector on the same row. */
+.topbar-hint {
+  margin-left: auto;
+  color: var(--text-muted);
+  text-align: right;
+}
+@media (max-width: 720px) {
+  .topbar-hint {
+    display: none;
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -868,3 +941,42 @@ input.input {
 .role-warn { margin-left: auto; font-size: .6875rem; color: var(--watch, #ffb84d); flex: none; }
 .role-check { margin-left: auto; color: var(--accent); flex: none; }
 .role-option.is-selected .role-warn + .role-check { margin-left: .5rem; }
+
+
+/* ------------------------------------------------------------------ *
+ * Support
+ * ------------------------------------------------------------------ */
+
+/* auto-fit rather than a fixed column count: the billing card is absent in
+ * self-hosted mode, and a fixed grid leaves a hole where it would have been. */
+.support-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.support-grid .panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Pushes the action to the bottom so buttons line up across cards whose text
+ * runs to different lengths. */
+.support-grid .panel > :last-child {
+  margin-top: auto;
+}
+
+.diagnostics {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--ink);
+  border: 1px solid var(--line-soft);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-dim);
+  /* It is meant to be selected and pasted. Wrapping a long user-agent beats
+   * a horizontal scrollbar that hides half of what you are copying. */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
