@@ -98,8 +98,19 @@ spec:
           image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
           args:
             - "--port=5432"
-            # Without this the proxy binds 127.0.0.1 only, which is what we
-            # want — containers in an instance share the loopback interface.
+            # 0.0.0.0, not the 127.0.0.1 default.
+            #
+            # The default is what failed the second revision. The proxy was
+            # working — it logged an accepted connection — but Cloud Run's
+            # startup probe does not reach a loopback-only listener, so the
+            # probe failed thirty times and the instance was never started. A
+            # health check that cannot see a healthy process reports the
+            # opposite of the truth.
+            #
+            # This does not expose anything: only the ingress container's port
+            # is routable from outside a Cloud Run instance, so binding all
+            # interfaces still means "reachable by the other three containers".
+            - "--address=0.0.0.0"
             - "--auto-iam-authn=false"
             - "CLOUDSQL_CONNECTION_NAME"
           # Nothing else may start before the database is reachable, or the API
