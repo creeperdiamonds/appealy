@@ -1,0 +1,183 @@
+# deploy/service.yaml
+#
+# One Cloud Run service running the whole product: nginx as the ingress
+# container, the API and the bot alongside it as sidecars.
+#
+# WHY ONE SERVICE
+#
+# Everything talks over localhost, because containers in a Cloud Run service
+# share a network namespace. That removes real machinery rather than just
+# moving it:
+#
+#   nginx -> api    was a proxy_pass to a *.run.app URL, which needed a runtime
+#                   DNS resolver, proxy_ssl_server_name for SNI, and a Host
+#                   header rewritten to $proxy_host. Now it is 127.0.0.1:3001.
+#   api   -> bot    was an HTTP call to BOT_INTERNAL_URL guarded by a shared
+#                   secret crossing the network. Now it is 127.0.0.1:9090.
+#
+# It also fixes the class of bug that produced the /webhooks 404: a prefix
+# missing from nginx's proxy list only mattered because the API lived somewhere
+# else.
+#
+# THE SCALING CONSTRAINT IS NOT OPTIONAL
+#
+# maxScale is 1 and cpu-throttling is off, and both are load-bearing because
+# the bot is in here:
+#
+#   maxScale=1        Cloud Run adds instances in response to HTTP traffic. A
+#                     second instance means a second Discord gateway connection
+#                     on the same token, and every event handled twice — two
+#                     role grants, two DMs, two accepted appeals. Someone
+#                     loading the pricing page must not be able to cause that.
+#   cpu-throttling    Outside request handling Cloud Run throttles CPU to
+#     = false         near zero. A gateway connection needs CPU for heartbeats;
+#                     throttled, Discord drops it.
+#   minScale=1        Nothing to serve the gateway if the instance is gone.
+#
+# The cost of that is continuous CPU billing, which is the trade being made
+# deliberately. Watch the actual bill for a few days rather than trusting an
+# estimate — Cloud Run bills per second, so this is cheap to be wrong about.
+#
+# THE CONSEQUENCE TO KNOW
+#
+# maxScale=1 means the API cannot scale out. At present traffic that is
+# irrelevant; if the dashboard ever gets busy, the honest fix is to move the
+# bot to its own host and lift the cap, not to raise maxScale and hope.
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: appealy
+  labels:
+    managed-by: github-actions
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "1"
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      # Generous, because three containers share it. The bot is the one that
+      # actually needs headroom — a large guild's member cache is not small.
+      containerConcurrency: 80
+      containers:
+        # ------------------------------------------------------------------
+        # Ingress. The only container with a port, so it is what Cloud Run
+        # routes to; the other two are reachable only from inside the instance.
+        # ------------------------------------------------------------------
+        - name: web
+          image: IMAGE_WEB
+          ports:
+            - name: http1
+              containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            # Was a *.run.app URL. Same instance now.
+            - name: API_ORIGIN
+              value: "http://127.0.0.1:3001"
+            # nginx.conf resolves proxy targets at request time, which needs a
+            # resolver when the target is a hostname. 127.0.0.1 is not, but the
+            # directive is still parsed, so it is given something valid.
+            - name: DNS_RESOLVER
+              value: "169.254.169.254"
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+
+        # ------------------------------------------------------------------
+        # API. No ports block — sidecars are not routable from outside.
+        # ------------------------------------------------------------------
+        - name: api
+          image: IMAGE_API
+          env:
+            - name: PORT
+              value: "3001"
+            - name: NODE_ENV
+              value: production
+            - name: APPEALY_ENV
+              value: production
+            - name: DEPLOYMENT_MODE
+              value: platform
+            - name: LOG_LEVEL
+              value: info
+            - name: BOT_INTERNAL_URL
+              value: "http://127.0.0.1:9090"
+            # Guards the bot's control server. Still set even though the call
+            # never leaves the instance — the server checks it unconditionally,
+            # and an unauthenticated internal endpoint that happens to be
+            # unreachable today is a bad thing to leave lying around.
+            - name: INTERNAL_RPC_SECRET
+              value: "INTERNAL_RPC_SECRET_VALUE"
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: appealy-database-url, key: latest } }
+            - name: REDIS_URL
+              valueFrom: { secretKeyRef: { name: appealy-redis-url, key: latest } }
+            - name: DISCORD_BOT_TOKEN
+              valueFrom: { secretKeyRef: { name: appealy-discord-bot-token, key: latest } }
+            - name: DISCORD_APPLICATION_ID
+              valueFrom: { secretKeyRef: { name: appealy-discord-application-id, key: latest } }
+            - name: DISCORD_PUBLIC_KEY
+              valueFrom: { secretKeyRef: { name: appealy-discord-public-key, key: latest } }
+            - name: DISCORD_CLIENT_ID
+              valueFrom: { secretKeyRef: { name: appealy-discord-client-id, key: latest } }
+            - name: DISCORD_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: appealy-discord-client-secret, key: latest } }
+            - name: SESSION_SECRET
+              valueFrom: { secretKeyRef: { name: appealy-session-secret, key: latest } }
+            - name: TOKEN_ENCRYPTION_KEY
+              valueFrom: { secretKeyRef: { name: appealy-token-encryption-key, key: latest } }
+            - name: OPS_USER_IDS
+              valueFrom: { secretKeyRef: { name: appealy-ops-user-ids, key: latest } }
+            # Substituted at deploy time from GitHub secrets. See the workflow.
+            - name: TEBEX_PROJECT_ID
+              value: "TEBEX_PROJECT_ID_VALUE"
+            - name: TEBEX_PRIVATE_KEY
+              value: "TEBEX_PRIVATE_KEY_VALUE"
+            - name: TEBEX_WEBHOOK_SECRET
+              value: "TEBEX_WEBHOOK_SECRET_VALUE"
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+
+        # ------------------------------------------------------------------
+        # Bot. Holds the Discord gateway connection; see the scaling note above
+        # for why this container is the reason maxScale is pinned.
+        # ------------------------------------------------------------------
+        - name: bot
+          image: IMAGE_BOT
+          env:
+            - name: BOT_INTERNAL_PORT
+              value: "9090"
+            - name: APPEALY_ENV
+              value: production
+            - name: DEPLOYMENT_MODE
+              value: platform
+            - name: LOG_LEVEL
+              value: info
+            - name: INTERNAL_RPC_SECRET
+              value: "INTERNAL_RPC_SECRET_VALUE"
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: appealy-database-url, key: latest } }
+            - name: REDIS_URL
+              valueFrom: { secretKeyRef: { name: appealy-redis-url, key: latest } }
+            - name: DISCORD_BOT_TOKEN
+              valueFrom: { secretKeyRef: { name: appealy-discord-bot-token, key: latest } }
+            - name: DISCORD_APPLICATION_ID
+              valueFrom: { secretKeyRef: { name: appealy-discord-application-id, key: latest } }
+            - name: TOKEN_ENCRYPTION_KEY
+              valueFrom: { secretKeyRef: { name: appealy-token-encryption-key, key: latest } }
+            - name: TEBEX_PROJECT_ID
+              value: "TEBEX_PROJECT_ID_VALUE"
+            - name: TEBEX_PRIVATE_KEY
+              value: "TEBEX_PRIVATE_KEY_VALUE"
+            - name: TEBEX_WEBHOOK_SECRET
+              value: "TEBEX_WEBHOOK_SECRET_VALUE"
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi

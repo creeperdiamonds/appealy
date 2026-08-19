@@ -1,0 +1,147 @@
+name: Deploy (single service)
+
+# ---------------------------------------------------------------------------
+# Builds all three images and deploys them as ONE Cloud Run service, with
+# nginx as the ingress container and the API and bot alongside it.
+#
+# Deliberately a separate workflow rather than a rewrite of
+# deploy-cloudrun.yml. That one works and is the fallback; this one is the
+# change being tried. Once this has run happily for a while, delete the other.
+#
+# The reasoning for one service, and for why maxScale is pinned to 1, is in
+# deploy/service.yaml next to the settings themselves.
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    inputs:
+      migrations:
+        description: 'apply runs pending migrations first. skip leaves the schema alone. allow-destructive permits DROP/TRUNCATE.'
+        required: true
+        type: choice
+        default: apply
+        options: [apply, skip, allow-destructive]
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  ARTIFACT_REGISTRY: ${{ vars.ARTIFACT_REGISTRY }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail early if billing credentials are missing
+        env:
+          A: ${{ secrets.TEBEX_PROJECT_ID }}
+          B: ${{ secrets.TEBEX_PRIVATE_KEY }}
+          C: ${{ secrets.TEBEX_WEBHOOK_SECRET }}
+        run: |
+          missing=""
+          if [ -z "$A" ]; then missing="$missing TEBEX_PROJECT_ID"; fi
+          if [ -z "$B" ]; then missing="$missing TEBEX_PRIVATE_KEY"; fi
+          if [ -z "$C" ]; then missing="$missing TEBEX_WEBHOOK_SECRET"; fi
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            echo "DEPLOYMENT_MODE=platform needs a billing source, so the containers"
+            echo "would build, deploy, and then fail to start."
+            exit 1
+          fi
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Node
+        if: github.event.inputs.migrations != 'skip'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      # Same reasoning as deploy-cloudrun.yml: additive changes must land
+      # before the new revision serves, destructive ones are refused because
+      # the safe order for those is deploy-then-migrate, done deliberately.
+      - name: Apply database migrations
+        if: github.event.inputs.migrations != 'skip'
+        working-directory: api
+        run: |
+          set -eu
+          DESTRUCTIVE=$(grep -rilE 'drop[[:space:]]+(table|column)|truncate|alter[[:space:]]+table[^;]*drop' ../db/migrations/*.sql || true)
+          if [ -n "$DESTRUCTIVE" ]; then
+            if [ "${{ github.event.inputs.migrations }}" != "allow-destructive" ]; then
+              echo "::error::Destructive statements found. Re-run with migrations=allow-destructive after reading them, or skip."
+              echo "$DESTRUCTIVE" | sed 's/^/  /'
+              exit 1
+            fi
+            echo "::warning::Proceeding with destructive migrations at operator request."
+          fi
+          DATABASE_URL=$(gcloud secrets versions access latest --secret=appealy-database-url --project="$GCP_PROJECT_ID")
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::appealy-database-url is empty. Add a version first."
+            exit 1
+          fi
+          echo "::add-mask::$DATABASE_URL"
+          export DATABASE_URL
+          npm ci --omit=optional
+          npm run db:migrate
+
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker "$(echo "$ARTIFACT_REGISTRY" | cut -d'/' -f1)" --quiet
+
+      # All three, tagged with the same commit. A single service holding
+      # containers from different commits would be a genuinely confusing thing
+      # to debug.
+      - name: Build and push all three images
+        run: |
+          set -eu
+          SHA="${{ github.sha }}"
+          for svc in api web bot; do
+            IMAGE="$ARTIFACT_REGISTRY/appealy-$svc:$SHA"
+            echo "::group::build $svc"
+            docker build -f "$svc/Dockerfile" -t "$IMAGE" .
+            docker push "$IMAGE"
+            echo "::endgroup::"
+          done
+
+      - name: Render the service spec
+        env:
+          SHA: ${{ github.sha }}
+          TEBEX_PROJECT_ID: ${{ secrets.TEBEX_PROJECT_ID }}
+          TEBEX_PRIVATE_KEY: ${{ secrets.TEBEX_PRIVATE_KEY }}
+          TEBEX_WEBHOOK_SECRET: ${{ secrets.TEBEX_WEBHOOK_SECRET }}
+        run: |
+          set -eu
+          # Generated per deploy rather than stored. It only has to agree
+          # between two containers in the same instance, and a value that lives
+          # for one revision is one less credential to rotate or leak.
+          RPC_SECRET="$(openssl rand -hex 32)"
+          echo "::add-mask::$RPC_SECRET"
+          export RPC_SECRET
+          python3 scripts/render-service.py > rendered-service.yaml
+          echo "Rendered $(grep -c 'image:' rendered-service.yaml) container images."
+
+      - name: Deploy
+        run: |
+          set -eu
+          gcloud run services replace rendered-service.yaml \
+            --region "$GCP_REGION" --project "$GCP_PROJECT_ID"
+
+          # replace does not manage the invoker policy, and a service nobody
+          # may call is not obviously different from one that is broken.
+          gcloud run services add-iam-policy-binding appealy \
+            --region "$GCP_REGION" --project "$GCP_PROJECT_ID" \
+            --member=allUsers --role=roles/run.invoker --quiet
+
+          echo "URL: $(gcloud run services describe appealy \
+            --region "$GCP_REGION" --project "$GCP_PROJECT_ID" --format='value(status.url)')"
