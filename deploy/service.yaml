@@ -126,8 +126,14 @@ spec:
             - name: http1
               containerPort: 8080
           env:
-            - name: PORT
-              value: "8080"
+            # PORT is deliberately absent. Cloud Run injects it into the
+            # INGRESS container automatically, from containerPort above, and
+            # rejects the deployment outright if the spec also sets it. nginx
+            # still gets it — web/nginx.conf reads ${PORT} at container start
+            # and Cloud Run has already put it there.
+            #
+            # The API sidecar below does set PORT, and that is fine: Cloud Run
+            # only reserves it for the container it routes traffic to.
             # Was a *.run.app URL. Same instance now.
             - name: API_ORIGIN
               value: "http://127.0.0.1:3001"
