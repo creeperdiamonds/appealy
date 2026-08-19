@@ -29,6 +29,7 @@ REQUIRED = [
     "TEBEX_PRIVATE_KEY",
     "TEBEX_WEBHOOK_SECRET",
     "RPC_SECRET",
+    "CLOUDSQL_CONNECTION_NAME",
 ]
 
 missing = [k for k in REQUIRED if not os.environ.get(k)]
@@ -48,8 +49,9 @@ for var in ("TEBEX_PROJECT_ID", "TEBEX_PRIVATE_KEY", "TEBEX_WEBHOOK_SECRET"):
     spec = spec.replace(var + "_VALUE", os.environ[var])
 
 spec = spec.replace("INTERNAL_RPC_SECRET_VALUE", os.environ["RPC_SECRET"])
+spec = spec.replace("CLOUDSQL_CONNECTION_NAME", os.environ["CLOUDSQL_CONNECTION_NAME"])
 
-left = re.findall(r"IMAGE_[A-Z]+|[A-Z_]+_VALUE", spec)
+left = re.findall(r"IMAGE_[A-Z]+|[A-Z_]+_VALUE|CLOUDSQL_CONNECTION_NAME", spec)
 if left:
     sys.exit("unrendered placeholder(s): %s" % ", ".join(sorted(set(left))))
 

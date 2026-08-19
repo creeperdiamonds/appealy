@@ -58,6 +58,12 @@ spec:
         autoscaling.knative.dev/maxScale: "1"
         run.googleapis.com/cpu-throttling: "false"
         run.googleapis.com/startup-cpu-boost: "true"
+        # Mounts the Cloud SQL connector as a unix socket at
+        # /cloudsql/<connection-name>, reachable by every container in the
+        # instance. This is why the instance needs no authorized networks: the
+        # connector authenticates with IAM through Google's infrastructure
+        # rather than opening the database to an IP range.
+        run.googleapis.com/cloudsql-instances: CLOUDSQL_CONNECTION_NAME
     spec:
       # Generous, because three containers share it. The bot is the one that
       # actually needs headroom — a large guild's member cache is not small.
