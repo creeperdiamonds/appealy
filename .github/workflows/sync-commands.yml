@@ -1,0 +1,95 @@
+name: Sync slash commands
+
+# ---------------------------------------------------------------------------
+# Registers the bot's slash commands with Discord.
+#
+# WHY THIS IS A WORKFLOW AND NOT PART OF THE DEPLOY
+#
+# bot/src/tasks/syncCommands.ts explains the reasoning and it is worth not
+# undoing: Discord caps global command creates at 200 per day per application.
+# Syncing on every boot spends that budget on crash-loops, rolling deploys and
+# replica restarts — and once it is gone you cannot update commands until the
+# window resets, which is exactly the day you will need to.
+#
+# So it runs when someone asks, and only then. Attaching it to the deploy would
+# reintroduce the same problem one level up, since a deploy is also something
+# that can be retried in a loop.
+#
+# WHEN TO RUN IT
+#
+# After changing anything in bot/src/commands/ — a new command, a renamed
+# option, an edited description. Not otherwise; nothing about a normal deploy
+# changes what Discord has.
+#
+# GLOBAL COMMANDS TAKE UP TO AN HOUR TO APPEAR. That is Discord's propagation,
+# after the call returns, and no amount of waiting here affects it. Pass a
+# guild id to register instantly in one server while testing.
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    inputs:
+      guild_id:
+        description: 'Optional. A guild id registers there instantly, for testing. Empty registers globally (up to 1 hour to appear).'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Register commands
+        env:
+          P: ${{ vars.GCP_PROJECT_ID }}
+          GUILD_ID: ${{ github.event.inputs.guild_id }}
+        run: |
+          set -eu
+
+          # Read from Secret Manager rather than GitHub secrets, so this uses
+          # exactly the credentials the deployed bot runs on. Syncing commands
+          # for a different application than the one serving them is a failure
+          # that looks like "the commands did not appear".
+          fetch() {
+            if ! v="$(gcloud secrets versions access latest --secret="$1" --project="$P" 2>/dev/null)"; then
+              echo "::error::Cannot read $1. The deploy account needs roles/secretmanager.secretAccessor on it."
+              exit 1
+            fi
+            echo "::add-mask::$v"
+            printf '%s' "$v"
+          }
+
+          DISCORD_BOT_TOKEN="$(fetch appealy-discord-bot-token)"
+          DISCORD_APPLICATION_ID="$(fetch appealy-discord-application-id)"
+          DISCORD_PUBLIC_KEY="$(fetch appealy-discord-public-key)"
+          # Required by bot/src/core/env.ts at import time. Nothing here
+          # connects to it — postgres.js is lazy — but the env check runs
+          # before any of that and refuses to start without one.
+          DATABASE_URL="$(fetch appealy-database-url)"
+          export DISCORD_BOT_TOKEN DISCORD_APPLICATION_ID DISCORD_PUBLIC_KEY DATABASE_URL
+
+          cd bot
+          if [ -n "$GUILD_ID" ]; then
+            echo "Registering to guild $GUILD_ID (instant)."
+            deno task sync-commands "$GUILD_ID"
+          else
+            echo "Registering globally. Discord takes up to an hour to propagate."
+            deno task sync-commands
+          fi
