@@ -50,6 +50,13 @@
       "when": 1787065006004,
       "tag": "0006_giant_doctor_faustus",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787141325318,
+      "tag": "0007_thick_doctor_doom",
+      "breakpoints": true
     }
   ]
 }

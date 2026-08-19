@@ -92,6 +92,15 @@ export const env = {
   DISCORD_APPLICATION_ID: required("DISCORD_APPLICATION_ID"),
   DISCORD_PUBLIC_KEY: required("DISCORD_PUBLIC_KEY"),
   DATABASE_URL: required("DATABASE_URL"),
+  // Decrypts customers' dedicated bot tokens, encrypted by the API with the
+  // same key. Optional rather than required: a self-hosted install has no
+  // dedicated customers, and demanding a key it will never use would turn a
+  // platform feature into a boot requirement for everybody.
+  //
+  // The empty default is safe because the runner only reads it when it has
+  // found a token to decrypt, and decryptWithKey rejects a wrong-length key
+  // loudly at that point rather than producing rubbish.
+  TOKEN_ENCRYPTION_KEY: optional("TOKEN_ENCRYPTION_KEY", ""),
   // Empty or "memory" runs without a Redis container — see
   // shared/lib/memoryRedis.ts. Kept as the localhost default so an existing
   // compose setup is unaffected.

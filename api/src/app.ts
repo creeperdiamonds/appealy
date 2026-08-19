@@ -22,6 +22,7 @@ import { submissionsRouter } from "./routes/submissions.ts";
 import { dmTemplatesRouter } from "./routes/dmTemplates.ts";
 import { pollsRouter } from "./routes/polls.ts";
 import { staffPermissionsRouter } from "./routes/staffPermissions.ts";
+import { dedicatedBotRouter } from "./routes/dedicatedBot.ts";
 import { guildResourcesRouter } from "./routes/guildResources.ts";
 import { ticketsRouter } from "./routes/tickets.ts";
 import { giveawaysRouter } from "./routes/giveaways.ts";
@@ -188,6 +189,7 @@ export function createApp() {
   app.use("/api/guilds/:guildId/submissions", submissionsRouter);
   app.use("/api/guilds/:guildId/polls", pollsRouter);
   app.use("/api/guilds/:guildId/staff-permissions", staffPermissionsRouter);
+  app.use("/api/guilds/:guildId/dedicated-bot", dedicatedBotRouter);
   app.use("/api/guilds/:guildId/resources", guildResourcesRouter);
   app.use("/api/guilds/:guildId/ticket-configs", ticketsRouter);
   app.use("/api/guilds/:guildId/giveaways", giveawaysRouter);

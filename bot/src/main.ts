@@ -6,6 +6,7 @@ import { startScheduler } from "./core/scheduler.ts";
 import { startControlServer } from "./core/controlServer.ts";
 import { registerCommands } from "./commands/index.ts";
 import { subscribeToInvalidations } from "./core/guildConfigCache.ts";
+import { startDedicatedRunner } from "./core/dedicatedRunner.ts";
 import { logger } from "./utils/logger.ts";
 import { env } from "./core/env.ts";
 import { markGatewayConnecting } from "./core/startupProfile.ts";
@@ -54,6 +55,30 @@ async function main() {
         error: err instanceof Error ? err.stack : String(err),
       })
     );
+
+  // Dedicated hosting. Also not awaited, and for a stronger reason than the
+  // subscriber above: this process's first duty is the platform bot that every
+  // free and paid guild depends on. Customers' dedicated instances are a
+  // smaller, paid subset, and a database hiccup while claiming them must not
+  // delay or prevent the platform gateway serving everyone else.
+  //
+  // Skipped without a key, since nothing can be decrypted without one and
+  // scanning would only log failures on a loop. A self-hosted install lands
+  // here and does nothing, which is correct — it has no customers.
+  if (env.TOKEN_ENCRYPTION_KEY) {
+    // Identifies this process's claims. Hostname alone collides when two
+    // instances share one; the suffix makes a claim traceable to a process
+    // rather than a machine.
+    const runnerId = `${Deno.hostname()}-${crypto.randomUUID().slice(0, 8)}`;
+    startDedicatedRunner(runnerId)
+      .catch((err) =>
+        logger.error("Dedicated runner failed to start; dedicated bots will not run", {
+          error: err instanceof Error ? err.stack : String(err),
+        })
+      );
+  } else {
+    logger.info("Dedicated hosting inactive: no TOKEN_ENCRYPTION_KEY set.");
+  }
 }
 
 // Flush buffered guild upserts before the process goes away, so a restart

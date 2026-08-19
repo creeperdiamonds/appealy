@@ -101,9 +101,20 @@ export const desiredProperties = {
   },
 } as const;
 
-export function createAppealyBot() {
+/**
+ * Builds a bot client.
+ *
+ * Takes the token rather than reading it from the environment so a single
+ * process can run more than one client. That is what dedicated hosting needs:
+ * a customer's own bot is this same code on their own token, and giving each
+ * one its own always-on container costs far more per year than the hosting is
+ * sold for. Several clients sharing one process amortises that.
+ *
+ * Defaults to the platform token, so every existing caller is unaffected.
+ */
+export function createAppealyBot(token: string = env.DISCORD_BOT_TOKEN) {
   const bot = createBot({
-    token: env.DISCORD_BOT_TOKEN,
+    token,
     // botId is no longer an option — the library derives it from the token,
     // which is the same value and one fewer thing to get wrong.
     intents:
@@ -141,11 +152,15 @@ export type AppealyMember = EventArgs<"guildMemberAdd">[0];
 export type AppealyUser = EventArgs<"guildBanAdd">[0];
 export type AppealyMessage = EventArgs<"messageCreate">[0];
 
-export async function startBot(bot: AppealyBot) {
+export async function startBot(bot: AppealyBot, token: string = env.DISCORD_BOT_TOKEN) {
   // Shard count is resolved from the live guild count before connecting.
   // Discord's own recommendation acts as a floor — see core/sharding.ts for
   // why the count can't change while running.
-  const plan = await resolveSharding(env.DISCORD_BOT_TOKEN);
+  //
+  // Must be the SAME token the client was built with. A dedicated customer's
+  // bot is in one guild and needs one shard; resolving against the platform
+  // token instead would size it against the platform's guild count.
+  const plan = await resolveSharding(token);
 
   // ⚠️ GATEWAY SHAPE: `bot.gateway.totalShards` is the documented field, but
   // the gateway manager's shape has moved between minor

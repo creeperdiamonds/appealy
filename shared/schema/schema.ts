@@ -58,6 +58,12 @@ export const pollStatusEnum = pgEnum("poll_status", [
 export const rateLimitTierEnum = pgEnum("rate_limit_tier", ["free", "tier1", "tier2", "custom"]);
 
 export const hostingModeEnum = pgEnum("hosting_mode", ["shared", "custom"]);
+export const customBotStatusEnum = pgEnum("custom_bot_status", [
+  "stopped",
+  "starting",
+  "running",
+  "failed",
+]);
 
 export const leaveActionEnum = pgEnum("leave_action", [
   "none",
@@ -118,6 +124,52 @@ export const guilds = pgTable("guilds", {
   // annually and unrelated to rateLimitTier — a guild can be on the free
   // throughput tier and still pay for custom hosting, or vice versa.
   hostingMode: hostingModeEnum("hosting_mode").notNull().default("shared"),
+
+  /**
+   * The guild's own bot token, for dedicated hosting. AES-256-GCM at rest,
+   * same helper and same key as the Discord OAuth tokens
+   * (api/src/utils/crypto.ts).
+   *
+   * Encrypted rather than stored plainly because this is not a credential
+   * scoped to our service — it is total control of somebody else's bot, in
+   * their server, under their name. A leak here is worse than a leak of our
+   * own token, since the damage lands on someone who trusted us with it.
+   *
+   * Null whenever hostingMode is "shared", and cleared when dedicated hosting
+   * ends. Never returned by any API route; the dashboard shows only whether
+   * one is set.
+   */
+  customBotTokenEnc: text("custom_bot_token_enc"),
+
+  /**
+   * Where the dedicated instance is in its lifecycle. Deliberately separate
+   * from hostingMode, which is a BILLING fact: a guild can be paid up and
+   * still not running because the token was rejected, and conflating the two
+   * would make "they paid but it is not working" indistinguishable from "they
+   * did not pay".
+   *
+   *   stopped   nothing running (also the state before a token is provided)
+   *   starting  claimed by a runner, gateway not connected yet
+   *   running   connected
+   *   failed    the runner gave up — see customBotError
+   */
+  customBotStatus: customBotStatusEnum("custom_bot_status").notNull().default("stopped"),
+
+  /** Shown to the guild owner. Written for people, not for grepping. */
+  customBotError: text("custom_bot_error"),
+
+  /**
+   * Which runner process holds this bot, and when it last said so.
+   *
+   * A runner claims a slot by writing its id here, and renews the heartbeat
+   * while it holds it. A claim whose heartbeat has gone stale is available
+   * again — which is what stops a crashed runner's customers from staying
+   * dark forever, and stops two runners connecting the same token twice.
+   * Discord permits a second connection on the same token; it just means every
+   * event is handled twice.
+   */
+  customBotRunnerId: text("custom_bot_runner_id"),
+  customBotHeartbeatAt: timestamp("custom_bot_heartbeat_at", { withTimezone: true }),
   customBillingRenewsAt: timestamp("custom_billing_renews_at", { withTimezone: true }),
   // Tebex's reference for the recurring payment behind the current paid plan.
   //
