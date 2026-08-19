@@ -238,6 +238,22 @@ export async function subscribeToInvalidations(): Promise<void> {
   try {
     const { connect } = await import("redis");
     const { env } = await import("./env.ts");
+    // No pub/sub without a real Redis. useMemoryRedis() treats "", "memory"
+    // and "memory://" as the in-process substitute, and new URL("memory")
+    // throws — which surfaced in production as
+    // `TypeError: Invalid URL: 'memory'` inside a catch block that reported
+    // it as the subscriber failing, rather than as the configuration it is.
+    //
+    // Returning early is correct, not a workaround: the substitute is
+    // per-process, so there is no second process to receive a message from.
+    // Callers already fall back to TTL expiry, which is exactly right here.
+    const { useMemoryRedis } = await import("../../../shared/lib/memoryRedis.ts");
+    if (useMemoryRedis(env.REDIS_URL)) {
+      logger.info(
+        "Cache invalidation subscriber skipped: REDIS_URL is the in-memory substitute, so caches expire on TTL alone.",
+      );
+      return;
+    }
     const url = new URL(env.REDIS_URL);
     const sub = await connect({
       hostname: url.hostname,
