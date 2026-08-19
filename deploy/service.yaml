@@ -65,6 +65,16 @@ spec:
         # rather than opening the database to an IP range.
         run.googleapis.com/cloudsql-instances: CLOUDSQL_CONNECTION_NAME
     spec:
+      # Runs as a dedicated identity holding exactly two roles:
+      # cloudsql.client and secretmanager.secretAccessor.
+      #
+      # Without this, Cloud Run uses the default compute service account, which
+      # carries roles/editor over the whole project — so a compromised
+      # container could create, modify or delete almost any resource in it.
+      # Here the blast radius is reading its own secrets and talking to its own
+      # database, which is all the app has ever needed.
+      serviceAccountName: appealy-runtime@yahav-project-505809.iam.gserviceaccount.com
+
       # Generous, because three containers share it. The bot is the one that
       # actually needs headroom — a large guild's member cache is not small.
       containerConcurrency: 80
