@@ -91,3 +91,8 @@ Thumbs.db
 # ---------------------------------------------------------------------------
 coverage/
 .nyc_output/
+
+# Built by scripts/build-site.sh. Assembled from site/, brand/ and status/,
+# so it is entirely derived — committing it would mean two copies of every
+# page and one of them going stale.
+dist-site/
