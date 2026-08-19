@@ -247,6 +247,13 @@ spec:
               value: info
             - name: INTERNAL_RPC_SECRET
               value: "INTERNAL_RPC_SECRET_VALUE"
+            # Where /dashboard sends people. Unset, it fell back to a localhost
+            # development default and the bot posted
+            # http://localhost:5173/dashboard/guilds/... to real users — a
+            # default that is indistinguishable from a configured value until
+            # somebody reads the message it produced.
+            - name: DASHBOARD_BASE_URL
+              value: "PUBLIC_ORIGIN_VALUE/dashboard"
             - name: DATABASE_URL
               valueFrom: { secretKeyRef: { name: appealy-database-url, key: latest } }
             - name: REDIS_URL

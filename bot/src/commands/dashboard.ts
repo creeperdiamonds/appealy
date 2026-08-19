@@ -3,6 +3,7 @@
 // scoped to the current guild.
 
 import { ApplicationCommandTypes } from "@discordeno/bot";
+import { env } from "../core/env.ts";
 import type { AppealyInteraction as Interaction } from "../core/client.ts";
 import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
@@ -14,8 +15,16 @@ const EPHEMERAL = 64;
 // dashboard.appealy.app sent people somewhere that does not exist. One front
 // door; DASHBOARD_BASE_URL overrides it for a deployment that really does split
 // them across hosts.
-const DASHBOARD_BASE_URL =
-  Deno.env.get("DASHBOARD_BASE_URL") ?? "http://localhost:5173/dashboard";
+// Read through core/env.ts rather than Deno.env directly. This file used to
+// carry its own default with a "/dashboard" suffix while env.ts carried one
+// without — two answers to the same question, so setting DASHBOARD_BASE_URL
+// gave one of them a missing path segment and the other a doubled one.
+//
+// The localhost default is also what shipped this to production saying
+// http://localhost:5173/dashboard/guilds/..., because nothing set the variable
+// and a development default is indistinguishable from a configured value until
+// somebody reads the message.
+const DASHBOARD_BASE_URL = env.DASHBOARD_URL;
 
 export const definition: CreateApplicationCommand = {
   name: "dashboard",

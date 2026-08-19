@@ -67,7 +67,10 @@ export const PRIVILEGED = privilegedGuilds((k) => Deno.env.get(k), (m) => consol
 export const env = {
   DEPLOYMENT_MODE: deployment.mode,
   SELF_HOSTED_CAPS: selfHostedCaps((k) => Deno.env.get(k)),
-  DASHBOARD_URL: optional("DASHBOARD_BASE_URL", "http://localhost:5173"),
+  // Includes /dashboard, because that is where the console lives — the API's
+  // OAuth callback redirects there and nginx routes it there. A bare origin
+  // default produced links to the marketing site instead.
+  DASHBOARD_URL: optional("DASHBOARD_BASE_URL", "http://localhost:5173/dashboard"),
 
   // One shard per this many guilds. 1000 is Discord's own ratio and what its
   // recommendation is derived from; there is rarely a good reason to lower it.
