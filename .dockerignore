@@ -40,7 +40,11 @@ redisdata/
 *.md
 !README.md
 .github
-brand
+# brand/ is NOT here on purpose. It was, and that silently broke the web image:
+# web/Dockerfile copies it into the nginx root so the marketing site can serve
+# /brand/icon.svg, and a path excluded from the build context makes COPY fail
+# with "not found" — which reads like a missing directory rather than an
+# ignored one. The two files have to agree; this is the reminder.
 ops-console
 docker-compose*.yml
 setup.sh
