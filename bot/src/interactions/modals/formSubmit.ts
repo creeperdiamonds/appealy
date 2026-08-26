@@ -30,8 +30,7 @@ import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "../../services/
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
 import { validateAnswerAgainstPattern } from "../../../../shared/schema/regexValidation.ts";
 import { logger } from "../../utils/logger.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleFormModalSubmit(
   bot: AppealyBot,
@@ -41,6 +40,13 @@ export async function handleFormModalSubmit(
   const guildId = interaction.guildId;
   const applicant = interaction.member?.user ?? interaction.user;
   if (!guildId || !applicant) return;
+
+  // A form lookup, a rate-limit check, answer validation, then a DB
+  // transaction inserting the submission + its answers — several sequential
+  // round trips before this can answer. Deferring buys the fifteen-minute
+  // window so a slow submit isn't shown to the applicant as a failure when
+  // it actually went through.
+  await defer(bot, interaction, { ephemeral: true });
 
   const form = await db.query.forms.findFirst({
     where: eq(schema.forms.id, formId),
@@ -106,18 +112,30 @@ export async function handleFormModalSubmit(
 
   await clearPendingSelectAnswers(applicant.id, formId);
 
-  // Acknowledge to the applicant immediately.
+  // NOTE: this acknowledgment is NOT this handler's last statement — the
+  // role automation and review-embed posting below still run afterward.
+  // That was true before this handler deferred too (the original ack was a
+  // real Discord response the applicant could already see), so the ordering
+  // is unchanged by this conversion. But it now interacts with
+  // interactionCreate.ts's error handler differently than the rest of this
+  // codebase's converted handlers: if applyRoleAutomationOnSubmit() or
+  // postReviewEmbedForSubmission() throws, the router's catch block will
+  // EDIT this already-sent "submitted!" message to "Something went wrong",
+  // telling the applicant their successful submission failed. Left as-is
+  // rather than reordered silently — reordering would delay the applicant's
+  // acknowledgment behind two more rounds of REST calls, which is its own
+  // regression. Flagged for a human decision rather than resolved here.
   await respond(bot, interaction, `Your application for **${form.name}** has been submitted!`);
 
   await applyRoleAutomationOnSubmit(bot, guildId, form, applicant.id, submission.id);
   await postReviewEmbedForSubmission(bot, form, submission, applicant.id, allAnswers, completionSeconds);
 }
 
+// Kept as a one-line wrapper rather than rewriting every call site: the
+// ephemeral flag now lives on the deferral, so there is nothing left for
+// this to decide.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }
 
 export async function applyRoleAutomationOnSubmit(

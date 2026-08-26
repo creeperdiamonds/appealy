@@ -10,8 +10,7 @@ import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { renderPollEmbed } from "../../services/pollService.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handlePollVote(
   bot: AppealyBot,
@@ -21,6 +20,11 @@ export async function handlePollVote(
 ) {
   const voter = interaction.member?.user ?? interaction.user;
   if (!voter) return;
+
+  // A poll lookup, a delete+insert transaction, then a re-render and
+  // message edit to refresh the public vote counts — sequential enough to
+  // risk the window, especially on a busy poll message.
+  await defer(bot, interaction, { ephemeral: true });
 
   const poll = await db.query.polls.findFirst({ where: eq(schema.polls.id, pollId) });
   if (!poll || poll.status !== "published") {
@@ -64,9 +68,9 @@ export async function handlePollVote(
   await respond(bot, interaction, "Your vote has been recorded.");
 }
 
+// Kept as a one-line wrapper rather than rewriting every call site: the
+// ephemeral flag now lives on the deferral, so there is nothing left for
+// this to decide.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

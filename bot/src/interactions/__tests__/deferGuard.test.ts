@@ -24,19 +24,40 @@ const MUST_DEFER = [
   "bot/src/interactions/modals/verifyCaptcha.ts",
   "bot/src/interactions/selects/roleMenuSelect.ts",
   "bot/src/interactions/selects/pollVote.ts",
-  "bot/src/interactions/selects/formSelectStep.ts",
 ];
 
 /**
  * Handlers whose first response IS a modal. Deferring here is not a style
  * choice — Discord rejects a modal that follows a deferral, so these must
  * never call defer(), and their pre-checks must stay off the network.
+ *
+ * formSelectStep.ts belongs here, not in MUST_DEFER, even though it does a
+ * cache write and a DB read before responding. When more select questions
+ * remain it answers with an UPDATE_MESSAGE (type: 7), but when they've all
+ * been answered its response IS a modal: it delegates to
+ * showApplicationModal() in panelOpen.ts, which is the one place the
+ * literal `type: 9` lives for this flow. A deferred interaction can never
+ * open a modal, so this handler must not defer on either path — its
+ * pre-checks have to stay cache-backed instead. See MODAL_MARKER below for
+ * how that indirection is verified.
  */
 const MUST_NOT_DEFER = [
   "bot/src/interactions/buttons/panelOpen.ts",
   "bot/src/interactions/buttons/reviewDeny.ts",
   "bot/src/interactions/buttons/verify.ts",
+  "bot/src/interactions/selects/formSelectStep.ts",
 ];
+
+/**
+ * What to search for to confirm a MUST_NOT_DEFER file actually opens a
+ * modal. Most of these files send `type: 9` directly, so that's the
+ * default. formSelectStep.ts is the one exception — it never writes
+ * `type: 9` itself, it calls into showApplicationModal() (panelOpen.ts) to
+ * do it — so it needs its own marker rather than failing the default check.
+ */
+const MODAL_MARKER: Record<string, string> = {
+  "bot/src/interactions/selects/formSelectStep.ts": "showApplicationModal(",
+};
 
 for (const path of MUST_DEFER) {
   Deno.test(`${path} defers before working`, async () => {
@@ -66,7 +87,8 @@ for (const path of MUST_DEFER) {
 for (const path of MUST_NOT_DEFER) {
   Deno.test(`${path} opens a modal and must not defer`, async () => {
     const src = await Deno.readTextFile(path);
-    assert(src.includes("type: 9"), `${path} was expected to open a modal`);
+    const marker = MODAL_MARKER[path] ?? "type: 9";
+    assert(src.includes(marker), `${path} was expected to open a modal`);
     assert(
       !src.includes("defer("),
       `${path} opens a modal; a deferred interaction cannot show one`,

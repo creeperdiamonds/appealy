@@ -7,8 +7,7 @@ import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { checkEntryEligibility, renderGiveawayEmbed } from "../../services/giveawayService.ts";
 import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "../../services/rateLimitService.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../../utils/interactionResponse.ts";
 
 const REASON_MESSAGES: Record<string, string> = {
   missing_required_role: "You don't have the required role to enter this giveaway.",
@@ -25,6 +24,11 @@ export async function handleGiveawayEnterButton(
   const guildId = interaction.guildId;
   const entrant = interaction.member?.user ?? interaction.user;
   if (!guildId || !entrant) return;
+
+  // A giveaway lookup, a duplicate-entry lookup, a rate-limit check, an
+  // insert, then a re-fetch and message edit to refresh the live count —
+  // several sequential round trips before this can answer.
+  await defer(bot, interaction, { ephemeral: true });
 
   const giveaway = await db.query.giveaways.findFirst({ where: eq(schema.giveaways.id, giveawayId) });
   if (!giveaway) return respond(bot, interaction, "This giveaway no longer exists.");
@@ -68,9 +72,9 @@ export async function handleGiveawayEnterButton(
   await respond(bot, interaction, "You're entered! Good luck 🎉");
 }
 
+// Kept as a one-line wrapper rather than rewriting every call site: the
+// ephemeral flag now lives on the deferral, so there is nothing left for
+// this to decide.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

@@ -12,14 +12,18 @@ import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
 import { logger } from "../../utils/logger.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleRoleMenuSelect(bot: AppealyBot, interaction: Interaction, menuId: string) {
   const guildId = interaction.guildId;
   const member = interaction.member;
   const user = member?.user ?? interaction.user;
   if (!guildId || !member || !user) return;
+
+  // A menu lookup, an unmanageable-roles check, then a grant/remove REST
+  // call per changed role — enough sequential work to blow the window on a
+  // menu with several options selected at once.
+  await defer(bot, interaction, { ephemeral: true });
 
   const menu = await db.query.roleMenus.findFirst({
     where: eq(schema.roleMenus.id, menuId),
@@ -57,9 +61,9 @@ export async function handleRoleMenuSelect(bot: AppealyBot, interaction: Interac
   await respond(bot, interaction, message);
 }
 
+// Kept as a one-line wrapper rather than rewriting every call site: the
+// ephemeral flag now lives on the deferral, so there is nothing left for
+// this to decide.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

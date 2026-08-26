@@ -7,8 +7,7 @@ import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { grantVerifiedRole } from "../buttons/verify.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleVerifyCaptchaModalSubmit(
   bot: AppealyBot,
@@ -18,6 +17,12 @@ export async function handleVerifyCaptchaModalSubmit(
   const guildId = BigInt(guildIdStr);
   const user = interaction.member?.user ?? interaction.user;
   if (!user) return;
+
+  // Deferred here — before the code-match check below — because that check
+  // itself responds on failure via respond()/finish(), which requires a
+  // prior deferral. Everything past a correct code is a config lookup plus
+  // a role grant plus another query and update, well past three seconds.
+  await defer(bot, interaction, { ephemeral: true });
 
   // The expected code travels in the modal's custom_id (see verify.ts),
   // set at generation time — this avoids a race where the user opens two
@@ -47,9 +52,9 @@ export async function handleVerifyCaptchaModalSubmit(
   await respond(bot, interaction, "You're verified! Welcome to the server.");
 }
 
+// Kept as a one-line wrapper rather than rewriting every call site: the
+// ephemeral flag now lives on the deferral, so there is nothing left for
+// this to decide.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

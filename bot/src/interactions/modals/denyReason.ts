@@ -9,8 +9,7 @@ import { db, schema } from "../../db/client.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
 import { logger } from "../../utils/logger.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleDenyReasonModalSubmit(
   bot: AppealyBot,
@@ -20,6 +19,11 @@ export async function handleDenyReasonModalSubmit(
   const guildId = interaction.guildId;
   const reviewer = interaction.member?.user ?? interaction.user;
   if (!guildId || !reviewer) return;
+
+  // A submission lookup, then (usually) several role REST calls, a DB
+  // update, a log-message edit, an optional second channel post, and a DM —
+  // easily past three seconds. Same shape as reviewAccept.ts's deferral.
+  await defer(bot, interaction, { ephemeral: true });
 
   const reason =
     interaction.data?.components?.[0]?.components?.[0]?.value?.trim() || "No reason provided";
@@ -128,9 +132,9 @@ export async function handleDenyReasonModalSubmit(
   await respond(bot, interaction, "Application denied.");
 }
 
+// Kept as a one-line wrapper rather than rewriting every call site: the
+// ephemeral flag now lives on the deferral, so there is nothing left for
+// this to decide.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }
