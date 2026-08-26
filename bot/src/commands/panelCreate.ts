@@ -10,9 +10,9 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { eq } from "drizzle-orm";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
 const ADMINISTRATOR = 0x8n;
-const EPHEMERAL = 64;
 
 export const definition: CreateApplicationCommand = {
   name: "panel",
@@ -65,6 +65,12 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const title = String(opts.title);
   const description = opts.description ? String(opts.description) : "";
 
+  // The form lookup, panel/button inserts, and the channel message post
+  // below are several DB round trips plus a REST call — enough to blow
+  // Discord's three-second first-response window. Deferring buys fifteen
+  // minutes.
+  await defer(bot, interaction, { ephemeral: true });
+
   const form = await db.query.forms.findFirst({ where: eq(schema.forms.id, formId) });
   if (!form || form.guildId !== guildId) {
     return respond(bot, interaction, "That form doesn't exist in this server.");
@@ -108,9 +114,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   await respond(bot, interaction, `Panel published for **${form.name}**.`);
 }
 
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

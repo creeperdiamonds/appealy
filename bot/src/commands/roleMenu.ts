@@ -10,9 +10,9 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";
 import { publishRoleMenu } from "../services/roleMenuService.ts";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
 const ADMINISTRATOR = 0x8n;
-const EPHEMERAL = 64;
 
 export const definition: CreateApplicationCommand = {
   name: "role-menu",
@@ -58,6 +58,12 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
   const opts = Object.fromEntries((sub.options ?? []).map((o) => [o.name, o.value]));
 
+  // The menu/option inserts and publishRoleMenu() below (which posts the
+  // message and stores its id) are several DB round trips plus a REST
+  // call — enough to blow Discord's three-second first-response window.
+  // Deferring buys fifteen minutes.
+  await defer(bot, interaction, { ephemeral: true });
+
   const [menu] = await db
     .insert(schema.roleMenus)
     .values({
@@ -88,9 +94,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   await respond(bot, interaction, `Role menu **${menu.title}** published with ${optionRows.length} option(s).`);
 }
 
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

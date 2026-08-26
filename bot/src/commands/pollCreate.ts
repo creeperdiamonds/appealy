@@ -13,8 +13,8 @@ import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { publishPoll } from "../services/pollService.ts";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
-const EPHEMERAL = 64;
 const MAX_OPTIONS = 9;
 
 export const definition: CreateApplicationCommand = {
@@ -41,6 +41,17 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const guildId = interaction.guildId;
   const author = interaction.member?.user ?? interaction.user;
   if (!guildId || !author) return;
+
+  // The option-count check just below responds on its own failure path, so
+  // defer has to land before it, not after the way it does in files whose
+  // only guards ahead of any asynchronous work are silent: once any call
+  // site below is converted to finish(), EVERY response path — including
+  // this one — needs a deferral to edit, or the edit 404s against an
+  // unacknowledged token. The insert and publishPoll() further down (which
+  // posts the message and stores its id) are DB writes plus a REST call —
+  // enough on their own to blow Discord's three-second first-response
+  // window.
+  await defer(bot, interaction, { ephemeral: true });
 
   const opts = Object.fromEntries((interaction.data?.options ?? []).map((o) => [o.name, o.value]));
   const channelId = BigInt(String(opts.channel));
@@ -77,9 +88,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   await respond(bot, interaction, `Poll posted in <#${channelId}>.`);
 }
 
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

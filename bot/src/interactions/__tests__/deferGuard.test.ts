@@ -24,6 +24,21 @@ const MUST_DEFER = [
   "bot/src/interactions/modals/verifyCaptcha.ts",
   "bot/src/interactions/selects/roleMenuSelect.ts",
   "bot/src/interactions/selects/pollVote.ts",
+  // Slash commands added in Task 7. exportApplications.ts and
+  // resetCooldown.ts are deliberately NOT here even though their `execute`
+  // handlers were converted the same way — see the dedicated tests below
+  // for why. apply.ts is also deliberately not here — see the dedicated
+  // test for it below, right next to formSelectStep's.
+  "bot/src/commands/exportData.ts",
+  "bot/src/commands/panelCreate.ts",
+  "bot/src/commands/pollCreate.ts",
+  "bot/src/commands/giveaway.ts",
+  "bot/src/commands/roleMenu.ts",
+  "bot/src/commands/ticketPanel.ts",
+  "bot/src/commands/verifySetup.ts",
+  "bot/src/commands/antiRaid.ts",
+  "bot/src/commands/formList.ts",
+  "bot/src/commands/botStats.ts",
 ];
 
 /**
@@ -55,9 +70,15 @@ for (const path of MUST_DEFER) {
     // substring check while still blowing the three-second window, and a
     // green guard over a live bug is worse than no guard at all.
     //
-    // Verified safe against ordering: in all nine files listed above the
-    // exported handler is defined before the file's first await, so no
-    // helper function's await can shadow the handler's deferral.
+    // Verified safe against ordering: in every file listed above, the
+    // exported handler that must defer is defined before the file's first
+    // await, so no helper function's await can shadow the handler's
+    // deferral. (Two slash commands — exportApplications.ts and
+    // resetCooldown.ts — also pair `execute` with an `autocomplete` export
+    // that legitimately keeps its own direct response; they're deliberately
+    // NOT in this array because the "no sendInteractionResponse" assertion
+    // just above can't distinguish that legitimate call from a regression.
+    // See their dedicated test below.)
     const firstAwait = src.indexOf("await ");
     const deferAwait = src.indexOf("await defer(");
     assert(
@@ -74,6 +95,68 @@ for (const path of MUST_NOT_DEFER) {
     assert(
       !src.includes("defer("),
       `${path} opens a modal; a deferred interaction cannot show one`,
+    );
+  });
+}
+
+/**
+ * exportApplications.ts and resetCooldown.ts (Task 7) each pair a normal
+ * slash-command `execute` handler with an `autocomplete` export for one of
+ * their string options. Autocomplete is a genuinely different interaction
+ * type (APPLICATION_COMMAND_AUTOCOMPLETE) that Discord only accepts an
+ * immediate `type: 8` response for — there is no deferred variant, so
+ * `autocomplete()` must keep calling the raw interaction-response helper
+ * directly even after `execute()` is converted to defer/finish. That
+ * legitimate, unavoidable second response call defeats the generic
+ * MUST_DEFER loop's "no sendInteractionResponse anywhere in the file"
+ * assertion, which has no way to tell a permitted autocomplete response
+ * apart from a regression that smuggled a direct response back into
+ * `execute()`. Hardcoded here rather than added to a new exemption list,
+ * for the same reason formSelectStep's case below is hardcoded: an
+ * exemption list takes a value (a path) a future entry chooses, so a check
+ * against it can be satisfied by an unrelated file coincidentally matching
+ * the same shape. This test instead pins down exactly the two things that
+ * make the exception legitimate: the file has precisely one
+ * sendInteractionResponse call left, and it lives inside autocomplete(),
+ * answering with type: 8.
+ */
+for (
+  const path of [
+    "bot/src/commands/exportApplications.ts",
+    "bot/src/commands/resetCooldown.ts",
+  ]
+) {
+  Deno.test(`${path} defers execute() before working; autocomplete() is exempt`, async () => {
+    const src = await Deno.readTextFile(path);
+    assert(src.includes("await defer("), `${path} must call defer() before doing work in execute()`);
+
+    const firstAwait = src.indexOf("await ");
+    const deferAwait = src.indexOf("await defer(");
+    assert(
+      deferAwait !== -1 && deferAwait === firstAwait,
+      `${path} must defer BEFORE its first await, not after it`,
+    );
+
+    // Exactly one raw interaction-response call may remain in the file —
+    // more than one means a regression reintroduced a direct response
+    // somewhere other than autocomplete(); zero means autocomplete() was
+    // rewritten in a way that no longer works (there is no defer()-based
+    // path for it).
+    const occurrences = src.split("sendInteractionResponse").length - 1;
+    assert(
+      occurrences === 1,
+      `${path} should have exactly one sendInteractionResponse call (autocomplete's), found ${occurrences}`,
+    );
+
+    const autocompleteIndex = src.indexOf("async function autocomplete(");
+    const callIndex = src.indexOf("sendInteractionResponse");
+    assert(
+      autocompleteIndex !== -1 && callIndex > autocompleteIndex,
+      `${path}'s remaining sendInteractionResponse call must be inside autocomplete()`,
+    );
+    assert(
+      src.slice(callIndex, callIndex + 200).includes("type: 8"),
+      `${path}'s remaining sendInteractionResponse call must be autocomplete's type: 8 result, not a message response`,
     );
   });
 }
@@ -128,6 +211,52 @@ Deno.test("formSelectStep reaches a modal via showApplicationModal and must not 
   assert(
     panelOpen.includes("export async function showApplicationModal("),
     "showApplicationModal must still be exported from panelOpen.ts",
+  );
+  assert(
+    panelOpen.includes("type: 9"),
+    "showApplicationModal's home file must still be the thing that opens the modal",
+  );
+});
+
+/**
+ * apply.ts (Task 7) is the second indirect-modal case anticipated in the
+ * comment above: the /apply slash command hands off to
+ * runApplicationFlow(), the same function panelOpen.ts's button handler
+ * calls, and that function's happy path ends in proceedToQuestions() ->
+ * showApplicationModal() — a type: 9 response. apply.ts's own source never
+ * writes "type: 9" (it doesn't even import showApplicationModal directly),
+ * so it can satisfy neither the generic MUST_NOT_DEFER assertion nor a
+ * naive "calls a function named X" check without also proving that
+ * function chain still terminates in a modal. Hardcoded per file, the same
+ * as formSelectStep's block above, rather than generalized into a second
+ * exemption list for the reasons documented there.
+ */
+Deno.test("apply.ts reaches a modal via runApplicationFlow and must not defer", async () => {
+  const src = await Deno.readTextFile("bot/src/commands/apply.ts");
+  assert(
+    src.includes("runApplicationFlow("),
+    "apply.ts must call runApplicationFlow to reach gating and, ultimately, the modal",
+  );
+  assert(
+    !src.includes("defer("),
+    "apply.ts's happy path can end in a modal; a deferred interaction cannot show one",
+  );
+
+  // The chain this test relies on: runApplicationFlow -> proceedToQuestions
+  // -> showApplicationModal -> type: 9. Without checking every link, "apply.ts
+  // calls runApplicationFlow" proves nothing about a modal being reachable.
+  const panelOpen = await Deno.readTextFile("bot/src/interactions/buttons/panelOpen.ts");
+  assert(
+    panelOpen.includes("export async function runApplicationFlow("),
+    "runApplicationFlow must still be exported from panelOpen.ts",
+  );
+  assert(
+    panelOpen.includes("await proceedToQuestions("),
+    "runApplicationFlow's happy path must still reach proceedToQuestions",
+  );
+  assert(
+    panelOpen.includes("await showApplicationModal("),
+    "proceedToQuestions' no-select-questions path must still reach showApplicationModal",
   );
   assert(
     panelOpen.includes("type: 9"),

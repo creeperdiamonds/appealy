@@ -8,8 +8,8 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";
 import { publishGiveaway, endGiveaway } from "../services/giveawayService.ts";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
-const EPHEMERAL = 64;
 const ADMINISTRATOR = 0x8n;
 
 export const definition: CreateApplicationCommand = {
@@ -54,6 +54,12 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
   const sub = interaction.data?.options?.[0];
   if (!sub) return;
+
+  // Every branch below does at least one DB round trip (create/end/reroll
+  // all touch schema.giveaways, and create/end also call out to Discord via
+  // publishGiveaway/endGiveaway) — enough to blow Discord's three-second
+  // first-response window. Deferring buys fifteen minutes.
+  await defer(bot, interaction, { ephemeral: true });
 
   const opts = Object.fromEntries((sub.options ?? []).map((o) => [o.name, o.value]));
 
@@ -103,9 +109,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   }
 }
 
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

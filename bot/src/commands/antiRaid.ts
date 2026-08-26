@@ -8,9 +8,9 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";
 import { clearLockdown, isLockdownActive } from "../services/antiRaidService.ts";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
 const ADMINISTRATOR = 0x8n;
-const EPHEMERAL = 64;
 
 export const definition: CreateApplicationCommand = {
   name: "anti-raid",
@@ -63,6 +63,12 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const sub = interaction.data?.options?.[0];
   if (!sub) return;
 
+  // Every branch below does at least one DB round trip (setup upserts a
+  // config; clear/status go through antiRaidService's Redis-backed
+  // lockdown state) — enough to blow Discord's three-second first-response
+  // window. Deferring buys fifteen minutes.
+  await defer(bot, interaction, { ephemeral: true });
+
   if (sub.name === "setup") {
     const opts = Object.fromEntries((sub.options ?? []).map((o) => [o.name, o.value]));
     await db
@@ -105,9 +111,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   }
 }
 
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

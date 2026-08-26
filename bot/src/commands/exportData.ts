@@ -20,8 +20,7 @@ import type { AppealyBot } from "../core/client.ts";
 import { isGuildOwner } from "../services/permissionService.ts";
 import { buildFullDataExport } from "../services/dataExportService.ts";
 import { logger } from "../utils/logger.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../utils/interactionResponse.ts";
 
 export const definition: CreateApplicationCommand = {
   name: "export",
@@ -33,6 +32,11 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const guildId = interaction.guildId;
   const requester = interaction.member?.user ?? interaction.user;
   if (!guildId || !requester) return;
+
+  // isGuildOwner is a REST call and buildFullDataExport below does a full
+  // pass over the guild's data — either can outrun Discord's three-second
+  // first-response window. Deferring buys fifteen minutes.
+  await defer(bot, interaction, { ephemeral: true });
 
   const isOwner = await isGuildOwner(bot, guildId, requester.id);
   if (!isOwner) {
@@ -76,9 +80,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   }
 }
 
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

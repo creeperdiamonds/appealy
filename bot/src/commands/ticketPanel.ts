@@ -10,9 +10,9 @@ import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { publishTicketPanel } from "../services/ticketPanelService.ts";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
 const ADMINISTRATOR = 0x8n;
-const EPHEMERAL = 64;
 
 export const definition: CreateApplicationCommand = {
   name: "ticket-panel",
@@ -59,6 +59,12 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const channelType = (opts.channel_type as string) ?? "private_channel";
   const supportRoleId = opts.support_role ? String(opts.support_role) : null;
 
+  // The config insert and publishTicketPanel() below (which posts the
+  // message and stores its id) are a DB write plus a REST call — enough to
+  // blow Discord's three-second first-response window. Deferring buys
+  // fifteen minutes.
+  await defer(bot, interaction, { ephemeral: true });
+
   const [config] = await db
     .insert(schema.ticketConfigs)
     .values({
@@ -72,8 +78,5 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
   await publishTicketPanel(bot, config.id);
 
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content: `Ticket panel **${name}** published.`, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, `Ticket panel **${name}** published.`);
 }

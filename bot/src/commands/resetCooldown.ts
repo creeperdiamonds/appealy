@@ -14,8 +14,8 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq, and, like } from "drizzle-orm";
 import { canReviewForm } from "../services/permissionService.ts";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
-const EPHEMERAL = 64;
 const ADMINISTRATOR = 0x8n;
 
 export const definition: CreateApplicationCommand = {
@@ -56,6 +56,19 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const targetUserId = BigInt(String(opts.user));
   const reason = opts.reason ? String(opts.reason) : null;
   const expiresInHours = opts.expires_in_hours ? Number(opts.expires_in_hours) : null;
+
+  // The form lookup, canReviewForm's permission check, and the upsert below
+  // are several DB round trips — enough to blow Discord's three-second
+  // first-response window. Deferring buys fifteen minutes.
+  //
+  // This only covers the `execute` handler. `autocomplete` below is a
+  // separate interaction type (ApplicationCommandAutocomplete) that Discord
+  // only accepts an immediate type: 8 response for — there is no deferred
+  // variant for autocomplete, so it must keep responding to Discord
+  // directly, the way both handlers did before this conversion. See the
+  // dedicated guard test for this file in deferGuard.test.ts for why that
+  // keeps it out of the generic MUST_DEFER list.
+  await defer(bot, interaction, { ephemeral: true });
 
   const form = await db.query.forms.findFirst({
     where: and(eq(schema.forms.guildId, guildId), eq(schema.forms.name, formName)),
@@ -109,9 +122,10 @@ export async function autocomplete(bot: AppealyBot, interaction: Interaction) {
   });
 }
 
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change. NOT used by
+// autocomplete() above — that handler must keep responding directly (see
+// the comment on the defer() call in execute()).
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

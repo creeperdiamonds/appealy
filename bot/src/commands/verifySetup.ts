@@ -7,9 +7,9 @@ import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { publishVerificationPanel } from "../services/verificationPanelService.ts";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
 const ADMINISTRATOR = 0x8n;
-const EPHEMERAL = 64;
 
 export const definition: CreateApplicationCommand = {
   name: "verify-setup",
@@ -39,6 +39,12 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const method = (opts.method as string) ?? "button";
   const unverifiedRoleId = opts.unverified_role ? BigInt(String(opts.unverified_role)) : null;
 
+  // The upsert and publishVerificationPanel() below (which posts the
+  // message and stores its id) are a DB write plus a REST call — enough to
+  // blow Discord's three-second first-response window. Deferring buys
+  // fifteen minutes.
+  await defer(bot, interaction, { ephemeral: true });
+
   await db
     .insert(schema.verificationConfigs)
     .values({
@@ -56,8 +62,5 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
   await publishVerificationPanel(bot, guildId);
 
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content: "Verification panel published.", flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, "Verification panel published.");
 }

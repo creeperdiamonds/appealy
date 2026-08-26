@@ -8,8 +8,8 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { sql } from "drizzle-orm";
+import { defer, finish } from "../utils/interactionResponse.ts";
 
-const EPHEMERAL = 64;
 const processStartedAt = Date.now();
 
 export const definition: CreateApplicationCommand = {
@@ -20,6 +20,12 @@ export const definition: CreateApplicationCommand = {
 
 export async function execute(bot: AppealyBot, interaction: Interaction) {
   const guildId = interaction.guildId;
+
+  // Four count queries (guilds, plus three per-guild counts below) run
+  // sequentially — cheap individually, but enough combined to risk
+  // Discord's three-second first-response window. Deferring buys fifteen
+  // minutes.
+  await defer(bot, interaction, { ephemeral: true });
 
   const uptimeSeconds = Math.floor((Date.now() - processStartedAt) / 1000);
   const uptimeText = formatUptime(uptimeSeconds);
@@ -36,24 +42,20 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     );
   }
 
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: {
-      flags: EPHEMERAL,
-      embeds: [
-        {
-          title: "Bot Stats",
-          color: 0x5865f2,
-          fields: [
-            { name: "Uptime", value: uptimeText, inline: true },
-            { name: "Guilds", value: String(await countRows(schema.guilds)), inline: true },
-            { name: "This server's forms", value: String(guildFormCount), inline: true },
-            { name: "This server's submissions", value: String(guildSubmissionCount), inline: true },
-            { name: "This server's open tickets", value: String(guildOpenTicketCount), inline: true },
-          ],
-        },
-      ],
-    },
+  await finish(bot, interaction, {
+    embeds: [
+      {
+        title: "Bot Stats",
+        color: 0x5865f2,
+        fields: [
+          { name: "Uptime", value: uptimeText, inline: true },
+          { name: "Guilds", value: String(await countRows(schema.guilds)), inline: true },
+          { name: "This server's forms", value: String(guildFormCount), inline: true },
+          { name: "This server's submissions", value: String(guildSubmissionCount), inline: true },
+          { name: "This server's open tickets", value: String(guildOpenTicketCount), inline: true },
+        ],
+      },
+    ],
   });
 }
 
