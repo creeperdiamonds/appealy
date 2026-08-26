@@ -77,9 +77,22 @@ jobs:
           cache: npm
           cache-dependency-path: api/package-lock.json
 
+      # NOT --omit=optional, unlike the migration step in deploy-merged.yml.
+      #
+      # That flag is right there and wrong here. drizzle-kit needs no
+      # compiler, so omitting optionals makes the migration install faster.
+      # But TypeScript ships its actual compiler binary as a PLATFORM-SPECIFIC
+      # OPTIONAL dependency — @typescript/typescript-linux-x64 on a runner,
+      # win32-x64 on a Windows laptop — so omitting optionals removes the one
+      # thing tsc needs to start. It fails with "Unable to resolve
+      # @typescript/typescript-linux-x64", which reads like a broken lockfile
+      # rather than a deliberate flag two lines above.
+      #
+      # This is why it passed locally and failed on the first CI run: a
+      # developer machine already has its own platform package installed.
       - name: Install dependencies
         working-directory: api
-        run: npm ci --omit=optional
+        run: npm ci
 
       # tsconfig.json has rootDir: "..", so this also type-checks shared/ as
       # the Node compiler sees it — which is the half that deno check does not
