@@ -195,7 +195,6 @@ export async function closeTicket(
         status: info.status,
         code: info.code,
         detail: info.message,
-        raw: info.raw,
       });
       return null;
     });

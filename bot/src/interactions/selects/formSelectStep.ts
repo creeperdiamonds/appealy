@@ -13,18 +13,18 @@ import { encodeCustomId } from "../../../../shared/types/index.ts";
 import { stashPendingSelectAnswers } from "../../services/pendingAnswers.ts";
 import { showApplicationModal } from "../buttons/panelOpen.ts";
 
-const EPHEMERAL = 64;
-
 // Deliberately does NOT defer, unlike its siblings in this directory.
 // When no select questions remain, this handler's response IS a modal
 // (showApplicationModal(), called at the bottom of this function and
 // defined in ../buttons/panelOpen.ts, is where the literal `type: 9` MODAL
 // response lives) — Discord requires a modal to be an interaction's FIRST
 // response, and a deferred interaction can never open one. See
-// bot/src/utils/interactionResponse.ts's top comment and this file's entry
-// in deferGuard.test.ts's MUST_NOT_DEFER list.
+// bot/src/utils/interactionResponse.ts's top comment and this file's
+// dedicated test in deferGuard.test.ts ("formSelectStep reaches a modal via
+// showApplicationModal and must not defer"); it is not in the
+// MUST_NOT_DEFER list, because it never writes `type: 9` itself.
 //
-// Consequence: the lookups above (stashPendingSelectAnswers, the forms
+// Consequence: the lookups below (stashPendingSelectAnswers, the forms
 // query) have to stay fast enough to answer within Discord's three-second
 // window on their own — this handler has no deferral to fall back on to
 // buy time if they ever aren't. Keep them cache-backed / index-backed

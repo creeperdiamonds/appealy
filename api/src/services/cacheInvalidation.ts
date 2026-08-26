@@ -47,6 +47,11 @@ const INVALIDATION_CHANNEL = "appealy:cache:invalidate";
  * moment this runs as more than one bot instance — see the bridge call's
  * `.catch(() => {})` below, which is this same fire-and-forget contract
  * applied to the new transport.
+ *
+ * The single-instance bet is not merely an assumption: it is enforced in
+ * deploy/service.yaml:58, `autoscaling.knative.dev/maxScale: "1"`. Raising
+ * that annotation is what invalidates everything above, so change the two
+ * together.
  */
 export async function invalidateGuildCache(guildId: string | bigint): Promise<void> {
   if (useMemoryRedis(env.REDIS_URL)) {

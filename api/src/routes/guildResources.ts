@@ -18,11 +18,33 @@ const INTERNAL_SECRET = process.env.INTERNAL_RPC_SECRET ?? "";
 
 guildResourcesRouter.use(requireGuildAccess);
 
+/**
+ * Both routes below call the bot directly rather than through callBot, so
+ * they never inherited its timeout. Without one they carry undici's default,
+ * which is measured in minutes — and these are the channel and role dropdowns
+ * in every form and panel editor, i.e. requests a human is sitting in front
+ * of. Same reasoning and same budget as routes/overview.ts's fetchBotHealth:
+ * if the bot is saturated holding the gateway open, this request hangs, and a
+ * dropdown that says "bot unreachable" in two seconds beats one that spins.
+ */
+const BOT_TIMEOUT_MS = 2_000;
+
+async function proxyToBot(path: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), BOT_TIMEOUT_MS);
+  try {
+    return await fetch(`${BOT_INTERNAL_URL}${path}`, {
+      headers: { "X-Internal-Secret": INTERNAL_SECRET },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 guildResourcesRouter.get("/channels", async (req, res) => {
   try {
-    const r = await fetch(`${BOT_INTERNAL_URL}/internal/guilds/${routeParams(req).guildId}/channels`, {
-      headers: { "X-Internal-Secret": INTERNAL_SECRET },
-    });
+    const r = await proxyToBot(`/internal/guilds/${routeParams(req).guildId}/channels`);
     if (!r.ok) return res.status(502).json({ error: "bot_unreachable" });
     res.json(await r.json());
   } catch (err) {
@@ -32,9 +54,7 @@ guildResourcesRouter.get("/channels", async (req, res) => {
 
 guildResourcesRouter.get("/roles", async (req, res) => {
   try {
-    const r = await fetch(`${BOT_INTERNAL_URL}/internal/guilds/${routeParams(req).guildId}/roles`, {
-      headers: { "X-Internal-Secret": INTERNAL_SECRET },
-    });
+    const r = await proxyToBot(`/internal/guilds/${routeParams(req).guildId}/roles`);
     if (!r.ok) return res.status(502).json({ error: "bot_unreachable" });
     res.json(await r.json());
   } catch (err) {

@@ -164,7 +164,9 @@ export function startControlServer(bot: AppealyBot) {
       // cacheInvalidation.ts and banGate.ts on the API side, which choose
       // this transport over Redis pub/sub only when useMemoryRedis() is true;
       // Redis becomes correct again the moment there is more than one bot
-      // instance to fan this out to.
+      // instance to fan this out to. That there is only one is enforced, not
+      // assumed: deploy/service.yaml:58 pins
+      // `autoscaling.knative.dev/maxScale: "1"`. Raising it invalidates this.
       if (url.pathname === "/internal/cache/invalidate" && req.method === "POST") {
         const { guildId } = await req.json();
         await invalidateGuild(guildId);

@@ -1,0 +1,94 @@
+name: CI (tests and type checks)
+
+# ---------------------------------------------------------------------------
+# WHY THIS EXISTS
+#
+# Every other workflow in this directory deploys something or syncs a secret,
+# and all of them are workflow_dispatch. Nothing ran the test suite. That was
+# survivable until Phase 0 added bot/src/interactions/__tests__/deferGuard.test.ts,
+# whose entire stated value is that "it will catch the next handler somebody
+# writes" — a guard that only runs on the machine of whoever remembers to run
+# it catches nothing at all.
+#
+# So this one is the exception to the workflow_dispatch house style: it runs
+# on every pull request and on every push to main, because a check that has to
+# be requested is a check that will be skipped on the day it matters.
+#
+# WHAT IT RUNS, AND WHY NO MORE THAN THAT
+#
+#   deno test  — the defer guard plus the interactionResponse/discordError
+#                unit tests. --allow-read because the guard reads source files
+#                off disk; nothing here needs the network or the environment,
+#                and it should stay that way.
+#   deno check — bot/src/main.ts pulls in the whole bot, so this type-checks
+#                it transitively.
+#   tsc        — the API. --noEmit rather than `npm run build`: the artifact is
+#                not wanted here, only the errors.
+#
+# Deliberately no dependency caching and no build matrix. Both are worth
+# adding when this gets slow; neither is worth the failure modes today, and a
+# CI job that is itself flaky teaches people to ignore red.
+#
+# deno lint is NOT here on purpose. It currently reports 34 pre-existing
+# findings (mostly unused vars), so adding it would land red on the first run
+# and immediately be ignored. Clean those up first, then add it.
+# ---------------------------------------------------------------------------
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  bot:
+    name: bot (deno)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Run from the repository root, not from bot/. The guard's path list is
+      # written relative to the root ("bot/src/interactions/...") and
+      # Deno.readTextFile resolves against the working directory, so running
+      # this anywhere else fails with NotFound on every entry.
+      - name: Test
+        run: deno test --allow-read -c bot/deno.json bot/src/
+
+      - name: Type check
+        run: deno check -c bot/deno.json bot/src/main.ts
+
+  api:
+    name: api (typescript)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: api
+        run: npm ci --omit=optional
+
+      # tsconfig.json has rootDir: "..", so this also type-checks shared/ as
+      # the Node compiler sees it — which is the half that deno check does not
+      # cover.
+      #
+      # working-directory: api, not `npx tsc -p api/tsconfig.json` from the
+      # root. There is no root package.json and no root node_modules, so npx
+      # at the root finds no local typescript and silently downloads one —
+      # a different compiler version than the one package-lock.json pins.
+      - name: Type check
+        working-directory: api
+        run: npx tsc --noEmit -p tsconfig.json

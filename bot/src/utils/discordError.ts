@@ -17,9 +17,6 @@ const GENERIC = "Failed to send request to discord.";
 /** How far down a cause chain to look before giving up. */
 const MAX_DEPTH = 4;
 
-/** Keep `raw` bounded — this goes into structured logs on every failure. */
-const MAX_RAW = 500;
-
 export interface DiscordErrorInfo {
   /** HTTP status, when discoverable. */
   status: number | null;
@@ -27,8 +24,6 @@ export interface DiscordErrorInfo {
   code: number | null;
   /** The most specific human-readable message available. */
   message: string;
-  /** Bounded debug string for the log line. */
-  raw: string;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -83,9 +78,14 @@ export function describeDiscordError(err: unknown): DiscordErrorInfo {
   // only chosen when nothing deeper offered anything.
   const message = messages.find((m) => m !== GENERIC) ?? messages[0] ?? String(err);
 
-  const raw = JSON.stringify({ status, code, message }).slice(0, MAX_RAW);
-
-  return { status, code, message, raw };
+  // Deliberately no `raw` field. There was one — JSON.stringify of exactly
+  // the three values above, truncated — and it was logged beside them at
+  // every call site, so it carried strictly less information than its own
+  // neighbours while its name promised the opposite. A field called `raw`
+  // that is not the raw error is a trap for whoever is reading these logs
+  // at 2am. If the untouched error is ever wanted, log `String(err)` or the
+  // stack at the call site, where the original object is still in hand.
+  return { status, code, message };
 }
 
 /**

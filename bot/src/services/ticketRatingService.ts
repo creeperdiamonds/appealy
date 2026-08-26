@@ -57,7 +57,7 @@ export async function sendRatingPrompt(bot: AppealyBot, ticketId: string, opener
       dmsClosed
         ? "Ticket rating prompt not sent: recipient has DMs closed"
         : "Failed to send ticket rating prompt",
-      { ticketId, status: info.status, code: info.code, detail: info.message, raw: info.raw },
+      { ticketId, status: info.status, code: info.code, detail: info.message },
     );
   }
 }

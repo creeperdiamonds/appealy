@@ -194,7 +194,6 @@ export function onInteractionCreate(bot: AppealyBot) {
           status: info.status,
           code: info.code,
           detail: info.message,
-          raw: info.raw,
           // Restored deliberately. This catch wraps routeSlashCommand,
           // routeAutocomplete and every handler beneath them, so most of
           // what lands here is an ordinary JS bug rather than a Discord
@@ -210,26 +209,37 @@ export function onInteractionCreate(bot: AppealyBot) {
       // Best-effort user-facing error response.
       //
       // Two shapes are possible and we cannot tell them apart from here. A
-      // handler that deferred (type 5) has already acknowledged the
-      // interaction, so sendInteractionResponse is rejected with 40060 and
-      // the only way to reach the user is to EDIT the deferred response. A
-      // handler that threw before responding acknowledged nothing, so the
-      // edit 404s and only sendInteractionResponse works.
+      // handler that threw before responding acknowledged nothing, so only
+      // sendInteractionResponse works and the edit would 404. A handler that
+      // deferred (type 5) has already acknowledged the interaction, so the
+      // send is rejected with 40060 and the only way to reach the user is to
+      // EDIT the deferred response.
       //
       // Getting this wrong is not cosmetic. Before handlers began deferring,
       // the send always worked; the moment reviewAccept deferred, the same
       // exception left Discord showing "thinking..." until the token expired,
-      // because the rejected send was swallowed silently below. A hang is
-      // worse than an error message — the error at least tells the truth.
+      // because the rejected response was swallowed silently. A hang is worse
+      // than an error message — the error at least tells the truth. So both
+      // are tried, in this order.
+      //
+      // SEND FIRST, THEN EDIT — the order matters for latency, not
+      // correctness. The un-acknowledged case is the one under time pressure:
+      // its handler never deferred, so whatever is left of the three-second
+      // window is all it has, and it is populated by exactly the handlers
+      // that cannot defer (the modal-openers) plus anything that threw before
+      // reaching defer(). Putting the send first serves that case in one
+      // round trip. The wasted round trip then lands on the deferred case,
+      // which Discord rejects immediately with 40060 and which has fifteen
+      // minutes to spare anyway.
       const content = "Something went wrong processing that. Please try again.";
       try {
-        await bot.helpers.editOriginalInteractionResponse(interaction.token, { content });
+        await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+          type: 4,
+          data: { content, flags: 64 }, // ephemeral
+        });
       } catch {
         try {
-          await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-            type: 4,
-            data: { content, flags: 64 }, // ephemeral
-          });
+          await bot.helpers.editOriginalInteractionResponse(interaction.token, { content });
         } catch {
           // Both paths failed: the token is expired or genuinely invalid.
           // Nothing further is reachable, and the error is already logged above.

@@ -77,6 +77,12 @@ export async function autocomplete(bot: AppealyBot, interaction: Interaction) {
   });
 }
 
+/** Sends the FIRST response (type 4), unlike the identically-named respond()
+ * in the 22 defer/finish handlers, which edits an already-deferred one. That
+ * is deliberate and must stay: /apply's happy path ends in a modal via
+ * runApplicationFlow, and a deferred interaction can never open one — see
+ * deferGuard.test.ts's dedicated apply.ts block. Do not "normalise" this to
+ * finish(). */
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
   await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
     type: 4,
