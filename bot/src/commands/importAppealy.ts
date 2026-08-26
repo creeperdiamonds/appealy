@@ -20,8 +20,7 @@ import { db } from "../db/client.ts";
 import { isGuildOwner } from "../services/permissionService.ts";
 import { importGuildData, type ImportReport } from "../../../shared/services/dataImport.ts";
 import { logger } from "../utils/logger.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../utils/interactionResponse.ts";
 
 export const definition: CreateApplicationCommand = {
   name: "import-appealy",
@@ -49,13 +48,6 @@ export const definition: CreateApplicationCommand = {
     },
   ],
 };
-
-async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { flags: EPHEMERAL, content },
-  });
-}
 
 /**
  * The report as something worth reading in Discord.
@@ -118,6 +110,11 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const requester = interaction.member?.user ?? interaction.user;
   if (!guildId || !requester) return;
 
+  // isGuildOwner is a REST call, and importGuildData below can do a large
+  // number of DB writes for a big configuration — plenty to blow Discord's
+  // three-second first-response window. Deferring buys fifteen minutes.
+  await defer(bot, interaction, { ephemeral: true });
+
   if (!(await isGuildOwner(bot, guildId, requester.id))) {
     return respond(
       bot,
@@ -158,10 +155,11 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     const payload = JSON.parse(await fileRes.text()) as Record<string, unknown>;
 
     if (!payload || typeof payload !== "object" || !("exportVersion" in payload)) {
-      await bot.helpers.editOriginalInteractionResponse(interaction.token, {
-        content:
-          "That file doesn't look like an Appealy export — it has no `exportVersion`. Use the file from `/export`, not one from another bot (for Appy submissions, use `/import-appy`).",
-      });
+      await finish(
+        bot,
+        interaction,
+        "That file doesn't look like an Appealy export — it has no `exportVersion`. Use the file from `/export`, not one from another bot (for Appy submissions, use `/import-appy`).",
+      );
       return;
     }
 
@@ -181,18 +179,23 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       deactivated: report.deactivated.length,
     });
 
-    await bot.helpers.editOriginalInteractionResponse(interaction.token, {
-      content: formatReport(report),
-    });
+    await finish(bot, interaction, formatReport(report));
   } catch (err) {
     logger.error("Appealy import failed", { guildId: guildId.toString(), error: String(err) });
-    await bot.helpers.editOriginalInteractionResponse(interaction.token, {
-      // Not reported as a clean failure: if this threw partway, some records
-      // already exist and the server is in a half-imported state. Saying
-      // "failed" without that would send someone looking for nothing.
-      content:
-        `Import failed: ${String(err)}\n\n` +
+    // Not reported as a clean failure: if this threw partway, some records
+    // already exist and the server is in a half-imported state. Saying
+    // "failed" without that would send someone looking for nothing.
+    await finish(
+      bot,
+      interaction,
+      `Import failed: ${String(err)}\n\n` +
         "Some records may already have been created. Check the server before retrying, or re-run with `replace: true` to start clean.",
-    });
+    );
   }
+}
+
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change.
+async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
+  await finish(bot, interaction, content);
 }

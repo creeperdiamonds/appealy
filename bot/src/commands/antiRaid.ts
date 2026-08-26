@@ -109,6 +109,19 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     const active = await isLockdownActive(guildId);
     return respond(bot, interaction, active ? "🔒 A lockdown is currently active." : "No active lockdown.");
   }
+
+  // Defensive fallback, not dead code. Discord validates subcommand names
+  // against the registered `definition` above before routing here, so this
+  // is unreachable today — but `definition` and this if-chain are two
+  // separate objects kept in sync only by hand. Without this, a fourth
+  // subcommand added to `definition` without a matching branch here would
+  // defer above and then fall off the end of the function having never
+  // finished, leaving the interaction on "thinking..." for the full fifteen
+  // minutes. Before this file deferred, the same gap produced Discord's own
+  // "This interaction failed" after three seconds — worse UX, but at least
+  // truthful. See interactionCreate.ts's catch-all comment: "A hang is worse
+  // than an error message — the error at least tells the truth."
+  return respond(bot, interaction, "Unrecognised subcommand.");
 }
 
 // Ephemeral flag now lives on the deferral; this wrapper just routes

@@ -15,8 +15,7 @@ import { eq, and, like } from "drizzle-orm";
 import { isGuildOwner } from "../services/permissionService.ts";
 import { importAppySubmissions, type AppyExportRow } from "../services/appyImportService.ts";
 import { logger } from "../utils/logger.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../utils/interactionResponse.ts";
 
 export const definition: CreateApplicationCommand = {
   name: "import-appy",
@@ -43,6 +42,20 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const guildId = interaction.guildId;
   const requester = interaction.member?.user ?? interaction.user;
   if (!guildId || !requester) return;
+
+  // isGuildOwner is a REST call, and the form lookup / attachment fetch /
+  // import below are several more DB and REST round trips — plenty to blow
+  // Discord's three-second first-response window. Deferring buys fifteen
+  // minutes.
+  //
+  // This only covers `execute`. `autocomplete` below is a separate
+  // interaction type (ApplicationCommandAutocomplete) that Discord only
+  // accepts an immediate type: 8 response for — there is no deferred
+  // variant for autocomplete, so it must keep responding to Discord
+  // directly, the way both handlers did before this conversion. See the
+  // dedicated guard test for this file in deferGuard.test.ts for why that
+  // keeps it out of the generic MUST_DEFER list.
+  await defer(bot, interaction, { ephemeral: true });
 
   const isOwner = await isGuildOwner(bot, guildId, requester.id);
   if (!isOwner) {
@@ -87,9 +100,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       if (!Array.isArray(parsed)) throw new Error("Expected a JSON array at the top level.");
       rows = parsed;
     } catch (err) {
-      await bot.helpers.editOriginalInteractionResponse(interaction.token, {
-        content: `That file isn't valid JSON in the expected shape: ${String(err)}`,
-      });
+      await finish(bot, interaction, `That file isn't valid JSON in the expected shape: ${String(err)}`);
       return;
     }
 
@@ -108,9 +119,11 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
             .join("; ")}${result.skipped.length > 5 ? ", ..." : ""}`
         : "";
 
-    await bot.helpers.editOriginalInteractionResponse(interaction.token, {
-      content: `Imported ${result.imported} submission(s) into **${form.name}**.${skippedSummary}${unmatchedSummary}`,
-    });
+    await finish(
+      bot,
+      interaction,
+      `Imported ${result.imported} submission(s) into **${form.name}**.${skippedSummary}${unmatchedSummary}`,
+    );
 
     logger.info("Appy import completed", {
       guildId: guildId.toString(),
@@ -121,9 +134,11 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     });
   } catch (err) {
     logger.error("Appy import failed", { guildId: guildId.toString(), error: String(err) });
-    await bot.helpers.editOriginalInteractionResponse(interaction.token, {
-      content: `Import failed: ${String(err)}. No partial data was left in an inconsistent state — each submission is imported individually, so anything that succeeded before the failure is still there.`,
-    });
+    await finish(
+      bot,
+      interaction,
+      `Import failed: ${String(err)}. No partial data was left in an inconsistent state — each submission is imported individually, so anything that succeeded before the failure is still there.`,
+    );
   }
 }
 
@@ -144,9 +159,10 @@ export async function autocomplete(bot: AppealyBot, interaction: Interaction) {
   });
 }
 
+// Ephemeral flag now lives on the deferral; this wrapper just routes
+// through finish() so call sites didn't need to change. NOT used by
+// autocomplete() above — that handler must keep responding directly (see
+// the comment on the defer() call in execute()).
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }

@@ -24,8 +24,8 @@ const MUST_DEFER = [
   "bot/src/interactions/modals/verifyCaptcha.ts",
   "bot/src/interactions/selects/roleMenuSelect.ts",
   "bot/src/interactions/selects/pollVote.ts",
-  // Slash commands added in Task 7. exportApplications.ts and
-  // resetCooldown.ts are deliberately NOT here even though their `execute`
+  // Slash commands added in Task 7. exportApplications.ts, resetCooldown.ts,
+  // and importAppy.ts are deliberately NOT here even though their `execute`
   // handlers were converted the same way — see the dedicated tests below
   // for why. apply.ts is also deliberately not here — see the dedicated
   // test for it below, right next to formSelectStep's.
@@ -39,6 +39,9 @@ const MUST_DEFER = [
   "bot/src/commands/antiRaid.ts",
   "bot/src/commands/formList.ts",
   "bot/src/commands/botStats.ts",
+  // Fix round 1: two candidates the original Task 7 pass missed entirely
+  // (both did REST work via isGuildOwner() before responding, unguarded).
+  "bot/src/commands/importAppealy.ts",
 ];
 
 /**
@@ -73,12 +76,12 @@ for (const path of MUST_DEFER) {
     // Verified safe against ordering: in every file listed above, the
     // exported handler that must defer is defined before the file's first
     // await, so no helper function's await can shadow the handler's
-    // deferral. (Two slash commands — exportApplications.ts and
-    // resetCooldown.ts — also pair `execute` with an `autocomplete` export
-    // that legitimately keeps its own direct response; they're deliberately
-    // NOT in this array because the "no sendInteractionResponse" assertion
-    // just above can't distinguish that legitimate call from a regression.
-    // See their dedicated test below.)
+    // deferral. (Three slash commands — exportApplications.ts,
+    // resetCooldown.ts, and importAppy.ts — also pair `execute` with an
+    // `autocomplete` export that legitimately keeps its own direct
+    // response; they're deliberately NOT in this array because the "no
+    // sendInteractionResponse" assertion just above can't distinguish that
+    // legitimate call from a regression. See their dedicated test below.)
     const firstAwait = src.indexOf("await ");
     const deferAwait = src.indexOf("await defer(");
     assert(
@@ -100,10 +103,11 @@ for (const path of MUST_NOT_DEFER) {
 }
 
 /**
- * exportApplications.ts and resetCooldown.ts (Task 7) each pair a normal
- * slash-command `execute` handler with an `autocomplete` export for one of
- * their string options. Autocomplete is a genuinely different interaction
- * type (APPLICATION_COMMAND_AUTOCOMPLETE) that Discord only accepts an
+ * exportApplications.ts, resetCooldown.ts, and importAppy.ts (Task 7, the
+ * last added in fix round 1) each pair a normal slash-command `execute`
+ * handler with an `autocomplete` export for one of their string options.
+ * Autocomplete is a genuinely different interaction type
+ * (APPLICATION_COMMAND_AUTOCOMPLETE) that Discord only accepts an
  * immediate `type: 8` response for — there is no deferred variant, so
  * `autocomplete()` must keep calling the raw interaction-response helper
  * directly even after `execute()` is converted to defer/finish. That
@@ -124,6 +128,7 @@ for (
   const path of [
     "bot/src/commands/exportApplications.ts",
     "bot/src/commands/resetCooldown.ts",
+    "bot/src/commands/importAppy.ts",
   ]
 ) {
   Deno.test(`${path} defers execute() before working; autocomplete() is exempt`, async () => {
