@@ -6,14 +6,15 @@
 //
 // A Discord gateway connection has to stay open, which on Cloud Run means
 // min-instances=1 and cpu-throttling off — billed continuously at roughly the
-// price of an e2-micro VM, about $84 a year. Dedicated hosting sells for $10 a
+// price of an e2-micro VM, about $84 a year. Dedicated hosting sells for $30 a
 // year (CUSTOM_BOT_HOSTING_USD_CENTS_PER_YEAR). One container per customer
-// loses money on every sale, and no amount of tuning closes an eight-fold gap.
+// loses money on every sale; at $30 revenue against $84 cost, the gap closes
+// when fifteen share a host.
 //
-// Several clients in one process do close it. A gateway connection is almost
+// Several clients in one process close the gap. A gateway connection is almost
 // entirely idle — it waits on a socket and sends a heartbeat every 41 seconds
 // — so the marginal CPU cost of another one is small. Fifteen bots sharing one
-// host is about $5.60 each against $10 of revenue.
+// host is about $5.60 each against $30 of revenue.
 //
 // WHAT THIS IS NOT
 //
