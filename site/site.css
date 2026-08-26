@@ -330,6 +330,24 @@ main > section:first-child {
   margin-top: 0.625rem;
 }
 
+/* The screenshot under the door line. Bordered and rounded so it reads as a
+ * quoted artifact rather than page furniture, and sized by the blockquote it
+ * sits in — the global `img { max-width: 100% }` rule already handles the
+ * narrow end, so nothing here needs a media query. */
+.door-evidence {
+  margin: 1rem 0 0;
+}
+.door-evidence img {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.door-evidence figcaption {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+}
+
 .hero-figure {
   display: none;
 }

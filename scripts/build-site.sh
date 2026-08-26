@@ -42,6 +42,18 @@ mkdir -p "$OUT"
 # something to publish.
 cp site/*.html site/*.css "$OUT"/
 
+# Images the pages reference at /img/*.
+#
+# Needed because the line above copies site/ BY EXTENSION rather than
+# wholesale, so any new file type dropped in there is invisible to this build
+# until it is named here. A screenshot added to site/img/ without this would
+# render fine when the page is opened from disk and 404 on the deployed site,
+# which is the worst shape of bug: correct everywhere you would test it.
+if [ -d site/img ]; then
+  mkdir -p "$OUT/img"
+  cp site/img/* "$OUT/img"/
+fi
+
 # The marks, at the absolute path every page references.
 mkdir -p "$OUT/brand"
 cp brand/*.svg "$OUT/brand"/
@@ -70,6 +82,10 @@ fi
 echo "Built $OUT:"
 echo "  pages    $(ls -1 "$OUT"/*.html 2>/dev/null | wc -l | tr -d ' ')"
 echo "  brand    $(ls -1 "$OUT/brand" 2>/dev/null | wc -l | tr -d ' ')"
+# Counted so a missing asset is visible here rather than as a 404 nobody
+# looks for. The pages reference these by absolute path, so an image that
+# fails to copy still renders as a broken box on the live site alone.
+echo "  images   $(ls -1 "$OUT/img" 2>/dev/null | wc -l | tr -d ' ')"
 echo "  status   $([ -d "$OUT/status" ] && echo present || echo absent)"
 if [ -f "$OUT/_redirects" ]; then
   echo "  invite   wired via _redirects"
