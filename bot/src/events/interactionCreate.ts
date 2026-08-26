@@ -190,7 +190,20 @@ export function onInteractionCreate(bot: AppealyBot) {
         });
       } else {
         logger.error("Unhandled error in interactionCreate", {
-          interactionId, status: info.status, code: info.code, detail: info.message, raw: info.raw,
+          interactionId,
+          status: info.status,
+          code: info.code,
+          detail: info.message,
+          raw: info.raw,
+          // Restored deliberately. This catch wraps routeSlashCommand,
+          // routeAutocomplete and every handler beneath them, so most of
+          // what lands here is an ordinary JS bug rather than a Discord
+          // REST failure — and for those, status and code are both null
+          // and the message alone names no file or line. The structured
+          // fields tell you what Discord said; the stack tells you where
+          // OUR code broke. Both are needed, for different errors arriving
+          // at the same catch.
+          stack: err instanceof Error ? err.stack : undefined,
         });
       }
 
