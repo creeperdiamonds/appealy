@@ -52,11 +52,20 @@ const MUST_NOT_DEFER = [
  * Handlers that reach a modal INDIRECTLY, by delegating to a function
  * defined in another file that sends the type: 9 response.
  *
- * The target file must itself appear in MUST_NOT_DEFER, so its own
- * "type: 9" assertion is what proves a modal is reachable. This override
- * borrows an already-verified fact rather than trusting a string somebody
- * chose — without that tie, an entry could name any near-universal
- * substring and opt itself out of the check entirely.
+ * An earlier version of this override checked `src.includes(fn)` (true for
+ * an import line, a comment, or an unrelated variable of the same name)
+ * and `MUST_NOT_DEFER.includes(definedIn)` (true for ANY already-listed
+ * path, including the entry's own — the loop iterates MUST_NOT_DEFER
+ * itself, so a self-referential definedIn passed trivially). Together
+ * those two checks proved nothing: an entry like
+ * `{ fn: "import", definedIn: "<any other listed file>" }` satisfied both.
+ *
+ * The test below closes that instead of asserting around it: it requires
+ * the delegating file to actually CALL fn(...) (not merely mention it),
+ * reads definedIn's own source off disk, requires that file to DECLARE
+ * fn, and requires that file's source to contain the literal modal
+ * response (`type: 9`) itself. Only when all four hold does delegation
+ * count as proof a modal is reachable.
  */
 const MODAL_DELEGATES: Record<string, { fn: string; definedIn: string }> = {
   "bot/src/interactions/selects/formSelectStep.ts": {
@@ -95,13 +104,34 @@ for (const path of MUST_NOT_DEFER) {
     const src = await Deno.readTextFile(path);
     const delegate = MODAL_DELEGATES[path];
     if (delegate) {
+      // A file cannot vouch for itself. The loop iterates MUST_NOT_DEFER, so
+      // a self-referential definedIn would otherwise satisfy any membership
+      // test trivially.
       assert(
-        src.includes(delegate.fn),
-        `${path} must call ${delegate.fn} to reach a modal`,
+        delegate.definedIn !== path,
+        `${path} cannot delegate to itself`,
       );
+      // The caller must CALL it, not merely mention it. A bare substring
+      // match is satisfied by an import line, a comment, or a variable that
+      // happens to share the name.
       assert(
-        MUST_NOT_DEFER.includes(delegate.definedIn),
-        `${delegate.definedIn} must itself be a verified modal opener`,
+        new RegExp(`\\b${delegate.fn}\\s*\\(`).test(src),
+        `${path} must call ${delegate.fn}(...) to reach a modal`,
+      );
+      const target = await Deno.readTextFile(delegate.definedIn);
+      // The target must DECLARE the function. This is the assertion that
+      // makes the override honest: an entry naming a common substring like
+      // "import" has no matching declaration anywhere and fails here.
+      assert(
+        new RegExp(`function\\s+${delegate.fn}\\b`).test(target),
+        `${delegate.definedIn} must declare function ${delegate.fn}`,
+      );
+      // And the target must itself open a modal. This is the fact the
+      // override borrows; without checking it, delegation proves nothing
+      // about whether a modal is reachable at all.
+      assert(
+        target.includes("type: 9"),
+        `${delegate.definedIn} must itself open a modal (type: 9)`,
       );
     } else {
       assert(src.includes("type: 9"), `${path} was expected to open a modal`);
