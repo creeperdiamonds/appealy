@@ -175,18 +175,33 @@ export function onInteractionCreate(bot: AppealyBot) {
         interactionId: interaction.id?.toString(),
       });
 
-      // Best-effort user-facing error response; ignore failures here since
-      // the interaction token may already be invalid/expired/acknowledged.
+      // Best-effort user-facing error response.
+      //
+      // Two shapes are possible and we cannot tell them apart from here. A
+      // handler that deferred (type 5) has already acknowledged the
+      // interaction, so sendInteractionResponse is rejected with 40060 and
+      // the only way to reach the user is to EDIT the deferred response. A
+      // handler that threw before responding acknowledged nothing, so the
+      // edit 404s and only sendInteractionResponse works.
+      //
+      // Getting this wrong is not cosmetic. Before handlers began deferring,
+      // the send always worked; the moment reviewAccept deferred, the same
+      // exception left Discord showing "thinking..." until the token expired,
+      // because the rejected send was swallowed silently below. A hang is
+      // worse than an error message — the error at least tells the truth.
+      const content = "Something went wrong processing that. Please try again.";
       try {
-        await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-          type: 4,
-          data: {
-            content: "Something went wrong processing that. Please try again.",
-            flags: 64, // ephemeral
-          },
-        });
+        await bot.helpers.editOriginalInteractionResponse(interaction.token, { content });
       } catch {
-        // swallow — interaction already responded to or token expired
+        try {
+          await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+            type: 4,
+            data: { content, flags: 64 }, // ephemeral
+          });
+        } catch {
+          // Both paths failed: the token is expired or genuinely invalid.
+          // Nothing further is reachable, and the error is already logged above.
+        }
       }
     }
   };
