@@ -99,8 +99,10 @@ export async function startStatusPublisher(bot: AppealyBot): Promise<void> {
   // do not share a filesystem unless one is explicitly mounted), so a file
   // written here today is unreachable by any reader. The intended wiring
   // (bot and web sharing a `status` volume) is documented in
-  // status/README.md and is real for the docker-compose deployment, just not
-  // for the Cloud Run one this env runs in.
+  // status/README.md, but it is unwired everywhere, not just here:
+  // docker-compose.yml has no `status` volume and no STATUS_OUT_DIR either,
+  // so this is design documentation for a feature that has never actually
+  // been connected, in any deployment target.
   //
   // Defaulting OUT_DIR to /srv/status and starting unconditionally — the
   // previous behaviour — meant every production boot logged "started"
