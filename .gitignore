@@ -96,3 +96,6 @@ coverage/
 # so it is entirely derived — committing it would mean two copies of every
 # page and one of them going stale.
 dist-site/
+
+# SDD scratch: ledger, briefs, reports, review packages
+.superpowers/
