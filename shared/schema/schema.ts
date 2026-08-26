@@ -667,6 +667,20 @@ export const ticketConfigs = pgTable(
     channelType: ticketChannelTypeEnum("channel_type").notNull().default("private_channel"),
     supportRoleIds: jsonb("support_role_ids").$type<string[]>().notNull().default([]),
     pingRoleIds: jsonb("ping_role_ids").$type<string[]>().notNull().default([]),
+    // The two messages below have different audiences and must not be
+    // conflated, which they were until this column existed: one field fed
+    // both sites, and each site quietly supplied its own fallback to paper
+    // over the mismatch. The stored default read "Thanks for opening a
+    // ticket. A member of staff will be with you shortly." — correct inside
+    // a ticket, and nonsense on a public panel sitting above a button
+    // labelled "Open Ticket", which is what every default install showed.
+    //
+    // panelMessage is public: it is the embed body under the Open Ticket
+    // button, read by everyone who can see the channel, before they have a
+    // ticket.
+    panelMessage: text("panel_message").default("Click below to open a ticket."),
+    // welcomeMessage is private: it is posted INSIDE a ticket that already
+    // exists, and only its opener and the support roles ever see it.
     welcomeMessage: text("welcome_message").default(
       "Thanks for opening a ticket. A member of staff will be with you shortly.",
     ),

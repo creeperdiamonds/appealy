@@ -15,7 +15,11 @@ export async function publishTicketPanel(bot: AppealyBot, configId: string) {
     embeds: [
       {
         title: config.name,
-        description: config.welcomeMessage ?? "Click below to open a ticket.",
+        // panelMessage, not welcomeMessage. This embed is public — everyone
+        // who can see the channel reads it, before they have a ticket. It
+        // used to read welcomeMessage, whose default thanks the reader for
+        // opening a ticket they have not opened yet.
+        description: config.panelMessage ?? "Click below to open a ticket.",
         color: 0x5865f2,
       },
     ],

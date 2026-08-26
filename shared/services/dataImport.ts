@@ -445,6 +445,7 @@ export async function importGuildData(
       channelType: (cfg.channelType as never) ?? undefined,
       supportRoleIds: resolve.roleList(cfg.supportRoleIds).ids,
       pingRoleIds: resolve.roleList(cfg.pingRoleIds).ids,
+      panelMessage: str(cfg.panelMessage),
       welcomeMessage: str(cfg.welcomeMessage),
       ticketNameFormat: str(cfg.ticketNameFormat) ?? undefined,
       maxOpenPerUser: Number(cfg.maxOpenPerUser ?? 1),

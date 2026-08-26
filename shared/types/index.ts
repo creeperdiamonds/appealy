@@ -264,6 +264,9 @@ export interface TicketConfigDTO {
   channelType: TicketChannelType;
   supportRoleIds: Snowflake[];
   pingRoleIds: Snowflake[];
+  /** Public: the embed body under the Open Ticket button. */
+  panelMessage: string;
+  /** Private: posted inside a ticket, seen only by its opener and staff. */
   welcomeMessage: string;
   ticketNameFormat: string;
   maxOpenPerUser: number;

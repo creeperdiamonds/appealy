@@ -1,0 +1,1 @@
+ALTER TABLE "ticket_configs" ADD COLUMN "panel_message" text DEFAULT 'Click below to open a ticket.';

@@ -56,6 +56,7 @@ interface TicketConfigDTO {
   channelType: ChannelType;
   supportRoleIds: string[];
   pingRoleIds: string[];
+  panelMessage: string;
   welcomeMessage: string;
   ticketNameFormat: string;
   maxOpenPerUser: number;
@@ -81,6 +82,7 @@ const blank = (): Draft => ({
   channelType: "private_channel",
   supportRoleIds: [],
   pingRoleIds: [],
+  panelMessage: "Click below to open a ticket.",
   welcomeMessage: "Thanks for opening a ticket. A member of staff will be with you shortly.",
   ticketNameFormat: "ticket-{username}",
   maxOpenPerUser: 1,
@@ -859,6 +861,21 @@ function Editor({
 
       <Panel title="What members see and what's kept">
         <label className="field">
+          <span className="eyebrow">Panel message</span>
+          <textarea
+            rows={3}
+            value={draft.panelMessage}
+            maxLength={1000}
+            onChange={(e) => onPatch({ panelMessage: e.target.value })}
+            placeholder="Click below to open a ticket."
+          />
+          <span className="dim">
+            Public. Sits under the button, where anyone who can see the channel reads it before
+            they have a ticket. Say what this queue is for and what to have ready.
+          </span>
+        </label>
+
+        <label className="field">
           <span className="eyebrow">Welcome message</span>
           <textarea
             rows={4}
@@ -868,9 +885,8 @@ function Editor({
             placeholder="Thanks for opening a ticket. A member of staff will be with you shortly."
           />
           <span className="dim">
-            Used twice: as the description on the panel embed, and as the first message inside
-            every ticket. Write it so it reads correctly in both places — “tell us what you need”
-            works, “thanks for waiting” doesn't.
+            Private. The first message inside a ticket that already exists, seen only by whoever
+            opened it and your support roles.
           </span>
         </label>
 
