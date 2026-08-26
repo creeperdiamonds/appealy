@@ -31,7 +31,6 @@ import { join } from "node:path";
 import type { AppealyBot } from "./client.ts";
 import { logger } from "../utils/logger.ts";
 
-const OUT_DIR = Deno.env.get("STATUS_OUT_DIR") ?? "/srv/status";
 const INTERVAL_MS = 10_000;
 
 type PublicShardState = "up" | "degraded" | "down";
@@ -54,7 +53,7 @@ function classify(shard: { connected?: boolean; rtt?: number }): PublicShardStat
   return "up";
 }
 
-async function publish(bot: AppealyBot): Promise<void> {
+async function publish(bot: AppealyBot, outDir: string): Promise<void> {
   const now = new Date().toISOString();
   const shards: StatusSnapshot["shards"] = [];
   const summary = { up: 0, degraded: 0, down: 0 };
@@ -80,40 +79,73 @@ async function publish(bot: AppealyBot): Promise<void> {
   // Write-then-rename. A visitor loading mid-write would otherwise get a
   // truncated file and a JSON parse error, which the page would render as an
   // outage it invented itself. rename() is atomic on the same filesystem.
-  const tmp = join(OUT_DIR, ".status.json.tmp");
+  const tmp = join(outDir, ".status.json.tmp");
   await writeFile(tmp, JSON.stringify(snapshot));
-  await rename(tmp, join(OUT_DIR, "status.json"));
+  await rename(tmp, join(outDir, "status.json"));
 }
 
-export function startStatusPublisher(bot: AppealyBot): void {
+function isUnrecoverable(err: unknown): boolean {
+  // A permission or missing-directory failure will not fix itself on the
+  // next tick, so it is treated as fatal to the publisher (not to the bot):
+  // stop retrying rather than log the same warning every ten seconds
+  // forever, which buries the warnings that do mean something.
+  return err instanceof Deno.errors.NotCapable || err instanceof Deno.errors.NotFound;
+}
+
+export async function startStatusPublisher(bot: AppealyBot): Promise<void> {
+  // Opt-in, not default-on. There is currently no path from this container's
+  // filesystem to anything nginx can serve — deploy/service.yaml declares no
+  // shared volume between the `bot` and `web` containers (Cloud Run sidecars
+  // do not share a filesystem unless one is explicitly mounted), so a file
+  // written here today is unreachable by any reader. The intended wiring
+  // (bot and web sharing a `status` volume) is documented in
+  // status/README.md and is real for the docker-compose deployment, just not
+  // for the Cloud Run one this env runs in.
+  //
+  // Defaulting OUT_DIR to /srv/status and starting unconditionally — the
+  // previous behaviour — meant every production boot logged "started"
+  // immediately followed by "disabled": an announcement and its own
+  // contradiction, back to back, on every single boot since the first
+  // deploy (see task-11-brief.md). Requiring an explicit STATUS_OUT_DIR
+  // means the common case (unset, no shared volume) logs nothing at all,
+  // and the publisher only ever announces itself when it might actually
+  // work. Do not reintroduce a default path here — set STATUS_OUT_DIR
+  // explicitly once a shared volume exists for this deployment target.
+  const outDir = Deno.env.get("STATUS_OUT_DIR");
+  if (outDir === undefined) return;
+
   let timer: number | undefined;
+  let disabled = false;
 
-  const tick = () =>
-    publish(bot).catch((err) => {
-      // A permission or missing-directory failure will not fix itself on the
-      // next tick. Outside a container OUT_DIR is /srv/status, which does not
-      // exist, and the bot runs without --allow-write regardless — so this
-      // used to log a warning every ten seconds forever, which buries the
-      // warnings that do mean something.
-      const fatal =
-        err instanceof Deno.errors.NotCapable || err instanceof Deno.errors.NotFound;
-
-      if (fatal) {
+  const attempt = async () => {
+    try {
+      await publish(bot, outDir);
+    } catch (err) {
+      if (isUnrecoverable(err)) {
+        disabled = true;
         if (timer !== undefined) clearInterval(timer);
         logger.warn(
           "Status publishing disabled: cannot write to the output directory. " +
             "Set STATUS_OUT_DIR to a writable path and grant --allow-write to enable it.",
-          { dir: OUT_DIR, error: err.name },
+          { dir: outDir, error: (err as Error).name },
         );
         return;
       }
 
       logger.warn("Status publish failed", { error: String(err) });
-    });
+    }
+  };
 
-  tick();
-  timer = setInterval(tick, INTERVAL_MS) as unknown as number;
-  logger.info("Status publisher started", { dir: OUT_DIR, intervalMs: INTERVAL_MS });
+  // Awaited, and logged only after: this is the writability check. Logging
+  // "started" before this resolved is the actual bug task 11 exists to fix
+  // — it announced a service that, in the same breath, turned out to be
+  // disabled. If STATUS_OUT_DIR is set but wrong, the warning above is the
+  // only log line this function ever produces.
+  await attempt();
+  if (disabled) return;
+
+  logger.info("Status publisher started", { dir: outDir, intervalMs: INTERVAL_MS });
+  timer = setInterval(() => void attempt(), INTERVAL_MS) as unknown as number;
 }
 
 /**

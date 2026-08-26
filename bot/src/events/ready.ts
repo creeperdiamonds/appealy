@@ -31,7 +31,7 @@ export function onReady(
   // once per shard would open N subscribers and N publish intervals.
   if (payload.shardId === 0) {
     void startBanCache();
-    startStatusPublisher(bot);
+    void startStatusPublisher(bot);
     startEntitlements();
     startConfirmSweeper();
     // Notices when the fleet outgrows its shard count. Logs; never reshards
