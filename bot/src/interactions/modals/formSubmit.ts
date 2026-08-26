@@ -112,23 +112,36 @@ export async function handleFormModalSubmit(
 
   await clearPendingSelectAnswers(applicant.id, formId);
 
-  // NOTE: this acknowledgment is NOT this handler's last statement — the
-  // role automation and review-embed posting below still run afterward.
-  // That was true before this handler deferred too (the original ack was a
-  // real Discord response the applicant could already see), so the ordering
-  // is unchanged by this conversion. But it now interacts with
-  // interactionCreate.ts's error handler differently than the rest of this
-  // codebase's converted handlers: if applyRoleAutomationOnSubmit() or
-  // postReviewEmbedForSubmission() throws, the router's catch block will
-  // EDIT this already-sent "submitted!" message to "Something went wrong",
-  // telling the applicant their successful submission failed. Left as-is
-  // rather than reordered silently — reordering would delay the applicant's
-  // acknowledgment behind two more rounds of REST calls, which is its own
-  // regression. Flagged for a human decision rather than resolved here.
+  // This acknowledgment is deliberately NOT this handler's last statement —
+  // role automation and review-embed posting still run after it. Do not
+  // "fix" that by moving this above them: the submission is already
+  // committed to the DB by this point, so making the applicant wait on a
+  // handful of REST calls (role grants, a review post, a staff thread, a
+  // DM) before hearing "submitted" would trade one problem for a worse
+  // one — a delayed confirmation on a request that already succeeded.
   await respond(bot, interaction, `Your application for **${form.name}** has been submitted!`);
 
-  await applyRoleAutomationOnSubmit(bot, guildId, form, applicant.id, submission.id);
-  await postReviewEmbedForSubmission(bot, form, submission, applicant.id, allAnswers, completionSeconds);
+  // What this try/catch is actually guarding against: interactionCreate.ts's
+  // error handler is a catch-all that EDITS the deferred response on any
+  // uncaught throw — that's what makes deferred handlers safe to have
+  // trailing work in the first place. But here the edit target is the
+  // "submitted!" message above, which already told the applicant the truth.
+  // An uncaught throw from either call below would have the router
+  // overwrite that true message with "Something went wrong processing
+  // that," reporting a successful, already-persisted submission as a
+  // failure. Both callees already log their own partial failures
+  // internally (see their own try/catches around individual role grants,
+  // thread creation, etc.); this outer catch exists solely to stop
+  // anything they don't already handle from escaping to the router.
+  try {
+    await applyRoleAutomationOnSubmit(bot, guildId, form, applicant.id, submission.id);
+    await postReviewEmbedForSubmission(bot, form, submission, applicant.id, allAnswers, completionSeconds);
+  } catch (err) {
+    logger.warn("Post-submit follow-up work failed after acknowledgment was already sent", {
+      submissionId: submission.id,
+      error: String(err),
+    });
+  }
 }
 
 // Kept as a one-line wrapper rather than rewriting every call site: the

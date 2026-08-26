@@ -38,8 +38,8 @@ const MUST_DEFER = [
  * showApplicationModal() in panelOpen.ts, which is the one place the
  * literal `type: 9` lives for this flow. A deferred interaction can never
  * open a modal, so this handler must not defer on either path — its
- * pre-checks have to stay cache-backed instead. See MODAL_MARKER below for
- * how that indirection is verified.
+ * pre-checks have to stay cache-backed instead. See MODAL_DELEGATES below
+ * for how that indirection is verified.
  */
 const MUST_NOT_DEFER = [
   "bot/src/interactions/buttons/panelOpen.ts",
@@ -49,14 +49,20 @@ const MUST_NOT_DEFER = [
 ];
 
 /**
- * What to search for to confirm a MUST_NOT_DEFER file actually opens a
- * modal. Most of these files send `type: 9` directly, so that's the
- * default. formSelectStep.ts is the one exception — it never writes
- * `type: 9` itself, it calls into showApplicationModal() (panelOpen.ts) to
- * do it — so it needs its own marker rather than failing the default check.
+ * Handlers that reach a modal INDIRECTLY, by delegating to a function
+ * defined in another file that sends the type: 9 response.
+ *
+ * The target file must itself appear in MUST_NOT_DEFER, so its own
+ * "type: 9" assertion is what proves a modal is reachable. This override
+ * borrows an already-verified fact rather than trusting a string somebody
+ * chose — without that tie, an entry could name any near-universal
+ * substring and opt itself out of the check entirely.
  */
-const MODAL_MARKER: Record<string, string> = {
-  "bot/src/interactions/selects/formSelectStep.ts": "showApplicationModal(",
+const MODAL_DELEGATES: Record<string, { fn: string; definedIn: string }> = {
+  "bot/src/interactions/selects/formSelectStep.ts": {
+    fn: "showApplicationModal",
+    definedIn: "bot/src/interactions/buttons/panelOpen.ts",
+  },
 };
 
 for (const path of MUST_DEFER) {
@@ -72,7 +78,7 @@ for (const path of MUST_DEFER) {
     // substring check while still blowing the three-second window, and a
     // green guard over a live bug is worse than no guard at all.
     //
-    // Verified safe against ordering: in all ten files listed above the
+    // Verified safe against ordering: in all nine files listed above the
     // exported handler is defined before the file's first await, so no
     // helper function's await can shadow the handler's deferral.
     const firstAwait = src.indexOf("await ");
@@ -87,8 +93,19 @@ for (const path of MUST_DEFER) {
 for (const path of MUST_NOT_DEFER) {
   Deno.test(`${path} opens a modal and must not defer`, async () => {
     const src = await Deno.readTextFile(path);
-    const marker = MODAL_MARKER[path] ?? "type: 9";
-    assert(src.includes(marker), `${path} was expected to open a modal`);
+    const delegate = MODAL_DELEGATES[path];
+    if (delegate) {
+      assert(
+        src.includes(delegate.fn),
+        `${path} must call ${delegate.fn} to reach a modal`,
+      );
+      assert(
+        MUST_NOT_DEFER.includes(delegate.definedIn),
+        `${delegate.definedIn} must itself be a verified modal opener`,
+      );
+    } else {
+      assert(src.includes("type: 9"), `${path} was expected to open a modal`);
+    }
     assert(
       !src.includes("defer("),
       `${path} opens a modal; a deferred interaction cannot show one`,
