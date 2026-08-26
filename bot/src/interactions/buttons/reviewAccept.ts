@@ -16,8 +16,7 @@ import {
 import { buildConfirm, stageConfirm, takeConfirm } from "../outcomeConfirm.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
 import { logger } from "../../utils/logger.ts";
-
-const EPHEMERAL = 64;
+import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleReviewAccept(
   bot: AppealyBot,
@@ -35,6 +34,12 @@ export async function handleReviewAccept(
   const guildId = interaction.guildId;
   const reviewer = interaction.member?.user ?? interaction.user;
   if (!guildId || !reviewer) return;
+
+  // Answer Discord before doing any of it. What follows is ten to fifteen
+  // sequential REST calls plus five queries; the three-second window is not
+  // close, and the reviewer was being shown "This interaction failed" while
+  // the role, the DM and the unban all went through.
+  await defer(bot, interaction, { ephemeral: true });
 
   const submission = await db.query.submissions.findFirst({
     where: eq(schema.submissions.id, submissionId),
@@ -117,10 +122,7 @@ export async function handleReviewAccept(
       const components: MessageComponent[] = [
         { type: MessageComponentTypes.ActionRow, components: [menu] },
       ];
-      return bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-        type: 4,
-        data: { flags: EPHEMERAL, components },
-      });
+      return finish(bot, interaction, { components });
     }
 
     // Re-check against `allowed`, not `outcomes`. Custom_ids are guessable, so
@@ -169,16 +171,18 @@ export async function handleReviewAccept(
         ...outcome.removeRoleIds,
       ]);
       stageConfirm(submissionId, outcome.id, reviewer.id);
-      return bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-        type: 4,
-        data: buildConfirm(outcome, submission.applicantId, submissionId, {
-          formRemoveRoleIds: form.removeRoleIds,
-          pendingRoleIds: form.pendingRoleIds,
-          logChannelId: (outcome.logChannelId ?? form.acceptedChannelId ?? form.logChannelId)?.toString() ?? null,
-          willDm: true,
-          unmanageableRoleIds: unmanageablePreview,
-        }),
+      // buildConfirm() also returns a `flags` field for its original callers
+      // that respond fresh; dropped here since the ephemeral flag already
+      // landed on the deferral and finish() must not receive it — see
+      // finish()'s own doc comment.
+      const { embeds, components } = buildConfirm(outcome, submission.applicantId, submissionId, {
+        formRemoveRoleIds: form.removeRoleIds,
+        pendingRoleIds: form.pendingRoleIds,
+        logChannelId: (outcome.logChannelId ?? form.acceptedChannelId ?? form.logChannelId)?.toString() ?? null,
+        willDm: true,
+        unmanageableRoleIds: unmanageablePreview,
       });
+      return finish(bot, interaction, { embeds, components });
     }
 
     if (confirmToken) {
@@ -352,9 +356,8 @@ export async function handleReviewAccept(
   await respond(bot, interaction, messages.join(" "));
 }
 
+// Kept as a one-line wrapper rather than rewriting ~6 call sites: the flag
+// now lives on the deferral, so there is nothing left for this to decide.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 4,
-    data: { content, flags: EPHEMERAL },
-  });
+  await finish(bot, interaction, content);
 }
