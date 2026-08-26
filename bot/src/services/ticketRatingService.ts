@@ -12,6 +12,7 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { logger } from "../utils/logger.ts";
+import { describeDiscordError } from "../utils/discordError.ts";
 
 /** One rating button. Split out so the row below stays readable. */
 function star(ticketId: string, n: number): ButtonComponent {
@@ -45,8 +46,19 @@ export async function sendRatingPrompt(bot: AppealyBot, ticketId: string, opener
       ],
     });
   } catch (err) {
-    // DMs closed — non-fatal, rating just stays null forever for this ticket
-    logger.warn("Failed to send ticket rating prompt", { ticketId, error: String(err) });
+    // Was a blanket "DMs are closed" assumption. The 2026-08-23 logs show it
+    // also swallowed genuine API failures, which is how three broken tickets
+    // looked identical to three users with strict privacy settings. Only
+    // Discord code 50007 ("Cannot send messages to this user") actually
+    // means DMs are closed; everything else is a real failure worth naming.
+    const info = describeDiscordError(err);
+    const dmsClosed = info.code === 50007;
+    logger.warn(
+      dmsClosed
+        ? "Ticket rating prompt not sent: recipient has DMs closed"
+        : "Failed to send ticket rating prompt",
+      { ticketId, status: info.status, code: info.code, detail: info.message, raw: info.raw },
+    );
   }
 }
 

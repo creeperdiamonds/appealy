@@ -15,6 +15,7 @@ import { countRows } from "../db/count.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { checkAndConsumeDailyCap } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
+import { describeDiscordError } from "../utils/discordError.ts";
 
 const ChannelTypes = {
   GuildText: 0,
@@ -184,7 +185,18 @@ export async function closeTicket(
   let transcriptUrl: string | null = null;
   if (ticket.config.transcriptOnClose) {
     transcriptUrl = await generateAndPostTranscript(bot, ticket).catch((err) => {
-      logger.warn("Transcript generation failed", { ticketId, error: String(err) });
+      // Discordeno collapses every REST failure into the same generic
+      // wrapper message, so a permission error, a closed channel, and a
+      // network blip all used to log identically. describeDiscordError
+      // walks the body/cause chain for whatever Discord actually said.
+      const info = describeDiscordError(err);
+      logger.warn("Transcript generation failed", {
+        ticketId,
+        status: info.status,
+        code: info.code,
+        detail: info.message,
+        raw: info.raw,
+      });
       return null;
     });
   }

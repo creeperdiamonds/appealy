@@ -16,6 +16,7 @@ import { decodeCustomId } from "../../../shared/types/index.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";
 import { logger } from "../utils/logger.ts";
+import { describeDiscordError, isUnknownInteraction } from "../utils/discordError.ts";
 
 import { handlePanelOpenButton, proceedToQuestions } from "../interactions/buttons/panelOpen.ts";
 import { handleReviewAccept } from "../interactions/buttons/reviewAccept.ts";
@@ -170,10 +171,28 @@ export function onInteractionCreate(bot: AppealyBot) {
           return;
       }
     } catch (err) {
-      logger.error("Unhandled error in interactionCreate", {
-        error: err instanceof Error ? err.stack : String(err),
-        interactionId: interaction.id?.toString(),
-      });
+      // Discordeno collapses every REST failure — a closed DM, a missing
+      // permission, an expired token, a network blip — into the identical
+      // Error("Failed to send request to discord."). That's how the
+      // 2026-08-23 ticket outage ran for days: the logs never distinguished
+      // "handler is genuinely broken" from "token already expired." Name
+      // the 10062 case explicitly since it isn't a Discord outage and isn't
+      // retryable — the token was already dead by the time we got here.
+      const info = describeDiscordError(err);
+      const interactionId = interaction.id?.toString();
+      if (isUnknownInteraction(info)) {
+        // Not a Discord outage and not retryable: the handler took longer
+        // than three seconds to make its first response, so the token was
+        // already gone. The fix is always to defer — see
+        // utils/interactionResponse.ts.
+        logger.error("Interaction expired before the handler responded (handler exceeded the 3-second window)", {
+          interactionId, status: info.status, code: info.code,
+        });
+      } else {
+        logger.error("Unhandled error in interactionCreate", {
+          interactionId, status: info.status, code: info.code, detail: info.message, raw: info.raw,
+        });
+      }
 
       // Best-effort user-facing error response.
       //
