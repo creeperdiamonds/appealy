@@ -16,7 +16,36 @@ import type { PublicBan } from "../../../shared/schema/platformBans.ts";
 const BOT_INTERNAL_URL = process.env.BOT_INTERNAL_URL ?? "http://bot:9090";
 const INTERNAL_SECRET = process.env.INTERNAL_RPC_SECRET ?? "";
 
-async function callBot(path: string, body: unknown) {
+/**
+ * How long to wait on the bot before giving up.
+ *
+ * Not arbitrary: a container that is DOWN rejects immediately with
+ * ECONNREFUSED, but one that is RESTARTING has bound the port and simply
+ * does not answer — that case does not reject at all, it hangs to undici's
+ * ~300s default. Several of these calls are awaited before an HTTP response
+ * is sent (publishBanChange, requestLockdownClear, and every publish/sync
+ * caller), so an unbounded wait turns a committed write into a request the
+ * admin watches time out. Ten seconds is far above what a handful of
+ * Discord REST calls need and far below anything a user or Cloud Run will
+ * sit through.
+ */
+const BOT_CALL_TIMEOUT_MS = 10_000;
+
+/**
+ * Shorter bound for the two fire-and-forget cache-invalidation calls below.
+ *
+ * Nothing reads their result — both callers `.catch(() => {})` the
+ * rejection and move on — so there is no reason for either to hold a
+ * request thread (invalidateGuildCache runs after the response already
+ * flushed, but publishBanChange runs before it) for as long as a call whose
+ * result actually matters.
+ */
+const BOT_CALL_TIMEOUT_MS_FAST = 2_000;
+
+// AbortSignal.timeout has been available since Node 17.3; this repo targets
+// Node >=24 (api/package.json engines), so no AbortController+setTimeout
+// fallback is needed.
+async function callBot(path: string, body: unknown, timeoutMs: number = BOT_CALL_TIMEOUT_MS) {
   const res = await fetch(`${BOT_INTERNAL_URL}${path}`, {
     method: "POST",
     headers: {
@@ -24,6 +53,7 @@ async function callBot(path: string, body: unknown) {
       "X-Internal-Secret": INTERNAL_SECRET,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) {
     throw new Error(`Bot control server returned ${res.status}: ${await res.text()}`);
@@ -99,7 +129,7 @@ export function requestStickyMessagePublish(stickyId: string) {
  * treat that as expected, not exceptional.
  */
 export function requestCacheInvalidate(guildId: string) {
-  return callBot("/internal/cache/invalidate", { guildId });
+  return callBot("/internal/cache/invalidate", { guildId }, BOT_CALL_TIMEOUT_MS_FAST);
 }
 
 /**
@@ -108,7 +138,13 @@ export function requestCacheInvalidate(guildId: string) {
  * bot/src/core/banCache.ts's applyBanChange, which this ultimately drives on
  * the bot side; it is the same function the Redis subscriber calls, so a
  * ban applies identically over either transport.
+ *
+ * publishBanChange awaits this BEFORE its own HTTP response is sent (unlike
+ * invalidateGuildCache, which fires from res.on("finish")), which is exactly
+ * why the fast timeout matters here: a wedged bot must add at most ~2s to a
+ * ban write, not leave the admin's request hanging until Cloud Run's own
+ * timeout fires.
  */
 export function requestBanChange(op: "add" | "remove", ban: PublicBan) {
-  return callBot("/internal/cache/ban", { op, ban });
+  return callBot("/internal/cache/ban", { op, ban }, BOT_CALL_TIMEOUT_MS_FAST);
 }
