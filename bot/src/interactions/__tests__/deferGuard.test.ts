@@ -46,6 +46,20 @@ for (const path of MUST_DEFER) {
       !src.includes("sendInteractionResponse"),
       `${path} must respond through finish(), not sendInteractionResponse directly`,
     );
+    // Presence is not enough. A handler that calls defer() as its LAST
+    // statement — after every slow await that caused the bug — satisfies a
+    // substring check while still blowing the three-second window, and a
+    // green guard over a live bug is worse than no guard at all.
+    //
+    // Verified safe against ordering: in all ten files listed above the
+    // exported handler is defined before the file's first await, so no
+    // helper function's await can shadow the handler's deferral.
+    const firstAwait = src.indexOf("await ");
+    const deferAwait = src.indexOf("await defer(");
+    assert(
+      deferAwait !== -1 && deferAwait === firstAwait,
+      `${path} must defer BEFORE its first await, not after it`,
+    );
   });
 }
 
