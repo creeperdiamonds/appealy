@@ -53,11 +53,15 @@ const MUST_DEFER = [
  * of these sends its own modal response inline. A handler that reaches a
  * modal indirectly cannot satisfy that, and does not belong in this list —
  * see the dedicated formSelectStep test at the bottom of this file.
+ *
+ * Nor does a handler where only SOME branches open a modal: verify.ts used to
+ * be listed here and no longer is, because its captcha branch opens a modal
+ * while its button branch defers. Both assertions below would be wrong for
+ * it. See its dedicated block at the bottom of this file.
  */
 const MUST_NOT_DEFER = [
   "bot/src/interactions/buttons/panelOpen.ts",
   "bot/src/interactions/buttons/reviewDeny.ts",
-  "bot/src/interactions/buttons/verify.ts",
 ];
 
 for (const path of MUST_DEFER) {
@@ -82,6 +86,19 @@ for (const path of MUST_DEFER) {
     // response; they're deliberately NOT in this array because the "no
     // sendInteractionResponse" assertion just above can't distinguish that
     // legitimate call from a regression. See their dedicated test below.)
+    //
+    // BE HONEST ABOUT WHAT THIS PROVES. It proves TEXTUAL order, not
+    // execution order; the two coincide here only because of a convention —
+    // helpers declared after the handler they serve — that nothing in this
+    // repository enforces. And it is per-FILE, not per-handler:
+    // src.indexOf("await ") finds the first await anywhere in the file, so in
+    // a multi-handler file it constrains only the textually first handler.
+    // ticketClose.ts exports three; the other two could each be given a REST
+    // call ahead of their defer() and this assertion would stay green. That
+    // is a false negative — the dangerous direction — and it is left
+    // unfixed deliberately: a real parse is disproportionate for 21 files.
+    // What is not acceptable is a comment claiming more than the code checks,
+    // which is the same defect this branch fixed in statusPublisher's.
     const firstAwait = src.indexOf("await ");
     const deferAwait = src.indexOf("await defer(");
     assert(
@@ -248,8 +265,11 @@ Deno.test("apply.ts reaches a modal via runApplicationFlow and must not defer", 
   );
 
   // The chain this test relies on: runApplicationFlow -> proceedToQuestions
-  // -> showApplicationModal -> type: 9. Without checking every link, "apply.ts
-  // calls runApplicationFlow" proves nothing about a modal being reachable.
+  // -> showApplicationModal -> type: 9. The assertions below check that each
+  // link is still present in panelOpen.ts — they are file-scoped, not
+  // call-scoped, so they do not prove the calls remain wired to one another.
+  // Even so, without them "apply.ts calls runApplicationFlow" would prove
+  // nothing at all about a modal being reachable.
   const panelOpen = await Deno.readTextFile("bot/src/interactions/buttons/panelOpen.ts");
   assert(
     panelOpen.includes("export async function runApplicationFlow("),
@@ -266,5 +286,45 @@ Deno.test("apply.ts reaches a modal via runApplicationFlow and must not defer", 
   assert(
     panelOpen.includes("type: 9"),
     "showApplicationModal's home file must still be the thing that opens the modal",
+  );
+});
+
+/**
+ * verify.ts is the third hardcoded case, and the only SPLIT one: a single
+ * file where one branch must open a modal and the other must defer.
+ *
+ * Its captcha branch sends a `type: 9` modal inline, so it belongs to the
+ * MUST_NOT_DEFER family. Its button branch — the default, since
+ * commands/verifySetup.ts falls back to "button" when no method is given —
+ * does four sequential Discord REST calls (getGuild and getMember inside
+ * findUnmanageableRoles, then addRole and removeRole) plus two database round
+ * trips before it can answer, which is the reviewAccept latency profile on
+ * the new-member onboarding path. So it belongs to the MUST_DEFER family too,
+ * and neither generic loop above can express that: MUST_NOT_DEFER asserts the
+ * file never writes `defer(`, MUST_DEFER asserts it never writes
+ * `sendInteractionResponse`, and this file legitimately does both.
+ *
+ * It could not be a MUST_DEFER entry for a second, independent reason. That
+ * loop asserts the file's FIRST `await ` is `await defer(`, and here the
+ * first await is the verificationConfigs lookup — which has to stay ahead of
+ * both branches, because whether deferring is even legal depends on which
+ * method the guild configured. The ordering assertion is exactly right for
+ * the twenty files it covers and exactly wrong for this one.
+ *
+ * Hardcoded per file, like the two blocks above and for the reasons set out
+ * in formSelectStep's: a generic mechanism takes values a future entry
+ * chooses, so any check written against them can be satisfied by an unrelated
+ * file coincidentally matching the same shape. Three hardcoded blocks are
+ * better than one mechanism.
+ */
+Deno.test("verify.ts defers its button branch and still opens the captcha modal", async () => {
+  const src = await Deno.readTextFile("bot/src/interactions/buttons/verify.ts");
+  assert(
+    src.includes("type: 9"),
+    "verify.ts's captcha branch must still open a modal inline",
+  );
+  assert(
+    src.includes("await defer("),
+    "verify.ts's button branch must defer before its REST and database work",
   );
 });

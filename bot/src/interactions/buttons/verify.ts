@@ -9,6 +9,25 @@
 //     image generation would require a rendering dependency or an external
 //     service, and a text-retype step already screens out the large
 //     majority of naive auto-join bots without that added complexity.
+//
+// ONLY THE CAPTCHA BRANCH IS EXEMPT FROM DEFERRING.
+//
+// The modal exemption in bot/src/utils/interactionResponse.ts applies to a
+// modal response, and only the captcha branch sends one. The "button" branch
+// — which is the DEFAULT (commands/verifySetup.ts falls back to "button"
+// when no method is given) — does four sequential Discord REST calls
+// (getGuild + getMember inside findUnmanageableRoles, then addRole and
+// removeRole) plus two database round trips before it can say anything. From
+// us-central1 that is comfortably over a second against a three-second
+// budget already spending ~300ms on delivery, on the first interaction a new
+// member ever has with a server running Appealy. So it defers.
+//
+// The config lookup stays ahead of both branches because the branch choice
+// depends on it: we cannot know whether deferring is legal until we know
+// which method is configured. That is why this file gets a bespoke block in
+// deferGuard.test.ts rather than a MUST_DEFER entry — the generic assertion
+// there requires a file's first `await` to be `await defer(`, which this file
+// deliberately is not.
 
 import { eq } from "drizzle-orm";
 import type { AppealyInteraction as Interaction } from "../../core/client.ts";
@@ -17,6 +36,7 @@ import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { encodeCustomId } from "../../../../shared/types/index.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
+import { defer, finish } from "../../utils/interactionResponse.ts";
 import { logger } from "../../utils/logger.ts";
 
 const EPHEMERAL = 64;
@@ -37,9 +57,12 @@ export async function handleVerifyButton(bot: AppealyBot, interaction: Interacti
   }
 
   if (config.method === "button") {
+    // No modal on this path, so the four REST calls and the insert below get
+    // the fifteen-minute window instead of what is left of three seconds.
+    await defer(bot, interaction, { ephemeral: true });
     await grantVerifiedRole(bot, guildId, user.id, config);
     await db.insert(schema.verificationAttempts).values({ guildId, userId: user.id, verified: true });
-    return respond(bot, interaction, "You're verified! Welcome to the server.");
+    return finish(bot, interaction, "You're verified! Welcome to the server.");
   }
 
   // captcha method

@@ -12,11 +12,17 @@
 // THE ONE THING THAT CANNOT BE DEFERRED
 //
 // A modal response must be the FIRST response — you cannot defer and then
-// open a modal. Handlers that open modals (panelOpen, reviewDeny, verify)
-// therefore must not call defer(), and must keep their pre-checks
-// cache-backed: a REST call before the modal blows the same three-second
-// window with no fix available.
+// open a modal. Handlers that open modals (panelOpen, reviewDeny, and
+// verify's captcha branch) therefore must not call defer() on those paths,
+// and must keep their pre-checks cache-backed: a REST call before the modal
+// blows the same three-second window with no fix available.
+//
+// The exemption is per-PATH, not per-file. verify.ts opens a modal only on
+// the captcha branch; its button branch does four REST calls and two queries
+// and defers like everything else. See deferGuard.test.ts's dedicated block
+// for it.
 
+import type { InteractionCallbackData } from "@discordeno/bot";
 import type { AppealyBot, AppealyInteraction } from "../core/client.ts";
 
 /** Discord's MessageFlags.Ephemeral. */
@@ -61,5 +67,5 @@ export async function finish(
   payload: string | InteractionEditPayload,
 ): Promise<void> {
   const data = typeof payload === "string" ? { content: payload } : payload;
-  await bot.helpers.editOriginalInteractionResponse(interaction.token, data as any);
+  await bot.helpers.editOriginalInteractionResponse(interaction.token, data as InteractionCallbackData);
 }

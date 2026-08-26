@@ -118,15 +118,46 @@ modals and must stay immediate:
 
 - `panelOpen.ts:182` — the application form
 - `reviewDeny.ts:94` — the deny-reason box
-- `verify.ts:50` — the captcha
+- `verify.ts` — the captcha, and *only* the captcha branch; the `button`
+  branch in the same file defers (see below)
 
 `panelOpen.ts:73` already carries a comment saying precisely this, so the
 constraint was known once and not generalised.
 
 This works out cleanly rather than as a per-handler special case: in all
 three flows the expensive work happens in the *modal-submit* handler —
-`formSubmit`, `denyReason`, `verifyCaptcha` — and those defer freely. The
-modal-opening handlers must simply stay cheap, which they are.
+`formSubmit`, `denyReason`, `verifyCaptcha` — and those defer freely.
+
+**The modal-opening handlers must therefore stay cheap. Three of them
+currently do not.** An earlier draft of this section asserted that they were
+already cheap, which was never measured and is not true; that assertion is
+why nobody measured.
+
+- `verify.ts` — worst of the three, and not actually a modal handler on the
+  path that matters. Only the `captcha` branch opens a modal; the `button`
+  branch (the **default** — `verifySetup.ts` falls back to `"button"` when no
+  method is given) does four sequential Discord REST calls — `getGuild` and
+  `getMember` inside `findUnmanageableRoles`, then `addRole` and `removeRole`
+  — plus two database round trips, on the first interaction a new member ever
+  has with a server running Appealy. **Fixed in Phase 0:** the button branch
+  now defers; only the captcha branch keeps the exemption.
+- `panelOpen.ts` / `apply.ts` — seven sequential Cloud SQL queries before the
+  modal. `apply.ts:43` looks up the form, `panelOpen.ts:50` looks up the
+  *same* form again, and `checkGate` (`panelOpen.ts:204-249`) runs five more:
+  last submission, pending count, total count, window count, gate override.
+  Not fixable by deferring — the modal exemption is absolute.
+- `reviewDeny.ts` — two to four queries before its `type: 9`: the submission,
+  `canReviewForm`'s form lookup, `formOutcomes`, and `staffLevelFor` when an
+  outcome menu is shown.
+
+**The remedy is caching, not deferring**, and it is Phase 1 work: put the
+`forms` row and the gate counters behind `guildConfigCache` so these paths do
+no network I/O at all. The one exception is `apply.ts` passing its
+already-fetched `form` into `runApplicationFlow` instead of letting
+`panelOpen.ts:50` re-fetch it — a five-line change that removes one of the
+seven queries outright. It is deliberately not bundled into the Phase 0
+defer sweep: it is a behaviour change to a path that sweep does not otherwise
+touch, and it deserves its own review.
 
 **The detail that bites.** The ephemeral flag belongs on the deferred
 response, `type: 5, data: { flags: 64 }`, not on the edit. Defer publicly
