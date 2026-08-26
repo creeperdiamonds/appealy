@@ -19,6 +19,9 @@
 // pub/sub for correctness is a system that goes stale silently.
 
 import { withRedis } from "../lib/redis.ts";
+import { useMemoryRedis } from "../../../shared/lib/memoryRedis.ts";
+import { env } from "../env.ts";
+import { requestCacheInvalidate } from "./botBridge.ts";
 
 const INVALIDATION_CHANNEL = "appealy:cache:invalidate";
 
@@ -29,8 +32,27 @@ const INVALIDATION_CHANNEL = "appealy:cache:invalidate";
  * invalidation must not fail the write that already succeeded. The admin's
  * change IS saved; the worst outcome is that it takes up to 60s to appear.
  * Turning that into a 500 would be strictly worse for the user.
+ *
+ * Transport is chosen once per call, on whether REDIS_URL is the in-memory
+ * substitute (see shared/lib/memoryRedis.ts). With the substitute, the API
+ * and bot are separate processes holding separate copies of the shim, so
+ * publish() below reaches only this process and the bot never hears it —
+ * that is the bug this file exists to fix. The API and bot happen to share
+ * one Cloud Run instance with an authenticated internal channel already open
+ * between them (see botBridge.ts), so that channel carries the message
+ * instead. Buying real Redis (Memorystore, ~$26/mo, plus a Serverless VPC
+ * Access connector to reach it, ~$9/mo) would also fix this, but that is
+ * roughly $420/year to solve a problem this free channel already solves, on
+ * a product with one guild on it. Redis becomes the right answer again the
+ * moment this runs as more than one bot instance — see the bridge call's
+ * `.catch(() => {})` below, which is this same fire-and-forget contract
+ * applied to the new transport.
  */
 export async function invalidateGuildCache(guildId: string | bigint): Promise<void> {
+  if (useMemoryRedis(env.REDIS_URL)) {
+    await requestCacheInvalidate(guildId.toString()).catch(() => {});
+    return;
+  }
   await withRedis(
     (r) => r.publish(INVALIDATION_CHANNEL, JSON.stringify({ guildId: guildId.toString() })),
     0,

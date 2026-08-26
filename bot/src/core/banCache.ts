@@ -128,9 +128,7 @@ export async function startBanCache(): Promise<void> {
       for await (const { message } of subscription.receive()) {
         try {
           const msg = JSON.parse(message) as { op: "add" | "remove"; ban: PublicBan };
-          const map = msg.ban.subject === "user" ? userBans : guildBans;
-          if (msg.op === "add") map.set(msg.ban.subjectId, msg.ban);
-          else map.delete(msg.ban.subjectId);
+          applyBanChange(msg);
         } catch (err) {
           logger.warn("Malformed ban invalidation message", { err });
         }
@@ -139,6 +137,21 @@ export async function startBanCache(): Promise<void> {
   } catch (err) {
     logger.error("Ban subscriber failed to start; falling back to periodic reload", { err });
   }
+}
+
+/**
+ * Applies one ban change to the in-process maps.
+ *
+ * Shared by the Redis subscriber above and the `/internal/cache/ban` control-
+ * server route (bot/src/core/controlServer.ts) so the two delivery
+ * mechanisms cannot drift — the bug that would produce is a ban that applies
+ * over one transport and not the other, which is silent and only shows up
+ * as "the appeal says banned but the bot let them in" or the reverse.
+ */
+export function applyBanChange(msg: { op: "add" | "remove"; ban: PublicBan }): void {
+  const map = msg.ban.subject === "user" ? userBans : guildBans;
+  if (msg.op === "add") map.set(msg.ban.subjectId, msg.ban);
+  else map.delete(msg.ban.subjectId);
 }
 
 /**

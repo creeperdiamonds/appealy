@@ -11,6 +11,8 @@
 // on the private network between services (see docker-compose.yml network
 // config) and is additionally protected by a shared secret header.
 
+import type { PublicBan } from "../../../shared/schema/platformBans.ts";
+
 const BOT_INTERNAL_URL = process.env.BOT_INTERNAL_URL ?? "http://bot:9090";
 const INTERNAL_SECRET = process.env.INTERNAL_RPC_SECRET ?? "";
 
@@ -83,4 +85,30 @@ export function requestRoleMenuPublish(menuId: string) {
 
 export function requestStickyMessagePublish(stickyId: string) {
   return callBot("/internal/sticky-messages/publish", { stickyId });
+}
+
+/**
+ * Tells the bot to drop its cached config for a guild.
+ *
+ * Used only when REDIS_URL is the in-memory substitute, where the pub/sub
+ * path in cacheInvalidation.ts cannot cross processes — the API and bot each
+ * hold their own copy of the shim, so a publish() from here reaches nothing.
+ * The caller (invalidateGuildCache in cacheInvalidation.ts) is responsible
+ * for the fire-and-forget contract; this function itself can still reject
+ * (a non-2xx from callBot, or the bot being unreachable) and callers must
+ * treat that as expected, not exceptional.
+ */
+export function requestCacheInvalidate(guildId: string) {
+  return callBot("/internal/cache/invalidate", { guildId });
+}
+
+/**
+ * Same, for a ban add or removal — the counterpart to publishBanChange in
+ * banGate.ts when there is no real Redis to publish over. See
+ * bot/src/core/banCache.ts's applyBanChange, which this ultimately drives on
+ * the bot side; it is the same function the Redis subscriber calls, so a
+ * ban applies identically over either transport.
+ */
+export function requestBanChange(op: "add" | "remove", ban: PublicBan) {
+  return callBot("/internal/cache/ban", { op, ban });
 }

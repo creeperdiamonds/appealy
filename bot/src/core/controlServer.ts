@@ -21,7 +21,8 @@ import { publishTicketPanel } from "../services/ticketPanelService.ts";
 import { publishGiveaway, endGiveaway } from "../services/giveawayService.ts";
 import { publishVerificationPanel } from "../services/verificationPanelService.ts";
 import { publishRoleMenu } from "../services/roleMenuService.ts";
-import { cacheStats } from "./guildConfigCache.ts";
+import { cacheStats, invalidateGuild } from "./guildConfigCache.ts";
+import { applyBanChange } from "./banCache.ts";
 import { withRedis } from "./redis.ts";
 import { logger } from "../utils/logger.ts";
 
@@ -149,6 +150,31 @@ export function startControlServer(bot: AppealyBot) {
         const { publishStickyMessage } = await import("../services/stickyMessageService.ts");
         await publishStickyMessage(bot, stickyId);
         return Response.json({ status: "published" });
+      }
+
+      // Cache invalidation, for deployments without a real Redis.
+      //
+      // With REDIS_URL set to the memory substitute the API's publish goes
+      // into its own process and the bot never hears it, so an admin saves a
+      // form and the bot serves the old one until the TTL expires. The API
+      // and bot share one Cloud Run instance and this authenticated channel,
+      // so it carries the message for free — Memorystore plus the VPC
+      // connector it needs is about $420 a year, which is not yet worth
+      // paying to fix this, on a product with one guild on it. See
+      // cacheInvalidation.ts and banGate.ts on the API side, which choose
+      // this transport over Redis pub/sub only when useMemoryRedis() is true;
+      // Redis becomes correct again the moment there is more than one bot
+      // instance to fan this out to.
+      if (url.pathname === "/internal/cache/invalidate" && req.method === "POST") {
+        const { guildId } = await req.json();
+        await invalidateGuild(guildId);
+        return Response.json({ status: "invalidated" });
+      }
+
+      if (url.pathname === "/internal/cache/ban" && req.method === "POST") {
+        const msg = await req.json();
+        applyBanChange(msg);
+        return Response.json({ status: "applied" });
       }
 
       return new Response("not found", { status: 404 });

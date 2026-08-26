@@ -27,6 +27,9 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { toPublicBan, type PublicBan } from "../../../shared/schema/platformBans.ts";
 import { redis } from "../lib/redis.ts";
+import { useMemoryRedis } from "../../../shared/lib/memoryRedis.ts";
+import { env } from "../env.ts";
+import { requestBanChange } from "../services/botBridge.ts";
 
 const BAN_CHANNEL = "appealy:bans:changed";
 const CACHE_TTL = 30;
@@ -92,8 +95,27 @@ export async function decorateGuildBans<T extends { id: string }>(
   return guilds.map((g, i) => ({ ...g, banned: bans[i] !== null, ban: bans[i] }));
 }
 
-/** Call after every ban write so bot replicas converge in one hop. */
+/**
+ * Call after every ban write so bot replicas converge in one hop.
+ *
+ * The `redis.del` runs unconditionally in both branches below: it evicts
+ * this process's own web-tier lookup cache (activeBan's `bans:lookup:*` key,
+ * above), which is unrelated to how the bot hears about the change and needs
+ * no substitute when REDIS_URL is the in-memory shim — that shim is still a
+ * real (if per-process) cache for THIS process, so it must still be dropped.
+ *
+ * What differs by transport is only how the BOT is told. With a real Redis,
+ * `redis.publish` reaches every replica. With the in-memory substitute, that
+ * publish reaches only this process, so the bot is told directly over the
+ * authenticated internal channel instead (see cacheInvalidation.ts for the
+ * full reasoning — same tradeoff, same $420/year Memorystore would cost to
+ * avoid it).
+ */
 export async function publishBanChange(op: "add" | "remove", ban: PublicBan) {
   await redis.del(`bans:lookup:${ban.subject}:${ban.subjectId}`).catch(() => {});
+  if (useMemoryRedis(env.REDIS_URL)) {
+    await requestBanChange(op, ban).catch(() => {});
+    return;
+  }
   await redis.publish(BAN_CHANNEL, JSON.stringify({ op, ban })).catch(() => {});
 }
