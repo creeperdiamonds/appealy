@@ -43,15 +43,29 @@ export async function runApplicationFlow(
   bot: AppealyBot,
   interaction: Interaction,
   formId: string,
+  // /apply (commands/apply.ts) already looks this exact row up — with its
+  // questions, since it needs to validate the name before it can call in —
+  // to resolve the option text to a form. Without this parameter that
+  // lookup would happen a second time here, and /apply can't afford it:
+  // it opens a modal, so it can never defer, and everything before the
+  // modal has to fit inside Discord's three-second window with no way to
+  // buy more. handlePanelOpenButton has no form in hand (only the button's
+  // formId), so this stays optional and this function still fetches when
+  // it isn't supplied.
+  prefetchedForm?: typeof schema.forms.$inferSelect & {
+    questions: (typeof schema.questions.$inferSelect)[];
+  },
 ) {
   const guildId = interaction.guildId;
   const applicant = interaction.member?.user ?? interaction.user;
   if (!guildId || !applicant) return;
 
-  const form = await db.query.forms.findFirst({
-    where: eq(schema.forms.id, formId),
-    with: { questions: { orderBy: (q, { asc }) => [asc(q.sortOrder)] } },
-  });
+  const form =
+    prefetchedForm ??
+    (await db.query.forms.findFirst({
+      where: eq(schema.forms.id, formId),
+      with: { questions: { orderBy: (q, { asc }) => [asc(q.sortOrder)] } },
+    }));
 
   if (!form || !form.active) {
     return respond(bot, interaction, "This form is no longer available.");

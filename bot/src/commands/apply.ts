@@ -40,8 +40,13 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   }
 
   const formName = String(interaction.data?.options?.[0]?.value ?? "");
+  // Fetched WITH questions, even though this handler never reads them
+  // itself, so the row can be handed straight to runApplicationFlow below
+  // instead of it re-fetching the identical row a moment later — see the
+  // comment on runApplicationFlow's prefetchedForm parameter.
   const form = await db.query.forms.findFirst({
     where: and(eq(schema.forms.guildId, guildId), eq(schema.forms.name, formName), eq(schema.forms.active, true)),
+    with: { questions: { orderBy: (q, { asc }) => [asc(q.sortOrder)] } },
   });
 
   if (!form) {
@@ -52,7 +57,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     );
   }
 
-  await runApplicationFlow(bot, interaction, form.id);
+  await runApplicationFlow(bot, interaction, form.id, form);
 }
 
 /** Autocomplete handler — Discord sends a separate interaction type
