@@ -155,8 +155,17 @@ and a reviewer has to assemble them.
 **On Appealy — a dedicated page, `site/tebex.html`.** One page collecting all
 five with direct links, stating plainly that Tebex is merchant of record, that
 refunds are within 14 days and go through Tebex, that there are two annual
-plans and a per-unit builder, and that there are no subscriptions and no
-consumables.
+plans and a per-unit builder, and that the plans are **annual subscriptions**
+with no consumables and no loot boxes.
+
+An earlier draft of this section said "no subscriptions", which was false and
+is corrected here rather than quietly edited. `api/src/services/tebexService.ts:108`
+and `:122` create Tebex packages with `type: "subscription"` and a one-year
+period; `api/src/routes/tebexWebhook.ts:133` handles `recurring-payment.ended`;
+and `site/pricing.html` already states that paid plans are created as annual
+subscriptions. Describing the billing model to a compliance reviewer as the
+opposite of what the integration implements is the specific mistake this page
+exists to prevent, so the error is recorded rather than erased.
 
 All four existing pages — `site/index.html`, `site/pricing.html`,
 `site/terms.html` and `site/privacy.html` — get the same small footer link:
