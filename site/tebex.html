@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/tebex.html — the front door for a Tebex review.
+
+  A reviewer needs five things — what is sold, what it costs, the terms, the
+  privacy policy, and how refunds work — and until this page existed those
+  were spread across four separate pages the reviewer had to assemble
+  themselves.
+
+  Every claim here LINKS to the page that already makes it, and states none
+  of them twice. A reviewer wants five facts quickly and a second copy of
+  the refund policy is a second copy to forget to update — the version that
+  goes stale is always the one nobody reads day to day.
+-->
+
+<title>For Tebex reviewers — Appealy</title>
+<meta name="description" content="Everything a Tebex review needs about Appealy in one place: what is sold, what it costs, the terms, the privacy policy, and how refunds are handled.">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/tebex">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/#self-hosting">Self-hosting</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose">
+
+    <p class="eyebrow">For Tebex reviewers</p>
+    <h1>Everything a review needs, in one place</h1>
+
+    <p class="lede">
+      Appealy is an open-source Discord bot that runs applications, ban appeals and tickets for a
+      Discord server, licensed under the AGPL-3.0. This page exists so a Tebex reviewer does not
+      have to assemble the same five facts from four different pages: what is sold, what it costs,
+      the terms, the privacy policy, and how refunds work.
+    </p>
+
+    <h2>What is sold</h2>
+    <p>
+      A digital service &mdash; a hosted instance of the Discord bot &mdash; not a physical good and
+      not an in-game item. There are two annual throughput plans and a per-unit builder for setting
+      custom throughput, plus a separate annual add-on for a dedicated hosted instance. Every
+      offering is a subscription priced and renewed annually; there are no consumables and no loot
+      boxes. Full detail, including exactly what each tier raises, is on the
+      <a href="/pricing">pricing page</a>.
+    </p>
+
+    <h2>What it costs</h2>
+    <p>
+      The two throughput plans and the per-unit custom builder are priced on the
+      <a href="/pricing">pricing page</a>, and dedicated hosting is <a href="/pricing">$30/year</a>
+      &mdash; not restated here, because this page should never be able to disagree with
+      <code>shared/schema/pricing.ts</code>, the source those figures are generated from.
+    </p>
+
+    <h2>Terms</h2>
+    <p>
+      The full <a href="/terms">Terms of Service</a> cover licensing, acceptable use, annual
+      billing, platform bans and their appeal path, and what is not warranted.
+    </p>
+
+    <h2>Privacy</h2>
+    <p>
+      The <a href="/privacy">privacy page</a> lists everything the hosted service stores, why, and
+      for how long, plus every third party involved &mdash; including what Tebex itself receives as
+      the merchant of record. Nothing collected is sold, and there is no analytics or telemetry.
+    </p>
+
+    <h2>Refunds</h2>
+    <p>
+      Refunds are available within 14 days of purchase, no reason required, requested through Tebex
+      since Tebex is the merchant of record and took the payment. The full policy, including what
+      happens to a server&rsquo;s data when a plan is refunded, is stated in the
+      <a href="/terms">Terms of Service</a>.
+    </p>
+
+    <h2>Source</h2>
+    <p>
+      Appealy is free software under the
+      <a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0</a>, with the
+      full source, including the pricing logic, at
+      <a href="https://github.com/creeperdiamonds/appealy">github.com/creeperdiamonds/appealy</a>.
+    </p>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md">Self-hosting</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Setup guide</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Reading</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts">pricing.ts</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/OUTCOMES.md">Custom outcomes</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/APPEALS.md">Ban appeals</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex" aria-current="page">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
