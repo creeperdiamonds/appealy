@@ -1,8 +1,10 @@
 // api/src/services/appyImportService.ts
 // API-side counterpart to bot/src/services/appyImportService.ts — see that
 // file's header for the confirmed Appy export shape and matching rationale.
-// Mirrored rather than shared for the same Deno/Node split reason as
-// dataExportService.ts.
+// Mirrored rather than shared, for now. Note that this is NOT the house
+// pattern: dataExportService was the other mirrored pair and has since been
+// consolidated into shared/services/dataExport.ts, which both runtimes import.
+// This pair is scheduled to follow it (see the Appy migration plan, Task 1).
 
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";

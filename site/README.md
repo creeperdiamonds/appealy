@@ -137,11 +137,6 @@ Fonts, matching the console. Everything else is local. Keep it that way.
   npx svgexport brand/icon.svg og.png 1200:630
   ```
 
-- **A contact address.** There isn't one in this repository, and inventing one
-  for a privacy page would be exactly the wrong place to invent something.
-  `privacy.html` says so and points at GitHub issues instead. Replace both when
-  a real address exists.
-
 - **Screenshots.** The dashboard exists, but a screenshot committed today is a
   screenshot that's wrong in a month and nothing will catch it.
 

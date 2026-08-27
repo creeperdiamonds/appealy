@@ -172,8 +172,10 @@ sold them, so a self-hosted bot with its own token has none by construction.
 
 - No ban-creation UI. `POST /api/ops/bans` exists; decide who can issue bans
   before putting a button on it.
-- The ops console in `ops-console/` targets Discordeno v21 while `bot/` is v18,
+- The ops console in `ops-console/` targets Discordeno v21 while `bot/` is v20,
   and isn't wired to anything.
-- `dataExportService.ts` doesn't yet include appeal bodies or ban evidence.
-  Both are personal data. A deletion request should scrub the appeal text but
-  keep the ban row.
+- No on-request deletion path. `bot/src/core/scheduler.ts:276` purges reviewed
+  submissions once they age past the retention window, but that is time-based
+  and automatic. `privacy.html` accepts deletion requests at
+  `contact@creeperdiamonds.xyz`, and honouring one is entirely manual today.
+  The shape it should take: scrub the appeal text, keep the ban row.
