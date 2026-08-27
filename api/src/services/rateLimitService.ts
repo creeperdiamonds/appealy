@@ -8,8 +8,29 @@
 // would just create two sources of truth for the same counter.
 //
 // Both this file and the bot's version call the same pure resolver logic
-// from shared/schema/pricing.ts, so a guild's effective caps can never
-// differ depending on which process is asking.
+// from shared/schema/pricing.ts for the tier presets themselves — but they
+// are NOT guaranteed to resolve a guild's effective caps identically.
+//
+// The bot's resolveEffectiveCaps checks a live Discord entitlement
+// (entitledTier(), bot/src/core/entitlements.ts) before falling back to
+// guild.rateLimitTier; this file goes straight from the self-mode check to
+// the stored column. That's not an oversight this file can fix on its own:
+// entitledTier() reads in-process Maps in entitlements.ts that are populated
+// from Discord's gateway/REST and never persisted anywhere the API process
+// can reach. Sharing that state between the two processes is a real project,
+// not something to paper over here.
+//
+// This divergence is DORMANT today: production logs "Discord subscriptions
+// not configured (no DISCORD_SKU_TIERS) → billing off", so entitledTier()
+// always returns null and the bot falls through to the same stored tier this
+// file reads. It goes LIVE the moment someone sets DISCORD_SKU_TIERS — from
+// then on, a customer who bought through Discord's native subscription will
+// see the bot enforce their entitled tier's caps while the dashboard (this
+// file) keeps showing and enforcing whatever guild.rateLimitTier last had
+// written to it, until entitlement state is shared between the two
+// processes. If you're the one turning DISCORD_SKU_TIERS on: this is the
+// place that needs that sharing built before the caps can be trusted to
+// agree.
 
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
