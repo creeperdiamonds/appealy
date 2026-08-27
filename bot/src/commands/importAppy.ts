@@ -119,12 +119,6 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
             .join("; ")}${result.skipped.length > 5 ? ", ..." : ""}`
         : "";
 
-    await finish(
-      bot,
-      interaction,
-      `Imported ${result.imported} submission(s) into **${form.name}**.${skippedSummary}${unmatchedSummary}`,
-    );
-
     logger.info("Appy import completed", {
       guildId: guildId.toString(),
       formId: form.id,
@@ -132,6 +126,12 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       skipped: result.skipped.length,
       unmatchedQuestions: result.unmatchedQuestions.length,
     });
+
+    await finish(
+      bot,
+      interaction,
+      `Imported ${result.imported} submission(s) into **${form.name}**.${skippedSummary}${unmatchedSummary}`,
+    );
   } catch (err) {
     logger.error("Appy import failed", { guildId: guildId.toString(), error: String(err) });
     await finish(
