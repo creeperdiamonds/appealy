@@ -77,5 +77,9 @@ COPY site /usr/share/nginx/html
 # The marks live in brand/ and are served, not duplicated — see brand/README.md.
 COPY brand /usr/share/nginx/html/brand
 COPY status /usr/share/nginx/html/status
+# The apex page, served by the server_name block in nginx.conf on
+# creeperdiamonds.xyz only. Self-contained, so it needs nothing else copied
+# alongside it.
+COPY home /usr/share/nginx/html/home
 COPY --from=build /app/web/dist /usr/share/nginx/html/dashboard
 EXPOSE 8080
