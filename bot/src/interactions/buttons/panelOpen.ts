@@ -222,44 +222,56 @@ async function checkGate(
   applicantId: bigint,
   memberRoleIds: bigint[],
 ) {
-  const [lastSubmission] = await db
-    .select()
-    .from(schema.submissions)
-    .where(
+  // These five reads are independent — each depends only on form/guildId/
+  // applicantId, all already in hand, and none consumes another's result —
+  // so they were only ever sequential because that's how this was written.
+  // That's cheap to ignore when everything's warm (five trips at ~5ms is
+  // noise), but this runs on the /apply and panel-button paths, neither of
+  // which can defer: they end in a modal, and a modal response has to be
+  // Discord's FIRST response, so there is no fifteen-minute window to fall
+  // back on if things are slow. Cold or degraded, five sequential ~100ms
+  // round trips is 500ms out of the 3000ms budget — the exact case
+  // parallelising this actually protects against.
+  const [[lastSubmission], pendingCount, totalCount, windowCount, override] = await Promise.all([
+    db
+      .select()
+      .from(schema.submissions)
+      .where(
+        and(
+          eq(schema.submissions.formId, form.id),
+          eq(schema.submissions.applicantId, applicantId),
+        ),
+      )
+      .orderBy(desc(schema.submissions.createdAt))
+      .limit(1),
+    countRows(
+      schema.submissions,
       and(
         eq(schema.submissions.formId, form.id),
         eq(schema.submissions.applicantId, applicantId),
+        eq(schema.submissions.status, "pending"),
       ),
-    )
-    .orderBy(desc(schema.submissions.createdAt))
-    .limit(1);
-
-  const pendingCount = await countRows(
-    schema.submissions,
-    and(
-      eq(schema.submissions.formId, form.id),
-      eq(schema.submissions.applicantId, applicantId),
-      eq(schema.submissions.status, "pending"),
     ),
-  );
-
-  const totalCount = await countRows(
-    schema.submissions,
-    and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId)),
-  );
-
-  let windowCount = 0;
-  if (form.maxSubmissionsWindowSeconds && form.maxSubmissionsInWindow) {
-    const windowStart = new Date(Date.now() - form.maxSubmissionsWindowSeconds * 1000);
-    windowCount = await countRows(
+    countRows(
       schema.submissions,
-      and(eq(schema.submissions.formId, form.id), gte(schema.submissions.createdAt, windowStart)),
-    );
-  }
-
-  const override = await db.query.gateOverrides.findFirst({
-    where: and(eq(schema.gateOverrides.formId, form.id), eq(schema.gateOverrides.applicantId, applicantId)),
-  });
+      and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId)),
+    ),
+    form.maxSubmissionsWindowSeconds && form.maxSubmissionsInWindow
+      ? countRows(
+          schema.submissions,
+          and(
+            eq(schema.submissions.formId, form.id),
+            gte(
+              schema.submissions.createdAt,
+              new Date(Date.now() - form.maxSubmissionsWindowSeconds * 1000),
+            ),
+          ),
+        )
+      : Promise.resolve(0),
+    db.query.gateOverrides.findFirst({
+      where: and(eq(schema.gateOverrides.formId, form.id), eq(schema.gateOverrides.applicantId, applicantId)),
+    }),
+  ]);
   const hasActiveOverride = Boolean(override && (!override.expiresAt || override.expiresAt > new Date()));
 
   return evaluateGate({
