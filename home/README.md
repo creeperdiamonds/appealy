@@ -25,18 +25,17 @@ only the content and structure are new.
 
 ## Serving it
 
-Task 3's nginx configuration copies this directory to
-`/usr/share/nginx/html/home` and serves it on the apex `Host` only —
-`creeperdiamonds.xyz`, not `appealy.creeperdiamonds.xyz`. It does not run
-anywhere else.
+`web/Dockerfile:83` copies this directory to `/usr/share/nginx/html/home`,
+and the `server` block at `web/nginx.conf:181` serves it on the apex `Host`
+only — `creeperdiamonds.xyz`, not `appealy.creeperdiamonds.xyz`. It does not
+run anywhere else. See those two files for the actual configuration rather
+than a copy here that can drift from it.
 
-```nginx
-server {
-  server_name creeperdiamonds.xyz www.creeperdiamonds.xyz;
-  root /usr/share/nginx/html/home;
-  location / { try_files $uri $uri/ /index.html; }
-}
-```
+`www.creeperdiamonds.xyz` is **not** handled by that block — its
+`server_name` is `creeperdiamonds.xyz` alone, so a request for the `www` host
+falls through to the main server's `default_server` and gets the Appealy
+marketing site instead of this page. Serving `www` from here would need both
+a `server_name` entry for it and its own Cloud Run domain mapping.
 
 ## The About paragraph is not written yet
 
@@ -50,9 +49,9 @@ server {
 
 That paragraph is the author's to write, not this plan's — a biography
 invented here would put words in creeperdiamonds' mouth on their own
-personal site. A later task greps for `AUTHOR:` as a hard gate before the
-domain goes live; do not remove the marker until real text replaces the
-placeholder.
+personal site. `grep -n "AUTHOR:" home/index.html` is a hard gate before the
+domain goes live: it must return no hits. Do not remove the marker until real
+text replaces the placeholder.
 
 ## When links change
 

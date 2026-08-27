@@ -57,6 +57,32 @@ Those flags are in the workflow now. With them, Cloud Run bills CPU
 continuously, which is roughly e2-micro pricing with more moving parts — a
 small Compute Engine VM is cheaper and simpler for the bot specifically.
 
+## Apex domain mapping — one-time, manual, not in the workflow
+
+`creeperdiamonds.xyz` is served by the same `web` container as Appealy,
+split by `server_name` in `web/nginx.conf`. Getting the domain itself
+pointed at that service is a separate, one-time step outside CI:
+
+```bash
+gcloud beta run domain-mappings create \
+  --service=appealy \
+  --domain=creeperdiamonds.xyz \
+  --region=us-central1 \
+  --project=yahav-project-505809
+```
+
+The apex is a bare domain, so it needs **A and AAAA records**, not a CNAME —
+a CNAME cannot coexist with other records at the zone apex, and Google
+issues the A/AAAA values as part of running the command above.
+
+In Cloudflare, both records must be **DNS-only (grey cloud)**, not proxied.
+A proxied record puts Cloudflare's certificate in front of Google's own
+managed certificate for the mapping, and the mapping never validates.
+
+This is created **once**, not per deploy. `deploy-merged.yml` builds and
+deploys the `web` service on every merge; it does not touch domain
+mappings, and re-running it is not how DNS or the mapping get updated.
+
 ## Yaakov's three commits
 
 All kept. One fix worth mentioning: `steps.deploy.outputs.url` in the

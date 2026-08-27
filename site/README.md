@@ -1,6 +1,6 @@
 # Public site
 
-Four pages, one stylesheet. No build step, no framework, no bundler, and no
+Five pages, one stylesheet. No build step, no framework, no bundler, and no
 JavaScript at all.
 
 | File | Is |
@@ -9,6 +9,7 @@ JavaScript at all.
 | `pricing.html` | Pricing in full, including the custom per-unit rates |
 | `privacy.html` | What is stored, for how long, who sees it |
 | `terms.html` | Hosted-service terms |
+| `tebex.html` | Front door for a Tebex review — links to what is sold, what it costs, the terms, the privacy policy and refunds rather than restating them |
 | `site.css` | Shared styles |
 
 ## Why it's static
@@ -29,7 +30,7 @@ for "is Appealy down".
 markup with a real `<title>`, a description, Open Graph tags and JSON-LD costs
 nothing here and is a fight with a client-side router anywhere else.
 
-**It's four documents.** A framework would earn its place if there were state
+**It's five documents.** A framework would earn its place if there were state
 to manage. There is none.
 
 ## Serving it
@@ -41,6 +42,7 @@ to manage. There is none.
 /pricing.html
 /privacy.html
 /terms.html
+/tebex.html
 /site.css
 /brand/      -> brand/            (wordmark.svg, icon.svg, favicon.svg)
 /dashboard   -> the console (web/)
