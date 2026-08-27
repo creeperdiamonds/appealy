@@ -211,8 +211,26 @@ async function finalizeDmApplication(
   await dmOrLog(bot, progress.applicantId, `Your application for **${form.name}** has been submitted!`);
 
   const { applyRoleAutomationOnSubmit, postReviewEmbedForSubmission } = await import("../interactions/modals/formSubmit.ts");
-  await applyRoleAutomationOnSubmit(bot, progress.guildId, form, progress.applicantId, submission.id);
-  await postReviewEmbedForSubmission(bot, form, submission, progress.applicantId, finalAnswers, completionSeconds);
+
+  // Same reasoning as the identical wrap in formSubmit.ts's
+  // handleFormModalSubmit: the applicant already got their "submitted!" DM
+  // above and the submission is already committed, so an uncaught throw from
+  // either call below must not propagate past this point. Left unguarded,
+  // it would surface at messageCreate.ts's outer catch as a generic "Error
+  // handling potential DM application reply" — true, but it would bury the
+  // fact that the submission itself succeeded and only follow-up work (role
+  // grants, the review post) failed. Both callees already log their own
+  // partial failures internally; this catch exists solely to stop anything
+  // they don't already handle from escaping further than it needs to.
+  try {
+    await applyRoleAutomationOnSubmit(bot, progress.guildId, form, progress.applicantId, submission.id);
+    await postReviewEmbedForSubmission(bot, form, submission, progress.applicantId, finalAnswers, completionSeconds);
+  } catch (err) {
+    logger.warn("Post-submit follow-up work failed after DM confirmation was already sent", {
+      submissionId: submission.id,
+      error: String(err),
+    });
+  }
 
   logger.info("DM application finalized", { formId: form.id, submissionId: submission.id });
 }
