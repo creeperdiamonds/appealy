@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>creeperdiamonds</title>
+<meta name="description" content="creeperdiamonds — personal site. Builds Appealy, an open-source Discord bot for applications, ban appeals and tickets.">
+
+<link rel="canonical" href="https://creeperdiamonds.xyz/">
+<meta name="theme-color" content="#0e1420">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="creeperdiamonds">
+<meta property="og:description" content="Personal site. Builds Appealy, an open-source Discord bot for applications, ban appeals and tickets.">
+<meta property="og:url" content="https://creeperdiamonds.xyz/">
+<meta name="twitter:card" content="summary">
+
+<!--
+  home/index.html — the apex page for creeperdiamonds.xyz.
+
+  This replaces landing/index.html, which was a signpost ("Appealy is up")
+  for a domain that never actually served it. The apex is getting a real
+  personal site instead, with Appealy as its one worked example rather than
+  the whole point of the page. The palette, the inline mark and the
+  self-contained approach are all carried over from that file — only the
+  content and structure change.
+
+  Everything is still inline: the styles, the mark, the icon. This page is
+  served from a different host than the app (the apex, not
+  appealy.creeperdiamonds.xyz), so it cannot reference site/site.css or
+  /brand/icon.svg — those paths resolve inside the Appealy deployment and
+  nowhere else. A relative reference here would 404. One file with no
+  dependencies drops onto GitHub Pages, Cloudflare Pages, Netlify or a plain
+  nginx root unchanged, and a personal site is the artifact most likely to
+  move hosts later — see home/README.md.
+
+  The colours are the console palette from web/src/index.css, copied rather
+  than imported for the same reason.
+-->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='114' fill='%235865F2'/%3E%3Cpath fill='%23fff' opacity='.35' d='M300 104h84a16 16 0 0 1 16 16v272a16 16 0 0 1-16 16h-84v-40h60V144h-60Z'/%3E%3Cpath fill='%23fff' d='M296 76 148 118a20 20 0 0 0-15 19v238a20 20 0 0 0 15 19l148 42a12 12 0 0 0 15-12V88a12 12 0 0 0-15-12Z'/%3E%3Ccircle cx='188' cy='256' r='17' fill='%235865F2'/%3E%3C/svg%3E">
+
+<style>
+  :root {
+    --ink: #0e1420;
+    --surface: #161d2c;
+    --line: #2a3547;
+    --text: #e8ecf3;
+    --text-dim: #a3b0c4;
+    --text-muted: #7987a0;
+    --accent: #5865f2;
+    --accent-line: #5865f259;
+    /* --accent on --ink is 4.09:1, under AA for body text. Links get the
+       lifted tone; the button keeps the true accent, where white on it
+       clears 4.5:1. Same split as site.css. */
+    --accent-lift: #8b94f7;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 3rem 1.25rem 4rem;
+    background: var(--ink);
+    color: var(--text);
+    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  main { width: 100%; max-width: 34rem; margin: 0 auto; }
+
+  .mark { display: block; width: 56px; height: 56px; margin-bottom: 1.5rem; }
+
+  h1 { font-size: clamp(1.75rem, 6vw, 2.25rem); line-height: 1.15; margin: 0 0 .375rem; letter-spacing: -.02em; }
+  .handle-sub { margin: 0 0 2.5rem; color: var(--text-muted); font-size: .9375rem; }
+
+  section { margin-bottom: 2.75rem; }
+  section:last-of-type { margin-bottom: 0; }
+
+  h2 {
+    font-size: .8125rem; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 1rem; font-weight: 600;
+  }
+
+  p { margin: 0 0 1rem; color: var(--text-dim); }
+  p:last-child { margin-bottom: 0; }
+  a { color: var(--accent-lift); }
+  a:hover { color: var(--text); }
+
+  .placeholder {
+    color: var(--text-muted); font-style: italic;
+    border: 1px dashed var(--line); border-radius: 3px; padding: .875rem 1rem;
+  }
+
+  .actions { display: flex; flex-wrap: wrap; gap: .625rem; margin-top: 1.25rem; }
+  .btn {
+    display: inline-block; padding: .625rem 1.125rem; border-radius: 3px;
+    border: 1px solid var(--line); color: var(--text);
+    text-decoration: none; font-size: .875rem;
+  }
+  .btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4752e0; border-color: #4752e0; color: #fff; }
+  .btn:focus-visible { outline: 2px solid var(--accent-lift); outline-offset: 2px; }
+
+  .card {
+    padding: 1.25rem 1.375rem; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 3px;
+  }
+  .card > :first-child { margin-top: 0; }
+  .card > :last-child { margin-bottom: 0; }
+
+  .contact-list { list-style: none; margin: 0; padding: 0; }
+  .contact-list li { margin-bottom: .5rem; }
+  .contact-list li:last-child { margin-bottom: 0; }
+
+  hr.rule { border: none; border-top: 1px solid var(--line); margin: 2.75rem 0; }
+
+  /* Addressed to roughly one reader a year, so it is set apart rather than
+     given any prominence — a payment reviewer will find a bordered block on
+     a one-screen page, and everyone else can see at a glance it is not for
+     them. Carried over from landing/index.html's .review block. */
+  .review {
+    padding: 1.125rem 1.25rem;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+    font-size: .875rem;
+  }
+  .review h2 { margin: 0 0 .5rem; font-size: .9375rem; color: var(--text); text-transform: none; letter-spacing: 0; }
+  .review p { margin: 0; color: var(--text-dim); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    main { animation: rise .4s ease-out; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Appealy">
+    <title>Appealy</title>
+    <rect width="512" height="512" rx="114" fill="#5865F2"/>
+    <path fill="#fff" opacity=".35" d="M300 104h84a16 16 0 0 1 16 16v272a16 16 0 0 1-16 16h-84v-40h60V144h-60Z"/>
+    <path fill="#fff" d="M296 76 148 118a20 20 0 0 0-15 19v238a20 20 0 0 0 15 19l148 42a12 12 0 0 0 15-12V88a12 12 0 0 0-15-12Z"/>
+    <circle cx="188" cy="256" r="17" fill="#5865F2"/>
+  </svg>
+
+  <h1>creeperdiamonds</h1>
+  <p class="handle-sub">Builds Discord tools. Appealy is the one currently running.</p>
+
+  <section id="what-this-is">
+    <h2>What this is</h2>
+    <p>
+      This is creeperdiamonds' personal site. No résumé, no blog &mdash; just a
+      pointer to the software and a way to get in touch about it.
+    </p>
+  </section>
+
+  <section id="appealy">
+    <h2>Appealy</h2>
+    <div class="card">
+      <p>
+        An open-source Discord bot for applications, tickets and ban appeals &mdash; built around
+        the idea that a ban should never come with the sentence &ldquo;this decision is final and
+        cannot be appealed&rdquo;. It is for server staff who want a structured, auditable process
+        instead of DMs and vibes.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://appealy.creeperdiamonds.xyz">Open Appealy</a>
+        <a class="btn" href="https://appealy.creeperdiamonds.xyz/dashboard/">Dashboard</a>
+        <a class="btn" href="https://github.com/creeperdiamonds/appealy">Source on GitHub</a>
+        <a class="btn" href="https://discord.gg/UwBMug9JyX">Support Discord</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="about">
+    <h2>About</h2>
+    <!-- AUTHOR: replace this paragraph before deploying. Nothing here
+         should claim anything about you that you did not write. -->
+    <p class="placeholder">[About text goes here.]</p>
+  </section>
+
+  <section id="contact">
+    <h2>Contact</h2>
+    <ul class="contact-list">
+      <li><a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a></li>
+      <li><a href="https://github.com/creeperdiamonds">github.com/creeperdiamonds</a></li>
+    </ul>
+  </section>
+
+  <hr class="rule">
+
+  <aside class="review">
+    <h2>Reviewing this domain for Tebex?</h2>
+    <p>
+      You want <a href="https://appealy.creeperdiamonds.xyz/tebex">appealy.creeperdiamonds.xyz/tebex</a>,
+      not this page. Everything a review needs is collected there: what is sold, what it
+      costs, the terms, the privacy policy, and how refunds are handled.
+    </p>
+  </aside>
+</main>
+
+</body>
+</html>
