@@ -1,14 +1,46 @@
-// api/src/services/dataExportService.ts
+// shared/services/dataExport.ts
 //
-// API-side counterpart to bot/src/services/dataExportService.ts. Both
-// build the identical export shape from the identical schema — kept as
-// two files rather than one shared module because the bot and API run in
-// different runtimes (Deno vs Node) with separate db client instances,
-// but the query logic and exported shape must never drift between them,
-// so changes here should be mirrored there and vice versa.
+// Builds a complete, portable export of everything Appealy stores for one
+// guild — forms, questions, panels, submissions/answers, DM templates,
+// ticket configs/tickets, giveaways/entries, verification config,
+// welcomer config, role menus, anti-raid config, quick responses, sticky
+// messages, and staff permission delegations. Explicitly does NOT include
+// billing/session data (guilds.customRateLimits, sessions,
+// dashboardAuditLogs) — those are Appealy-hosting-account concerns, not
+// portable server configuration, and dashboard_audit_logs specifically may
+// contain other staff members' action history that isn't the requesting
+// owner's alone to export wholesale.
+//
+// Snowflakes are serialized as strings throughout (never raw bigint, which
+// doesn't round-trip through JSON.stringify), matching the Snowflake
+// convention already used in shared/types/index.ts.
+//
+// ONE COPY, NOT TWO. This used to exist separately as
+// bot/src/services/dataExportService.ts and api/src/services/
+// dataExportService.ts, on the theory that the bot (Deno) and API (Node)
+// run different db client instances so they needed different files. They
+// didn't — the db handle is just a parameter, the same way
+// shared/services/dataImport.ts already takes one, and both runtimes
+// already import that file at the same relative path. What the old
+// arrangement actually cost: its own header said "changes here should be
+// mirrored there and vice versa," which is a synchronisation contract with
+// no enforcement behind it, held together only by whoever remembered. It
+// had already drifted once — the API copy picked up ban-appeal data the
+// bot copy didn't have, so /export and the dashboard's export button
+// produced different files for the same guild — and a second drift would
+// fail exactly as silently as the first: no type error, no test failure,
+// just two exports with different shapes depending on which surface built
+// them. A single function with an injected db handle makes that class of
+// bug structurally impossible instead of relying on discipline.
+//
+// Both runtimes call this — bot/src/commands/exportData.ts and
+// api/src/routes/migration.ts.
 
 import { and, eq, inArray } from "drizzle-orm";
-import { db, schema } from "../db/client.ts";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import * as schema from "../schema/schema.ts";
+
+type Db = PostgresJsDatabase<typeof schema>;
 
 export interface AppealyDataExport {
   exportVersion: 1;
@@ -20,21 +52,15 @@ export interface AppealyDataExport {
   dmTemplates: unknown[];
   ticketConfigs: unknown[];
   tickets: unknown[];
-  // Personal data that was previously missing from exports. Appeal bodies are
-  // free text the user wrote about themselves; ban evidence typically contains
-  // their message content. Both are plainly theirs under any subject-access
-  // request, and omitting them made the export incomplete rather than minimal.
+  // The guild's own appeal against a platform ban on this server. User-level
+  // appeals are excluded on purpose — see the query below.
   banAppeals: unknown[];
-  // Added because they were missing and are plainly the guild's own: a poll
-  // and its votes are a whole feature that exported as nothing; outcomes and
-  // the appeal config are configuration an admin built by hand; gate
-  // overrides are deliberate per-user exceptions someone set on purpose.
-  // "Everything Appealy stores for a guild" has to mean everything, or the
-  // no-lock-in promise the export exists to keep is not kept.
+  // Previously missing entirely: a poll and its votes are a whole feature that
+  // exported as nothing, outcomes and the appeal config are configuration an
+  // admin built by hand, and gate overrides are deliberate per-user exceptions
+  // someone set on purpose.
   //
-  // dashboardAuditLogs stays out, for the reason already given in the bot's
-  // copy of this service: it is other staff members' action history, and
-  // owner-only access does not make it the owner's alone to take.
+  // dashboardAuditLogs stays out for the reason given at the top of this file.
   polls: unknown[];
   formOutcomes: unknown[];
   appealConfig: unknown | null;
@@ -52,10 +78,12 @@ export interface AppealyDataExport {
 }
 
 function stringifyBigints<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value, (_key, v) => (typeof v === "bigint" ? v.toString() : v)));
+  return JSON.parse(
+    JSON.stringify(value, (_key, v) => (typeof v === "bigint" ? v.toString() : v)),
+  );
 }
 
-export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataExport> {
+export async function buildFullDataExport(db: Db, guildId: bigint): Promise<AppealyDataExport> {
   const [
     forms,
     panels,
@@ -128,8 +156,7 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
     }),
     db.query.polls.findMany({ where: eq(schema.polls.guildId, guildId), with: { votes: true } }),
     // formOutcomes and gateOverrides hang off a form, not a guild, so they are
-    // fetched for this guild's forms via a subquery rather than filtered in
-    // memory afterwards — same reason the two below now carry a WHERE.
+    // fetched for this guild's forms via a subquery.
     db
       .select()
       .from(schema.formOutcomes)
@@ -180,11 +207,6 @@ export async function buildFullDataExport(guildId: bigint): Promise<AppealyDataE
     dmTemplates,
     ticketConfigs,
     tickets,
-    // Queried above and then omitted from this literal, so every export
-    // silently shipped without it — the exact gap the interface comment says
-    // was being closed. It is the user's own free-text appeal bodies and the
-    // evidence attached to them, which is the part of an export that most
-    // needs to be there.
     banAppeals,
     polls,
     formOutcomes,

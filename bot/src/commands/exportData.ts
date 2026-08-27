@@ -18,7 +18,8 @@ import { getGuild } from "../core/guildLookup.ts";
 import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { isGuildOwner } from "../services/permissionService.ts";
-import { buildFullDataExport } from "../services/dataExportService.ts";
+import { buildFullDataExport } from "../../../shared/services/dataExport.ts";
+import { db } from "../db/client.ts";
 import { logger } from "../utils/logger.ts";
 import { defer, finish } from "../utils/interactionResponse.ts";
 
@@ -46,7 +47,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   await respond(bot, interaction, "Building your export — I'll DM you the file shortly.");
 
   try {
-    const exportData = await buildFullDataExport(guildId);
+    const exportData = await buildFullDataExport(db, guildId);
     const json = JSON.stringify(exportData, null, 2);
     const fileBytes = new TextEncoder().encode(json);
 

@@ -19,7 +19,7 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireOwnerAccess } from "../middleware/guildAccess.ts";
-import { buildFullDataExport } from "../services/dataExportService.ts";
+import { buildFullDataExport } from "../../../shared/services/dataExport.ts";
 import { importAppySubmissions, type AppyExportRow } from "../services/appyImportService.ts";
 import { importGuildData } from "../../../shared/services/dataImport.ts";
 
@@ -27,7 +27,7 @@ export const migrationRouter = Router({ mergeParams: true });
 
 migrationRouter.get("/export", requireOwnerAccess, async (req, res) => {
   const guildId = BigInt(routeParams(req).guildId);
-  const exportData = await buildFullDataExport(guildId);
+  const exportData = await buildFullDataExport(db, guildId);
 
   const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
   const guildName = (guild?.name ?? guildId.toString()).replace(/[^a-z0-9]/gi, "_");
