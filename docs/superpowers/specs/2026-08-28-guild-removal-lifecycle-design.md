@@ -13,7 +13,8 @@ nothing, ever. Adding the bot back flips the flag and everything returns exactly
 it was (`bot/src/events/guildCreate.ts:76-80`).
 
 That was the right call and its header says why: a removal is often an accident, a
-permissions cleanup, or five minutes long, and 15 tables cascade off `guilds.id`.
+permissions cleanup, or five minutes long, and deleting that row cascades into 26
+tables.
 Deleting that row is, in the existing comment's words, "the single most destructive
 line in the codebase."
 
@@ -105,12 +106,17 @@ mechanism that makes multiple consumers safe. The API gets a small drain loop ov
 same table.
 
 **This requires filtering claims by `kind`, and that is not optional.** The existing
-claim takes *any* due job, `LIMIT 100`, with no `kind` predicate. Add a second
-consumer without a filter and the API will claim `close_poll` and `kick_unverified`
-jobs it cannot execute, fail them, and — because `MAX_ATTEMPTS` is 3 — permanently
-drop them after three passes. Polls would silently stop closing. Both drains must
-filter to their own kinds, and the bot's filter must be added in the same change that
-introduces the API's consumer, not after.
+claim takes *any* due job, `LIMIT 100`, with no `kind` predicate — and the dispatcher
+is worse than a plain failure would be. `scheduler.ts:216-230` runs its `switch`
+inside the `try`, with `succeeded.push(job.id)` *after* it, so the `default:` branch
+logs "Unknown scheduled job kind, discarding" and then falls straight through to the
+success path. Unknown kinds are **deleted on first claim**, not retried.
+
+So an unfiltered bot drain would silently destroy every `purge_guild` job the API
+scheduled, on the next 30-second tick, and the lifecycle would simply never fire —
+with a warn-level log line as the only trace. Both drains must filter to their own
+kinds, and the bot's filter must land in the same change that introduces the API's
+consumer, not after it.
 
 | Job | Runs in | Does |
 |---|---|---|
@@ -199,9 +205,32 @@ Three columns on `guilds`:
 - `pausedUntil` — what we told Tebex, so a drifted state is detectable
 
 Three new `scheduledJobKindEnum` values — `confirm_departure`, `warn_departure`,
-`purge_guild` — which is an enum migration, not a table change.
+`purge_guild` — which is an enum migration, not a table change. Note that
+`close_poll` and `end_giveaway` already exist in that enum and are dead: nothing
+schedules them and the dispatcher has no case for them. Leave them alone; removing
+enum values is a harder migration than it looks and they are harmless.
 
-`platformBans` gains nothing and loses nothing. It is untouched by design.
+## 8. What the purge actually deletes
+
+The cascade from `guilds.id` reaches **26 tables** — 15 by direct foreign key and 11
+more through them, since `submissions` hangs off `forms`, `answers` off
+`submissions`, `tickets` off `ticketConfigs`, and so on. All of those are handled by
+Postgres and need no code.
+
+**Three tables carry `guild_id` but are not reachable by the cascade, and must be
+deleted explicitly:**
+
+| Table | Why it matters |
+|---|---|
+| `verificationAttempts` | Holds user IDs. Surviving a purge defeats its purpose. |
+| `dashboardAuditLogs` | Holds user IDs and actions. Same. |
+| `scheduledJobs` | Pending jobs for a guild that no longer exists; they would fire and fail forever. |
+
+None has a foreign key to `guilds`, so nothing in the schema will catch this being
+forgotten. A purge that skips them is not a purge — it leaves personal data behind
+while reporting success, which is the worst of both outcomes.
+
+`platformBans` and `platformBanAppeals` are deliberately outside all of this.
 
 ## Error handling
 
@@ -218,12 +247,13 @@ Three new `scheduledJobKindEnum` values — `confirm_departure`, `warn_departure
 - **The `kind` filter**, asserted from both sides: the API drain must not claim `close_poll`, and the bot drain must not claim `purge_guild`. This is the regression that would silently break polls.
 - **Ordering**, by making the Tebex cancel fail and asserting the guild still exists afterwards.
 - **The entitlement branch**, asserting a guild with a live entitlement is never scheduled for purge.
-- **Cascade coverage**, asserting a purge removes rows in all 15 directly-referencing tables *and* in their transitive children. `submissions`, `answers`, `tickets`, `panelButtons`, `pollVotes` and `giveawayEntries` have no direct FK to `guilds` and are destroyed through their parents, so a test asserting only the direct 15 would pass while missing most of the data actually deleted.
+- **Orphan coverage is the test that matters most.** Seed a guild with rows in `verificationAttempts`, `dashboardAuditLogs` and `scheduledJobs`, purge it, and assert all three are empty. The cascade is Postgres's job and will not regress; these three have no foreign key to catch a mistake, so only a test stands between a purge and silently leaving user IDs behind.
+- **Cascade coverage**, asserting the purge empties the 26 reachable tables — including `submissions`, `answers` and `tickets`, which are reached through `forms` and `ticketConfigs` rather than directly.
 - **Ban survival**, asserting `platformBans` and `platformBanAppeals` still exist after a purge. They reference `guilds` nowhere, so this holds by construction — the test exists to keep it that way.
 
 ## Risks
 
-- **This adds the destructive line the codebase deliberately did not have.** Every safety here — settle period, re-verification, cancel-before-purge, fail-closed retries — exists because the blast radius is 15 directly-cascading tables plus everything hanging off them, and there is no undo.
+- **This adds the destructive line the codebase deliberately did not have.** Every safety here — settle period, re-verification, cancel-before-purge, fail-closed retries — exists because the blast radius is 26 tables and there is no undo.
 - **The second queue consumer can break existing jobs.** Covered by the `kind` filter, but it is the change most likely to be got wrong, and its failure is silent: polls simply stop closing.
 - **Thirty days is the shorter end of defensible.** It is a familiar, publishable number, but a permissions cleanup plus a holiday can exceed it. The warnings and the export offer are what make it fair.
 - **`site/privacy.html` and `SETUP.md` must be updated in the same change.** Both currently describe the old behaviour, and this design makes them wrong in the direction that matters — a privacy page understating what is deleted is worse than one that says nothing.

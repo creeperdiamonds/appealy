@@ -174,8 +174,13 @@ sold them, so a self-hosted bot with its own token has none by construction.
   before putting a button on it.
 - The ops console in `ops-console/` targets Discordeno v21 while `bot/` is v20,
   and isn't wired to anything.
-- No on-request deletion path. `bot/src/core/scheduler.ts:276` purges reviewed
-  submissions once they age past the retention window, but that is time-based
-  and automatic. `privacy.html` accepts deletion requests at
+- **`historyRetentionDays` is charged for but never enforced.** `runHistoryPurge`
+  (`bot/src/core/scheduler.ts:276`) implements it correctly and the dispatcher
+  handles a `purge_expired_history` job — but nothing anywhere creates one. The
+  only insert into `scheduled_jobs` in the whole codebase is `kick_unverified`
+  at `guildMemberAdd.ts:142`. So the retention tiers the pricing page meters
+  and bills for do not apply, and `apiRateLimit.ts:16-17` claims the opposite.
+  Submission history grows without bound.
+- No on-request deletion path. `privacy.html` accepts deletion requests at
   `contact@creeperdiamonds.xyz`, and honouring one is entirely manual today.
   The shape it should take: scrub the appeal text, keep the ban row.
