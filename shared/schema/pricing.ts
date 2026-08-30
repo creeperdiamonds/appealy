@@ -420,6 +420,24 @@ export function calculateFullQuote(input: FullQuoteInput): FullQuote {
  * array to `forms` should be a deliberate decision about whether it is
  * billable, not a silent one that changes what customers are charged.
  */
+/** Display names for the role arrays, for messages an admin reads.
+ *
+ * The 429/400 body names the offending fields, which is the point of it —
+ * but "grantRoleIds" is a column name, not what the role picker above it is
+ * labelled. Naming the wrong thing precisely is its own kind of unhelpful. */
+export const FORM_ROLE_RULE_LABELS: Record<string, string> = {
+  grantRoleIds: "Roles granted on accept",
+  removeRoleIds: "Roles removed on accept",
+  deniedGrantRoleIds: "Roles granted on deny",
+  denyRemoveRoleIds: "Roles removed on deny",
+  pendingRoleIds: "Roles while pending",
+  removeRolesOnSubmitIds: "Roles removed on submit",
+  pingRoleIds: "Roles pinged",
+  requiredRoleIds: "Required roles",
+  blacklistedRoleIds: "Blacklisted roles",
+  reviewerRoleIds: "Reviewer roles",
+};
+
 export const FORM_ROLE_RULES = [
   "grantRoleIds",
   "removeRoleIds",
@@ -462,8 +480,18 @@ export function findRoleCapViolations(
   for (const rule of FORM_ROLE_RULES) {
     const count = next[rule]?.length ?? 0;
     if (count <= limit) continue;
-    // Kept or reduced against what was already stored — allowed.
-    if (count <= (previous?.[rule]?.length ?? 0)) continue;
+
+    // "Kept or reduced" is meant literally: no id may appear that was not
+    // already stored. Comparing lengths alone would let an over-cap array be
+    // swapped wholesale for a different set of the same size — which is not
+    // the old configuration surviving, it is a new one at a size the plan
+    // does not allow.
+    const before = previous?.[rule];
+    if (before && count <= before.length) {
+      const kept = new Set(before);
+      if ((next[rule] ?? []).every((id) => kept.has(id))) continue;
+    }
+
     out.push({ rule, count, limit });
   }
   return out;

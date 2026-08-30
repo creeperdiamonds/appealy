@@ -153,9 +153,9 @@ This one is worth reading carefully.
 | `giveawayEntriesPerDay` | yes |
 | `formsPerGuild` | yes |
 | `panelsPerGuild` | yes |
-| `apiRequestsPerMinute` | yes — middleware |
-| `historyRetentionDays` | yes — daily purge job |
-| `rolesPerRuleType` | yes — `FORM_ROLE_RULES`, grandfathered |
+| **`apiRequestsPerMinute`** | **no — pricing.ts and billing.ts only** |
+| **`historyRetentionDays`** | **no — pricing.ts and billing.ts only** |
+| **`rolesPerRuleType`** | **no — pricing.ts and billing.ts only** |
 
 A guild admin can move those three sliders, watch the price rise, and pay
 for numbers that nothing in the codebase reads. `historyRetentionDays` is
@@ -254,6 +254,15 @@ Both of the cap gaps this section used to list are now closed — see "After"
 above. They are worth remembering as a pattern rather than as entries: in
 both cases the code existed, was correct, and was never reached, while two
 other documents asserted it was working.
+
+**`rolesPerRuleType` is bypassable on import.** The cap is enforced on the
+form routes and the outcome routes, but `shared/services/dataImport.ts:253`
+inserts forms directly — reached from `api/src/routes/migration.ts` and the
+bot's `/import-appealy` — without consulting it. An export from anywhere can
+therefore bring in a form carrying more roles per rule than the plan allows,
+and the grandfather rule then keeps it editable at that size. Closing it
+means choosing whether an over-cap import is rejected outright or silently
+clamped, which is a product decision, not a missing line.
 
 **Audit log writes.** `dashboardAuditLogs` is queried by the console and
 written by nothing. The routes need to log their mutations — the table and

@@ -148,9 +148,17 @@ export class MemoryRedis {
     let nx = false;
 
     if (args.length === 1 && typeof args[0] === "object" && args[0] !== null) {
-      const opts = args[0] as { ex?: number; nx?: boolean };
+      const opts = args[0] as { ex?: number; nx?: boolean; mode?: string };
       if (opts.ex) ttlSeconds = opts.ex;
-      if (opts.nx) nx = true;
+      // Accept BOTH spellings. The Upstash client this stands in for takes
+      // `{ mode: "NX" }`, and that is the form every caller in this repo
+      // actually uses — scheduler.ts's withLock, banGate.ts:63, and the
+      // history-purge day guard. Reading only `nx` meant all three quietly
+      // lost their NX semantics whenever REDIS_URL was unset, which is the
+      // documented POC mode: set() always overwrote and always returned
+      // "OK", so every "did I get here first?" check answered yes. The
+      // comment above promises exactly the opposite.
+      if (opts.nx || String(opts.mode ?? "").toUpperCase() === "NX") nx = true;
     } else {
       for (let i = 0; i < args.length; i++) {
         const a = String(args[i]).toUpperCase();

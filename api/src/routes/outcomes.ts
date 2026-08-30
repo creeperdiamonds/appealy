@@ -29,6 +29,8 @@ import {
   MAX_OUTCOMES_PER_FORM,
   type FormOutcomeDTO,
 } from "../../../shared/schema/outcomes.ts";
+import { checkRoleRuleCaps } from "../services/rateLimitService.ts";
+import { roleCapPayload } from "../utils/roleCapPayload.ts";
 
 export const outcomesRouter = Router({ mergeParams: true });
 
@@ -114,6 +116,16 @@ outcomesRouter.post("/", async (req, res) => {
     where: eq(schema.formOutcomes.formId, form.id),
   });
 
+  // Outcomes carry their own grantRoleIds/removeRoleIds, under the same names
+  // the form uses — so the same rolesPerRuleType cap applies here. Without
+  // this, hitting the cap on the form is avoidable by moving the roles into
+  // an outcome instead, and the cap means nothing.
+  const createCaps = await checkRoleRuleCaps(BigInt(routeParams(req).guildId), {
+    grantRoleIds: parsed.data.grantRoleIds,
+    removeRoleIds: parsed.data.removeRoleIds,
+  });
+  if (createCaps.length > 0) return res.status(400).json(roleCapPayload(createCaps));
+
   // Discord's select menu ceiling. Rejecting here beats letting someone build
   // a 30-outcome form and discovering the last five are invisible in Discord.
   if (existing.length >= MAX_OUTCOMES_PER_FORM) {
@@ -164,6 +176,27 @@ outcomesRouter.patch("/:outcomeId", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   }
+
+  // Fetched purely to grandfather the role cap: an outcome already over the
+  // limit may be kept or reduced, never grown, exactly as on a form. A PATCH
+  // that omits a field leaves it at its stored value and so always passes.
+  const current = await db.query.formOutcomes.findFirst({
+    where: and(
+      eq(schema.formOutcomes.id, routeParams(req).outcomeId),
+      eq(schema.formOutcomes.formId, form.id),
+    ),
+  });
+  if (!current) return res.status(404).json({ error: "outcome_not_found" });
+
+  const patchCaps = await checkRoleRuleCaps(
+    BigInt(routeParams(req).guildId),
+    {
+      grantRoleIds: parsed.data.grantRoleIds ?? current.grantRoleIds,
+      removeRoleIds: parsed.data.removeRoleIds ?? current.removeRoleIds,
+    },
+    current,
+  );
+  if (patchCaps.length > 0) return res.status(400).json(roleCapPayload(patchCaps));
 
   const [row] = await db
     .update(schema.formOutcomes)

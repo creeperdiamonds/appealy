@@ -154,6 +154,19 @@ Deno.test("an existing over-cap array may be reduced but not grown", () => {
   assertEquals(findRoleCapViolations({ grantRoleIds: ["1", "2", "3", "4", "5", "6", "7"] }, prev, 3).length, 1);
 });
 
+Deno.test("an over-cap array cannot be swapped for a different set of the same size", () => {
+  // Length alone would call this "kept". It is not kept — it is a brand new
+  // six-role configuration on a plan that allows three.
+  const prev = { grantRoleIds: ["1", "2", "3", "4", "5", "6"] };
+  const swapped = { grantRoleIds: ["7", "8", "9", "10", "11", "12"] };
+  assertEquals(findRoleCapViolations(swapped, prev, 3).length, 1);
+});
+
+Deno.test("an over-cap array may drop members and keep the rest", () => {
+  const prev = { grantRoleIds: ["1", "2", "3", "4", "5", "6"] };
+  assertEquals(findRoleCapViolations({ grantRoleIds: ["2", "5"] }, prev, 3), []);
+});
+
 Deno.test("every role array on a form counts as its own rule type", () => {
   const over = ["1", "2", "3", "4"];
   const v = findRoleCapViolations(

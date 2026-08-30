@@ -58,6 +58,36 @@ const CLAIM_VISIBILITY_MS = 5 * 60_000;
 
 const MAX_ATTEMPTS = 3;
 
+/**
+ * Whether the history purge may actually delete. OFF by default, deliberately.
+ *
+ * The purge had never run — see enqueueHistoryPurges — so the first run on a
+ * live database is not a routine tick, it is a one-shot deletion of however
+ * much reviewed history accumulated over the whole time retention was not
+ * being enforced. Free tier is 30 days, so on an old guild that is nearly
+ * everything, irreversibly, with answers cascading.
+ *
+ * Enforcing retention is the documented behaviour (site/privacy.html) and it
+ * should be enforced. But turning it on ought to be a decision somebody makes
+ * having seen the numbers, not a side effect of deploying. While disabled the
+ * purge still runs and logs exactly what it WOULD delete, so those numbers
+ * exist before anyone commits to them.
+ */
+const HISTORY_PURGE_ENABLED =
+  (Deno.env.get("HISTORY_PURGE_ENABLED") ?? "false").toLowerCase() === "true";
+
+/**
+ * Rows one guild's purge deletes per run.
+ *
+ * The backlog then drains over several days rather than in a single very
+ * long-locking DELETE with a correspondingly large WAL write. Once caught up,
+ * a day's expiries are far below this and it never binds.
+ */
+const HISTORY_PURGE_BATCH = Math.max(
+  1,
+  Number(Deno.env.get("HISTORY_PURGE_BATCH") ?? "500") || 500,
+);
+
 /** Cap on simultaneous Discord REST calls from scheduled work. The library
  * has its own rate limiter, but firing 500 edits at once still builds a
  * queue that delays live interactions behind batch work. Live user actions
@@ -261,9 +291,11 @@ async function drainScheduledJobs(bot: AppealyBot) {
  * recoverable, and two replicas enqueueing a duplicate job per guild is
  * wasted work draining through the queue.
  */
+const HISTORY_DAY_KEY = "appealy:sched:history-purge-day";
+
 async function enqueueHistoryPurges() {
   const claimedToday = await withRedis(
-    (r) => r.set("appealy:sched:history-purge-day", new Date().toISOString(), {
+    (r) => r.set(HISTORY_DAY_KEY, new Date().toISOString(), {
       ex: 24 * 60 * 60,
       mode: "NX",
     }),
@@ -271,23 +303,39 @@ async function enqueueHistoryPurges() {
   );
   if (!claimedToday) return;
 
-  // Only guilds the bot is actually in. A departed guild's rows are the
-  // removal lifecycle's business, not retention's.
-  const guilds = await db.query.guilds.findMany({
-    columns: { id: true },
-    where: eq(schema.guilds.botPresent, true),
-  });
-  if (guilds.length === 0) return;
+  try {
+    // Only guilds the bot is actually in. A departed guild's rows are the
+    // removal lifecycle's business, not retention's.
+    const guilds = await db.query.guilds.findMany({
+      columns: { id: true },
+      where: eq(schema.guilds.botPresent, true),
+    });
+    if (guilds.length === 0) return;
 
-  await db.insert(schema.scheduledJobs).values(
-    guilds.map((g) => ({
-      kind: "purge_expired_history" as const,
-      guildId: g.id,
-      runAt: new Date(),
-    })),
-  );
+    // Chunked. Each row binds several parameters and Postgres caps a
+    // statement at 65535 of them, so one insert covering a large fleet would
+    // fail outright — and it would fail on the largest deployments only,
+    // which is the worst place for a limit to first appear.
+    const CHUNK = 1_000;
+    for (let i = 0; i < guilds.length; i += CHUNK) {
+      await db.insert(schema.scheduledJobs).values(
+        guilds.slice(i, i + CHUNK).map((g) => ({
+          kind: "purge_expired_history" as const,
+          guildId: g.id,
+          runAt: new Date(),
+        })),
+      );
+    }
 
-  logger.info("Enqueued daily history purges", { guilds: guilds.length });
+    logger.info("Enqueued daily history purges", { guilds: guilds.length });
+  } catch (err) {
+    // Release the day key. withLock swallows this throw into a warn line, so
+    // without the release a single transient failure would mean no purge for
+    // a full 24 hours — and then the same again tomorrow if it recurred at
+    // the same point.
+    await withRedis((r) => r.del(HISTORY_DAY_KEY), null);
+    throw err;
+  }
 }
 
 async function runKickUnverified(bot: AppealyBot, guildId: bigint, userId: bigint | null) {
@@ -333,8 +381,12 @@ async function runHistoryPurge(guildId: bigint) {
   // work sitting in someone's review queue; deleting it because it aged
   // out would silently drop an application the applicant is still waiting
   // on. Answers cascade from the submission delete.
-  const deleted = await db
-    .delete(schema.submissions)
+  //
+  // Selected first, then deleted by id, so the batch limit is enforceable —
+  // DELETE has no LIMIT in Postgres.
+  const doomed = await db
+    .select({ id: schema.submissions.id })
+    .from(schema.submissions)
     .where(
       and(
         eq(schema.submissions.guildId, guildId),
@@ -346,6 +398,25 @@ async function runHistoryPurge(guildId: bigint) {
         ),
       ),
     )
+    .limit(HISTORY_PURGE_BATCH);
+
+  if (doomed.length === 0) return;
+
+  if (!HISTORY_PURGE_ENABLED) {
+    // The dry run. Says the number out loud every day until someone decides.
+    logger.warn("History purge disabled — would have deleted submissions", {
+      guildId: guildId.toString(),
+      wouldDelete: doomed.length,
+      atLeast: doomed.length === HISTORY_PURGE_BATCH ? "batch full, more remain" : "exact",
+      retentionDays: caps.historyRetentionDays,
+      enableWith: "HISTORY_PURGE_ENABLED=true",
+    });
+    return;
+  }
+
+  const deleted = await db
+    .delete(schema.submissions)
+    .where(inArray(schema.submissions.id, doomed.map((d) => d.id)))
     .returning({ id: schema.submissions.id });
 
   if (deleted.length > 0) {

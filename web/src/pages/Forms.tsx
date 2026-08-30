@@ -262,6 +262,16 @@ export default function Forms({ guildId }: { guildId: string }) {
     void load();
   }, [load]);
 
+  // Close the outcome editor when the guild changes. App.tsx renders
+  // <Forms guildId={guildId} /> with no key, and the topbar switcher only
+  // calls setGuildId — so this component is NOT remounted on a guild switch.
+  // Without this, the editor stays open with the new guildId and the old
+  // guild's formId and shows "Couldn't load outcomes" on a page nobody
+  // navigated to.
+  useEffect(() => {
+    setOutcomesFor(null);
+  }, [guildId]);
+
   if (error && !forms) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!forms) return <Loading rows={5} />;
 
@@ -370,13 +380,14 @@ export default function Forms({ guildId }: { guildId: string }) {
         <button className="btn btn-sm" onClick={() => setOutcomesFor(null)}>
           &larr; Forms
         </button>
-        <header className="page-head">
-          <h1>Outcomes{form ? ` — ${form.name}` : ""}</h1>
+        {/* No page-head here: OutcomeEditor renders its own
+            <h1>Accept outcomes</h1> at OutcomeEditor.tsx:117. This supplies
+            only the thing that screen cannot know — which form is open. */}
+        {form && (
           <p className="dim">
-            What &ldquo;accept&rdquo; means for this form. Each outcome is its own set of
-            roles, message and log channel.
+            Outcomes for <strong>{form.name}</strong>.
           </p>
-        </header>
+        )}
         <OutcomeEditor guildId={guildId} formId={outcomesFor} />
       </div>
     );

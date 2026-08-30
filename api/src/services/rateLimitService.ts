@@ -127,12 +127,19 @@ export async function checkStandingCap(
 /**
  * Check a form's role arrays against this guild's `rolesPerRuleType`.
  *
- * API-only, with no counterpart in the bot's copy of this file: forms are
- * written here and the bot never writes one. The bot's copy is a deliberate
- * subset — see its header — so there is nothing to keep in sync.
+ * Called from the form routes and the outcome routes. The comparison itself
+ * lives in shared/schema/pricing.ts, where deno test covers it; this function
+ * only resolves the guild's number.
  *
- * The comparison itself lives in shared/schema/pricing.ts, where deno test
- * covers it. This function only resolves the number.
+ * NOT the only way a form is written, and an earlier version of this comment
+ * wrongly said it was. shared/services/dataImport.ts:253 inserts forms too,
+ * reached from both api/src/routes/migration.ts and the bot's
+ * /import-appealy command, and neither calls this. So a form imported from
+ * an export can carry more roles per rule than the guild's plan allows —
+ * and the grandfather rule then keeps it editable at that size. Closing it
+ * means deciding whether an over-cap import is rejected or silently clamped,
+ * which is a product decision rather than a missing line. Recorded in
+ * SCALING.md.
  */
 export async function checkRoleRuleCaps(
   guildId: bigint,
