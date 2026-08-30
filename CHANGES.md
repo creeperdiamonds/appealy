@@ -48,6 +48,6 @@ interfaces with the password `appealy`.
 
 ## Still not done
 
-- Outcome CRUD has no nav entry in `App.tsx` (page exists, unreachable).
+- Outcome denial variants are still one decision (`handleReviewDeny` untouched).
 - `shared/services/dataExport.ts` doesn't include user-level platform appeals by design.
 - The ops console in `ops-console/` targets Discordeno v21; `bot/` is v20.

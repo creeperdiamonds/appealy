@@ -152,12 +152,10 @@ confirm → apply. Routed in `interactionCreate.ts` under `review:outcome`,
 
 ## Still missing
 
-**A way to reach the outcome editor.** The API is complete —
-`api/src/routes/outcomes.ts` has GET, POST, PATCH and DELETE, mounted at
-`app.ts:198` — and `web/src/pages/OutcomeEditor.tsx` exists. But the page is
-not routed in `App.tsx` and nothing links to it, so from the dashboard
-outcomes still cannot be created. The remaining work is a route and a nav
-entry, not a feature.
+**Denial outcomes** are the only piece left — see below. The editor itself is
+now reachable: each row on the Forms page has an Outcomes action that opens
+`OutcomeEditor` for that form. It does not hang off the nav, because it needs
+a `formId` and `App.tsx`'s `view` state carries a page id and nothing else.
 
 **Denial outcomes.** `handleReviewDeny` is untouched — *"denied, reapply in 30
 days"* vs *"denied, don't reapply"* are still one decision. Cheaper to add now

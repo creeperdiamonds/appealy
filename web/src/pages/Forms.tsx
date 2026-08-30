@@ -35,6 +35,7 @@ import { useCallback, useEffect, useState } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
+import OutcomeEditor from "./OutcomeEditor";
 import {
   ChannelPicker,
   POSTABLE_CHANNEL_TYPES,
@@ -240,6 +241,10 @@ export default function Forms({ guildId }: { guildId: string }) {
   // submissions and its panel buttons with it, so the second click is the one
   // that counts — and it is a different button, not the same one twice.
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // Id of the form whose outcomes are being edited. Local to this page rather
+  // than a nav destination: OutcomeEditor needs a formId as well as a guildId,
+  // and App.tsx's `view` state carries a page id and nothing else.
+  const [outcomesFor, setOutcomesFor] = useState<string | null>(null);
   // One request for the page rather than one per editor mount: switching
   // between forms remounts the editor, and the channel list doesn't change
   // because you clicked a different row.
@@ -356,6 +361,27 @@ export default function Forms({ guildId }: { guildId: string }) {
     }
   }
 
+  // Safe here: the two guards above have already returned if `forms` is null,
+  // and every hook in this component is declared before them.
+  if (outcomesFor) {
+    const form = forms.find((f) => f.id === outcomesFor);
+    return (
+      <div className="stack">
+        <button className="btn btn-sm" onClick={() => setOutcomesFor(null)}>
+          &larr; Forms
+        </button>
+        <header className="page-head">
+          <h1>Outcomes{form ? ` — ${form.name}` : ""}</h1>
+          <p className="dim">
+            What &ldquo;accept&rdquo; means for this form. Each outcome is its own set of
+            roles, message and log channel.
+          </p>
+        </header>
+        <OutcomeEditor guildId={guildId} formId={outcomesFor} />
+      </div>
+    );
+  }
+
   const pending = confirmDelete ? forms.find((f) => f.id === confirmDelete) ?? null : null;
 
   return (
@@ -440,6 +466,9 @@ export default function Forms({ guildId }: { guildId: string }) {
                         onClick={() => { setDraft({ ...f }); setSaved(false); setError(null); }}
                       >
                         Edit
+                      </button>
+                      <button className="btn btn-sm" onClick={() => setOutcomesFor(f.id)}>
+                        Outcomes
                       </button>
                       <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(f.id)}>
                         Delete
