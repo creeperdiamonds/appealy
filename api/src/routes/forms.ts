@@ -8,7 +8,12 @@ import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
-import { checkStandingCap } from "../services/rateLimitService.ts";
+import { checkRoleRuleCaps, checkStandingCap } from "../services/rateLimitService.ts";
+import {
+  FORM_ROLE_RULES,
+  type FormRoleRule,
+  type RoleCapViolation,
+} from "../../../shared/schema/pricing.ts";
 import { checkPatternSafety } from "../../../shared/schema/regexValidation.ts";
 import type { FormDTO } from "../../../shared/types/index.ts";
 
@@ -120,6 +125,27 @@ const formSchema = formBaseSchema
 
 formsRouter.use(requireGuildAccess);
 
+/**
+ * 429 body for a `rolesPerRuleType` violation, shaped like the standing-cap
+ * responses so the dashboard can render both the same way.
+ *
+ * Names the offending fields. "You are over a limit" without saying which of
+ * ten role pickers is over it is a message that costs the admin more time
+ * than no message at all.
+ */
+function roleCapPayload(violations: RoleCapViolation[]) {
+  const limit = violations[0].limit;
+  return {
+    error: "rate_limit_exceeded",
+    detail:
+      `Your plan allows ${limit} role${limit === 1 ? "" : "s"} per rule. ` +
+      `${violations.map((v) => v.rule).join(", ")} ` +
+      `${violations.length === 1 ? "exceeds" : "exceed"} that. ` +
+      `Raise your limit from the billing page, or remove some roles.`,
+    violations,
+  };
+}
+
 formsRouter.get("/", async (req, res) => {
   const guildId = BigInt(routeParams(req).guildId);
   const forms = await db.query.forms.findMany({
@@ -154,6 +180,13 @@ formsRouter.post("/", requireAdminAccess, async (req, res) => {
       current: capCheck.current,
       limit: capCheck.limit,
     });
+  }
+
+  // No `previous` on create: there is nothing to grandfather, so the cap
+  // applies in full.
+  const createRoleCaps = await checkRoleRuleCaps(guildId, data);
+  if (createRoleCaps.length > 0) {
+    return res.status(429).json(roleCapPayload(createRoleCaps));
   }
 
   const form = await db.transaction(async (tx) => {
@@ -255,6 +288,18 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
       error: "invalid_body",
       detail: { fieldErrors: { reviewerWhitelistEnabled: [EMPTY_WHITELIST_MESSAGE] } },
     });
+  }
+
+  // Same merge-then-validate reasoning as above, and the same grandfather
+  // rule the shared helper documents: a role array already over the cap may
+  // be kept or reduced here, never grown. A PATCH that omits a field leaves
+  // it at its stored value, so an unrelated edit to an over-cap form passes.
+  const mergedRoleRules = Object.fromEntries(
+    FORM_ROLE_RULES.map((rule) => [rule, data[rule] ?? existing[rule]]),
+  ) as Partial<Record<FormRoleRule, string[]>>;
+  const patchRoleCaps = await checkRoleRuleCaps(guildId, mergedRoleRules, existing);
+  if (patchRoleCaps.length > 0) {
+    return res.status(429).json(roleCapPayload(patchRoleCaps));
   }
 
   const mergedKind = data.kind ?? existing.kind;

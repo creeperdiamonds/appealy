@@ -153,9 +153,9 @@ This one is worth reading carefully.
 | `giveawayEntriesPerDay` | yes |
 | `formsPerGuild` | yes |
 | `panelsPerGuild` | yes |
-| **`apiRequestsPerMinute`** | **no — pricing.ts and billing.ts only** |
-| **`historyRetentionDays`** | **no — pricing.ts and billing.ts only** |
-| **`rolesPerRuleType`** | **no — pricing.ts and billing.ts only** |
+| `apiRequestsPerMinute` | yes — middleware |
+| `historyRetentionDays` | yes — daily purge job |
+| `rolesPerRuleType` | yes — `FORM_ROLE_RULES`, grandfathered |
 
 A guild admin can move those three sliders, watch the price rise, and pay
 for numbers that nothing in the codebase reads. `historyRetentionDays` is
@@ -163,17 +163,21 @@ the most consequential: without enforcement, `submissions` and `answers`
 grow without bound and become the largest tables in the database, while the
 paid retention tiers mean nothing.
 
-**After:** `apiRequestsPerMinute` is enforced by new middleware
-(`api/src/middleware/apiRateLimit.ts`). The other two are still unenforced,
-and both are still billed for:
+**After:** all three are enforced.
 
-- `historyRetentionDays` has a purge implemented (`runHistoryPurge`,
-  `bot/src/core/scheduler.ts:276`) and dispatched, but nothing ever schedules
-  a `purge_expired_history` job — the only insert into `scheduled_jobs` is
-  `kick_unverified` at `guildMemberAdd.ts:142`. Writing the function was not
-  the same as running it.
-- `rolesPerRuleType` still needs validation in `api/src/routes/forms.ts` —
-  see "Not done" below.
+- `apiRequestsPerMinute` by middleware (`api/src/middleware/apiRateLimit.ts`).
+- `historyRetentionDays` by `runHistoryPurge`, which had existed and been
+  dispatched since retention shipped but which nothing ever scheduled — the
+  only insert into `scheduled_jobs` was `kick_unverified`. `enqueueHistoryPurges`
+  now creates the jobs daily. Writing the function was not the same as
+  running it, and this document said so in one section while claiming the
+  opposite in another.
+- `rolesPerRuleType` by `findRoleCapViolations` (`shared/schema/pricing.ts`),
+  called from both form routes. "Rule type" had no meaning anywhere in the
+  codebase; it now means each of the ten role arrays a form carries, listed
+  as `FORM_ROLE_RULES`. Existing over-cap arrays are grandfathered — keepable
+  and reducible, never growable — because the cap was sold unenforced and
+  live forms may legitimately exceed it.
 
 ### 8. Uncached picker endpoints — `bot/src/core/controlServer.ts`
 
@@ -246,13 +250,10 @@ scheduler locks are now multi-replica-safe, which was the blocker.
 cd api && npm run db:generate && npm run db:migrate
 ```
 
-**`rolesPerRuleType` still unenforced.** Needs a check in the zod schema in
-`api/src/routes/forms.ts` against the resolved cap. Small, but it's a cap
-you charge for.
-
-**`purge_expired_history` is never scheduled.** The handler exists in the
-scheduler; nothing enqueues it. Add a daily job per guild, or a periodic
-sweep.
+Both of the cap gaps this section used to list are now closed — see "After"
+above. They are worth remembering as a pattern rather than as entries: in
+both cases the code existed, was correct, and was never reached, while two
+other documents asserted it was working.
 
 **Audit log writes.** `dashboardAuditLogs` is queried by the console and
 written by nothing. The routes need to log their mutations — the table and

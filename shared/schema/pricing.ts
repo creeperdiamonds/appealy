@@ -406,3 +406,65 @@ export function calculateFullQuote(input: FullQuoteInput): FullQuote {
     belowMinimumCharge: totalUsdCentsPerYear > 0 && totalUsdCentsPerYear < MINIMUM_CHARGE_CENTS,
   };
 }
+
+/**
+ * The role arrays a form carries. Each one is a "rule type" for the
+ * `rolesPerRuleType` cap.
+ *
+ * That cap was priced from the beginning — $0.43/yr per role per rule type —
+ * and enforced nowhere, because "rule type" appeared in no code anywhere
+ * outside the cap's own name. There was nothing to enforce it against. This
+ * list is what it now means.
+ *
+ * Written out rather than derived from the schema on purpose: adding a role
+ * array to `forms` should be a deliberate decision about whether it is
+ * billable, not a silent one that changes what customers are charged.
+ */
+export const FORM_ROLE_RULES = [
+  "grantRoleIds",
+  "removeRoleIds",
+  "deniedGrantRoleIds",
+  "denyRemoveRoleIds",
+  "pendingRoleIds",
+  "removeRolesOnSubmitIds",
+  "pingRoleIds",
+  "requiredRoleIds",
+  "blacklistedRoleIds",
+  "reviewerRoleIds",
+] as const;
+
+export type FormRoleRule = (typeof FORM_ROLE_RULES)[number];
+
+export interface RoleCapViolation {
+  rule: FormRoleRule;
+  count: number;
+  limit: number;
+}
+
+/**
+ * Which of a form's role arrays exceed `limit`.
+ *
+ * GRANDFATHERED, and that is the whole design. An array already over the cap
+ * may be kept or reduced, never grown. Because this cap was sold and never
+ * enforced, live forms can legitimately hold more roles than their tier
+ * allows — rejecting those on the next unrelated edit would turn a billing
+ * correction into an outage for exactly the people who used the feature most.
+ *
+ * `previous` is undefined when creating, where there is nothing to
+ * grandfather and the cap applies in full.
+ */
+export function findRoleCapViolations(
+  next: Partial<Record<FormRoleRule, string[]>>,
+  previous: Partial<Record<FormRoleRule, string[]>> | undefined,
+  limit: number,
+): RoleCapViolation[] {
+  const out: RoleCapViolation[] = [];
+  for (const rule of FORM_ROLE_RULES) {
+    const count = next[rule]?.length ?? 0;
+    if (count <= limit) continue;
+    // Kept or reduced against what was already stored — allowed.
+    if (count <= (previous?.[rule]?.length ?? 0)) continue;
+    out.push({ rule, count, limit });
+  }
+  return out;
+}

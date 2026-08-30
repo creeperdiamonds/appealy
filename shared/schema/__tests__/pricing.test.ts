@@ -17,9 +17,11 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   CUSTOM_CAP_MAXIMUMS,
+  FORM_ROLE_RULES,
   MINIMUM_CHARGE_CENTS,
   RATE_LIMIT_PRESETS,
   calculateFullQuote,
+  findRoleCapViolations,
   quoteCustomCaps,
   type RateLimitCaps,
 } from "../pricing.ts";
@@ -120,4 +122,59 @@ Deno.test("a request above any ceiling is rejected, not clamped", () => {
   assertEquals(quote.valid, false);
   assertEquals(quote.errors.length, 1);
   assertEquals(quote.errors[0].cap, "submissionsPerDay");
+});
+
+// --- rolesPerRuleType enforcement -----------------------------------------
+// This cap was priced and sold from the start and enforced nowhere, so live
+// forms may already hold more roles than their tier allows. The grandfather
+// rule is the whole point of these tests.
+
+Deno.test("an array within the cap passes", () => {
+  assertEquals(findRoleCapViolations({ grantRoleIds: ["1", "2"] }, undefined, 3), []);
+});
+
+Deno.test("a new form cannot exceed the cap", () => {
+  const v = findRoleCapViolations({ grantRoleIds: ["1", "2", "3", "4"] }, undefined, 3);
+  assertEquals(v.length, 1);
+  assertEquals(v[0].rule, "grantRoleIds");
+  assertEquals(v[0].count, 4);
+  assertEquals(v[0].limit, 3);
+});
+
+Deno.test("an existing over-cap array may be kept unchanged", () => {
+  // Someone configured 6 roles back when nothing checked. An unrelated edit
+  // to the same form must not start failing.
+  const prev = { grantRoleIds: ["1", "2", "3", "4", "5", "6"] };
+  assertEquals(findRoleCapViolations(prev, prev, 3), []);
+});
+
+Deno.test("an existing over-cap array may be reduced but not grown", () => {
+  const prev = { grantRoleIds: ["1", "2", "3", "4", "5", "6"] };
+  assertEquals(findRoleCapViolations({ grantRoleIds: ["1", "2", "3", "4"] }, prev, 3), []);
+  assertEquals(findRoleCapViolations({ grantRoleIds: ["1", "2", "3", "4", "5", "6", "7"] }, prev, 3).length, 1);
+});
+
+Deno.test("every role array on a form counts as its own rule type", () => {
+  const over = ["1", "2", "3", "4"];
+  const v = findRoleCapViolations(
+    { grantRoleIds: over, requiredRoleIds: over, reviewerRoleIds: over },
+    undefined,
+    3,
+  );
+  assertEquals(v.length, 3);
+});
+
+Deno.test("FORM_ROLE_RULES names exactly the form's role arrays", () => {
+  assertEquals([...FORM_ROLE_RULES].sort(), [
+    "blacklistedRoleIds",
+    "deniedGrantRoleIds",
+    "denyRemoveRoleIds",
+    "grantRoleIds",
+    "pendingRoleIds",
+    "pingRoleIds",
+    "removeRoleIds",
+    "removeRolesOnSubmitIds",
+    "requiredRoleIds",
+    "reviewerRoleIds",
+  ]);
 });
