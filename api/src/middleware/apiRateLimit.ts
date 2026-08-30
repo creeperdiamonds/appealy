@@ -12,9 +12,20 @@
 // Grepping the repository for the identifier turns up only pricing.ts and
 // billing.ts. No middleware read it. No route consulted it. The number was
 // priced and sold, and then nothing anywhere in the codebase used it to
-// limit anything. `historyRetentionDays` and `rolesPerRuleType` had the
-// same problem — see SCALING.md; retention is now enforced by the
-// scheduler's purge job, and the role cap by validation in the forms route.
+// limit anything. `historyRetentionDays` and `rolesPerRuleType` have the
+// same problem and, unlike this one, STILL DO — see SCALING.md:
+//
+//   - historyRetentionDays: runHistoryPurge (bot/src/core/scheduler.ts:276)
+//     implements it and the dispatcher handles a purge_expired_history job,
+//     but nothing anywhere creates one. The only insert into scheduled_jobs
+//     in the codebase is kick_unverified at guildMemberAdd.ts:142, so the
+//     purge has never run.
+//   - rolesPerRuleType: appears only in pricing.ts, billing.ts and
+//     deployment.ts. No route validates against it.
+//
+// An earlier version of this comment claimed both were fixed. They were not,
+// and a comment asserting enforcement is worse than no comment at all: it
+// stops the next person checking.
 //
 // Separately from the billing question, an API with no rate limiting at all
 // has no defense against a single misbehaving dashboard tab hammering an

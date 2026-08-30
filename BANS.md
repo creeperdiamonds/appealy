@@ -1,85 +1,88 @@
-# Bans and appeals — wiring notes
+# Platform bans and appeals
 
-Seven files added, one edited. Nothing existing was removed.
+Platform-level bans: an operator bars an account (or a guild) from Appealy
+itself, and the banned party can appeal. This is distinct from the per-server
+ban appeals that guilds run for their own members — those live in
+`APPEALS.md`.
 
-## Added
+This document describes what is built. It was previously a wiring checklist
+for work that has since shipped; if you are looking for the steps, they are
+done.
+
+## Where it lives
+
 | File | Role |
 |---|---|
-| `shared/schema/bans.ts` | `bans` + `ban_appeals` tables, `toPublicBan()` serialization boundary, `APPEAL_RULES` |
-| `bot/src/core/banCache.ts` | Full ban set in memory, pub/sub deltas, 5-min reload |
-| `bot/src/core/banGate.ts` | Pre-dispatch gate + notify-once-per-hour |
+| `shared/schema/platformBans.ts` | `platform_bans` + `platform_ban_appeals`, `toPublicBan()` serialization boundary, `APPEAL_RULES` |
+| `bot/src/core/banCache.ts` | Full ban set in memory, pub/sub deltas, 5-minute reload |
+| `bot/src/core/banGate.ts` | Pre-dispatch gate, notify-once-per-hour |
 | `api/src/middleware/banGate.ts` | Session gate, guild-list decoration, `publishBanChange()` |
-| `api/src/routes/appeals.ts` | Submit / status / `acceptAppeal()` |
-| `web/src/pages/Banned.tsx` | Account-ban takeover + shared `AppealForm` |
-| `web/src/components/ServerBanned.tsx` | Crossed-out guild option + appeal sheet |
+| `api/src/routes/platformAppeals.ts` | Submitting an appeal, reading its status |
+| `api/src/routes/ops.ts` | Operator side: list, accept, deny, create, revoke |
+| `web/src/pages/Banned.tsx` | Account-ban takeover, shared `AppealForm` |
+| `web/src/components/ServerBanned.tsx` | Crossed-out guild option, appeal sheet |
+| `web/src/pages/OpsAppeals.tsx` | Operator review queue |
 
-Edited: `bot/src/events/interactionCreate.ts` (gate as first statement).
-Appended: `web/src/index.css` (ban styles, reuses existing `--act` / `--line` / `--panel`).
+The gate is wired at `bot/src/events/interactionCreate.ts:35` and the cache is
+started at `bot/src/events/ready.ts:33`.
 
-## Four things you have to do by hand
+## The routes
 
-**1. Re-export the schema.** `shared/schema/bans.ts` isn't reachable until it's
-in the barrel that `db.query` builds from — otherwise `schema.bans` is undefined
-at runtime and the failure looks like a Drizzle bug.
+Appellant-facing, mounted at `/api/platform-appeals` (`app.ts:174`):
 
-```ts
-// shared/schema/index.ts
-export * from "./bans.ts";
-```
+- `POST /` — submit an appeal
+- `GET /:banId` — read its status
 
-**2. Start the cache in `ready.ts`,** next to `subscribeToInvalidations()`:
+Operator-facing, mounted at `/api/ops` behind `requireSession` and
+`requireOpsUser` (`app.ts:178`):
 
-```ts
-await startBanCache();
-```
+- `GET /appeals` — the review queue
+- `POST /appeals/:id/accept` and `POST /appeals/:id/deny`
+- `POST /bans` — issue a ban
+- `DELETE /bans/:id` — revoke one
 
-Without it `isBanned()` returns null forever and the gate is a no-op — it
-fails open by design, and silently.
+## Two things that look like mistakes and are not
 
-**3. Mount in order.** `banGate` needs `req.userId`, so it goes after
-`requireSession`; `guildAccess` goes after it so a banned guild returns a
-ban-shaped 403 rather than a generic one.
+**Platform appeals mount before the ban gate.** They are the only endpoints a
+banned user must still reach — a ban that also blocks the appeal form is a ban
+with no way out. `app.ts:171` carries the same note, because the ordering is
+easy to "tidy" into a bug.
 
-```ts
-app.use("/appeals", appealsRouter);       // before banGate — banned users must reach it
-app.use(requireSession, banGate);
-```
+**The bot's gate fails open.** If `isBanned()` cannot answer — the cache has
+not loaded, Redis is down — the interaction proceeds. A ban system that bricks
+the bot when its cache is cold is worse than one that occasionally lets a
+banned user through for a few seconds, given the cache reloads every five
+minutes and takes pub/sub deltas in between.
 
-**4. Handle 403 `banned` in the API client.** `web/src/lib/api.ts` currently
-redirects to login on 401; a 403 with `{ error: "banned" }` needs to surface
-the ban instead of throwing an `ApiError` that `App.tsx` renders as fatal.
+## The two partial indexes
 
-```ts
-if (res.status === 403) {
-  const body = await res.json();
-  if (body.error === "banned") throw new BannedError(body.ban);
-}
-```
-
-Then in `App.tsx`, catch `BannedError` and render `<Banned />` instead of the
-shell. Deliberately not a route — a banned account that can navigate to and
-from `/banned` is one bad guard away from a redirect loop.
-
-## Migration
-
-`drizzle-kit generate` picks up both tables, but check the generated SQL for the
-two partial indexes (`bans_active_uniq`, `ban_appeals_one_open`). Drizzle's
-`.where()` on indexes has been inconsistent across versions; if they come out
-unconditional, write them by hand:
+`platform_bans_active_uniq` and `platform_ban_appeals_one_open` are partial
+unique indexes, and they are load-bearing rather than cosmetic:
 
 ```sql
-create unique index bans_active_uniq on bans (subject, subject_id) where revoked_at is null;
-create unique index ban_appeals_one_open on ban_appeals (ban_id) where status = 'open';
+CREATE UNIQUE INDEX "platform_bans_active_uniq" ON "platform_bans" ("subject","subject_id") WHERE revoked_at is null;
+CREATE UNIQUE INDEX "platform_ban_appeals_one_open" ON "platform_ban_appeals" ("ban_id") WHERE status = 'open';
 ```
 
-These aren't optional. The first stops two staff creating conflicting active
-bans; the second is what actually caps the appeal queue when Redis is down.
+The first stops two operators creating conflicting active bans for the same
+subject. The second is what caps the appeal queue when Redis is down — without
+it, a banned user can submit unboundedly many open appeals.
 
-## Not built
+Drizzle's `.where()` on indexes has been inconsistent across versions, so if
+you ever regenerate the initial migration, check that both keep their `WHERE`
+clause rather than coming out unconditional. `SETUP.md` records that the
+current generated SQL is correct.
 
-- **Staff review UI.** `acceptAppeal()` exists; there's no screen calling it.
-  It belongs in Operations.tsx next to the audit log.
-- **Ban creation.** No route writes a ban yet — deliberate. Decide who can
-  issue them and how that's authenticated before exposing a write path.
-- **Denial flow.** `acceptAppeal` has no `denyAppeal` twin. Same shape, sets
-  status and `decidedAt` without touching the ban.
+## Not built, deliberately
+
+- **A ban-creation UI.** `POST /api/ops/bans` exists and works; nothing in the
+  dashboard calls it. Deciding who may issue a platform ban, and how that is
+  authorised, should come before putting a button on it.
+
+## What a purge does not touch
+
+`platform_bans` has no foreign key to `guilds` — its only relationship is
+`platform_ban_appeals.ban_id → platform_bans.id`. A guild being deleted, for
+any reason including the 30-day removal purge, leaves the ban ledger standing.
+That is deliberate: an appeal decision has to remain checkable after a server
+stops using the bot.

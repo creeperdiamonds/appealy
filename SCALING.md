@@ -164,9 +164,16 @@ grow without bound and become the largest tables in the database, while the
 paid retention tiers mean nothing.
 
 **After:** `apiRequestsPerMinute` is enforced by new middleware
-(`api/src/middleware/apiRateLimit.ts`); `historyRetentionDays` by a
-scheduler purge job. `rolesPerRuleType` still needs validation in
-`api/src/routes/forms.ts` — see "Not done" below.
+(`api/src/middleware/apiRateLimit.ts`). The other two are still unenforced,
+and both are still billed for:
+
+- `historyRetentionDays` has a purge implemented (`runHistoryPurge`,
+  `bot/src/core/scheduler.ts:276`) and dispatched, but nothing ever schedules
+  a `purge_expired_history` job — the only insert into `scheduled_jobs` is
+  `kick_unverified` at `guildMemberAdd.ts:142`. Writing the function was not
+  the same as running it.
+- `rolesPerRuleType` still needs validation in `api/src/routes/forms.ts` —
+  see "Not done" below.
 
 ### 8. Uncached picker endpoints — `bot/src/core/controlServer.ts`
 

@@ -134,7 +134,7 @@ A few design decisions worth knowing:
   Discord file attachment.
 - **`/poll`** creates and immediately publishes a poll (channel, question,
   up to 9 options, optional multiselect) as a fast path alongside the
-  dashboard's schedule-for-later flow in `services/pollService.ts`.
+  dashboard's schedule-for-later flow in `bot/src/services/pollService.ts`.
 - **Panel display type**: panels can show attached forms as buttons
   (capped at 5 per panel) or a dropdown select (up to 25) — both available
   to every guild regardless of billing tier; see "Pricing model" below for

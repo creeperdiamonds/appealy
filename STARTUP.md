@@ -6,7 +6,7 @@
 `deno task sync-commands` (add a guild ID for instant dev iteration).
 
 The latency argument for this is weak — `upsertGlobalApplicationCommands` is
-one HTTP PUT, a few hundred ms. The "up to an hour" in `commands/index.ts` is
+one HTTP PUT, a few hundred ms. The "up to an hour" in `bot/src/commands/index.ts` is
 Discord's *propagation* delay after the call returns, and it happens whether
 or not you block on it.
 
@@ -19,7 +19,7 @@ dev; don't set it anywhere with replicas or auto-restart.
 
 **2. `pendingAnswers.ts` no longer connects at import time.**
 It was the last module-level `await connect(...)`, and worse than the ones
-`core/redis.ts` replaced, because it opened a *second* connection alongside
+`bot/src/core/redis.ts` replaced, because it opened a *second* connection alongside
 the singleton. `panelOpen.ts`, `formSubmit.ts` and `formSelectStep.ts` all
 import it, so the entire interaction path pulled a Redis round trip into
 module evaluation. Now uses `getRedis()`.
@@ -50,7 +50,7 @@ No effect either way — reordered for readability only.
 **Dropping `condition: service_healthy` on postgres in compose.** Don't. It
 only affects a cold `docker compose up`, not container restarts and not
 production — a restarting container doesn't re-evaluate `depends_on`. And
-`db/client.ts` connects eagerly with no retry, so removing the health gate
+`bot/src/db/client.ts` connects eagerly with no retry, so removing the health gate
 trades a one-time local wait for a crash-loop against a database that isn't
 accepting connections yet. Wrong direction.
 

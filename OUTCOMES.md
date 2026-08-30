@@ -152,9 +152,12 @@ confirm → apply. Routed in `interactionCreate.ts` under `review:outcome`,
 
 ## Still missing
 
-**Outcome CRUD.** No API routes and no form-editor UI, so outcomes can only be
-created by inserting rows directly. That's the last piece before this is usable
-by anyone but you.
+**A way to reach the outcome editor.** The API is complete —
+`api/src/routes/outcomes.ts` has GET, POST, PATCH and DELETE, mounted at
+`app.ts:198` — and `web/src/pages/OutcomeEditor.tsx` exists. But the page is
+not routed in `App.tsx` and nothing links to it, so from the dashboard
+outcomes still cannot be created. The remaining work is a route and a nav
+entry, not a feature.
 
 **Denial outcomes.** `handleReviewDeny` is untouched — *"denied, reapply in 30
 days"* vs *"denied, don't reapply"* are still one decision. Cheaper to add now

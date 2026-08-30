@@ -14,9 +14,8 @@ it was (`bot/src/events/guildCreate.ts:76-80`).
 
 That was the right call and its header says why: a removal is often an accident, a
 permissions cleanup, or five minutes long, and deleting that row cascades into 26
-tables.
-Deleting that row is, in the existing comment's words, "the single most destructive
-line in the codebase."
+tables — "the single most destructive line in the codebase", in the existing
+comment's words.
 
 But "never delete" has a cost that has now come due in two places.
 
