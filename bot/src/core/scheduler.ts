@@ -88,6 +88,7 @@ async function runTick(bot: AppealyBot) {
     withLock("polls:close", 25, () => closeDuePolls(bot)),
     withLock("giveaways:end", 25, () => endDueGiveaways(bot)),
     withLock("jobs:drain", 25, () => drainScheduledJobs(bot)),
+    withLock("history:enqueue", 25, () => enqueueHistoryPurges()),
   ]);
 
   const pruned = pruneL1();
@@ -240,6 +241,53 @@ async function drainScheduledJobs(bot: AppealyBot) {
   if (succeeded.length > 0) {
     await db.delete(schema.scheduledJobs).where(inArray(schema.scheduledJobs.id, succeeded));
   }
+}
+
+/**
+ * Creates the `purge_expired_history` jobs that nothing else ever created.
+ *
+ * `runHistoryPurge` below and its `case` in the dispatcher have both existed
+ * since retention was added — but no code path anywhere inserted a job of
+ * that kind, so the purge had never run once. `historyRetentionDays` is
+ * metered and billed for on the pricing page, and SCALING.md and
+ * apiRateLimit.ts both claimed it was enforced. Writing the function was not
+ * the same as running it.
+ *
+ * Once a day rather than every tick: the purge is idempotent, but scanning
+ * every guild every 30 seconds to delete nothing is pure load. The daily
+ * guard is a Redis SET NX with a 24h TTL, which doubles as the cross-replica
+ * lock — if Redis is unavailable, withRedis returns null and this is SKIPPED,
+ * matching withLock's reasoning: a day's delay in deleting expired rows is
+ * recoverable, and two replicas enqueueing a duplicate job per guild is
+ * wasted work draining through the queue.
+ */
+async function enqueueHistoryPurges() {
+  const claimedToday = await withRedis(
+    (r) => r.set("appealy:sched:history-purge-day", new Date().toISOString(), {
+      ex: 24 * 60 * 60,
+      mode: "NX",
+    }),
+    null,
+  );
+  if (!claimedToday) return;
+
+  // Only guilds the bot is actually in. A departed guild's rows are the
+  // removal lifecycle's business, not retention's.
+  const guilds = await db.query.guilds.findMany({
+    columns: { id: true },
+    where: eq(schema.guilds.botPresent, true),
+  });
+  if (guilds.length === 0) return;
+
+  await db.insert(schema.scheduledJobs).values(
+    guilds.map((g) => ({
+      kind: "purge_expired_history" as const,
+      guildId: g.id,
+      runAt: new Date(),
+    })),
+  );
+
+  logger.info("Enqueued daily history purges", { guilds: guilds.length });
 }
 
 async function runKickUnverified(bot: AppealyBot, guildId: bigint, userId: bigint | null) {
