@@ -132,14 +132,19 @@ export async function checkStandingCap(
  * only resolves the guild's number.
  *
  * NOT the only way a form is written, and an earlier version of this comment
- * wrongly said it was. shared/services/dataImport.ts:253 inserts forms too,
+ * wrongly said it was. shared/services/dataImport.ts inserts forms too,
  * reached from both api/src/routes/migration.ts and the bot's
- * /import-appealy command, and neither calls this. So a form imported from
- * an export can carry more roles per rule than the guild's plan allows —
- * and the grandfather rule then keeps it editable at that size. Closing it
- * means deciding whether an over-cap import is rejected or silently clamped,
- * which is a product decision rather than a missing line. Recorded in
- * SCALING.md.
+ * /import-appealy command, and neither calls this function.
+ *
+ * That path enforces the same cap by a different mechanism, because it has a
+ * different job: a route can reject and ask the admin to fix their input,
+ * while an import is a bulk migration whose whole design is partial success
+ * plus a report. It clamps instead, and splits on consequence — an over-cap
+ * GATE (requiredRoleIds, blacklistedRoleIds) brings the form in switched off,
+ * since admitting more people than the source server did is the same open
+ * door as a gate whose roles failed to map, while an over-cap grant or ping
+ * list is simply trimmed and reported. See clampRoleIds and
+ * trimmingWidensAccess there, both covered by deno test.
  */
 export async function checkRoleRuleCaps(
   guildId: bigint,

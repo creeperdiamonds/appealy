@@ -16,9 +16,11 @@ import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discord
 import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyInteraction as Interaction } from "../core/client.ts";
 import type { AppealyBot } from "../core/client.ts";
-import { db } from "../db/client.ts";
+import { eq } from "drizzle-orm";
+import { db, schema } from "../db/client.ts";
 import { isGuildOwner } from "../services/permissionService.ts";
 import { importGuildData, type ImportReport } from "../../../shared/services/dataImport.ts";
+import { resolveEffectiveCaps } from "../services/rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
 import { defer, finish } from "../utils/interactionResponse.ts";
 
@@ -163,11 +165,18 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       return;
     }
 
+    const guildRow = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
+    if (!guildRow) {
+      await finish(bot, interaction, "This server isn't set up yet. Run any command once, then retry the import.");
+      return;
+    }
+
     const report = await importGuildData(db, payload, {
       targetGuildId: guildId,
       fallbackChannelId: BigInt(String(fallbackChannelId)),
       actorId: requester.id,
       mode: replace ? "replace" : "append",
+      roleRuleLimit: resolveEffectiveCaps(guildRow).rolesPerRuleType,
     });
 
     logger.info("Appealy configuration imported", {

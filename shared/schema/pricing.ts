@@ -461,6 +461,24 @@ export const FORM_ROLE_RULE_LABELS: Record<string, string> = {
   reviewerRoleIds: "Reviewer roles",
 };
 
+/**
+ * The rules where trimming the list WIDENS access rather than narrowing it.
+ *
+ * requiredRoleIds and blacklistedRoleIds decide who may apply. Drop two of
+ * five required roles and MORE people qualify; drop a blacklist entry and
+ * someone barred becomes eligible. Every other rule decides what happens
+ * AFTER a decision — trimming those grants fewer roles or pings fewer people,
+ * which is wrong but not an open door.
+ *
+ * dataImport.ts relies on this split: an import that has to trim a gate
+ * brings the form in switched off, the same rule that already applies when a
+ * gate's roles fail to map. See the header of that file.
+ */
+export const FORM_GATING_ROLE_RULES = [
+  "requiredRoleIds",
+  "blacklistedRoleIds",
+] as const;
+
 export const FORM_ROLE_RULES = [
   "grantRoleIds",
   "removeRoleIds",

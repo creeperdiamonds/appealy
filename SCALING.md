@@ -179,6 +179,11 @@ paid retention tiers mean nothing.
   and reducible, never growable — because the cap was sold unenforced and
   live forms may legitimately exceed it.
 
+  The form routes were not the only way in, and covering them was not the
+  same as enforcing the cap: `shared/services/dataImport.ts` writes forms too.
+  That path is covered separately and by a different mechanism — see the
+  import entry below.
+
 ### 8. Uncached picker endpoints — `bot/src/core/controlServer.ts`
 
 `/internal/guilds/:id/channels` and `/roles` hit Discord REST on every
@@ -243,26 +248,37 @@ Discord requires sharding past ~2,500 guilds. The file's own comment points
 at `createShardManager`. Nothing here changes that, but the config cache and
 scheduler locks are now multi-replica-safe, which was the blocker.
 
-**Migration not generated.** `scheduled_jobs` is defined in
-`shared/schema/schema.ts` but you need to run:
+**Migration generated.** `scheduled_jobs` was defined in
+`shared/schema/schema.ts` with nothing to create it. It ships in
+`db/migrations/0000_huge_machine_man.sql` now, along with the rest of the
+initial schema, so this is just:
 
 ```bash
-cd api && npm run db:generate && npm run db:migrate
+cd api && npm run db:migrate
 ```
 
-Both of the cap gaps this section used to list are now closed — see "After"
-above. They are worth remembering as a pattern rather than as entries: in
-both cases the code existed, was correct, and was never reached, while two
-other documents asserted it was working.
+All three of the cap gaps this section used to list are now closed. Two of
+them are the `historyRetentionDays` and `rolesPerRuleType` entries described
+under "After" above; the third is below, and is not covered there. They are
+worth remembering as a pattern rather than as entries: in every case the code
+existed, was correct, and was never reached, while other documents asserted
+it was working.
 
-**`rolesPerRuleType` is bypassable on import.** The cap is enforced on the
-form routes and the outcome routes, but `shared/services/dataImport.ts:253`
-inserts forms directly — reached from `api/src/routes/migration.ts` and the
-bot's `/import-appealy` — without consulting it. An export from anywhere can
-therefore bring in a form carrying more roles per rule than the plan allows,
-and the grandfather rule then keeps it editable at that size. Closing it
-means choosing whether an over-cap import is rejected outright or silently
-clamped, which is a product decision, not a missing line.
+The third was `rolesPerRuleType` on the import path. `dataImport.ts` had no
+cap awareness of any kind, so an export from a tier2 server (25 roles per
+rule) imported into a free one (3) wrote lists that guild could never have
+created through the dashboard — and the grandfather rule then kept them
+editable at that size. It now clamps, and splits on consequence rather than
+treating the ten rules alike: trimming `requiredRoleIds` or
+`blacklistedRoleIds` admits MORE people than the source server did, so those
+bring the form in switched off, while trimming a grant or ping list is
+reported and left active. Every dropped role id appears in the import report.
+
+`/import-appy` had the same shape of hole and is closed differently, because
+it writes submissions rather than forms: imports are exempt from
+`submissionsPerDay` (which prices live Discord traffic an imported row never
+generates) and bounded instead by `historyRetentionDays * submissionsPerDay`,
+counted across every import rather than per file.
 
 **Audit log writes.** `dashboardAuditLogs` is queried by the console and
 written by nothing. The routes need to log their mutations — the table and

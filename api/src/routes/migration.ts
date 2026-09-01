@@ -130,6 +130,9 @@ migrationRouter.post("/migrate/import", requireOwnerAccess, async (req, res) => 
   const { payload, fallbackChannelId, mode, idMap } = parsed.data;
   const guildId = BigInt(routeParams(req).guildId);
 
+  const targetGuild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
+  if (!targetGuild) return res.status(404).json({ error: "guild_not_found" });
+
   try {
     const report = await importGuildData(db, payload, {
       targetGuildId: guildId,
@@ -137,6 +140,7 @@ migrationRouter.post("/migrate/import", requireOwnerAccess, async (req, res) => 
       actorId: req.userId!,
       idMap,
       mode,
+      roleRuleLimit: resolveEffectiveCaps(targetGuild).rolesPerRuleType,
     });
     res.json(report);
   } catch (err) {

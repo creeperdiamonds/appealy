@@ -55,6 +55,10 @@
 import { eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "../schema/schema.ts";
+import {
+  FORM_GATING_ROLE_RULES,
+  FORM_ROLE_RULE_LABELS,
+} from "../schema/pricing.ts";
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -70,6 +74,16 @@ export interface ImportOptions {
   fallbackChannelId: bigint;
   /** Who ran the import. Fills the not-null authorship columns. */
   actorId: bigint;
+  /**
+   * The receiving guild's rolesPerRuleType cap.
+   *
+   * Required, not optional with a default: this file had no cap awareness at
+   * all, so /import-appealy was a way to write role lists a guild could not
+   * have created through the dashboard — most realistically by exporting a
+   * tier2 server (25 per rule) into a free one (3). Making the caller pass it
+   * means a new call site cannot quietly reopen that hole.
+   */
+  roleRuleLimit: number;
   /**
    * Optional source→target snowflake map, as decimal id strings. Anything
    * present here is translated; anything absent is cleared or defaulted and
@@ -96,7 +110,10 @@ export interface ImportReport {
     name: string;
     field: string;
     sourceId: string;
-    action: "pointed at the fallback channel" | "cleared";
+    action:
+      | "pointed at the fallback channel"
+      | "cleared"
+      | "dropped: over this server's role limit";
   }>;
   /** Forms imported switched off because a gate did not survive. */
   deactivated: Array<{ name: string; why: string }>;
@@ -185,17 +202,69 @@ class Resolver {
   }
 }
 
+/**
+ * Splits a role list at the cap. Pure, so the boundary can be tested without
+ * a database — the rest of this file cannot be.
+ */
+export function clampRoleIds(
+  ids: string[],
+  limit: number,
+): { kept: string[]; dropped: string[] } {
+  if (ids.length <= limit) return { kept: ids, dropped: [] };
+  return { kept: ids.slice(0, limit), dropped: ids.slice(limit) };
+}
+
+/**
+ * Whether trimming this rule lets MORE people in.
+ *
+ * The whole reason the two cases are not treated alike. Derived from
+ * FORM_GATING_ROLE_RULES rather than restated, so adding a gating rule there
+ * cannot leave this file quietly importing it active.
+ */
+export function trimmingWidensAccess(rule: string): boolean {
+  return (FORM_GATING_ROLE_RULES as readonly string[]).includes(rule);
+}
+
 export async function importGuildData(
   db: Db,
   payload: ImportPayload,
   options: ImportOptions,
 ): Promise<ImportReport> {
-  const { targetGuildId, fallbackChannelId, actorId, mode } = options;
+  const { targetGuildId, fallbackChannelId, actorId, mode, roleRuleLimit } = options;
 
   const report: ImportReport = { created: {}, skipped: [], reconnect: [], deactivated: [] };
   const resolve = new Resolver(options.idMap ?? {}, fallbackChannelId, report);
   const count = (kind: string, n = 1) => {
     report.created[kind] = (report.created[kind] ?? 0) + n;
+  };
+
+  const GATING_RULES = new Set<string>(FORM_GATING_ROLE_RULES);
+
+  /**
+   * Trims one role rule to the receiving guild's cap, reporting every id it
+   * drops so an admin can put them somewhere else rather than discovering the
+   * loss later.
+   *
+   * The ids reported are the TARGET server's, not the source's — that is what
+   * an admin can act on here, even though the surrounding reconnect entries
+   * carry source ids.
+   */
+  const clampRule = (
+    formName: string,
+    rule: string,
+    ids: string[],
+  ): { ids: string[]; trimmed: boolean } => {
+    const { kept, dropped } = clampRoleIds(ids, roleRuleLimit);
+    for (const id of dropped) {
+      report.reconnect.push({
+        kind: "form",
+        name: formName,
+        field: FORM_ROLE_RULE_LABELS[rule] ?? rule,
+        sourceId: id,
+        action: "dropped: over this server's role limit",
+      });
+    }
+    return { ids: kept, trimmed: dropped.length > 0 };
   };
 
   if (mode === "replace") {
@@ -228,6 +297,16 @@ export async function importGuildData(
     const gates = resolve.roleList(form.requiredRoleIds);
     const blocks = resolve.roleList(form.blacklistedRoleIds);
 
+    // Clamped like every other rule, but the consequence differs. Trimming a
+    // gate cannot be allowed to pass quietly: three of five required roles
+    // admits MORE people than the source server did, which is the same open
+    // door as a gate that failed to map.
+    const gatesCapped = clampRule(name, "requiredRoleIds", gates.ids);
+    const blocksCapped = clampRule(name, "blacklistedRoleIds", blocks.ids);
+    const trimmedAGate =
+      (gatesCapped.trimmed && trimmingWidensAccess("requiredRoleIds")) ||
+      (blocksCapped.trimmed && trimmingWidensAccess("blacklistedRoleIds"));
+
     // The safety rule from the header. A gate that existed and no longer does
     // is an open door, not a missing setting.
     const lostAGate = gates.lost > 0 || blocks.lost > 0;
@@ -242,7 +321,10 @@ export async function importGuildData(
     // both servers stays valid — and one who is not is simply never matched,
     // which costs nothing. Roles have to be remapped because a role id means
     // nothing outside the server that created it.
-    const reviewerRoles = resolve.roleList(form.reviewerRoleIds);
+    // Clamped before the usable check below, so the whitelist decision is made
+    // against what will actually be stored. Trimming this one narrows who may
+    // review rather than widening who may apply, so it does not deactivate.
+    const reviewerRoles = clampRule(name, "reviewerRoleIds", resolve.roleList(form.reviewerRoleIds).ids);
     const reviewerUsers = asRows(form.reviewerUserIds).length
       ? (form.reviewerUserIds as unknown[]).map(String)
       : [];
@@ -263,18 +345,21 @@ export async function importGuildData(
         deniedChannelId: resolve.optional("form", name, "deniedChannelId", form.deniedChannelId),
         // Switched off when a gate was lost, so nobody can apply to a staff
         // form through a door the import left open.
-        active: lostAGate ? false : Boolean(form.active ?? true),
+        active: lostAGate || trimmedAGate ? false : Boolean(form.active ?? true),
         cooldownSeconds: Number(form.cooldownSeconds ?? 0),
         allowMultiplePending: Boolean(form.allowMultiplePending ?? false),
-        requiredRoleIds: gates.ids,
-        blacklistedRoleIds: blocks.ids,
-        grantRoleIds: resolve.roleList(form.grantRoleIds).ids,
-        removeRoleIds: resolve.roleList(form.removeRoleIds).ids,
-        deniedGrantRoleIds: resolve.roleList(form.deniedGrantRoleIds).ids,
-        denyRemoveRoleIds: resolve.roleList(form.denyRemoveRoleIds).ids,
-        pendingRoleIds: resolve.roleList(form.pendingRoleIds).ids,
-        removeRolesOnSubmitIds: resolve.roleList(form.removeRolesOnSubmitIds).ids,
-        pingRoleIds: resolve.roleList(form.pingRoleIds).ids,
+        requiredRoleIds: gatesCapped.ids,
+        blacklistedRoleIds: blocksCapped.ids,
+        grantRoleIds: clampRule(name, "grantRoleIds", resolve.roleList(form.grantRoleIds).ids).ids,
+        removeRoleIds: clampRule(name, "removeRoleIds", resolve.roleList(form.removeRoleIds).ids).ids,
+        deniedGrantRoleIds:
+          clampRule(name, "deniedGrantRoleIds", resolve.roleList(form.deniedGrantRoleIds).ids).ids,
+        denyRemoveRoleIds:
+          clampRule(name, "denyRemoveRoleIds", resolve.roleList(form.denyRemoveRoleIds).ids).ids,
+        pendingRoleIds: clampRule(name, "pendingRoleIds", resolve.roleList(form.pendingRoleIds).ids).ids,
+        removeRolesOnSubmitIds:
+          clampRule(name, "removeRolesOnSubmitIds", resolve.roleList(form.removeRolesOnSubmitIds).ids).ids,
+        pingRoleIds: clampRule(name, "pingRoleIds", resolve.roleList(form.pingRoleIds).ids).ids,
         reviewerWhitelistEnabled: whitelistRequested && whitelistUsable,
         reviewerUserIds: reviewerUsers,
         reviewerRoleIds: reviewerRoles.ids,
@@ -300,6 +385,16 @@ export async function importGuildData(
         why:
           "role gating referenced roles from the source server that could not be mapped — " +
           "importing it active would have made it open to everyone",
+      });
+    }
+
+    if (trimmedAGate) {
+      report.deactivated.push({
+        name,
+        why:
+          `role gating listed more roles than this server's plan allows (${roleRuleLimit} per rule), ` +
+          "so it was trimmed — importing it active would have let more people apply than the " +
+          "source server did",
       });
     }
 
