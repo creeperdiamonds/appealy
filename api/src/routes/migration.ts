@@ -20,7 +20,13 @@ import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireOwnerAccess } from "../middleware/guildAccess.ts";
 import { buildFullDataExport } from "../../../shared/services/dataExport.ts";
-import { importAppySubmissions, type AppyExportRow } from "../services/appyImportService.ts";
+import {
+  importAppySubmissions,
+  MAX_IMPORT_ROWS,
+  type AppyExportRow,
+} from "../../../shared/services/appyImport.ts";
+import { resolveEffectiveCaps } from "../services/rateLimitService.ts";
+import { importedSubmissionCeiling } from "../../../shared/schema/pricing.ts";
 import { importGuildData } from "../../../shared/services/dataImport.ts";
 
 export const migrationRouter = Router({ mergeParams: true });
@@ -50,7 +56,7 @@ const appyRowSchema = z.object({
 
 const importSchema = z.object({
   targetFormId: z.string(),
-  rows: z.array(appyRowSchema).min(1).max(5000),
+  rows: z.array(appyRowSchema).min(1).max(MAX_IMPORT_ROWS),
 });
 
 migrationRouter.post("/migrate/appy-submissions", requireOwnerAccess, async (req, res) => {
@@ -64,8 +70,21 @@ migrationRouter.post("/migrate/appy-submissions", requireOwnerAccess, async (req
   });
   if (!form) return res.status(404).json({ error: "target_form_not_found" });
 
+  const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
+  if (!guild) return res.status(404).json({ error: "guild_not_found" });
+  const ceiling = importedSubmissionCeiling(resolveEffectiveCaps(guild));
+
   try {
-    const result = await importAppySubmissions(guildId, targetFormId, rows as AppyExportRow[]);
+    const result = await importAppySubmissions(db, guildId, targetFormId, rows as AppyExportRow[], { ceiling });
+
+    // 409, not 400: the request is well-formed and would have been accepted
+    // on a higher tier. 402 would be the literal reading, but it is reserved
+    // in practice and api.ts treats 4xx uniformly except for the 429 retry,
+    // so the distinguishing signal has to be the body.
+    if (result.ceilingExceeded) {
+      return res.status(409).json({ error: "import_ceiling_exceeded", ...result });
+    }
+
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: "import_failed", detail: String(err) });

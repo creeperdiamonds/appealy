@@ -424,19 +424,47 @@ any change to the heuristics.
   JSON body) import a submissions-history export from Appy — a different,
   closed-source Discord application bot — into an existing Appealy form.
   Built against a real sample export (confirmed shape documented in
-  `bot/src/services/appyImportService.ts`). Appy's export has no
+  `shared/services/appyImport.ts`). Appy's export has no
   question-definition metadata (type, required, validation) and no
   reviewer/reason data — only submission text and outcome — so the
   importer matches each historical question to the target form's real
   questions by exact text match and leaves reviewer/reason fields empty
   rather than inventing them. Unmatched questions are surfaced in the
   response rather than silently dropped or guessed at.
-- **Known uncertainty**: `importAppy.ts`'s file-attachment resolution
-  (`interaction.data.resolved.attachments`) type-checks against Discordeno
-  v20, but — like the gateway-wiring caveat in
-  `bot/src/core/client.ts` — attachment-option resolution APIs shift
-  across library versions and this hasn't been smoke-tested against a
-  live bot token. Verify this specifically before relying on it.
+
+  **It is idempotent, and that is load-bearing.** Every imported row stores
+  Appy's own submission id in `submissions.import_source_id`, behind a partial
+  unique index on `(form_id, import_source_id)`. Re-uploading the same file
+  imports nothing the second time and reports the rows as already imported.
+
+  Before that column existed the importer had no way to recognise its own
+  work, and the failure message told people to re-run — so the documented
+  recovery from a half-finished import silently duplicated every row that had
+  already succeeded, attributed to real applicants, with no way to tell the
+  copies apart. Re-running is now the correct recovery, not the destructive one.
+
+  **Bounded per guild, not per call.** Imports are exempt from
+  `submissionsPerDay` — that cap is calibrated against what a LIVE submission
+  costs in Discord API calls, and an imported row costs one INSERT and no
+  Discord traffic at all — but they are capped by `importedSubmissionCeiling()`
+  (`historyRetentionDays * submissionsPerDay`), counted across every import
+  into a form. A per-call row limit bounds one file, not a hundred different
+  ones, and `site/index.html` publishes a promise that no cap anywhere is
+  unlimited. Over-ceiling imports are refused whole and never truncated:
+  importing part of a history quietly discards real applications.
+- **File-attachment resolution is defensive now, but still unproven against a
+  live token.** `importAppy.ts` reads the upload through `resolveAttachment()`,
+  which handles a Collection, a `Map` and a plain object, and tries both BigInt
+  and string keys — because attachment-option resolution shifts across library
+  versions, like the gateway-wiring caveat in `bot/src/core/client.ts`.
+
+  The previous single optional call, `resolved?.attachments?.get?.(id)`, did
+  not throw on an unexpected shape. It returned undefined, and the user was
+  told "Could not read the uploaded file" — which reads like their mistake
+  rather than ours. That failure mode is gone, but the happy path still has
+  not been smoke-tested against a live bot token. The dashboard route
+  (`POST .../migrate/appy-submissions`, JSON body) shares none of this risk
+  and is the safer path to demonstrate.
 
 ## Known constraints worth knowing before extending this
 

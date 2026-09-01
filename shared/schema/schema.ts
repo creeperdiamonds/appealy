@@ -510,6 +510,16 @@ export const submissions = pgTable(
     // form's showStats-equivalent is on (see FormDTO.hideAnswersInEmbed —
     // stats display independent of whether answers themselves are shown).
     completionSeconds: integer("completion_seconds"),
+    // Provenance for rows brought in from another bot's export, holding that
+    // system's own submission id. Null for everything submitted here, which
+    // is why the uniqueness below is partial.
+    //
+    // This column is what makes /import-appy idempotent. Without it a failed
+    // import could only be recovered by re-uploading the same file, and the
+    // command's own failure message says partial progress is kept — so the
+    // obvious recovery silently duplicated every row that had succeeded,
+    // attributed to real applicants, with no way to tell the copies apart.
+    importSourceId: text("import_source_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
@@ -522,6 +532,16 @@ export const submissions = pgTable(
       t.applicantId,
       t.createdAt,
     ),
+    // Partial, so the millions of natively-submitted rows (import_source_id
+    // null) are exempt rather than colliding with each other. Scoped to the
+    // form, not the guild: the same Appy history may legitimately be imported
+    // into two different Appealy forms, but never twice into one.
+    //
+    // Load-bearing, not cosmetic. It is the database-level backstop behind
+    // the in-application duplicate check, and the only thing that still holds
+    // if two imports run concurrently.
+    importSourceUniq: uniqueIndex("submission_import_source_uniq")
+      .on(t.formId, t.importSourceId).where(sql`import_source_id is not null`),
   }),
 );
 

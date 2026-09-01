@@ -3,31 +3,38 @@
 Everything previously listed as missing is now written. What's left is
 environment work only — three of these can't be done in code.
 
-## 1. Migration (generated)
+## 1. Migrations (generated)
 
-`db/migrations/0000_huge_machine_man.sql` — the first migration this repo has
-ever had. `db/migrations` was empty, so this is the full initial schema, not an
-increment.
+`db/migrations/0000_huge_machine_man.sql` is the initial schema, written as a
+fresh create because `db/migrations` was empty when it was generated. Nine
+increments follow it, through `0009_overrated_korg.sql`, which adds
+`submissions.import_source_id` and the partial unique index that makes
+`/import-appy` idempotent.
 
 ```bash
 cd api && npm install && npm run db:migrate
 ```
 
-Both partial unique indexes generated correctly with their `WHERE` clauses —
-verified, since drizzle's `.where()` on indexes has been inconsistent across
-versions:
+All three partial unique indexes generated correctly with their `WHERE`
+clauses — verified each time, since drizzle's `.where()` on indexes has been
+inconsistent across versions:
 
 ```sql
 CREATE UNIQUE INDEX "platform_bans_active_uniq" ON "platform_bans" ("subject","subject_id") WHERE revoked_at is null;
 CREATE UNIQUE INDEX "platform_ban_appeals_one_open" ON "platform_ban_appeals" ("ban_id") WHERE status = 'open';
+CREATE UNIQUE INDEX "submission_import_source_uniq" ON "submissions" ("form_id","import_source_id") WHERE import_source_id is not null;
 ```
 
 These aren't cosmetic. The first stops two operators creating conflicting
-active bans; the second is what caps the appeal queue when Redis is down.
+active bans; the second is what caps the appeal queue when Redis is down; the
+third is the last line of defence against a re-run of `/import-appy`
+duplicating a server's entire application history, and the only one that still
+holds when two imports run at once.
 
-**If your database already has tables**, this migration will collide — it's
+**If your database already has tables**, migration `0000` will collide — it's
 written as a fresh create. Either baseline it (`drizzle-kit migrate` after
-marking it applied) or diff it against your live schema first.
+marking it applied) or diff it against your live schema first. The increments
+after it apply normally.
 
 `drizzle.config.ts` now lists both schema files; `platformBans.ts` wouldn't be
 picked up otherwise.

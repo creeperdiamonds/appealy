@@ -141,6 +141,29 @@ export const CUSTOM_CAP_MAXIMUMS: RateLimitCaps = {
   historyRetentionDays: 1_825, // 5 years
 };
 
+// Ceiling on how much HISTORICAL submission data a guild may carry in via
+// /import-appy, counted across every import rather than per call.
+//
+// Derived, never sold separately. `historyRetentionDays * submissionsPerDay`
+// is already the amount of history a tier is designed to hold — a guild
+// generating its cap every day for its full retention window lands exactly
+// here — so an import is bounded by the same arithmetic the customer already
+// bought instead of by a number invented for imports.
+//
+// WHY IMPORTS ARE NOT METERED BY submissionsPerDay. That cap is calibrated
+// against what a LIVE submission costs: a modal render, a review embed, DM
+// sends, role grants, log writes. An imported row costs one INSERT and
+// nothing else — no Discord call is made for it at all. Charging historical
+// rows against a daily live-traffic cap would measure the wrong resource and
+// make migrating off another bot take weeks on the free tier.
+//
+// WHY THERE IS A CEILING AT ALL. The per-call row limit bounds nothing: it
+// caps one file, not a hundred different ones. This is the "no unlimited
+// tier, anywhere" backstop applied to the one write path that had no bound.
+export function importedSubmissionCeiling(caps: RateLimitCaps): number {
+  return caps.historyRetentionDays * caps.submissionsPerDay;
+}
+
 // Per-unit ANNUAL price (integer cents) for each unit above the free
 // baseline, applied only when rateLimitTier === "custom". Simple arithmetic
 // on purpose, so the dashboard can requote on every slider move with no

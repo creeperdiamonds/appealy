@@ -1,0 +1,2 @@
+ALTER TABLE "submissions" ADD COLUMN "import_source_id" text;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "submission_import_source_uniq" ON "submissions" USING btree ("form_id","import_source_id") WHERE import_source_id is not null;

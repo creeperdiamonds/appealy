@@ -13,7 +13,13 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq, and, like } from "drizzle-orm";
 import { isGuildOwner } from "../services/permissionService.ts";
-import { importAppySubmissions, type AppyExportRow } from "../services/appyImportService.ts";
+import {
+  importAppySubmissions,
+  MAX_IMPORT_ROWS,
+  type AppyExportRow,
+} from "../../../shared/services/appyImport.ts";
+import { resolveEffectiveCaps } from "../services/rateLimitService.ts";
+import { importedSubmissionCeiling } from "../../../shared/schema/pricing.ts";
 import { logger } from "../utils/logger.ts";
 import { defer, finish } from "../utils/interactionResponse.ts";
 
@@ -65,7 +71,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   const opts = Object.fromEntries((interaction.data?.options ?? []).map((o) => [o.name, o.value]));
   const formName = String(opts.application_name);
   const attachmentId = opts.file;
-  const attachment = interaction.data?.resolved?.attachments?.get?.(BigInt(String(attachmentId)));
+  const attachment = resolveAttachment(interaction, attachmentId);
 
   if (!attachment) {
     return respond(bot, interaction, "Could not read the uploaded file. Please try again.");
@@ -104,7 +110,41 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       return;
     }
 
-    const result = await importAppySubmissions(guildId, form.id, rows);
+    // The API path has always enforced this through zod; the slash command
+    // enforced nothing, so a 25 MB attachment could carry any number of rows.
+    if (rows.length > MAX_IMPORT_ROWS) {
+      await finish(
+        bot,
+        interaction,
+        `That file has ${rows.length.toLocaleString()} rows, above the ${MAX_IMPORT_ROWS.toLocaleString()} accepted in one import. ` +
+          `Split it and run the import again — re-running is safe, since anything already imported is recognised and skipped.`,
+      );
+      return;
+    }
+
+    const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
+    if (!guild) {
+      await finish(bot, interaction, "This server isn't set up yet. Run any command once, then retry the import.");
+      return;
+    }
+    const ceiling = importedSubmissionCeiling(resolveEffectiveCaps(guild));
+
+    const result = await importAppySubmissions(db, guildId, form.id, rows, { ceiling });
+
+    if (result.ceilingExceeded) {
+      const { stored, incoming, ceiling: limit } = result.ceilingExceeded;
+      await finish(
+        bot,
+        interaction,
+        `Import refused — nothing was written.\n\n` +
+          `This server can hold **${limit.toLocaleString()}** imported submissions on its current plan` +
+          `${stored > 0 ? `, and already holds ${stored.toLocaleString()}` : ""}. ` +
+          `This file would add ${incoming.toLocaleString()} more.\n\n` +
+          `Nothing was truncated: importing only part of a history would quietly discard real applications. ` +
+          `Raise the limit by moving to a higher tier, or import into more than one form.`,
+      );
+      return;
+    }
 
     const unmatchedSummary =
       result.unmatchedQuestions.length > 0
@@ -119,10 +159,16 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
             .join("; ")}${result.skipped.length > 5 ? ", ..." : ""}`
         : "";
 
+    const alreadySummary =
+      result.alreadyImported > 0
+        ? `\n${result.alreadyImported} submission(s) were already imported by a previous run and were left untouched.`
+        : "";
+
     logger.info("Appy import completed", {
       guildId: guildId.toString(),
       formId: form.id,
       imported: result.imported,
+      alreadyImported: result.alreadyImported,
       skipped: result.skipped.length,
       unmatchedQuestions: result.unmatchedQuestions.length,
     });
@@ -130,14 +176,15 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     await finish(
       bot,
       interaction,
-      `Imported ${result.imported} submission(s) into **${form.name}**.${skippedSummary}${unmatchedSummary}`,
+      `Imported ${result.imported} submission(s) into **${form.name}**.${alreadySummary}${skippedSummary}${unmatchedSummary}`,
     );
   } catch (err) {
     logger.error("Appy import failed", { guildId: guildId.toString(), error: String(err) });
     await finish(
       bot,
       interaction,
-      `Import failed: ${String(err)}. No partial data was left in an inconsistent state — each submission is imported individually, so anything that succeeded before the failure is still there.`,
+      `Import failed: ${String(err)}. Anything imported before the failure is still there, and re-uploading the same file is the right way to finish — ` +
+        `each submission carries its Appy id, so rows already imported are recognised and skipped rather than duplicated.`,
     );
   }
 }
@@ -157,6 +204,53 @@ export async function autocomplete(bot: AppealyBot, interaction: Interaction) {
     type: 8,
     data: { choices: matches.map((m) => ({ name: m.name, value: m.name })) },
   });
+}
+
+/**
+ * Reads the uploaded attachment out of the interaction.
+ *
+ * Discordeno hands resolved attachments back as a Collection keyed by BigInt,
+ * but attachment-option resolution is exactly the surface that shifts between
+ * library versions, and README.md recorded this as an untested unknown.
+ *
+ * The previous code was one optional call — resolved?.attachments?.get?.(id) —
+ * which does NOT throw when the shape is a plain object instead. It quietly
+ * yields undefined, and the user is told "Could not read the uploaded file",
+ * which reads like their mistake rather than ours.
+ *
+ * So all three plausible shapes are handled, and both key types are tried: a
+ * Collection is keyed by BigInt, while a plain object deserialized from JSON
+ * is keyed by string.
+ */
+type ResolvedAttachment = { filename: string; size: number; url: string };
+
+function resolveAttachment(interaction: Interaction, attachmentId: unknown): ResolvedAttachment | undefined {
+  if (attachmentId === undefined || attachmentId === null) return undefined;
+  const raw = String(attachmentId);
+
+  const attachments = interaction.data?.resolved?.attachments as
+    | Map<unknown, ResolvedAttachment>
+    | Record<string, ResolvedAttachment>
+    | undefined;
+  if (!attachments) return undefined;
+
+  let asBigInt: bigint | undefined;
+  try {
+    asBigInt = BigInt(raw);
+  } catch {
+    // Not a snowflake, so only the string key can match.
+  }
+
+  if (typeof (attachments as Map<unknown, ResolvedAttachment>).get === "function") {
+    const map = attachments as Map<unknown, ResolvedAttachment>;
+    if (asBigInt !== undefined) {
+      const hit = map.get(asBigInt);
+      if (hit) return hit;
+    }
+    return map.get(raw);
+  }
+
+  return (attachments as Record<string, ResolvedAttachment>)[raw];
 }
 
 // Ephemeral flag now lives on the deferral; this wrapper just routes
