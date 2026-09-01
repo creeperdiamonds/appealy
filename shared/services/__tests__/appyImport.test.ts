@@ -13,7 +13,13 @@
 // this logic lives in shared/.
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { planAppyImport, type AppyExportRow, type QuestionLike } from "../appyImport.ts";
+import {
+  matchQuestion,
+  normalize,
+  planAppyImport,
+  type AppyExportRow,
+  type QuestionLike,
+} from "../appyImport.ts";
 
 const QUESTIONS: QuestionLike[] = [
   { id: "q-age", label: "How old are you?" },
@@ -34,6 +40,25 @@ function row(over: Partial<AppyExportRow> = {}): AppyExportRow {
 
 const NO_EXISTING = new Set<string>();
 const HUGE = 1_000_000;
+
+Deno.test("normalize trims, lowercases and collapses whitespace", () => {
+  assertEquals(normalize("  What   is your AGE? "), "what is your age?");
+});
+
+Deno.test("matchQuestion matches after normalisation", () => {
+  assertEquals(matchQuestion("  how OLD   are you?  ", QUESTIONS)?.id, "q-age");
+});
+
+// A stated global constraint of the migration plan, not a nicety. A wrong
+// match silently attributes someone's answer to a different question, which
+// is worse than an honest gap — so near misses are reported, never guessed.
+Deno.test("matchQuestion refuses a near miss", () => {
+  assertEquals(matchQuestion("How old're you?", QUESTIONS), null);
+});
+
+Deno.test("matchQuestion returns null when nothing matches", () => {
+  assertEquals(matchQuestion("Anything at all", QUESTIONS), null);
+});
 
 Deno.test("imports a clean row and resolves its question by text", () => {
   const plan = planAppyImport({

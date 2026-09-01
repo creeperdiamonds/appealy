@@ -15,6 +15,18 @@
 
   If a claim here stops being true, the code changed. Fix the code or fix this
   page — do not leave them disagreeing.
+
+  ONE CLAIM IS CURRENTLY A PROMISE, NOT A DESCRIPTION. "Reviewed submissions
+  are deleted once they pass your server's history retention window" is true
+  only where HISTORY_PURGE_ENABLED=true. It defaults to FALSE, because the
+  purge had never run and the first tick after enabling it deletes the whole
+  accumulated backlog at once — that is a decision someone makes having seen
+  the numbers, not a deploy-time default. While disabled the purge still logs
+  what it WOULD delete (bot/src/core/scheduler.ts, runHistoryPurge).
+
+  So this page must not be served publicly by a deployment that has not
+  enabled it. Either turn it on, or change the sentence. SETUP.md carries this
+  as a launch step rather than a nice-to-have.
 -->
 
 <title>Privacy — Appealy</title>

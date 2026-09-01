@@ -24,7 +24,24 @@
 
 ---
 
-### Task 1: Consolidate the duplicated import service
+### Task 1: Consolidate the duplicated import service — **DONE** (`05dfa89`)
+
+> **Landed, with more than this task asked for.** `shared/services/appyImport.ts`
+> exists, both copies are deleted, both call sites import it, and `normalize`
+> and `matchQuestion` are exported as specified. Three things went beyond the
+> task, because the consolidation exposed them:
+>
+> - **`importAppySubmissions` takes a fifth argument**, `opts: { ceiling: number }`.
+>   The signature in "Interfaces" below is therefore out of date. Imports are
+>   bounded per guild by `historyRetentionDays * submissionsPerDay`.
+> - **The import is idempotent.** `submissions.import_source_id` (migration
+>   `0009_overrated_korg.sql`) stores Appy's own id behind a partial unique
+>   index. This is why Task 2's migration is `0010`, not `0009`.
+> - **A pure `planAppyImport()`** now holds every decision the importer makes,
+>   which is what later tasks should extend rather than the IO function.
+>
+> Tests: 16 in `shared/services/__tests__/appyImport.test.ts`, not the 4 below.
+> The 4 specified here are among them.
 
 `appyImportService.ts` exists twice — `bot/src/services/` (147 lines) and `api/src/services/` (109 lines), same logic, different comments. The API copy says it is "mirrored rather than shared for the same Deno/Node split reason", but `shared/services/dataImport.ts` is imported by both runtimes and solves the split by taking the db handle as a parameter. Every later task would otherwise be written twice.
 
@@ -39,8 +56,11 @@
 - Produces:
   - `normalize(text: string): string`
   - `matchQuestion(appyQuestionText: string, targetQuestions: Question[]): Question | null`
-  - `importAppySubmissions(db: Db, guildId: bigint, targetFormId: string, rows: AppyExportRow[]): Promise<ImportResult>`
-  - `interface AppyExportRow`, `interface ImportResult` — unchanged shapes
+  - `importAppySubmissions(db: Db, guildId: bigint, targetFormId: string, rows: AppyExportRow[], opts: { ceiling: number }): Promise<ImportResult>`
+  - `planAppyImport(opts): AppyImportPlan` — pure; every decision the importer
+    makes lives here. Extend this, not the IO function above.
+  - `interface AppyExportRow` unchanged. `ImportResult` gained `alreadyImported`
+    and an optional `ceilingExceeded`.
 
 - [ ] **Step 1: Diff the two copies for behavioural difference, not line count**
 
@@ -118,7 +138,9 @@ Then `rm bot/src/services/appyImportService.ts api/src/services/appyImportServic
 
 Run: `deno check -c bot/deno.json bot/src/main.ts` → clean
 Run: `cd api && npm run build` → exit 0
-Run: `deno test --allow-read -c bot/deno.json bot/src/` → 39 passing (unchanged)
+Run: `deno test --allow-read -c bot/deno.json bot/src/ shared/` → all passing.
+The bot's own count is unchanged by this task; the shared count grows by the
+new file. As of `05dfa89` the combined total is 96.
 
 - [ ] **Step 8: Commit**
 
@@ -136,7 +158,7 @@ A derived form cannot supply a review channel from an Appy export, and the admin
 
 **Files:**
 - Modify: `shared/schema/schema.ts` (the `forms.logChannelId` column)
-- Create: `db/migrations/0009_*.sql` (generated)
+- Create: `db/migrations/0010_*.sql` (generated)
 - Modify: `bot/src/commands/formList.ts:36`
 - Modify: `api/src/routes/forms.ts:66` (zod), `:370` (response mapping)
 
@@ -168,7 +190,7 @@ Confirm the generated SQL is exactly one statement dropping the constraint:
 ALTER TABLE "forms" ALTER COLUMN "log_channel_id" DROP NOT NULL;
 ```
 
-Then run `grep -icE "drop (table|column)|truncate" db/migrations/0009_*.sql` — expect `0`. The deploy workflow refuses destructive migrations, and `DROP NOT NULL` must not read as one.
+Then run `grep -icE "drop (table|column)|truncate" db/migrations/0010_*.sql` — expect `0`. The deploy workflow refuses destructive migrations, and `DROP NOT NULL` must not read as one.
 
 - [ ] **Step 3: Handle null at the two read sites outside the submission path**
 
@@ -1322,7 +1344,7 @@ git commit -m "Document that the importer can now derive a form"
 - [ ] `deno check -c bot/deno.json bot/src/main.ts` — clean
 - [ ] `cd api && npm run build` — exit 0
 - [ ] `cd web && npm run build` — exit 0
-- [ ] Migration `0009` contains exactly one `DROP NOT NULL` and no destructive statement
+- [ ] Migration `0010` contains exactly one `DROP NOT NULL` and no destructive statement
 
 Manual, on a real guild, since no automated test reaches Discord:
 

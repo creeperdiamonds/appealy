@@ -14,7 +14,9 @@ of yours was dropped. Review on a branch before merging.
 `bot/src/core/sharding.ts` (auto shard count, session-budget guard),
 `bot/src/core/entitlements.ts` (Discord App Subscriptions)
 
-**Migrations** — `0001` (form_outcomes), `0002` (denial outcomes)
+**Migrations** — `0001` (form_outcomes), `0002` (denial outcomes). Seven more
+have landed since this file was written, through `0009` (`import_source_id`,
+which makes `/import-appy` idempotent).
 
 **Deployment** — `docker-compose.pi.yml`, `PI.md`, `.env.production.example`
 
@@ -38,8 +40,11 @@ interfaces with the password `appealy`.
 ## Before you merge
 
 1. `git checkout -b claude-changes` — don't push straight to main.
-2. Run the three migrations against a scratch database first. `0000` is a full
-   initial create and will collide with an existing schema.
+2. Run the migrations against a scratch database first. There are ten now,
+   `0000` through `0009` — this section named three when it was written, so
+   count the directory rather than trusting the number. `0000` is a full
+   initial create and will collide with an existing schema; the increments
+   after it apply normally.
 3. Read `.github/workflows/deploy-cloudrun.yml` — the bot needs
    `--min-instances=1 --no-cpu-throttling --max-instances=1` or Cloud Run will
    crash-loop it through your daily Discord session budget. Secrets moved from

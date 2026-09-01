@@ -108,7 +108,13 @@ export interface ImportResult {
   ceilingExceeded?: CeilingExceeded;
 }
 
-function normalize(text: string): string {
+/**
+ * Exported, though only this file calls it today: the near-miss scorer in the
+ * Appy migration plan has to measure against the SAME normalisation the exact
+ * matcher uses, or it would report near misses that are really exact matches
+ * and vice versa.
+ */
+export function normalize(text: string): string {
   return text.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
@@ -119,7 +125,10 @@ function normalize(text: string): string {
  * attributing an answer to the wrong question is worse than an honestly
  * unmatched one. Ambiguity is surfaced, never guessed at.
  */
-function matchQuestion(appyQuestionText: string, questions: QuestionLike[]): QuestionLike | null {
+export function matchQuestion(
+  appyQuestionText: string,
+  questions: QuestionLike[],
+): QuestionLike | null {
   const normalized = normalize(appyQuestionText);
   return questions.find((q) => normalize(q.label) === normalized) ?? null;
 }

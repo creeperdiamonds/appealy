@@ -23,8 +23,9 @@ done.
 | `web/src/components/ServerBanned.tsx` | Crossed-out guild option, appeal sheet |
 | `web/src/pages/OpsAppeals.tsx` | Operator review queue |
 
-The gate is wired at `bot/src/events/interactionCreate.ts:35` and the cache is
-started at `bot/src/events/ready.ts:33`.
+The gate is called at `bot/src/events/interactionCreate.ts:43` — before any
+handler dispatches, which is the whole point of it — and the cache is started
+at `bot/src/events/ready.ts:33`.
 
 ## The routes
 

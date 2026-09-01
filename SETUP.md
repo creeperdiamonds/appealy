@@ -77,6 +77,13 @@ refuses to record a decision without a written note — the appellant reads it.
       happens on boot — see `STARTUP.md`.
 - [ ] **Set `DEPLOYMENT_MODE=platform`** on the hosted deployment. It defaults
       to `self`.
+- [ ] **Decide `HISTORY_PURGE_ENABLED` before serving `privacy.html` publicly.**
+      That page tells visitors reviewed submissions "are deleted once they pass
+      your server's history retention window". With the flag off, nothing is
+      deleted — so the published privacy policy would promise something the
+      deployment does not do. Read a few days of the `wouldDelete` counts the
+      disabled purge logs, then set it to `true`; or change the sentence. Do
+      not launch with the two disagreeing.
 
 ## Raising caps for your own server
 
@@ -181,13 +188,20 @@ sold them, so a self-hosted bot with its own token has none by construction.
   before putting a button on it.
 - The ops console in `ops-console/` targets Discordeno v21 while `bot/` is v20,
   and isn't wired to anything.
-- **`historyRetentionDays` is charged for but never enforced.** `runHistoryPurge`
-  (`bot/src/core/scheduler.ts:276`) implements it correctly and the dispatcher
-  handles a `purge_expired_history` job — but nothing anywhere creates one. The
-  only insert into `scheduled_jobs` in the whole codebase is `kick_unverified`
-  at `guildMemberAdd.ts:142`. So the retention tiers the pricing page meters
-  and bills for do not apply, and `apiRateLimit.ts:16-17` claims the opposite.
-  Submission history grows without bound.
+- **`historyRetentionDays` is enforced, but the purge is off by default.**
+  `runHistoryPurge` had always implemented retention correctly and the
+  dispatcher had always handled a `purge_expired_history` job — nothing
+  anywhere created one. `enqueueHistoryPurges` now does, daily.
+
+  It ships behind `HISTORY_PURGE_ENABLED`, defaulting to **false**, and that
+  is not timidity. The purge had never run, so the first tick after enabling
+  it deletes every submission past retention that has accumulated *because* it
+  never ran — fleet-wide, irreversibly, answers cascading. Turning it on is a
+  decision about real data, not a config default.
+
+  While disabled it still runs and logs what it *would* delete, so you get the
+  counts before you commit to them. Read a few days of those lines, then set
+  `HISTORY_PURGE_ENABLED=true`.
 - No on-request deletion path. `privacy.html` accepts deletion requests at
   `contact@creeperdiamonds.xyz`, and honouring one is entirely manual today.
   The shape it should take: scrub the appeal text, keep the ban row.
