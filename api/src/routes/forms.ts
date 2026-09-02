@@ -8,9 +8,15 @@ import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
-import { checkRoleRuleCaps, checkStandingCap } from "../services/rateLimitService.ts";
+import {
+  checkQuestionLimits,
+  checkRoleRuleCaps,
+  checkStandingCap,
+} from "../services/rateLimitService.ts";
 import { FORM_ROLE_RULES, type FormRoleRule } from "../../../shared/schema/pricing.ts";
 import { roleCapPayload } from "../utils/roleCapPayload.ts";
+import { describeQuestionViolation } from "../../../shared/lib/formLimits.ts";
+import { CUSTOM_CAP_MAXIMUMS } from "../../../shared/schema/pricing.ts";
 import { checkPatternSafety } from "../../../shared/schema/regexValidation.ts";
 import type { FormDTO } from "../../../shared/types/index.ts";
 
@@ -95,7 +101,12 @@ const formBaseSchema = z.object({
   reviewerRoleIds: z.array(z.string()).default([]),
   confirmationMessage: z.string().max(2000).nullable().default(null),
   active: z.boolean().default(true),
-  questions: z.array(questionSchema).max(10).default([]),
+  // The hard ceiling, not the guild's allowance. This was .max(10), a
+  // number that appears nowhere in pricing.ts and sat BELOW the free
+  // tier's own questionsPerForm of 15 — so the cap the pricing page
+  // advertised could not be reached even on the tier that grants it.
+  // The per-guild limit is applied after parsing, by checkQuestionLimits.
+  questions: z.array(questionSchema).max(CUSTOM_CAP_MAXIMUMS.questionsPerForm).default([]),
 });
 
 const EMPTY_WHITELIST_MESSAGE =
@@ -163,6 +174,19 @@ formsRouter.post("/", requireAdminAccess, async (req, res) => {
   const createRoleCaps = await checkRoleRuleCaps(guildId, data);
   if (createRoleCaps.length > 0) {
     return res.status(400).json(roleCapPayload(createRoleCaps));
+  }
+
+  // Two limits, and only one of them is for sale — see shared/lib/formLimits.ts.
+  const createQuestionLimits = await checkQuestionLimits(guildId, {
+    questions: data.questions,
+    applicationType: data.applicationType,
+  });
+  if (createQuestionLimits.length > 0) {
+    return res.status(400).json({
+      error: "question_limit",
+      detail: createQuestionLimits.map(describeQuestionViolation).join(" "),
+      violations: createQuestionLimits,
+    });
   }
 
   const form = await db.transaction(async (tx) => {
@@ -241,8 +265,13 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
 
   const guildId = BigInt(routeParams(req).guildId);
   const formId = routeParams(req).formId;
+  // Questions are loaded because the limit check below grandfathers against
+  // them: a form that was already over a cap before the cap existed must stay
+  // editable. Without the relation there is nothing to compare against and
+  // every such form would be frozen.
   const existing = await db.query.forms.findFirst({
     where: and(eq(schema.forms.id, formId), eq(schema.forms.guildId, guildId)),
+    with: { questions: true },
   });
   if (!existing) return res.status(404).json({ error: "form_not_found" });
 
@@ -276,6 +305,22 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
   const patchRoleCaps = await checkRoleRuleCaps(guildId, mergedRoleRules, existing);
   if (patchRoleCaps.length > 0) {
     return res.status(400).json(roleCapPayload(patchRoleCaps));
+  }
+
+  // Merged, like the role rules above: a PATCH that omits `questions` leaves
+  // the stored ones alone, and `existing` is what grandfathers a form that was
+  // already over a limit before the limit existed.
+  const patchQuestionLimits = await checkQuestionLimits(guildId, {
+    questions: data.questions ?? existing.questions,
+    applicationType: data.applicationType ?? existing.applicationType,
+    previous: existing.questions,
+  });
+  if (patchQuestionLimits.length > 0) {
+    return res.status(400).json({
+      error: "question_limit",
+      detail: patchQuestionLimits.map(describeQuestionViolation).join(" "),
+      violations: patchQuestionLimits,
+    });
   }
 
   const mergedKind = data.kind ?? existing.kind;

@@ -78,7 +78,7 @@
       "price": "60.00",
       "priceCurrency": "USD",
       "url": "https://appealy.creeperdiamonds.xyz/pricing",
-      "description": "Annual. Raises all eight throughput caps."
+      "description": "Annual. Raises all nine throughput caps."
     },
     {
       "@type": "Offer",
@@ -86,7 +86,7 @@
       "price": "180.00",
       "priceCurrency": "USD",
       "url": "https://appealy.creeperdiamonds.xyz/pricing",
-      "description": "Annual. Raises all eight throughput caps further."
+      "description": "Annual. Raises all nine throughput caps further."
     },
     {
       "@type": "Offer",
@@ -126,7 +126,7 @@
     <h1>You pay for throughput, or for hosting. Never for features.</h1>
     <p class="lede">
       Every feature described anywhere on this site is available on the free tier. The paid axes
-      raise eight numbers and, separately, put the bot on hardware that is only yours.
+      raise nine numbers and, separately, put the bot on hardware that is only yours.
     </p>
 
     <div class="callout is-accent">
@@ -147,7 +147,7 @@
 
     <div class="table-scroll">
       <table>
-        <caption>All eight metered caps, from <code>shared/schema/pricing.ts</code>. The last column is the hard ceiling on a self-set custom value.</caption>
+        <caption>All nine metered caps, from <code>shared/schema/pricing.ts</code>. The last column is the hard ceiling on a self-set custom value.</caption>
         <thead>
           <tr>
             <th scope="col">Cap</th>
@@ -187,6 +187,10 @@
             <td class="num">3</td><td class="num">10</td><td class="num">25</td><td class="num">100</td>
           </tr>
           <tr>
+            <th scope="row">Questions per form</th>
+            <td class="num">15</td><td class="num">50</td><td class="num">100</td><td class="num">200</td>
+          </tr>
+          <tr>
             <th scope="row">History retention (days)</th>
             <td class="num">30</td><td class="num">180</td><td class="num">730</td><td class="num">1,825</td>
           </tr>
@@ -215,6 +219,17 @@
       drop an application the applicant is still waiting on.
     </p>
 
+    <p class="muted">
+      <strong>Questions per form has a second limit that is not ours to sell.</strong> A Discord
+      modal holds five components, and Appealy pages an in-server application five modals deep, so
+      an <em>in-server</em> form can ask at most 25 text questions no matter which tier you are on.
+      Paying more does not raise it, because the limit is Discord&rsquo;s. A <em>DM</em> form has no
+      such limit &mdash; it asks one question at a time &mdash; so the number above is what actually
+      governs it. Select questions are asked before the modal and do not count toward the 25.
+      Saving a form that crosses either limit is refused with which one, rather than accepted and
+      quietly trimmed.
+    </p>
+
     <h3>Setting your own caps</h3>
     <p>
       Each cap is priced per unit above the free baseline, annually. These rates are constants in
@@ -240,6 +255,7 @@
           <tr><th scope="row">Forms per server</th><td>5</td><td class="num">$0.33</td></tr>
           <tr><th scope="row">Panels per server</th><td>5</td><td class="num">$0.33</td></tr>
           <tr><th scope="row">Roles per rule type</th><td>3</td><td class="num">$0.43</td></tr>
+          <tr><th scope="row">Questions per form</th><td>15</td><td class="num">$0.10</td></tr>
           <tr><th scope="row">History retention (days)</th><td>30</td><td class="num">$0.01</td></tr>
         </tbody>
       </table>

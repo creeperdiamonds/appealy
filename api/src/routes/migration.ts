@@ -141,6 +141,7 @@ migrationRouter.post("/migrate/import", requireOwnerAccess, async (req, res) => 
       idMap,
       mode,
       roleRuleLimit: resolveEffectiveCaps(targetGuild).rolesPerRuleType,
+      questionLimit: resolveEffectiveCaps(targetGuild).questionsPerForm,
     });
     res.json(report);
   } catch (err) {

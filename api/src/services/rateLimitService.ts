@@ -42,6 +42,12 @@ import {
   type RateLimitCaps,
   type RoleCapViolation,
 } from "../../../shared/schema/pricing.ts";
+import {
+  countTextQuestions,
+  findQuestionLimitViolations,
+  type QuestionLimitViolation,
+  type QuestionShape,
+} from "../../../shared/lib/formLimits.ts";
 import { deployment, env, PRIVILEGED } from "../env.ts";
 
 const FREE_CAPS = RATE_LIMIT_PRESETS.free.caps;
@@ -154,4 +160,38 @@ export async function checkRoleRuleCaps(
   const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
   const caps = guild ? resolveEffectiveCaps(guild) : FREE_CAPS;
   return findRoleCapViolations(next, previous, caps.rolesPerRuleType);
+}
+
+/**
+ * Check a form's questions against the guild's `questionsPerForm` AND against
+ * Discord's modal ceiling.
+ *
+ * The comparison lives in shared/lib/formLimits.ts, where deno test covers it;
+ * this only resolves the guild's number. Same division of labour as
+ * checkRoleRuleCaps above.
+ *
+ * Both limits are checked here because only one of them is a price. A tier
+ * raises questionsPerForm; nothing raises the modal ceiling, because five
+ * components per modal is Discord's rule. Returning them together means a
+ * caller cannot enforce the purchasable one and forget the other, which is how
+ * the original bug worked — the form accepted questions the flow then dropped.
+ */
+export async function checkQuestionLimits(
+  guildId: bigint,
+  opts: {
+    questions: QuestionShape[];
+    applicationType: string | null | undefined;
+    /** The form's stored questions, when editing. Grandfathers an over-limit form. */
+    previous?: QuestionShape[];
+  },
+): Promise<QuestionLimitViolation[]> {
+  const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
+  const caps = guild ? resolveEffectiveCaps(guild) : FREE_CAPS;
+  return findQuestionLimitViolations({
+    questions: opts.questions,
+    tierLimit: caps.questionsPerForm,
+    applicationType: opts.applicationType,
+    previousCount: opts.previous?.length,
+    previousTextCount: opts.previous ? countTextQuestions(opts.previous) : undefined,
+  });
 }

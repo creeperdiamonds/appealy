@@ -177,6 +177,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       actorId: requester.id,
       mode: replace ? "replace" : "append",
       roleRuleLimit: resolveEffectiveCaps(guildRow).rolesPerRuleType,
+      questionLimit: resolveEffectiveCaps(guildRow).questionsPerForm,
     });
 
     logger.info("Appealy configuration imported", {

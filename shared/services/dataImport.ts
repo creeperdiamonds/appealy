@@ -75,6 +75,14 @@ export interface ImportOptions {
   /** Who ran the import. Fills the not-null authorship columns. */
   actorId: bigint;
   /**
+   * The receiving guild's questionsPerForm cap.
+   *
+   * Required for the same reason roleRuleLimit is: this file had no cap
+   * awareness at all, and making the caller pass it means a new call site
+   * cannot quietly reopen the hole.
+   */
+  questionLimit: number;
+  /**
    * The receiving guild's rolesPerRuleType cap.
    *
    * Required, not optional with a default: this file had no cap awareness at
@@ -230,7 +238,8 @@ export async function importGuildData(
   payload: ImportPayload,
   options: ImportOptions,
 ): Promise<ImportReport> {
-  const { targetGuildId, fallbackChannelId, actorId, mode, roleRuleLimit } = options;
+  const { targetGuildId, fallbackChannelId, actorId, mode, roleRuleLimit, questionLimit } =
+    options;
 
   const report: ImportReport = { created: {}, skipped: [], reconnect: [], deactivated: [] };
   const resolve = new Resolver(options.idMap ?? {}, fallbackChannelId, report);
@@ -398,7 +407,31 @@ export async function importGuildData(
       });
     }
 
-    for (const q of asRows(form.questions)) {
+    // Same bypass class the role rules had: this path writes questions and
+    // never consulted a cap, so an export from a higher tier could stand up a
+    // form the receiving guild could not have built.
+    //
+    // Trimmed rather than refused, matching the rest of this importer — but a
+    // form that LOST questions is imported switched off. An application whose
+    // questions were silently dropped still collects submissions, and those
+    // submissions are missing answers nobody knows were asked for. That is the
+    // same shape as the gate rule above: a broken form is better off visibly
+    // off than quietly open.
+    const allQuestions = asRows(form.questions);
+    const keptQuestions = allQuestions.slice(0, questionLimit);
+    if (allQuestions.length > keptQuestions.length) {
+      report.deactivated.push({
+        name,
+        why:
+          `it has ${allQuestions.length} questions and this server's plan allows ` +
+          `${questionLimit}, so the extra ones were not imported — a form missing ` +
+          "questions would have collected answers to a different application than " +
+          "the one people thought they were filling in",
+      });
+      await db.update(schema.forms).set({ active: false }).where(eq(schema.forms.id, created.id));
+    }
+
+    for (const q of keptQuestions) {
       await db.insert(schema.questions).values({
         formId: created.id,
         label: str(q.label) ?? "",

@@ -46,6 +46,25 @@ export interface RateLimitCaps {
   formsPerGuild: number;
   panelsPerGuild: number;
   rolesPerRuleType: number;
+  /**
+   * Questions on one form.
+   *
+   * Read this together with shared/lib/modalPaging.ts. An `in_server` form is
+   * additionally bounded at MODAL_PAGE_SIZE * MAX_MODAL_PAGES = 25 TEXT
+   * questions, because Discord modals hold five components and the paging
+   * ceiling is five pages. That bound is Discord's, applies at every tier, and
+   * is not something a price can lift.
+   *
+   * A `direct_message` form has no such limit — dmApplicationService walks
+   * questions one at a time — so the cap here is what actually governs it.
+   * Select questions are asked before the modal and do not consume modal
+   * pages either.
+   *
+   * The distinction is written down because selling "100 questions" while the
+   * main flow silently dropped everything past the fifth is exactly the bug
+   * this cap was introduced alongside.
+   */
+  questionsPerForm: number;
   historyRetentionDays: number;
 }
 
@@ -92,6 +111,7 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
       formsPerGuild: 5,
       panelsPerGuild: 5,
       rolesPerRuleType: 3,
+      questionsPerForm: 15,
       historyRetentionDays: 30,
     },
     priceUsdCentsPerYear: 0,
@@ -105,6 +125,7 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
       formsPerGuild: 20,
       panelsPerGuild: 20,
       rolesPerRuleType: 10,
+      questionsPerForm: 50,
       historyRetentionDays: 180,
     },
     // $5/mo equivalent, billed annually as a single $60 charge — see the
@@ -120,6 +141,7 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
       formsPerGuild: 50,
       panelsPerGuild: 50,
       rolesPerRuleType: 25,
+      questionsPerForm: 100,
       historyRetentionDays: 730,
     },
     // $15/mo equivalent, billed annually as a single $180 charge.
@@ -138,6 +160,7 @@ export const CUSTOM_CAP_MAXIMUMS: RateLimitCaps = {
   formsPerGuild: 300,
   panelsPerGuild: 300,
   rolesPerRuleType: 100,
+  questionsPerForm: 200,
   historyRetentionDays: 1_825, // 5 years
 };
 
@@ -213,6 +236,9 @@ const CUSTOM_CAP_UNIT_PRICE_CENTS_PER_YEAR: Record<
   formsPerGuild: 33, // $0.33/yr per form
   panelsPerGuild: 33,
   rolesPerRuleType: 43, // $0.43/yr per role per rule type
+  // Cheap per unit: a question costs one row and, per submission, one
+  // answer row. The ladder above is what carries the price.
+  questionsPerForm: 10, // $0.10/yr per question
   historyRetentionDays: 1, // $0.01/yr per extra day of history
 };
 

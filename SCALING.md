@@ -144,7 +144,7 @@ A poll 30 seconds late is recoverable; two sets of giveaway winners is not.
 
 This one is worth reading carefully.
 
-`shared/schema/pricing.ts` prices eight caps. Grepping for each identifier:
+`shared/schema/pricing.ts` priced eight caps when this was written; it prices nine now, after `questionsPerForm` was added. Grepping for each identifier at the time:
 
 | Cap | Enforced? |
 |---|---|
