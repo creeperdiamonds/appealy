@@ -32,6 +32,7 @@ export type PlanTier = "free" | "pro";
 //   modal:submit:<formId>               -> the application modal's own submit id
 //   modal:select:<formId>:<questionId>  -> pre-modal select-menu step
 //   poll:vote:<pollId>:<optionId>       -> poll vote button/select
+//   tz:pick:<askedUserId>               -> "which timezone did you mean?"
 // ---------------------------------------------------------------------------
 
 export const CUSTOM_ID_NAMESPACES = {
@@ -43,6 +44,8 @@ export const CUSTOM_ID_NAMESPACES = {
   GIVEAWAY: "giveaway",
   VERIFY: "verify",
   ROLE_MENU: "rolemenu",
+  /** tz:pick:<askedUserId> — "which timezone did you mean?" */
+  TIMEZONE: "tz",
 } as const;
 
 export type CustomIdNamespace =

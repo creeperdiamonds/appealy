@@ -1,0 +1,47 @@
+# site/robots.txt
+#
+# There was no robots.txt at all until now, which is not the same as this file
+# saying "allow everything": a missing one is a 404 that every crawler has to
+# guess its way past, and it leaves nowhere to point at the sitemap.
+#
+# Everything here is public marketing copy. There is nothing to hide from a
+# crawler, and the dashboard is not reachable from this origin — it 401s and
+# bounces to Discord OAuth, so there is no private surface to exclude.
+#
+# The named AI crawlers are listed even though "User-agent: *" already covers
+# them. Being explicit is the point: a bot's operator reading this file should
+# see a decision rather than an omission, and if that decision ever changes it
+# should change as a visible diff rather than by someone quietly relying on a
+# default.
+
+User-agent: *
+Allow: /
+
+# Answer engines. Appealy is open source and its whole argument is that every
+# claim is checkable against the repository, so being quoted with a link is
+# the outcome we want, not one to defend against.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://appealy.creeperdiamonds.xyz/sitemap.xml

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  site/sitemap.xml
+
+  Five URLs, matching the five <link rel="canonical"> values exactly. That
+  match is the whole job: /pricing and /pricing.html both return 200, so a
+  sitemap listing the .html form would ask Google to index one URL while every
+  page's canonical points at another.
+
+  NO <lastmod>. It would have to be updated by hand on every edit, nothing
+  checks it, and a sitemap that claims a page changed today when it did not is
+  worse than one that makes no claim — Google treats an inaccurate lastmod as
+  a reason to trust the whole file less. Omitting it is valid and honest.
+
+  /tebex is listed and, at the time of writing, 404s in production. It is not
+  missing from the repository; the deployed site predates it. If it still
+  404s after a deploy, that is a real bug rather than lag.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/pricing</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/privacy</loc>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/terms</loc>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/tebex</loc>
+    <priority>0.3</priority>
+  </url>
+</urlset>

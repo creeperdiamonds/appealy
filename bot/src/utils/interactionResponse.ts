@@ -31,6 +31,31 @@ const EPHEMERAL = 64;
 /** InteractionResponseTypes.DeferredChannelMessageWithSource. */
 const DEFERRED = 5;
 
+/** InteractionResponseTypes.DeferredMessageUpdate. */
+const DEFERRED_UPDATE = 6;
+
+/**
+ * Acknowledges a message-component interaction and changes nothing.
+ *
+ * For the case where clicking is a signal to some other piece of work rather
+ * than a request for a reply — the timezone picker hands its value to whoever
+ * is waiting on it, and that code owns the message. Without this the clicker
+ * is shown "This interaction failed" three seconds later even though their
+ * click worked, which invites them to click again.
+ *
+ * Type 6, not 5: a deferred CHANNEL MESSAGE promises a reply that never
+ * arrives and leaves a "thinking…" behind. A deferred MESSAGE UPDATE promises
+ * nothing and shows nothing.
+ */
+export async function acknowledgeComponent(
+  bot: AppealyBot,
+  interaction: AppealyInteraction,
+): Promise<void> {
+  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+    type: DEFERRED_UPDATE,
+  });
+}
+
 export interface InteractionEditPayload {
   content?: string;
   embeds?: unknown[];

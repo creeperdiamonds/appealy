@@ -30,6 +30,7 @@ import { handleDenyReasonModalSubmit } from "../interactions/modals/denyReason.t
 import { handleFormSelectStep } from "../interactions/selects/formSelectStep.ts";
 import { handlePollVote } from "../interactions/selects/pollVote.ts";
 import { handleRoleMenuSelect } from "../interactions/selects/roleMenuSelect.ts";
+import { handleTimezonePick } from "../interactions/selects/timezonePick.ts";
 import { handleTicketOpenButton } from "../interactions/buttons/ticketOpen.ts";
 import { handleTicketCloseButton, handleTicketClaimButton, handleTicketRateButton } from "../interactions/buttons/ticketClose.ts";
 import { handleGiveawayEnterButton } from "../interactions/buttons/giveawayEnter.ts";
@@ -166,6 +167,11 @@ export function onInteractionCreate(bot: AppealyBot) {
           }
           if (namespace === "rolemenu" && action === "select") {
             return await handleRoleMenuSelect(bot, interaction, entityId);
+          }
+          // entityId is the id of the person who was asked, so a stranger
+          // clicking someone else's picker is a no-op rather than an answer.
+          if (namespace === "tz" && action === "pick") {
+            return await handleTimezonePick(bot, interaction, entityId);
           }
 
           logger.warn("Unhandled message component interaction", { customId });

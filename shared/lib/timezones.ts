@@ -101,22 +101,49 @@ const ABBREVIATION_OFFSETS: Record<string, number> = {
 };
 
 /**
- * Abbreviations that name more than one offset, and the options to offer.
+ * Abbreviations that name more than one offset, and what to offer instead.
  *
- * Each of these is in real use for every meaning listed, which is why none of
- * them can be quietly resolved to whichever is most common in the author's
- * part of the world. CST is the sharpest: US Central and China Standard are
- * fourteen hours apart.
+ * Each is in real use for every meaning listed, which is why none can be
+ * quietly resolved to whichever is most common in the author's part of the
+ * world. CST is the sharpest: US Central and China Standard are fourteen
+ * hours apart.
+ *
+ * The values are IANA zones rather than fixed offsets so that picking one
+ * still gets daylight saving right for the date in question — choosing
+ * "Ireland" for a date in July has to mean UTC+1, not the UTC+0 that
+ * "Ireland" implies in January.
  */
-const AMBIGUOUS_ABBREVIATIONS: Record<string, string[]> = {
-  ist: ["India, `UTC+5:30`", "Ireland, `UTC+1`", "Israel, `UTC+3`"],
-  cst: ["US Central, `UTC-6`", "China, `UTC+8`", "Cuba, `UTC-5`"],
-  cdt: ["US Central Daylight, `UTC-5`", "Cuba Daylight, `UTC-4`"],
-  bst: ["British Summer Time, `UTC+1`", "Bangladesh, `UTC+6`"],
-  amt: ["Amazon, `UTC-4`", "Armenia, `UTC+4`"],
-  wst: ["Western Sahara, `UTC+1`", "Samoa, `UTC+13`"],
-  act: ["Acre, `UTC-5`", "ASEAN Common Time, `UTC+8`"],
-  est_au: ["Eastern Australia, `UTC+10`", "US Eastern, `UTC-5`"],
+const AMBIGUOUS_ABBREVIATIONS: Record<string, ZoneChoice[]> = {
+  ist: [
+    { label: "India", value: "Asia/Kolkata" },
+    { label: "Ireland", value: "Europe/Dublin" },
+    { label: "Israel", value: "Asia/Jerusalem" },
+  ],
+  cst: [
+    { label: "US Central", value: "America/Chicago" },
+    { label: "China", value: "Asia/Shanghai" },
+    { label: "Cuba", value: "America/Havana" },
+  ],
+  cdt: [
+    { label: "US Central Daylight", value: "America/Chicago" },
+    { label: "Cuba Daylight", value: "America/Havana" },
+  ],
+  bst: [
+    { label: "British Summer Time", value: "Europe/London" },
+    { label: "Bangladesh", value: "Asia/Dhaka" },
+  ],
+  amt: [
+    { label: "Amazon", value: "America/Manaus" },
+    { label: "Armenia", value: "Asia/Yerevan" },
+  ],
+  wst: [
+    { label: "Western Sahara", value: "Africa/El_Aaiun" },
+    { label: "Samoa", value: "Pacific/Apia" },
+  ],
+  act: [
+    { label: "Acre", value: "America/Rio_Branco" },
+    { label: "ASEAN / Singapore", value: "Asia/Singapore" },
+  ],
 };
 
 let cityIndex: Map<string, string[]> | null = null;
@@ -218,11 +245,23 @@ function parseFixedOffset(phrase: string): ZoneCandidate | null {
   return { kind: "fixed", minutes: total, label: `UTC${total < 0 ? "-" : "+"}${hh}:${mm}` };
 }
 
+/**
+ * One thing a person could have meant.
+ *
+ * `value` is always something resolveZone can read back — an IANA id or an
+ * offset — so a chosen answer re-enters the parser by the front door rather
+ * than through a second code path that could disagree with it.
+ */
+export interface ZoneChoice {
+  label: string;
+  value: string;
+}
+
 export interface ZoneAmbiguity {
   /** The phrase as typed. */
   phrase: string;
-  /** Human-readable options, already formatted for a message. */
-  options: string[];
+  /** What it could have meant, ready to put in a select menu. */
+  choices: ZoneChoice[];
 }
 
 /**
@@ -244,7 +283,11 @@ export function resolveZone(phrase: string): ZoneCandidate | ZoneAmbiguity | nul
 
   const bare = p.replace(/\s+/g, "");
   if (AMBIGUOUS_ABBREVIATIONS[bare]) {
-    return { phrase, options: AMBIGUOUS_ABBREVIATIONS[bare] };
+    // Presented uppercase because that is what an abbreviation is; the
+    // country branch below carries a title-cased label for the same reason.
+    // Doing it here rather than at the point of display keeps every caller
+    // from having to know which kind of phrase it is holding.
+    return { phrase: bare.toUpperCase(), choices: AMBIGUOUS_ABBREVIATIONS[bare] };
   }
   if (bare in ABBREVIATION_OFFSETS) {
     return {
@@ -312,7 +355,9 @@ function titleCase(s: string): string {
 export function offsetForCandidate(
   candidate: ZoneCandidate,
   at: Date,
-): { minutes: number; label: string } | { disagree: { minutes: number; zone: string }[] } {
+):
+  | { minutes: number; label: string }
+  | { disagree: { minutes: number; zone: string }[]; choices: ZoneChoice[] } {
   if (candidate.kind === "fixed") {
     return { minutes: candidate.minutes, label: candidate.label };
   }
@@ -329,10 +374,19 @@ export function offsetForCandidate(
     return { minutes, label: candidate.label };
   }
 
+  const disagree = [...seen.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([minutes, zone]) => ({ minutes, zone }));
+
   return {
-    disagree: [...seen.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([minutes, zone]) => ({ minutes, zone })),
+    disagree,
+    // One representative place per distinct offset, not per zone. Offering
+    // all 29 US zones would be a worse question than offering the five
+    // answers they collapse into.
+    choices: disagree.map(({ minutes, zone }) => ({
+      label: `${zone.split("/").pop()!.replace(/_/g, " ")} — ${formatOffset(minutes)}`,
+      value: zone,
+    })),
   };
 }
 

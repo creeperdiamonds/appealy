@@ -29,7 +29,9 @@ const JUL = new Date("2026-07-15T12:00:00.000Z");
 function minutesFor(phrase: string, at: Date): number {
   const c = resolveZone(phrase);
   if (!c) throw new Error(`"${phrase}" resolved to nothing`);
-  if ("options" in c) throw new Error(`"${phrase}" was ambiguous: ${c.options.join(", ")}`);
+  if ("choices" in c) {
+    throw new Error(`"${phrase}" was ambiguous: ${c.choices.map((x) => x.label).join(", ")}`);
+  }
   const r = offsetForCandidate(c, at);
   if ("disagree" in r) {
     throw new Error(`"${phrase}" disagreed: ${r.disagree.map((d) => d.zone).join(", ")}`);
@@ -40,7 +42,7 @@ function minutesFor(phrase: string, at: Date): number {
 function isAmbiguous(phrase: string): boolean {
   const c = resolveZone(phrase);
   if (!c) return false;
-  if ("options" in c) return true;
+  if ("choices" in c) return true;
   return "disagree" in offsetForCandidate(c, JAN);
 }
 
@@ -78,13 +80,26 @@ Deno.test("unambiguous abbreviations resolve", () => {
 });
 
 // The headline case. IST is India, Ireland and Israel, hours apart.
-Deno.test("IST is refused, not guessed", () => {
+Deno.test("IST is refused, not guessed, and offers the three meanings", () => {
   const c = resolveZone("IST");
-  assertEquals(c !== null && "options" in c, true);
-  const options = (c as { options: string[] }).options;
-  assertEquals(options.length >= 3, true);
-  assertEquals(options.some((o) => o.includes("India")), true);
-  assertEquals(options.some((o) => o.includes("Ireland")), true);
+  assertEquals(c !== null && "choices" in c, true);
+  const choices = (c as { choices: { label: string; value: string }[] }).choices;
+  assertEquals(choices.map((x) => x.label), ["India", "Ireland", "Israel"]);
+  // Every value must be something resolveZone can read back, so a chosen
+  // answer re-enters the parser by the front door instead of a second path.
+  for (const choice of choices) {
+    assertEquals(minutesFor(choice.value, JAN) !== undefined, true, choice.value);
+  }
+});
+
+// The values are IANA zones rather than fixed offsets precisely so that
+// picking "Ireland" for a July date means UTC+1, not the UTC+0 it is in
+// January. A fixed-offset table would get this wrong half the year.
+Deno.test("a chosen meaning still tracks daylight saving", () => {
+  const c = resolveZone("IST") as { choices: { label: string; value: string }[] };
+  const ireland = c.choices.find((x) => x.label === "Ireland")!.value;
+  assertEquals(minutesFor(ireland, JAN), 0);
+  assertEquals(minutesFor(ireland, JUL), 60);
 });
 
 // Fourteen hours apart. Guessing here would be the worst error in the module.
@@ -148,14 +163,26 @@ Deno.test("a country whose zones disagree is refused", () => {
   assertEquals(isAmbiguous("australia"), true);
 });
 
-Deno.test("the refusal names concrete zones to pick from", () => {
+Deno.test("the question offers one choice per distinct offset, not per zone", () => {
   const c = resolveZone("united states") as ZoneCandidate;
   const r = offsetForCandidate(c, JAN);
   if (!("disagree" in r)) throw new Error("expected disagreement");
-  assertEquals(r.disagree.length > 1, true);
-  // Sorted west to east, each a real IANA id the author can paste back.
+
+  // 29 zones collapse to a handful of offsets. Offering all 29 would be a
+  // worse question than offering the answers they collapse into — and a
+  // Discord select menu holds 25.
+  assertEquals(r.disagree.length < 10, true, `got ${r.disagree.length} options`);
+  assertEquals(r.choices.length, r.disagree.length);
+
+  // Sorted west to east, each a real IANA id that resolves on its own.
   assertEquals(r.disagree[0].minutes < r.disagree[1].minutes, true);
-  assertEquals(r.disagree.every((d) => d.zone.includes("/")), true);
+  for (const choice of r.choices) {
+    assertEquals(choice.value.includes("/"), true);
+    assertEquals(minutesFor(choice.value, JAN) !== undefined, true, choice.value);
+    // The label carries the offset, since "Chicago" alone does not tell
+    // someone whether it is the one they meant.
+    assertEquals(/UTC[+-]\d{2}:\d{2}/.test(choice.label), true, choice.label);
+  }
 });
 
 // ------------------------------------------------------------- non-zones

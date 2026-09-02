@@ -1,7 +1,7 @@
 # Public site
 
-Five pages, one stylesheet. No build step, no framework, no bundler, and no
-JavaScript at all.
+Five pages, one stylesheet, and two files for crawlers. No build step, no
+framework, no bundler, and no JavaScript at all.
 
 | File | Is |
 |---|---|
@@ -11,6 +11,18 @@ JavaScript at all.
 | `terms.html` | Hosted-service terms |
 | `tebex.html` | Front door for a Tebex review — links to what is sold, what it costs, the terms, the privacy policy and refunds rather than restating them |
 | `site.css` | Shared styles |
+| `robots.txt` | Allows everything, names the answer-engine crawlers explicitly, points at the sitemap |
+| `sitemap.xml` | The five canonical URLs, with no `lastmod` — see the comment in the file |
+
+## The URLs are extensionless, and the sitemap has to match
+
+Every page's `<link rel="canonical">` points at `/pricing`, not
+`/pricing.html`, and both forms return 200 in production. So the sitemap lists
+the extensionless form: listing the other would ask Google to index one URL
+while every page's canonical names a different one.
+
+If you change how the host maps URLs to files, `sitemap.xml` and the five
+canonical tags have to move together.
 
 ## Why it's static
 

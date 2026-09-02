@@ -170,15 +170,44 @@ Deno.test("a recognised zone is reported back for echoing", () => {
 
 // The whole point. Silently picking India would move the close time four and
 // a half hours.
-Deno.test("an ambiguous zone is refused with its options", () => {
-  const reason = failureOf("july 10 3pm IST");
-  assertEquals(reason.includes("India"), true);
-  assertEquals(reason.includes("Ireland"), true);
+Deno.test("an ambiguous zone becomes a question, not a rejection", () => {
+  const r = parseWhen("july 10 3pm IST", NOW);
+  if (r.ok) throw new Error("expected IST to be ambiguous");
+  assertEquals(r.reason.includes("India"), true);
+  // The structured part is what lets the caller ask instead of giving up.
+  assertEquals(r.ambiguity?.phrase, "IST");
+  assertEquals(r.ambiguity?.body, "july 10 3pm");
+  assertEquals(r.ambiguity?.choices.map((c) => c.label), ["India", "Ireland", "Israel"]);
 });
 
-Deno.test("a country spanning several offsets is refused with real zones", () => {
-  const reason = failureOf("july 10 3pm united states");
-  assertEquals(reason.includes("/"), true, "should name IANA zones to pick from");
+// The contract that makes asking safe: the answer goes back through the same
+// grammar rather than a second code path that could disagree with it.
+Deno.test("re-parsing body plus a chosen zone resolves", () => {
+  const r = parseWhen("july 10 3pm IST", NOW);
+  if (r.ok || !r.ambiguity) throw new Error("expected ambiguity");
+
+  const india = r.ambiguity.choices.find((c) => c.label === "India")!;
+  assertEquals(at(`${r.ambiguity.body} ${india.value}`).toISOString(), "2026-07-10T09:30:00.000Z");
+
+  const ireland = r.ambiguity.choices.find((c) => c.label === "Ireland")!;
+  // July, so Ireland is UTC+1 — 3pm there is 14:00 UTC.
+  assertEquals(at(`${r.ambiguity.body} ${ireland.value}`).toISOString(), "2026-07-10T14:00:00.000Z");
+});
+
+Deno.test("a country spanning several offsets asks with real zones", () => {
+  const r = parseWhen("july 10 3pm united states", NOW);
+  if (r.ok) throw new Error("expected the US to be ambiguous");
+  assertEquals(r.ambiguity !== undefined, true);
+  assertEquals(r.ambiguity!.choices.every((c) => c.value.includes("/")), true);
+  assertEquals(r.ambiguity!.body, "july 10 3pm");
+});
+
+// Only a timezone question carries choices; there is no menu of alternatives
+// for a date that does not exist.
+Deno.test("other failures carry no choices", () => {
+  const r = parseWhen("september 31", NOW);
+  if (r.ok) throw new Error("expected failure");
+  assertEquals(r.ambiguity, undefined);
 });
 
 // A duration is the same length everywhere, so a zone on one is meaningless

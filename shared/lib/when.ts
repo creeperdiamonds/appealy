@@ -51,12 +51,28 @@ import {
   resolveZone,
   type ZoneAmbiguity,
   type ZoneCandidate,
+  type ZoneChoice,
 } from "./timezones.ts";
 
 export interface WhenFailure {
   ok: false;
   /** Shown to the person who typed it, so it says what to do instead. */
   reason: string;
+  /**
+   * Present when the ONLY problem was that the timezone could mean several
+   * places. The caller can turn this into a question instead of a rejection:
+   * `${body} ${choice.value}` is a string parseWhen will accept.
+   *
+   * Absent for every other failure, because there is nothing to offer — a
+   * date that does not exist has no menu of alternatives.
+   */
+  ambiguity?: {
+    /** The phrase as typed, e.g. "IST". */
+    phrase: string;
+    /** The input with the ambiguous phrase removed. */
+    body: string;
+    choices: ZoneChoice[];
+  };
 }
 
 export type WhenResult = ParsedWhen | WhenFailure;
@@ -274,13 +290,16 @@ export function parseWhen(input: string, now: Date): WhenResult {
   }
 
   // Ambiguous before anything else: knowing WHICH date they meant does not
-  // help if the zone could be any of three.
-  if (zone && "options" in zone) {
-    return fail(
-      `\`${zone.phrase.toUpperCase()}\` means more than one thing — ${
-        zone.options.join(", ")
-      }. Say which, or give an offset like \`UTC+5:30\`, or an IANA name like \`Asia/Kolkata\`.`,
-    );
+  // help if the zone could be any of three. Carries the choices up so the
+  // caller can ask rather than reject.
+  if (zone && "choices" in zone) {
+    return {
+      ok: false,
+      reason: `\`${zone.phrase}\` means more than one place — ${
+        zone.choices.map((c) => c.label).join(", ")
+      }. Which did you mean?`,
+      ambiguity: { phrase: zone.phrase, body, choices: zone.choices },
+    };
   }
 
   let offsetMinutes: number | null = null;
@@ -293,11 +312,13 @@ export function parseWhen(input: string, now: Date): WhenResult {
     // falls in between, which the second pass below settles.
     const first = offsetForCandidate(zone, now);
     if ("disagree" in first) {
-      return fail(
-        `That could be ${
-          first.disagree.map((d) => `${formatOffset(d.minutes)} (${d.zone})`).join(" or ")
-        }. Give an offset like \`UTC+5:30\` or a specific zone like \`${first.disagree[0].zone}\`.`,
-      );
+      return {
+        ok: false,
+        reason: `\`${zone.label}\` spans ${first.disagree.length} timezones — ${
+          first.disagree.map((d) => formatOffset(d.minutes)).join(", ")
+        }. Which did you mean?`,
+        ambiguity: { phrase: zone.label, body, choices: first.choices },
+      };
     }
     offsetMinutes = first.minutes;
     zoneLabel = first.label;

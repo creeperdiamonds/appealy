@@ -15,6 +15,7 @@ import { db, schema } from "../db/client.ts";
 import { publishPoll } from "../services/pollService.ts";
 import { awaitReply } from "../services/pendingPrompts.ts";
 import { parseWhen, toNativePollHours } from "../../../shared/lib/when.ts";
+import { encodeCustomId } from "../../../shared/types/index.ts";
 import { defer, finish } from "../utils/interactionResponse.ts";
 
 const MAX_OPTIONS = 9;
@@ -116,7 +117,60 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     return respond(bot, interaction, "You didn't answer in time, so nothing was posted. Run `/poll` again.");
   }
 
-  const when = parseWhen(reply, new Date());
+  let when = parseWhen(reply, new Date());
+
+  // A timezone that names more than one place is a question, not a rejection.
+  // The parser refuses to guess between India, Ireland and Israel; this asks.
+  if (!when.ok && when.ambiguity) {
+    const { phrase, body, choices } = when.ambiguity;
+
+    const menu = await bot.helpers.sendMessage(promptChannel, {
+      content: `<@${author.id}> — \`${phrase}\` could mean more than one place. Which did you mean?`,
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 3,
+              // The asker's id, so a stranger clicking is a no-op.
+              customId: encodeCustomId("tz", "pick", author.id.toString()),
+              placeholder: "Pick a timezone",
+              minValues: 1,
+              maxValues: 1,
+              // Discord caps a select at 25; no ambiguity here comes close,
+              // but a country list is data rather than a constant.
+              options: choices.slice(0, 25).map((c) => ({
+                label: c.label.slice(0, 100),
+                value: c.value.slice(0, 100),
+              })),
+            },
+          ],
+        },
+      ],
+    });
+
+    // Same waiter a typed reply uses, so picking from the menu and typing
+    // `Asia/Kolkata` are one code path rather than two that could disagree.
+    const picked = await awaitReply(promptChannel, author.id, PROMPT_TIMEOUT_MS);
+
+    await editPrompt(
+      bot,
+      promptChannel,
+      menu.id,
+      picked ? `Timezone: \`${picked}\`` : "No timezone picked in time.",
+    );
+
+    if (picked === null) {
+      await editPrompt(bot, promptChannel, prompt.id, "No timezone picked — poll cancelled.");
+      return respond(bot, interaction, "You didn't pick a timezone in time, so nothing was posted.");
+    }
+
+    // Re-parsed rather than patched: the chosen value is a zone the parser
+    // reads like any other, so the answer goes through the same grammar and
+    // the same daylight-saving handling as one that was typed outright.
+    when = parseWhen(`${body} ${picked}`, new Date());
+  }
+
   if (!when.ok) {
     await editPrompt(bot, promptChannel, prompt.id, `Poll cancelled — ${when.reason}`);
     return respond(bot, interaction, `${when.reason}\n\nNothing was posted. Run \`/poll\` again.`);
