@@ -85,9 +85,13 @@ mappings, and re-running it is not how DNS or the mapping get updated.
 
 ### What the mapping issued, and what had to be removed
 
-Created 2026-09-02. These are Google's standard Cloud Run anycast addresses,
-but take them from the command's own output rather than from here — a
-document is not the system of record for DNS:
+Created 2026-09-02. `deploy/dns/creeperdiamonds.xyz.zone` holds these eight
+records in BIND format for Cloudflare's importer, with the deletion and
+proxy-status warnings alongside them — see `deploy/dns/README.md`.
+
+These are Google's standard Cloud Run anycast addresses, but take them from
+the command's own output rather than from here — a document is not the system
+of record for DNS:
 
 ```
 A     216.239.32.21    216.239.34.21    216.239.36.21    216.239.38.21

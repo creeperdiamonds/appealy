@@ -1,0 +1,58 @@
+;;
+;; creeperdiamonds.xyz — apex records for the Cloud Run domain mapping
+;;
+;; Import in Cloudflare: DNS > Records > Import and Export > Import DNS records.
+;;
+;; THIS FILE ADDS. IT DOES NOT REMOVE.
+;; Cloudflare's importer merges records in; it never deletes what is already
+;; there. The apex is currently on registrar parking with six A records, and
+;; importing without deleting them first leaves TEN A records at the apex.
+;; A visitor then reaches the parking host or Cloud Run depending on which
+;; record their resolver happens to pick, which is worse than the broken
+;; state it replaced because it fails for only some people.
+;;
+;; DELETE THESE FIRST (type A, name creeperdiamonds.xyz):
+;;   82.22.5.17   82.22.5.20   82.22.5.22
+;;   82.22.5.24   82.22.5.25   104.167.24.195
+;;
+;; DO NOT DELETE ANYTHING ELSE. In particular the zone already holds:
+;;   MX  route1/route2/route3.mx.cloudflare.net  — Cloudflare Email Routing,
+;;       which is what makes contact@creeperdiamonds.xyz deliverable. The
+;;       site publishes that address, and a published address that bounces
+;;       is worse than none because the sender believes they reached someone.
+;;   TXT records — SPF and the Email Routing verification live here.
+;;   CNAME appealy -> ghs.googlehosted.com — the working Appealy mapping.
+;; None of them are in this file, so importing cannot touch them. Deleting
+;; them by hand while clearing the parking records would break mail.
+;;
+;; SET PROXY STATUS TO "DNS ONLY" (grey cloud) ON IMPORT.
+;; Cloud Run issues and renews its own certificate by reaching these records.
+;; A proxied record puts Cloudflare's certificate in front of that process and
+;; the mapping never validates — CertificateProvisioned stays Unknown forever
+;; with no error that says why.
+;;
+;; Values issued by:
+;;   gcloud beta run domain-mappings create --service=appealy \
+;;     --domain=creeperdiamonds.xyz --region=us-central1 \
+;;     --project=yahav-project-505809
+;;
+;; Re-run that command rather than trusting this file if the mapping is ever
+;; recreated. These are Google's standard anycast addresses and have been
+;; stable for years, but a checked-in file is not the system of record.
+;;
+;; TTL 1 is Cloudflare's "Auto".
+;;
+
+;; A records — IPv4
+creeperdiamonds.xyz.	1	IN	A	216.239.32.21
+creeperdiamonds.xyz.	1	IN	A	216.239.34.21
+creeperdiamonds.xyz.	1	IN	A	216.239.36.21
+creeperdiamonds.xyz.	1	IN	A	216.239.38.21
+
+;; AAAA records — IPv6
+;; Not optional. Google's mapping expects both families, and a v6-only client
+;; that gets no AAAA falls back inconsistently rather than cleanly.
+creeperdiamonds.xyz.	1	IN	AAAA	2001:4860:4802:32::15
+creeperdiamonds.xyz.	1	IN	AAAA	2001:4860:4802:34::15
+creeperdiamonds.xyz.	1	IN	AAAA	2001:4860:4802:36::15
+creeperdiamonds.xyz.	1	IN	AAAA	2001:4860:4802:38::15
