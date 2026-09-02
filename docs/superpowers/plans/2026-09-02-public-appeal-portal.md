@@ -557,7 +557,176 @@ git commit -m "Ask Discord whether a ban is real, and say so when we cannot"
 
 ---
 
-### Task 5: The public appeal endpoints
+### Task 5: A daily cap the API can actually consume
+
+Task 6 meters appeals against `submissionsPerDay`, and the function that does
+it lives only in the bot. This is its own task because the key format is shared
+state between two processes: get it wrong and each counts its own counter, so a
+guild's real limit silently doubles with nothing failing.
+
+**Files:**
+- Create: `shared/lib/rateLimitKeys.ts`
+- Create: `shared/lib/__tests__/rateLimitKeys.test.ts`
+- Modify: `bot/src/services/rateLimitService.ts` (use the shared key)
+- Modify: `api/src/services/rateLimitService.ts` (add the function)
+
+**Interfaces:**
+- Produces: `dailyCapKey(guildId: bigint, capName: string, now?: Date): string`
+- Produces: `checkAndConsumeDailyCap(guildId: bigint, capName: DailyCapName): Promise<{ allowed: boolean; current: number; limit: number }>` in the **API's** rateLimitService, matching the bot's existing signature.
+
+- [ ] **Step 1: Write the failing test**
+
+Create `shared/lib/__tests__/rateLimitKeys.test.ts`:
+
+```ts
+// Two processes increment this counter. If their key formats ever differ they
+// count separately and the guild silently gets twice the cap it pays for --
+// with nothing failing, which is why this is a test and not a comment.
+
+import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { dailyCapKey } from "../rateLimitKeys.ts";
+
+const AT = new Date("2026-09-02T13:45:00.000Z");
+
+Deno.test("the key matches the format already in Redis", () => {
+  assertEquals(
+    dailyCapKey(123n, "submissionsPerDay", AT),
+    "appealy:ratelimit:123:submissionsPerDay:2026-09-02",
+  );
+});
+
+Deno.test("the bucket is the UTC day, not the local one", () => {
+  assertEquals(
+    dailyCapKey(1n, "x", new Date("2026-09-02T23:30:00.000Z")).endsWith("2026-09-02"),
+    true,
+  );
+  assertEquals(
+    dailyCapKey(1n, "x", new Date("2026-09-03T00:30:00.000Z")).endsWith("2026-09-03"),
+    true,
+  );
+});
+
+Deno.test("different guilds and caps never share a key", () => {
+  assertEquals(dailyCapKey(1n, "a", AT) === dailyCapKey(2n, "a", AT), false);
+  assertEquals(dailyCapKey(1n, "a", AT) === dailyCapKey(1n, "b", AT), false);
+});
+```
+
+- [ ] **Step 2: Run it and confirm it fails**
+
+Run: `deno test --allow-read -c bot/deno.json shared/lib/__tests__/rateLimitKeys.test.ts`
+Expected: FAIL -- module not found.
+
+- [ ] **Step 3: Implement the shared key**
+
+Create `shared/lib/rateLimitKeys.ts`:
+
+```ts
+// shared/lib/rateLimitKeys.ts
+//
+// The Redis key a daily cap counts against.
+//
+// Shared because the bot and the API both increment it. The bot has counted
+// submissions since it shipped; the API needs to count the ones submitted
+// through the public appeal page. If the two ever disagree about the key they
+// count separately, the guild gets double the cap it paid for, and nothing
+// anywhere fails -- exactly the class of bug this repository keeps finding
+// long after the fact.
+//
+// `now` is a parameter so the UTC-day boundary is testable without waiting
+// for midnight.
+
+export function dailyCapKey(guildId: bigint, capName: string, now: Date = new Date()): string {
+  const day = now.toISOString().slice(0, 10); // YYYY-MM-DD, always UTC
+  return `appealy:ratelimit:${guildId}:${capName}:${day}`;
+}
+```
+
+- [ ] **Step 4: Run the test**
+
+Run: `deno test --allow-read -c bot/deno.json shared/lib/__tests__/rateLimitKeys.test.ts`
+Expected: PASS -- 3 tests.
+
+**If the first test fails on the day format**, do NOT change the test to match
+the code. Read `capKey` and `dayBucket` in `bot/src/services/rateLimitService.ts`
+and make `dailyCapKey` produce exactly what the bot already writes -- there are
+live counters in Redis using that format, and changing it resets every guild's
+usage to zero mid-day.
+
+- [ ] **Step 5: Point the bot at the shared key**
+
+In `bot/src/services/rateLimitService.ts`, replace the body of the private
+`capKey` with the shared one, keeping the local name so no call site changes:
+
+```ts
+import { dailyCapKey } from "../../../shared/lib/rateLimitKeys.ts";
+
+function capKey(guildId: bigint, capName: string): string {
+  return dailyCapKey(guildId, capName);
+}
+```
+
+- [ ] **Step 6: Add the API's copy**
+
+In `api/src/services/rateLimitService.ts`:
+
+```ts
+import { withRedis } from "../lib/redis.ts";
+import { dailyCapKey } from "../../../shared/lib/rateLimitKeys.ts";
+
+export type DailyCapName = "submissionsPerDay" | "ticketsPerDay" | "giveawayEntriesPerDay";
+
+/**
+ * Consume one unit of a daily cap.
+ *
+ * Deliberately identical in behaviour to the bot's function of the same name,
+ * including the key and the 25-hour expiry, because they increment the SAME
+ * counter -- a submission is a submission whether it arrived through Discord
+ * or through the appeal page.
+ *
+ * FAILS CLOSED when Redis is unreachable. The header of the bot's copy gives
+ * the reason and it holds here: failing open means the caps being charged for
+ * stop existing during an outage.
+ */
+export async function checkAndConsumeDailyCap(
+  guildId: bigint,
+  capName: DailyCapName,
+): Promise<{ allowed: boolean; current: number; limit: number }> {
+  const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
+  const limit = (guild ? resolveEffectiveCaps(guild) : FREE_CAPS)[capName];
+  const key = dailyCapKey(guildId, capName);
+
+  const current = await withRedis(async (r) => {
+    const n = await r.incr(key);
+    // Only on the first increment of a window, so this costs one extra round
+    // trip per guild per day rather than one per action.
+    if (n === 1) await r.expire(key, 25 * 60 * 60);
+    return n;
+  }, null);
+
+  if (current === null) return { allowed: false, current: 0, limit };
+  return { allowed: current <= limit, current, limit };
+}
+```
+
+- [ ] **Step 7: Verify both runtimes and the whole suite**
+
+Run: `deno check -c bot/deno.json bot/src/main.ts`
+Run: `deno test --allow-read -c bot/deno.json bot/src/ shared/`
+Run: `cd api && npx tsc --noEmit -p tsconfig.json`
+Expected: all clean. The bot's own rate-limit tests must still pass -- the key
+did not change, only where it is written.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add shared/lib/rateLimitKeys.ts shared/lib/__tests__/rateLimitKeys.test.ts bot/src/services/rateLimitService.ts api/src/services/rateLimitService.ts
+git commit -m "One daily-cap key, so the bot and API cannot count separately"
+```
+
+---
+
+### Task 6: The public appeal endpoints
 
 **Files:**
 - Create: `api/src/routes/publicAppeals.ts`
@@ -837,7 +1006,7 @@ git commit -m "Public appeal endpoints: list, read, submit"
 
 ---
 
-### Task 6: Owner configuration
+### Task 7: Owner configuration
 
 Nothing above is reachable until an owner turns it on and picks a code.
 
@@ -994,7 +1163,7 @@ git commit -m "Let an owner claim a public appeal code, and refuse the ones that
 
 ---
 
-### Task 7: The public pages
+### Task 8: The public pages
 
 **Files:**
 - Create: `web/src/pages/PublicAppeals.tsx`
@@ -1056,7 +1225,7 @@ git commit -m "The pages a banned person actually uses"
 
 ---
 
-### Task 8: Documentation, and the claim this earns
+### Task 9: Documentation, and the claim this earns
 
 **Files:**
 - Modify: `APPEALS.md`
@@ -1082,7 +1251,7 @@ Run: `deno test --allow-read -c bot/deno.json bot/src/ shared/`
 Run: `cd api && npx tsc --noEmit -p tsconfig.json`
 Run: `cd web && npm run build`
 Run: `sh scripts/build-site.sh`
-Expected: all clean; test count up by 15 from this plan's three test files.
+Expected: all clean; test count up by 18 from this plan's four test files.
 
 - [ ] **Step 5: Commit**
 
@@ -1097,7 +1266,8 @@ git commit -m "Document the appeal portal, and make the claim it earns"
 
 - [ ] `grep -c "getBan" bot/src/core/controlServer.ts` → at least 1
 - [ ] The generated migration contains the partial index **with** its `WHERE public_code is not null`
-- [ ] `deno test --allow-read -c bot/deno.json shared/` includes `appealAccess` and `appealCode`
+- [ ] `deno test --allow-read -c bot/deno.json shared/` includes `appealAccess`, `appealCode` and `rateLimitKeys`
+- [ ] `dailyCapKey` produces exactly what the bot already writes to Redis -- a changed format resets every guild's usage mid-day
 - [ ] `resolveAppealAccess({ ...ok, banConfirmed: null })` refuses — the single most important line in the feature
 - [ ] The `GET /api/appeal/:code` response contains no reviewer roles, log channel ids or outcome definitions
 - [ ] A form with `allowMultiplePending` true accepts a second appeal; one without it does not
