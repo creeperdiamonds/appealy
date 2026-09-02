@@ -103,7 +103,10 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     content:
       `<@${author.id}> — when should this poll close?\n` +
       "Reply with a duration like `1h 20m` or `10 hours 50 minutes`, or a date like " +
-      "`july 10` or `2026-07-10 14:30`. Dates are read as UTC and echoed back so you can check them.",
+      "`july 10 3pm`.\n" +
+      "You can name your timezone after it — `july 10 3pm EST`, `3pm UTC+5:30`, " +
+      "`july 10 3pm india`, `july 10 3pm tokyo`. Without one the time is read as UTC. " +
+      "Either way it's echoed back in your own timezone before anything is posted.",
   });
 
   const reply = await awaitReply(promptChannel, author.id, PROMPT_TIMEOUT_MS);
@@ -121,6 +124,9 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
   let closesAt = when.at;
   let roundingNote = "";
+  // Named so the confirmation can say which reading was used. "3pm EST" and
+  // "3pm" differ by five hours, and the author should see which they got.
+  const zoneNote = when.zone ? ` (read as ${when.zone})` : "";
 
   if (engine === "native") {
     const native = toNativePollHours(closesAt, new Date());
@@ -166,13 +172,13 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     bot,
     promptChannel,
     prompt.id,
-    `Poll posted in <#${channelId}> — closes <t:${unix(closesAt)}:F> (<t:${unix(closesAt)}:R>).`,
+    `Poll posted in <#${channelId}> — closes <t:${unix(closesAt)}:F> (<t:${unix(closesAt)}:R>)${zoneNote}.`,
   );
 
   await respond(
     bot,
     interaction,
-    `Poll posted in <#${channelId}>, closing <t:${unix(closesAt)}:R>.${roundingNote}`,
+    `Poll posted in <#${channelId}>, closing <t:${unix(closesAt)}:R>${zoneNote}.${roundingNote}`,
   );
 }
 

@@ -127,6 +127,86 @@ Deno.test("kind reports which grammar matched", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Timezones typed after the time. Resolution itself is covered in
+// timezones.test.ts; these check that it reaches the answer.
+// ---------------------------------------------------------------------------
+
+Deno.test("an offset shifts the resolved instant", () => {
+  // 3pm at UTC+5:30 is 09:30 UTC.
+  assertEquals(at("july 10 3pm UTC+5:30").toISOString(), "2026-07-10T09:30:00.000Z");
+  // ...and 20:00 UTC at UTC-5.
+  assertEquals(at("july 10 3pm UTC-5").toISOString(), "2026-07-10T20:00:00.000Z");
+});
+
+Deno.test("abbreviations reach the answer", () => {
+  assertEquals(at("july 10 3pm EST").toISOString(), "2026-07-10T20:00:00.000Z");
+  assertEquals(at("july 10 3pm JST").toISOString(), "2026-07-10T06:00:00.000Z");
+});
+
+Deno.test("countries and cities reach the answer", () => {
+  assertEquals(at("july 10 3pm india").toISOString(), "2026-07-10T09:30:00.000Z");
+  assertEquals(at("july 10 3pm tokyo").toISOString(), "2026-07-10T06:00:00.000Z");
+});
+
+// The zone is resolved at the target date, not today's, so a July close time
+// typed in March gets New York's summer offset rather than its winter one.
+Deno.test("a named zone uses the offset in force on the target date", () => {
+  // NOW is 15 March 2026. America/New_York is -4 in July, -5 in January.
+  assertEquals(at("july 10 3pm America/New_York").toISOString(), "2026-07-10T19:00:00.000Z");
+  assertEquals(at("2027-01-10 3pm America/New_York").toISOString(), "2027-01-10T20:00:00.000Z");
+});
+
+Deno.test("no zone means UTC, unchanged from before", () => {
+  assertEquals(at("july 10 14:30").toISOString(), "2026-07-10T14:30:00.000Z");
+  const r = parseWhen("july 10 14:30", NOW);
+  assertEquals(r.ok && r.zone, undefined);
+});
+
+Deno.test("a recognised zone is reported back for echoing", () => {
+  const r = parseWhen("july 10 3pm india", NOW);
+  assertEquals(r.ok && r.zone, "India");
+  assertEquals(r.ok && r.offsetMinutes, 330);
+});
+
+// The whole point. Silently picking India would move the close time four and
+// a half hours.
+Deno.test("an ambiguous zone is refused with its options", () => {
+  const reason = failureOf("july 10 3pm IST");
+  assertEquals(reason.includes("India"), true);
+  assertEquals(reason.includes("Ireland"), true);
+});
+
+Deno.test("a country spanning several offsets is refused with real zones", () => {
+  const reason = failureOf("july 10 3pm united states");
+  assertEquals(reason.includes("/"), true, "should name IANA zones to pick from");
+});
+
+// A duration is the same length everywhere, so a zone on one is meaningless
+// rather than wrong — honoured, not refused.
+Deno.test("a duration with a zone stuck on it still parses", () => {
+  assertEquals(at("2h EST").getTime() - NOW.getTime(), 2 * HOUR);
+  assertEquals(at("1h 20m india").getTime() - NOW.getTime(), HOUR + 20 * MIN);
+});
+
+// The regression the zone splitter could easily cause.
+Deno.test("splitting a zone off does not eat part of the date", () => {
+  assertEquals(at("july 10").toISOString(), "2026-07-10T00:00:00.000Z");
+  assertEquals(at("10 july").toISOString(), "2026-07-10T00:00:00.000Z");
+  assertEquals(at("2026-07-10").toISOString(), "2026-07-10T00:00:00.000Z");
+});
+
+// An offset can push the instant onto a different UTC date; the "does this
+// date exist" check must run on what was typed, not on the converted instant.
+Deno.test("a date near midnight survives an offset that moves it", () => {
+  // 2am on 10 July at UTC+5:30 is 20:30 on 9 July UTC.
+  assertEquals(at("july 10 2am UTC+5:30").toISOString(), "2026-07-09T20:30:00.000Z");
+});
+
+Deno.test("an unrecognised trailing word is still refused", () => {
+  failureOf("july 10 3pm banana");
+});
+
+// ---------------------------------------------------------------------------
 // Native poll rounding. Discord takes whole hours, 1..768, and nothing finer.
 // ---------------------------------------------------------------------------
 

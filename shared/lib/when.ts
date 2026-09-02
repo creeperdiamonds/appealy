@@ -20,6 +20,13 @@
 // Pure, and takes `now` as a parameter, because "july 10" means a different
 // instant depending on when it is read and a test that depends on the wall
 // clock is a test that fails in December.
+//
+// A trailing timezone is recognised where one is typed — "july 10 3pm EST",
+// "14:00 UTC+5:30", "july 10 tokyo", "july 10 3pm india" — and resolved by
+// shared/lib/timezones.ts, which refuses the spellings that mean more than
+// one offset rather than picking a favourite. Without a zone the fields are
+// read as UTC, which is a limitation and not a decision: nothing in the
+// schema stores a guild timezone.
 
 export interface ParsedWhen {
   ok: true;
@@ -27,7 +34,24 @@ export interface ParsedWhen {
   at: Date;
   /** How it was expressed. Callers explain hour-rounding differently for each. */
   kind: "relative" | "absolute";
+  /**
+   * The timezone that was recognised, if one was typed — "IST", "Asia/Kolkata",
+   * "India". Absent when none was given, in which case the fields were read as
+   * UTC. Worth echoing back: it is the difference between the author checking
+   * a time and assuming it.
+   */
+  zone?: string;
+  /** Minutes east of UTC that `zone` resolved to, for the same reason. */
+  offsetMinutes?: number;
 }
+
+import {
+  formatOffset,
+  offsetForCandidate,
+  resolveZone,
+  type ZoneAmbiguity,
+  type ZoneCandidate,
+} from "./timezones.ts";
 
 export interface WhenFailure {
   ok: false;
@@ -122,7 +146,33 @@ function parseRelative(input: string, now: Date): WhenResult | null {
   return { ok: true, at: new Date(now.getTime() + total), kind: "relative" };
 }
 
-function parseAbsolute(input: string, now: Date): WhenResult | null {
+/**
+ * Splits a trailing timezone phrase off the input.
+ *
+ * Tries the last three tokens, then two, then one, and takes the longest that
+ * resolves — "new york" must win over "york", and "united arab emirates" over
+ * "emirates". A bare number never resolves (see resolveZone), which is what
+ * stops "july 10" losing its day.
+ */
+function splitTrailingZone(
+  input: string,
+): { body: string; zone: ZoneCandidate | ZoneAmbiguity | null } {
+  const tokens = input.split(" ");
+  for (let take = Math.min(3, tokens.length - 1); take >= 1; take--) {
+    const phrase = tokens.slice(tokens.length - take).join(" ");
+    // "at" and "in" read as connectives here, not places, and Intl knows
+    // neither as a country name — but guard anyway, since "in" is India's
+    // ISO code and a future alias table could make that a real collision.
+    if (/^(at|in|on)$/.test(phrase)) continue;
+    const zone = resolveZone(phrase);
+    if (zone) {
+      return { body: tokens.slice(0, tokens.length - take).join(" ").trim(), zone };
+    }
+  }
+  return { body: input, zone: null };
+}
+
+function parseAbsolute(input: string, now: Date, zoneOffsetMinutes: number | null): WhenResult | null {
   let year: number | null = null;
   let month: number | null = null;
   let day: number | null = null;
@@ -161,19 +211,32 @@ function parseAbsolute(input: string, now: Date): WhenResult | null {
     return fail(`I understood the date but not the time in "${timeText}". Try \`july 10 14:30\`.`);
   }
 
-  const build = (y: number) =>
+  // The wall clock, held as if it were UTC. This is NOT the instant — it is
+  // the calendar reading someone typed, which names an instant only once a
+  // zone is chosen. Kept separate because the date checks below have to run
+  // against what was typed: "july 10 2am UTC+5:30" is 9 July in UTC, and
+  // comparing the converted instant's date to "10" would reject it.
+  const wall = (y: number) =>
     new Date(Date.UTC(y, month, day, Math.floor(minutesIntoDay / 60), minutesIntoDay % 60, 0));
+
+  // Subtracting the offset turns the wall clock into the instant. No zone
+  // means the fields are read as UTC, which the header states and the caller
+  // echoes back for checking.
+  const toInstant = (w: Date) => new Date(w.getTime() - (zoneOffsetMinutes ?? 0) * 60_000);
 
   // No year given means the next time this date happens — "july 10" typed in
   // December is next July, not one that has already gone.
-  let at = build(year ?? now.getUTCFullYear());
+  let wallClock = wall(year ?? now.getUTCFullYear());
+  let at = toInstant(wallClock);
   if (year === null && at.getTime() <= now.getTime()) {
-    at = build(now.getUTCFullYear() + 1);
+    wallClock = wall(now.getUTCFullYear() + 1);
+    at = toInstant(wallClock);
   }
 
   // Rolls over on a bad day-of-month (31 September becomes 1 October), which
-  // is a silent misreading rather than an error.
-  if (at.getUTCDate() !== day || at.getUTCMonth() !== month) {
+  // is a silent misreading rather than an error. Checked on the wall clock,
+  // for the reason above.
+  if (wallClock.getUTCDate() !== day || wallClock.getUTCMonth() !== month) {
     return fail("That date doesn't exist. Check the day of the month.");
   }
   if (at.getTime() <= now.getTime()) return fail("That's in the past.");
@@ -195,16 +258,80 @@ export function parseWhen(input: string, now: Date): WhenResult {
   if (!normalized) return fail("Nothing to read there — try `1h 20m` or `july 10`.");
   if (normalized.length > 100) return fail("That's much longer than a time. Try `1h 20m` or `july 10`.");
 
-  const relative = parseRelative(normalized, now);
-  if (relative) return relative;
+  // A duration needs no timezone: "in 2 hours" is the same two hours
+  // everywhere. Tried before the zone is split off so "2h" is not searched
+  // for a trailing place name.
+  const relativeWhole = parseRelative(normalized, now);
+  if (relativeWhole) return relativeWhole;
 
-  const absolute = parseAbsolute(normalized, now);
-  if (absolute) return absolute;
+  const { body, zone } = splitTrailingZone(normalized);
 
-  return fail(
-    "I couldn't read that as a time. Try a duration like `1h 20m` or `10 hours 50 minutes`, " +
-      "or a date like `july 10` or `2026-07-10 14:30`.",
-  );
+  // A duration with a zone stuck on it — "2h EST". Harmless and meant, so
+  // the duration is honoured and the zone ignored rather than refused.
+  if (zone) {
+    const relativeBody = parseRelative(body, now);
+    if (relativeBody) return relativeBody;
+  }
+
+  // Ambiguous before anything else: knowing WHICH date they meant does not
+  // help if the zone could be any of three.
+  if (zone && "options" in zone) {
+    return fail(
+      `\`${zone.phrase.toUpperCase()}\` means more than one thing — ${
+        zone.options.join(", ")
+      }. Say which, or give an offset like \`UTC+5:30\`, or an IANA name like \`Asia/Kolkata\`.`,
+    );
+  }
+
+  let offsetMinutes: number | null = null;
+  let zoneLabel: string | null = null;
+
+  if (zone) {
+    // Resolved against the *approximate* instant, since the exact one is not
+    // known until the date is parsed — and the date is what needs the offset.
+    // Any zone whose offset differs between the two is one whose DST boundary
+    // falls in between, which the second pass below settles.
+    const first = offsetForCandidate(zone, now);
+    if ("disagree" in first) {
+      return fail(
+        `That could be ${
+          first.disagree.map((d) => `${formatOffset(d.minutes)} (${d.zone})`).join(" or ")
+        }. Give an offset like \`UTC+5:30\` or a specific zone like \`${first.disagree[0].zone}\`.`,
+      );
+    }
+    offsetMinutes = first.minutes;
+    zoneLabel = first.label;
+  }
+
+  const absolute = parseAbsolute(body, now, offsetMinutes);
+  if (!absolute) {
+    return fail(
+      "I couldn't read that as a time. Try a duration like `1h 20m` or `10 hours 50 minutes`, " +
+        "or a date like `july 10`, `2026-07-10 14:30` or `july 10 3pm EST`.",
+    );
+  }
+  if (!absolute.ok) return absolute;
+
+  // Second pass. The offset used above came from today's date; a poll closing
+  // in July resolved against a January clock would be an hour out across a
+  // DST boundary. Re-resolving at the instant just computed and reparsing
+  // fixes that, and converges — the offset at the corrected instant is the
+  // one that produced it.
+  if (zone && zone.kind === "zones") {
+    const better = offsetForCandidate(zone, absolute.at);
+    if (!("disagree" in better) && better.minutes !== offsetMinutes) {
+      const corrected = parseAbsolute(body, now, better.minutes);
+      if (corrected && corrected.ok) {
+        return { ...corrected, zone: zoneLabel ?? undefined, offsetMinutes: better.minutes };
+      }
+    }
+  }
+
+  return {
+    ...absolute,
+    zone: zoneLabel ?? undefined,
+    offsetMinutes: offsetMinutes ?? undefined,
+  };
 }
 
 /**
