@@ -197,13 +197,16 @@ Pure. Reads rows, writes nothing, touches no database.
 
 **Not pre-truncated to 45 characters.** `questions.label` allows 200, and
 the schema comment is explicit that the 45-character Discord modal limit
-belongs to the `in_server` flow only, with `panelOpen.ts:177` truncating at
+belongs to the `in_server` flow only, with `panelOpen.ts:205` truncating at
 render time. A `direct_message` form has no such limit. Derivation stores
 the full text and lets each flow decide.
 
 **Long questions are surfaced, not solved.** Appy's questions are often
 full sentences. For an `in_server` form these render truncated to 45
-characters and page five per modal. The dry run reports how many labels
+characters and page five per modal — which this document assumed before it
+was true. Until `shared/lib/modalPaging.ts` existed, question six onward was
+dropped at render time with only a log line; paging is real now, capped at
+`MAX_MODAL_PAGES`. The dry run reports how many labels
 exceed 45 and how many modal pages the result implies, so the admin can
 choose `direct_message` knowingly. Derivation does not pick the flow —
 that changes the applicant's experience and is the admin's call.

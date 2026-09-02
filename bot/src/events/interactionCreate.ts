@@ -18,7 +18,11 @@ import { eq } from "drizzle-orm";
 import { logger } from "../utils/logger.ts";
 import { describeDiscordError, isUnknownInteraction } from "../utils/discordError.ts";
 
-import { handlePanelOpenButton, proceedToQuestions } from "../interactions/buttons/panelOpen.ts";
+import {
+  handlePanelOpenButton,
+  proceedToQuestions,
+  showApplicationModal,
+} from "../interactions/buttons/panelOpen.ts";
 import { handleReviewAccept } from "../interactions/buttons/reviewAccept.ts";
 import { handleReviewDeny } from "../interactions/buttons/reviewDeny.ts";
 import { handleFormModalSubmit } from "../interactions/modals/formSubmit.ts";
@@ -122,6 +126,26 @@ export function onInteractionCreate(bot: AppealyBot) {
           if (namespace === "modal" && action === "select") {
             return await handleFormSelectStep(bot, interaction, entityId, extra);
           }
+          // The hop between pages of a long application. It exists because
+          // Discord will not accept a modal as the response to a modal
+          // submit, only to a message component — so a button has to sit
+          // between page N and page N+1. Same reason modal:confirm exists.
+          if (namespace === "modal" && action === "page") {
+            const page = Number(extra);
+            if (!Number.isInteger(page) || page < 0) return;
+            const form = await db.query.forms.findFirst({
+              where: eq(schema.forms.id, entityId),
+              with: { questions: { orderBy: (q, { asc }) => [asc(q.sortOrder)] } },
+            });
+            if (!form) return;
+            return await showApplicationModal(
+              bot,
+              interaction,
+              entityId,
+              form.questions.filter((q) => q.type !== "select"),
+              page,
+            );
+          }
           if (namespace === "ticket" && action === "open") {
             return await handleTicketOpenButton(bot, interaction, entityId);
           }
@@ -151,10 +175,20 @@ export function onInteractionCreate(bot: AppealyBot) {
         case InteractionTypes.ModalSubmit: {
           const customId = interaction.data?.customId;
           if (!customId) return;
-          const { namespace, action, entityId } = decodeCustomId(customId);
+          const { namespace, action, entityId, extra } = decodeCustomId(customId);
 
           if (namespace === "modal" && action === "submit") {
-            return await handleFormModalSubmit(bot, interaction, entityId);
+            // `extra` is the zero-based page index. Absent on modals built
+            // before pagination existed and on single-page forms, both of
+            // which are page 0 — Number(undefined) is NaN, so the fallback
+            // has to test the parse rather than the value.
+            const page = Number(extra);
+            return await handleFormModalSubmit(
+              bot,
+              interaction,
+              entityId,
+              Number.isInteger(page) && page >= 0 ? page : 0,
+            );
           }
           if (namespace === "review" && action === "deny_confirm") {
             return await handleDenyReasonModalSubmit(bot, interaction, entityId);

@@ -245,6 +245,7 @@
             <li>Panels with up to 5 form buttons, or a dropdown of up to 25</li>
             <li><code>/apply</code> runs the same code path as a panel button, so gating cannot drift between them</li>
             <li>Text and select questions; selects use a two-step flow because a Discord modal holds text inputs only</li>
+            <li>Applications longer than five questions page across several modals, because five components is Discord&rsquo;s limit and losing question six is not an acceptable way to respect it</li>
             <li>Optional regex validation per question, alongside min and max length</li>
             <li>Role gating, cooldowns, and per-user submission limits</li>
             <li>DM applications, for people who cannot see the channel yet</li>

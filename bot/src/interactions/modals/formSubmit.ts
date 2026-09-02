@@ -21,10 +21,12 @@ import {
   interpolateTemplate,
 } from "../../../../shared/types/index.ts";
 import {
-  getPendingSelectAnswers,
-  clearPendingSelectAnswers,
+  getPendingAnswers,
+  clearPendingAnswers,
+  stashPendingAnswers,
   getApplicationStartedAt,
 } from "../../services/pendingAnswers.ts";
+import { cappedModalPageCount, isFinalPage } from "../../../../shared/lib/modalPaging.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
 import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "../../services/rateLimitService.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
@@ -36,6 +38,7 @@ export async function handleFormModalSubmit(
   bot: AppealyBot,
   interaction: Interaction,
   formId: string,
+  page = 0,
 ) {
   const guildId = interaction.guildId;
   const applicant = interaction.member?.user ?? interaction.user;
@@ -56,11 +59,6 @@ export async function handleFormModalSubmit(
     return respond(bot, interaction, "This form no longer exists.");
   }
 
-  const rateLimit = await checkAndConsumeDailyCap(guildId, "submissionsPerDay");
-  if (!rateLimit.allowed) {
-    return respond(bot, interaction, rateLimitDeniedMessage(rateLimit, "applications processed today"));
-  }
-
   // Collect text-input answers from the modal's action rows.
   const textAnswers: Record<string, string> = {};
   for (const row of interaction.data?.components ?? []) {
@@ -71,8 +69,91 @@ export async function handleFormModalSubmit(
     }
   }
 
-  const selectAnswers = await getPendingSelectAnswers(applicant.id, formId);
-  const allAnswers = { ...selectAnswers, ...textAnswers };
+  // A modal holds five components, so a longer form arrives as several. This
+  // is not the last page: stash what was just typed and hand back a button,
+  // because Discord will not accept a modal as the response to a modal
+  // submit — only to a message-component interaction. Same constraint
+  // formSelectStep.ts works around, same shape of answer.
+  const textQuestions = form.questions.filter((q) => q.type !== "select");
+  const totalPages = cappedModalPageCount(textQuestions.length);
+
+  if (!isFinalPage(textQuestions.length, page)) {
+    try {
+      await stashPendingAnswers(applicant.id, formId, textAnswers);
+    } catch (err) {
+      // Loudly. The applicant has typed answers we cannot hold, and the one
+      // thing worse than telling them to start over is accepting a submission
+      // silently missing this page — which is the bug this flow replaced.
+      logger.error("Failed to stash a modal page; refusing to continue", {
+        formId,
+        page,
+        error: String(err),
+      });
+      return respond(
+        bot,
+        interaction,
+        "Something went wrong saving this page of your application, so it hasn't been submitted. " +
+          "Please start it again — nothing was recorded.",
+      );
+    }
+
+    return respond(
+      bot,
+      interaction,
+      `Saved page ${page + 1} of ${totalPages}. Continue when you're ready — your answers are held for 15 minutes.`,
+      [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1,
+              label: `Continue (${page + 2}/${totalPages})`,
+              customId: encodeCustomId("modal", "page", formId, String(page + 1)),
+            },
+          ],
+        },
+      ],
+    );
+  }
+
+  // Last page. Earlier pages and any select answers live in one Redis blob
+  // keyed by (user, form).
+  const stashed = await getPendingAnswers(applicant.id, formId);
+
+  // On a later page the stash IS the earlier pages. If it is gone, this
+  // submit would record an application missing everything before this screen
+  // — the same silent loss pagination replaced, arriving by a different
+  // route. Two ways to get here: the 15-minute TTL expired mid-application,
+  // or a stale Continue button from a run that already finished and cleared
+  // the stash was clicked again.
+  //
+  // Deliberately ABOVE the cap check. Refusing has to cost the applicant a
+  // retype and the guild nothing — charging submissionsPerDay for an
+  // application that is then thrown away would bill for the failure.
+  if (page > 0 && Object.keys(stashed).length === 0) {
+    logger.warn("Final page submitted with no stashed earlier pages; refusing", {
+      formId,
+      page,
+      applicantId: applicant.id.toString(),
+    });
+    return respond(
+      bot,
+      interaction,
+      "Your earlier answers have expired or were already submitted, so this hasn't been sent — " +
+        "an application missing its first pages would be worse than none. Please start it again.",
+    );
+  }
+
+  // Only now is this a submission, so only now does it cost the guild one
+  // against submissionsPerDay. Consuming per page would charge an
+  // eleven-question form three times over.
+  const rateLimit = await checkAndConsumeDailyCap(guildId, "submissionsPerDay");
+  if (!rateLimit.allowed) {
+    return respond(bot, interaction, rateLimitDeniedMessage(rateLimit, "applications processed today"));
+  }
+
+  const allAnswers = { ...stashed, ...textAnswers };
 
   const validationFailure = validateAnswersAgainstQuestions(form.questions, allAnswers);
   if (validationFailure) {
@@ -110,7 +191,7 @@ export async function handleFormModalSubmit(
     return created;
   });
 
-  await clearPendingSelectAnswers(applicant.id, formId);
+  await clearPendingAnswers(applicant.id, formId);
 
   // This acknowledgment is deliberately NOT this handler's last statement —
   // role automation and review-embed posting still run after it. Do not
@@ -147,8 +228,16 @@ export async function handleFormModalSubmit(
 // Kept as a one-line wrapper rather than rewriting every call site: the
 // ephemeral flag now lives on the deferral, so there is nothing left for
 // this to decide.
-async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await finish(bot, interaction, content);
+async function respond(
+  bot: AppealyBot,
+  interaction: Interaction,
+  content: string,
+  components?: unknown[],
+) {
+  // components is only ever passed by the multi-page path, which needs a
+  // Continue button on the deferred reply. finish() already takes a payload
+  // object; this keeps every other call site to the plain-string form.
+  await finish(bot, interaction, components ? { content, components } as never : content);
 }
 
 export async function applyRoleAutomationOnSubmit(

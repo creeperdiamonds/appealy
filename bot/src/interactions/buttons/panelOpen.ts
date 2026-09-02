@@ -23,6 +23,12 @@ import { db, schema } from "../../db/client.ts";
 import { countRows } from "../../db/count.ts";
 import { evaluateGate, gateReasonToMessage } from "../../../../shared/schema/gating.ts";
 import { encodeCustomId } from "../../../../shared/types/index.ts";
+import {
+  cappedModalPageCount,
+  modalPageSlice,
+  MAX_MODAL_PAGES,
+  MODAL_PAGE_SIZE,
+} from "../../../../shared/lib/modalPaging.ts";
 import { logger } from "../../utils/logger.ts";
 import { stashPendingSelectAnswers, markApplicationStarted } from "../../services/pendingAnswers.ts";
 
@@ -164,18 +170,26 @@ export async function showApplicationModal(
   interaction: Interaction,
   formId: string,
   textQuestions: (typeof schema.questions.$inferSelect)[],
+  page = 0,
 ) {
   const applicant = interaction.member?.user ?? interaction.user;
-  if (applicant) {
+  // Only on the first page. completionSeconds measures how long the applicant
+  // took overall, so restarting the clock on page two would report the last
+  // page's duration as the whole application's.
+  if (applicant && page === 0) {
     await markApplicationStarted(applicant.id, formId);
   }
 
-  // Discord modals cap at 5 components.
-  const capped = textQuestions.slice(0, 5);
-  if (textQuestions.length > 5) {
-    logger.warn("Form has more than 5 text questions; truncating for modal limit", {
+  const totalPages = cappedModalPageCount(textQuestions.length);
+  const capped = modalPageSlice(textQuestions, page);
+
+  if (textQuestions.length > MODAL_PAGE_SIZE * MAX_MODAL_PAGES) {
+    // Still a truncation, but a bounded and reported one rather than a silent
+    // one at five. Worth surfacing because it means the form is misconfigured.
+    logger.warn("Form exceeds the modal page ceiling; questions beyond it are not asked", {
       formId,
       total: textQuestions.length,
+      asked: MODAL_PAGE_SIZE * MAX_MODAL_PAGES,
     });
   }
 
@@ -195,8 +209,11 @@ export async function showApplicationModal(
   await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
     type: 9, // MODAL
     data: {
-      customId: encodeCustomId("modal", "submit", formId),
-      title: "Application",
+      // The page rides in the custom id so the submit handler knows whether
+      // this is the last one without re-deriving it from a stash that may
+      // have expired.
+      customId: encodeCustomId("modal", "submit", formId, String(page)),
+      title: totalPages > 1 ? `Application (${page + 1}/${totalPages})` : "Application",
       components: capped.map((q) => ({
         type: 1,
         components: [
