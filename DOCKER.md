@@ -57,81 +57,63 @@ Those flags are in the workflow now. With them, Cloud Run bills CPU
 continuously, which is roughly e2-micro pricing with more moving parts — a
 small Compute Engine VM is cheaper and simpler for the bot specifically.
 
-## Apex domain mapping — one-time, manual, not in the workflow
+## Personal-site domain mapping — one-time, manual, not in the workflow
 
-`creeperdiamonds.xyz` is served by the same `web` container as Appealy,
-split by `server_name` in `web/nginx.conf`. Getting the domain itself
-pointed at that service is a separate, one-time step outside CI:
+`www.creeperdiamonds.xyz` is served by the same `web` container as Appealy,
+split by `server_name` in `web/nginx.conf`. Pointing the name at that service
+is a one-time step outside CI:
 
 ```bash
 gcloud beta run domain-mappings create \
   --service=appealy \
-  --domain=creeperdiamonds.xyz \
+  --domain=www.creeperdiamonds.xyz \
   --region=us-central1 \
   --project=yahav-project-505809
 ```
 
-The apex is a bare domain, so it needs **A and AAAA records**, not a CNAME —
-a CNAME cannot coexist with other records at the zone apex, and Google
-issues the A/AAAA values as part of running the command above.
+It issues a single record: `www CNAME ghs.googlehosted.com`. In Cloudflare it
+must be **DNS-only (grey cloud)**, not proxied — a proxied record puts
+Cloudflare's certificate in front of Google's managed one and the mapping
+never validates. See `deploy/dns/` for the record and the reasoning.
 
-In Cloudflare, both records must be **DNS-only (grey cloud)**, not proxied.
-A proxied record puts Cloudflare's certificate in front of Google's own
-managed certificate for the mapping, and the mapping never validates.
+### The apex is a Minecraft address, and stays one
+
+`creeperdiamonds.xyz` itself is NOT mapped, deliberately. It is a CNAME to a
+NeoProtect shield with a matching `_minecraft._tcp` SRV record, and port 25565
+answers on it. DNS resolves a name to one set of addresses and Cloud Run's do
+not speak Minecraft, so mapping the apex would have traded a working server
+address for a working web page.
+
+A mapping for the bare apex was created and then deleted once that was
+understood. If you recreate it, you are turning off the Minecraft server for
+every player who saved the address with its port, and for every Bedrock
+client — neither of which uses the SRV record that would otherwise save them.
 
 This is created **once**, not per deploy. `deploy-merged.yml` builds and
-deploys the `web` service on every merge; it does not touch domain
-mappings, and re-running it is not how DNS or the mapping get updated.
-
-### What the mapping issued, and what had to be removed
-
-Created 2026-09-02. `deploy/dns/creeperdiamonds.xyz.zone` holds these eight
-records in BIND format for Cloudflare's importer, with the deletion and
-proxy-status warnings alongside them — see `deploy/dns/README.md`.
-
-These are Google's standard Cloud Run anycast addresses, but take them from
-the command's own output rather than from here — a document is not the system
-of record for DNS:
-
-```
-A     216.239.32.21    216.239.34.21    216.239.36.21    216.239.38.21
-AAAA  2001:4860:4802:32::15  ...:34::15  ...:36::15  ...:38::15
-```
-
-**The apex was on registrar parking and had to be cleared first.** It held six
-A records (`82.22.5.17`, `.20`, `.22`, `.24`, `.25` and `104.167.24.195`).
-Leaving any of them alongside Google's would resolve unpredictably — a
-visitor would reach the parking host or Cloud Run depending on which record
-their resolver picked.
-
-That parking also explains the symptom: `http://creeperdiamonds.xyz` answered
-**301 to `http://www.creeperdiamonds.xyz`**, and `www` did not exist, so the
-apex redirected to NXDOMAIN while HTTPS had no listener at all. Deleting the
-parking records removes the redirect with them; there is no `www` record to
-add unless you want one.
+deploys the `web` service on every merge; it does not touch domain mappings,
+and re-running it is not how DNS or the mapping get updated.
 
 ### Verifying
 
 ```bash
-gcloud beta run domain-mappings describe --domain=creeperdiamonds.xyz \
+gcloud beta run domain-mappings describe --domain=www.creeperdiamonds.xyz \
   --region=us-central1 --project=yahav-project-505809
 
-curl -s -o /dev/null -w "apex      %{http_code}\n" https://creeperdiamonds.xyz/
+curl -s -o /dev/null -w "www       %{http_code}\n" https://www.creeperdiamonds.xyz/
 curl -s -o /dev/null -w "appealy   %{http_code}\n" https://appealy.creeperdiamonds.xyz/
 curl -s -o /dev/null -w "dashboard %{http_code}\n" https://appealy.creeperdiamonds.xyz/dashboard/
 ```
 
 The certificate takes roughly fifteen minutes after DNS propagates, and until
-it exists HTTPS on the apex fails outright rather than warning — that is
-normal during provisioning and not a misconfiguration.
+it exists HTTPS fails outright rather than warning — normal during
+provisioning, not a misconfiguration.
 
-**Check which page the apex serves, not just that it answers.** If it returns
-the Appealy marketing site, `server_name creeperdiamonds.xyz` did not match
-and the request fell through to `default_server`. A 200 alone does not prove
-the split is working:
+**Check which page is served, not just that one is.** If `www` returns the
+Appealy marketing site, `server_name` did not match and the request fell
+through to `default_server`. A 200 alone does not prove the split works:
 
 ```bash
-curl -s https://creeperdiamonds.xyz/ | grep -c "Minecraft"   # apex page -> 1
+curl -s https://www.creeperdiamonds.xyz/ | grep -c "Minecraft"   # personal page -> 1
 ```
 
 ## Yaakov's three commits
