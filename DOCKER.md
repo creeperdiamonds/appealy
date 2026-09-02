@@ -83,6 +83,53 @@ This is created **once**, not per deploy. `deploy-merged.yml` builds and
 deploys the `web` service on every merge; it does not touch domain
 mappings, and re-running it is not how DNS or the mapping get updated.
 
+### What the mapping issued, and what had to be removed
+
+Created 2026-09-02. These are Google's standard Cloud Run anycast addresses,
+but take them from the command's own output rather than from here — a
+document is not the system of record for DNS:
+
+```
+A     216.239.32.21    216.239.34.21    216.239.36.21    216.239.38.21
+AAAA  2001:4860:4802:32::15  ...:34::15  ...:36::15  ...:38::15
+```
+
+**The apex was on registrar parking and had to be cleared first.** It held six
+A records (`82.22.5.17`, `.20`, `.22`, `.24`, `.25` and `104.167.24.195`).
+Leaving any of them alongside Google's would resolve unpredictably — a
+visitor would reach the parking host or Cloud Run depending on which record
+their resolver picked.
+
+That parking also explains the symptom: `http://creeperdiamonds.xyz` answered
+**301 to `http://www.creeperdiamonds.xyz`**, and `www` did not exist, so the
+apex redirected to NXDOMAIN while HTTPS had no listener at all. Deleting the
+parking records removes the redirect with them; there is no `www` record to
+add unless you want one.
+
+### Verifying
+
+```bash
+gcloud beta run domain-mappings describe --domain=creeperdiamonds.xyz \
+  --region=us-central1 --project=yahav-project-505809
+
+curl -s -o /dev/null -w "apex      %{http_code}\n" https://creeperdiamonds.xyz/
+curl -s -o /dev/null -w "appealy   %{http_code}\n" https://appealy.creeperdiamonds.xyz/
+curl -s -o /dev/null -w "dashboard %{http_code}\n" https://appealy.creeperdiamonds.xyz/dashboard/
+```
+
+The certificate takes roughly fifteen minutes after DNS propagates, and until
+it exists HTTPS on the apex fails outright rather than warning — that is
+normal during provisioning and not a misconfiguration.
+
+**Check which page the apex serves, not just that it answers.** If it returns
+the Appealy marketing site, `server_name creeperdiamonds.xyz` did not match
+and the request fell through to `default_server`. A 200 alone does not prove
+the split is working:
+
+```bash
+curl -s https://creeperdiamonds.xyz/ | grep -c "Minecraft"   # apex page -> 1
+```
+
 ## Yaakov's three commits
 
 All kept. One fix worth mentioning: `steps.deploy.outputs.url` in the
