@@ -25,11 +25,25 @@ Overlapping it is not a marketing exercise; the hole is real.
 
 ## What is being built
 
-A public web page where a banned member proves who they are with Discord,
-Appealy confirms they are actually banned in that server, and they submit the
-server's existing appeal form. The submission lands in the same review queue,
-as the same `submissions` row, reviewed by the same staff UI. Nothing about
-review changes.
+**The banned person appeals from the website.** They go to Appealy, sign in
+with Discord, and deal with their ban there — rather than waiting for a DM
+that may never arrive, or needing a link somebody remembered to give them.
+
+Appealy confirms they are actually banned, shows that server's existing appeal
+form, and the submission lands in the same review queue, as the same
+`submissions` row, reviewed by the same staff UI. Nothing about review changes.
+
+### Two ways to arrive, because one of them cannot cover everybody
+
+**Signed in, at `/appeals`.** A list of servers Appealy knows have banned you,
+each with an Appeal button. This is the front door and the reason the feature
+is worth building: nobody has to have given you anything.
+
+**A direct link, at `/appeal/<code>`.** For a server not in that list. A
+moderator can paste it into a ban reason or a pinned message.
+
+Both end at the same page and the same checks. The list is a convenience over
+the link, not a separate feature.
 
 ## Decisions
 
@@ -93,7 +107,11 @@ and the admin is told loudly.
 
 ```
 banned member
-   │  GET /appeal/<code>
+   │
+   ├─ GET /appeals            the front door: sign in, see who banned you
+   │     └── one indexed query on guild_bans.user_id
+   │
+   └─ GET /appeal/<code>      a link somebody gave them
    ▼
 public page ──── OAuth ────► existing /auth flow (session, no guild access needed)
    │
@@ -106,7 +124,44 @@ api ──── botBridge ────► bot  GET /internal/guilds/:id/bans/:u
 submissions row (kind: appeal) ──► existing review queue, unchanged
 ```
 
+### Recording bans, because the list has nothing to read from
+
+`bot/src/events/guildBanAdd.ts` reads config, sends a DM, and records nothing.
+No table anywhere stores that a guild ban happened — `platformBans` is
+Appealy's own ban ledger, not Discord's.
+
+So `/appeals` has no data to answer from, and answering it live would mean one
+Discord REST call per guild the bot is in, per page load. That does not work at
+ten guilds and is absurd at ten thousand.
+
+**New table `guildBans`**, written by `guildBanAdd`: guild id, user id, when,
+and the reason if Discord gave one. The list becomes one indexed query on user
+id.
+
+The row is deleted on `guildBanRemove`, so an unbanned person stops seeing a
+server they can no longer appeal to. **That handler does not exist** —
+`bot/src/events/` has `guildBanAdd` but no remove counterpart, so it is new,
+and the gateway already delivers the event under the same `GuildModeration`
+intent the ban check needs. Without it the list would keep offering appeals
+for bans that have already been lifted, which reads as broken to the one
+person guaranteed to notice.
+
+**The honest limit, stated because it decides expectations:** this only knows
+bans that happened while the bot was present. Somebody banned before the server
+installed Appealy will not appear in their list — and that is one of the three
+groups this whole feature exists for. They are covered by the direct link
+instead, which is exactly why the link path is not dropped.
+
+A one-time sync of a guild's existing ban list on join would close that gap.
+It is deliberately NOT in this design: `GET /guilds/{id}/bans` is paginated at
+1000, a large server can have six figures of bans, and importing all of them
+for every guild that ever adds the bot is a storage and rate-limit decision
+that deserves its own discussion rather than being smuggled in here.
+
 ### Data model
+
+`guildBans` — new. `(guildId, userId)` primary key, indexed on `userId` for the
+list query, cascading from `guilds`.
 
 `appealConfigs` gains:
 
