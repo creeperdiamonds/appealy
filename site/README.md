@@ -1,12 +1,13 @@
 # Public site
 
-Five pages, one stylesheet, and two files for crawlers. No build step, no
+Six pages, one stylesheet, and two files for crawlers. No build step, no
 framework, no bundler, and no JavaScript at all.
 
 | File | Is |
 |---|---|
 | `index.html` | Landing page |
 | `pricing.html` | Pricing in full, including the custom per-unit rates |
+| `appy-alternative.html` | The one page targeting a query people type: "Appy alternative". Dated comparison table, migration steps, FAQPage schema |
 | `privacy.html` | What is stored, for how long, who sees it |
 | `terms.html` | Hosted-service terms |
 | `tebex.html` | Front door for a Tebex review — links to what is sold, what it costs, the terms, the privacy policy and refunds rather than restating them |

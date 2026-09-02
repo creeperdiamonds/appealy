@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/appy-alternative.html — the page that answers a query people type.
+
+  Every other page on this site is about Appealy and ranks, at best, for
+  "Appealy" — a word nobody searches for. This one targets "Appy alternative",
+  which has intent behind it: somebody looking to move.
+
+  RULES THIS PAGE FOLLOWS, BECAUSE A COMPARISON PAGE IS THE EASIEST PLACE ON A
+  SITE TO START LYING.
+
+  1. Every Appy figure is from appy.bot/premium, checked on the date stated
+     below, and the date is shown to the reader. A comparison table with no
+     date is a claim that it is current forever.
+  2. No adjectives about Appy. The numbers are the argument; "bloated" and
+     "outdated" are not facts and would make a reader trust the numbers less.
+  3. Every Appealy figure traces to shared/schema/pricing.ts and must be
+     updated with it, exactly like pricing.html.
+  4. The migration section says what does NOT carry across, first. An import
+     that surprises somebody is worse than one they declined.
+
+  The ban screenshot from the landing page is deliberately NOT repeated here.
+  There it is an argument about why the project exists; on a page targeting a
+  commercial query it reads as a grudge, and it is the element most likely to
+  make both a reader and a model treat the page as partisan.
+-->
+
+<title>Appy Alternative for Discord — Appealy</title>
+<meta name="description" content="Open-source alternative to Appy for Discord applications, tickets and ban appeals. Every feature on every tier, self-host free, import your Appy history.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/appy-alternative">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/appy-alternative">
+<meta property="og:title" content="Appy Alternative for Discord — Appealy">
+<meta property="og:description" content="Open-source alternative to Appy for Discord applications, tickets and ban appeals. Every feature on every tier, self-host free, import your Appy history.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+<meta property="og:image:alt" content="The Appealy mark: an open door.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Appy Alternative for Discord — Appealy">
+<meta name="twitter:description" content="An open-source alternative to Appy for Discord applications, tickets and ban appeals. Every feature on every tier, self-host free.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+
+<!--
+  FAQPage, not SoftwareApplication. The other pages already carry the software
+  markup; what this page adds is question-shaped answers, which is the form
+  that both Google's rich results and answer engines actually lift.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is a good alternative to Appy for Discord?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Appealy is an open-source Discord bot for staff applications, ban appeals and tickets. It is licensed AGPL-3.0, free to self-host with no licence key or feature gate, and its paid tiers raise throughput caps only — every feature is available on the free tier."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Appealy free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Self-hosting is free with no feature gate. On the hosted service the free tier includes every feature; paid tiers raise nine throughput caps and nothing else."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I import my Appy submissions into Appealy?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Export your applications from Appy, build the matching form in Appealy, then import the history into it. Questions are matched by exact text, and anything that does not match is reported rather than guessed at. Re-running an import is safe: each row carries its Appy id, so rows already imported are skipped rather than duplicated."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does Appealy handle Discord ban appeals?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. It can DM a banned member an appeal form the moment they are banned, and accepting the appeal can unban them automatically. Appeal forms are forced to DM delivery, because a banned member cannot see a channel to click a button in."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I leave Appealy and take my data?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The /export command writes one JSON file containing every form, question, panel, submission, ticket, giveaway, config and delegation for your server. Import it into a self-hosted instance and leave. There is no licence key and no feature gate on self-hosting."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/#self-hosting">Self-hosting</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose wide">
+
+    <p class="eyebrow">Alternatives</p>
+    <h1>An open-source alternative to Appy</h1>
+
+    <p class="lede">
+      <strong>Appealy</strong> is an open-source Discord bot for staff applications, ban appeals and
+      tickets, and it is a direct alternative to Appy. It is licensed AGPL-3.0, free to self-host
+      with no licence key and no feature gate, and its paid tiers raise throughput caps only &mdash;
+      every feature is on the free tier. If you already run Appy, your submission history can come
+      with you.
+    </p>
+
+    <div class="callout is-accent">
+      <p>
+        <strong>The difference in one line:</strong> Appy sells features, Appealy sells throughput.
+        Regex validation, cooldowns, submission history and in-Discord verification are Appy Premium
+        features; on Appealy they are on the free tier, and what you pay for is how much you can run
+        through them.
+      </p>
+    </div>
+
+    <h2>Side by side</h2>
+    <p>
+      Appy's figures are taken from <a href="https://appy.bot/premium">appy.bot/premium</a>, checked
+      on <strong>2 September 2026</strong>. They may have changed since; check the source before
+      relying on them. Appealy's come from
+      <a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts"><code>pricing.ts</code></a>,
+      which is the file the billing calculator itself reads.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption>Free tiers compared, then the paid ones. Prices as listed by each project.</caption>
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            <th scope="col" class="num">Appy free</th>
+            <th scope="col" class="num">Appealy free</th>
+            <th scope="col" class="num">Appy Premium</th>
+            <th scope="col" class="num">Appealy Tier&nbsp;1</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Price</th>
+            <td class="num">&pound;0</td><td class="num">$0</td>
+            <td class="num">&pound;4.99/mo<br>per server</td><td class="num">$60/yr<br>per server</td>
+          </tr>
+          <tr>
+            <th scope="row">Application forms</th>
+            <td class="num">2</td><td class="num">5</td><td class="num">200</td><td class="num">20</td>
+          </tr>
+          <tr>
+            <th scope="row">Questions per form</th>
+            <td class="num">10</td><td class="num">15</td><td class="num">100</td><td class="num">50</td>
+          </tr>
+          <tr>
+            <th scope="row">Application panels</th>
+            <td class="num">1</td><td class="num">5</td><td class="num">50</td><td class="num">20</td>
+          </tr>
+          <tr>
+            <th scope="row">Regex question validation</th>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Application cooldowns</th>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Submission history</th>
+            <td class="num">&mdash;</td><td class="num">30 days</td><td class="num">Yes</td><td class="num">180 days</td>
+          </tr>
+          <tr>
+            <th scope="row">In-Discord verification</th>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Ban appeals</th>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">&mdash;</td><td class="num">Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Open source</th>
+            <td class="num">&mdash;</td><td class="num">AGPL-3.0</td><td class="num">&mdash;</td><td class="num">AGPL-3.0</td>
+          </tr>
+          <tr>
+            <th scope="row">Self-host free</th>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">&mdash;</td><td class="num">Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Export responses</th>
+            <td class="num">CSV</td><td class="num">Yes</td><td class="num">CSV</td><td class="num">Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Export the whole server config</th>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">&mdash;</td><td class="num">Yes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted">
+      <strong>On export, both do it &mdash; the difference is scope.</strong> Appy exports
+      responses as CSV, which is exactly why Appealy can import your history at all. What it
+      does not export is the server's configuration: the forms, questions, panels, ticket
+      types and role automation. Appealy's <code>/export</code> writes all of that in one
+      file, which is what makes leaving for a self-hosted instance a single command rather
+      than a rebuild.
+    </p>
+
+    <p class="muted">
+      <strong>Where Appy is ahead, plainly:</strong> its Premium tier allows far more forms and
+      panels than Appealy Tier&nbsp;1 &mdash; 200 against 20, and 50 against 20. If what you need is
+      a very large number of separate forms, Appy Premium gives you more of them for roughly the
+      same money. Appealy's paid tiers are shaped around how much a server <em>runs</em> rather than
+      how many things it configures, and a table that hid that would not be worth reading.
+    </p>
+
+    <h2>Moving your applications across</h2>
+    <p>
+      It is two steps, and the first one is manual on purpose.
+    </p>
+    <ol>
+      <li>
+        <strong>Build the form in Appealy first.</strong> Appy's export contains no question
+        metadata &mdash; no types, no required flags, no validation &mdash; only the question text as
+        it appeared when somebody answered it. So there is nothing to rebuild a form from, and
+        guessing at it would produce a form that looked right and behaved differently.
+      </li>
+      <li>
+        <strong>Import the history into that form.</strong> Each historical question is matched to a
+        real question on your form by exact text. Anything that does not match is
+        <em>reported</em> rather than attached to whichever question looked closest &mdash; a wrong
+        match silently files somebody's answer under a question they never answered.
+      </li>
+    </ol>
+
+    <p>
+      <strong>Re-running an import is safe.</strong> Every imported row stores Appy's own submission
+      id, so a second run recognises what it already brought in and skips it. If an import fails
+      half way, re-uploading the same file finishes the job instead of duplicating it.
+    </p>
+
+    <h3>What does not carry across</h3>
+    <ul>
+      <li><strong>Who reviewed each application, and why.</strong> Appy's export has no reviewer or
+        reason data. Those fields are left empty rather than invented.</li>
+      <li><strong>Question settings.</strong> Types, required flags and validation are not in the
+        export, which is why you build the form first.</li>
+      <li><strong>Anything from a free Appy plan.</strong> Submission history is a Premium feature
+        there, so a free Appy server has no history to export in the first place.</li>
+    </ul>
+
+    <h2>Questions</h2>
+
+    <h3>Is Appealy free?</h3>
+    <p>
+      Yes. Self-hosting is free with no licence key and no feature gate. On the hosted service the
+      free tier has every feature; paid tiers raise nine throughput caps and nothing else. The
+      <a href="/pricing">pricing page</a> lists all nine with their exact numbers.
+    </p>
+
+    <h3>Does it handle ban appeals?</h3>
+    <p>
+      Yes, and it is the reason the project exists. A banned member can be DMed an appeal form the
+      moment they are banned, and accepting the appeal can unban them automatically. Appeal forms
+      are forced to DM delivery, because a banned member cannot see a channel to click a button in.
+    </p>
+
+    <h3>Can I leave again later?</h3>
+    <p>
+      Yes, and this matters more than any feature in the table above. <code>/export</code> writes one
+      JSON file with every form, question, panel, submission, ticket, giveaway, config and
+      delegation for your server. Import it into a self-hosted instance and leave. Being able to
+      leave is not a promise here, it is a command you can run today.
+    </p>
+
+    <h3>How do I know the caps are what you say they are?</h3>
+    <p>
+      Read them. <a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts"><code>shared/schema/pricing.ts</code></a>
+      is the same file the billing calculator uses, and the code that enforces every cap is in the
+      same repository. That is the practical difference open source makes here &mdash; not a
+      philosophy, just that the number you are charged against is one you can check.
+    </p>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+      <a class="btn" href="/pricing">See the pricing</a>
+      <a class="btn" href="https://github.com/creeperdiamonds/appealy">Read the source</a>
+    </div>
+
+    <p class="muted">
+      Appealy is not affiliated with Appy. Appy is a separate product by its own authors, and its
+      figures here are quoted from its public pricing page on the date shown.
+    </p>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md">Self-hosting</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Setup guide</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Reading</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts">pricing.ts</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/OUTCOMES.md">Custom outcomes</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/APPEALS.md">Ban appeals</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
