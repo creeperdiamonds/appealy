@@ -297,7 +297,9 @@
         <li class="card group">
           <h3>Polls</h3>
           <ul>
-            <li><code>/poll</code> creates and publishes immediately</li>
+            <li><code>/poll</code> creates and publishes immediately, using Discord&rsquo;s own poll by default &mdash; real vote buttons, a live countdown and Show results, not an embed imitating one</li>
+            <li>It asks when to close and you answer in the channel: <code>1h 20m</code>, <code>10 hours 50 minutes</code>, <code>july 10</code>. Dates read as UTC and are echoed back in your own timezone before anything is posted</li>
+            <li>A Discord poll runs in whole hours, so <code>engine: Legacy embed</code> keeps the older embed for an exact close time &mdash; and for results you can query in SQL, which Discord&rsquo;s polls do not expose</li>
             <li>The dashboard schedules publish and close for later</li>
             <li>Up to 9 options, optional multiselect</li>
           </ul>

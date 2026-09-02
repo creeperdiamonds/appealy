@@ -71,6 +71,13 @@
       "when": 1788277602414,
       "tag": "0009_overrated_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788329869038,
+      "tag": "0010_dazzling_sentinel",
+      "breakpoints": true
     }
   ]
 }

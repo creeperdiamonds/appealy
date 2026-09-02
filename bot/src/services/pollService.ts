@@ -8,7 +8,11 @@ import { eq, and, sql, lte } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
+import { toNativePollHours } from "../../../shared/lib/when.ts";
 import { logger } from "../utils/logger.ts";
+
+/** Discord's cap on answers in a native poll. Appealy's own cap is 9. */
+export const NATIVE_POLL_MAX_ANSWERS = 10;
 
 export async function renderPollEmbed(poll: typeof schema.polls.$inferSelect) {
   const voteCounts = await db
@@ -45,9 +49,94 @@ export async function renderPollEmbed(poll: typeof schema.polls.$inferSelect) {
   };
 }
 
+/**
+ * Hands the poll to Discord's own poll system.
+ *
+ * What this buys is the thing the embed was imitating: real radio buttons, a
+ * Vote button, a live countdown, Show results, and vote storage on Discord's
+ * side rather than ours.
+ *
+ * What it costs is written into the shape of the call. `duration` is whole
+ * hours, so closesAt has already been rounded UP by the caller — closing a
+ * poll before the time its author announced is the worse error. And nothing
+ * writes poll_votes for a native poll: Discord holds those, readable through
+ * getPollAnswerVoters on the message, never with SQL.
+ */
+async function publishNativePoll(
+  bot: AppealyBot,
+  poll: typeof schema.polls.$inferSelect,
+  durationHours: number,
+) {
+  const message = await bot.helpers.sendMessage(poll.channelId, {
+    poll: {
+      question: { text: poll.question },
+      answers: poll.options.slice(0, NATIVE_POLL_MAX_ANSWERS).map((o) => ({
+        pollMedia: o.emoji ? { text: o.label, emoji: { name: o.emoji } } : { text: o.label },
+      })),
+      duration: durationHours,
+      allowMultiselect: poll.allowMultiselect,
+    },
+  } as never);
+
+  await db
+    .update(schema.polls)
+    .set({ status: "published", messageId: message.id })
+    .where(eq(schema.polls.id, poll.id));
+
+  logger.info("Native poll published", {
+    pollId: poll.id,
+    channelId: poll.channelId.toString(),
+    durationHours,
+  });
+}
+
+/**
+ * Closes a poll early.
+ *
+ * Native polls end through Discord, which recounts and freezes them; there is
+ * no equivalent for the legacy embed beyond marking the row, since its votes
+ * are ours already.
+ */
+export async function closePoll(bot: AppealyBot, pollId: string) {
+  const poll = await db.query.polls.findFirst({ where: eq(schema.polls.id, pollId) });
+  if (!poll) return;
+
+  if (poll.engine === "native" && poll.messageId) {
+    try {
+      // On bot.rest, not bot.helpers — the poll routes live on the REST
+      // manager in Discordeno v20 and were never given helper wrappers.
+      await bot.rest.endPoll(poll.channelId, poll.messageId);
+    } catch (err) {
+      // Already expired on Discord's side is the common case and not a
+      // failure — the row still needs closing either way.
+      logger.warn("endPoll failed; closing the row regardless", {
+        pollId,
+        error: String(err),
+      });
+    }
+  }
+
+  await db.update(schema.polls).set({ status: "closed" }).where(eq(schema.polls.id, pollId));
+}
+
 export async function publishPoll(bot: AppealyBot, pollId: string) {
   const poll = await db.query.polls.findFirst({ where: eq(schema.polls.id, pollId) });
   if (!poll) return;
+
+  if (poll.engine === "native") {
+    // closesAt is required for a native poll — Discord has no open-ended
+    // one. A row without it means the dashboard scheduled a native poll and
+    // left the close time unset, which cannot be published as native; fall
+    // through to legacy rather than inventing a duration.
+    const hours = poll.closesAt ? toNativePollHours(poll.closesAt, new Date()) : null;
+    if (hours) {
+      return await publishNativePoll(bot, poll, hours.hours);
+    }
+    logger.warn("Native poll has no usable close time; publishing it as legacy", {
+      pollId,
+      closesAt: poll.closesAt?.toISOString() ?? null,
+    });
+  }
 
   const embed = await renderPollEmbed(poll);
   const message = await bot.helpers.sendMessage(poll.channelId, {

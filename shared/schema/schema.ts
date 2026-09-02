@@ -55,6 +55,22 @@ export const pollStatusEnum = pgEnum("poll_status", [
   "closed",
 ]);
 
+/**
+ * Which system actually runs a poll.
+ *
+ * `native` hands the poll to Discord: real radio buttons, a Vote button, a
+ * live "23h left" and Show results, and Discord stores the votes. `legacy` is
+ * this bot's own embed with a select menu and a poll_votes table.
+ *
+ * Both are kept because Discord's costs something real. A native poll takes
+ * its duration in WHOLE HOURS (1 to 768) and cannot be edited after posting,
+ * so a poll closing at "1h 20m" is not expressible — legacy stores a real
+ * closesAt and can. Legacy also keeps results queryable in SQL, which native
+ * does not: for a native poll the votes live in Discord and poll_votes stays
+ * empty by design.
+ */
+export const pollEngineEnum = pgEnum("poll_engine", ["native", "legacy"]);
+
 export const rateLimitTierEnum = pgEnum("rate_limit_tier", ["free", "tier1", "tier2", "custom"]);
 
 export const hostingModeEnum = pgEnum("hosting_mode", ["shared", "custom"]);
@@ -630,6 +646,11 @@ export const polls = pgTable(
     question: varchar("question", { length: 300 }).notNull(),
     options: jsonb("options").$type<{ id: string; label: string; emoji?: string }[]>().notNull(),
     allowMultiselect: boolean("allow_multiselect").notNull().default(false),
+    // Defaults to legacy, which is the opposite of the command's default, and
+    // deliberately so: every row that existed before this column was added is
+    // a legacy poll, and a default of "native" would relabel published polls
+    // as something they are not. New polls set it explicitly.
+    engine: pollEngineEnum("engine").notNull().default("legacy"),
     status: pollStatusEnum("status").notNull().default("draft"),
     scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     closesAt: timestamp("closes_at", { withTimezone: true }),

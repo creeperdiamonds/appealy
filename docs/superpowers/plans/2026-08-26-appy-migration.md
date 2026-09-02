@@ -36,7 +36,9 @@
 >   bounded per guild by `historyRetentionDays * submissionsPerDay`.
 > - **The import is idempotent.** `submissions.import_source_id` (migration
 >   `0009_overrated_korg.sql`) stores Appy's own id behind a partial unique
->   index. This is why Task 2's migration is `0010`, not `0009`.
+>   index. That took the number Task 2 had reserved, and `0010_dazzling_sentinel`
+>   (poll engine) then took the next one — which is why Task 2 no longer names
+>   a migration number at all. Generate it and use what you get.
 > - **A pure `planAppyImport()`** now holds every decision the importer makes,
 >   which is what later tasks should extend rather than the IO function.
 >
@@ -158,7 +160,10 @@ A derived form cannot supply a review channel from an Appy export, and the admin
 
 **Files:**
 - Modify: `shared/schema/schema.ts` (the `forms.logChannelId` column)
-- Create: `db/migrations/0010_*.sql` (generated)
+- Create: the next migration in `db/migrations/` (generated — do not hardcode
+  the number. It was written as `0009`, which `import_source_id` then took,
+  and `0010`, which `poll_engine` then took. Run `npx drizzle-kit generate`
+  and use whatever it produces.)
 - Modify: `bot/src/commands/formList.ts:36`
 - Modify: `api/src/routes/forms.ts:66` (zod), `:370` (response mapping)
 
@@ -190,7 +195,7 @@ Confirm the generated SQL is exactly one statement dropping the constraint:
 ALTER TABLE "forms" ALTER COLUMN "log_channel_id" DROP NOT NULL;
 ```
 
-Then run `grep -icE "drop (table|column)|truncate" db/migrations/0010_*.sql` — expect `0`. The deploy workflow refuses destructive migrations, and `DROP NOT NULL` must not read as one.
+Then run `grep -icE "drop (table|column)|truncate"` against the migration you just generated — expect `0`. The deploy workflow refuses destructive migrations, and `DROP NOT NULL` must not read as one.
 
 - [ ] **Step 3: Handle null at the two read sites outside the submission path**
 
@@ -1344,7 +1349,7 @@ git commit -m "Document that the importer can now derive a form"
 - [ ] `deno check -c bot/deno.json bot/src/main.ts` — clean
 - [ ] `cd api && npm run build` — exit 0
 - [ ] `cd web && npm run build` — exit 0
-- [ ] Migration `0010` contains exactly one `DROP NOT NULL` and no destructive statement
+- [ ] The generated migration contains exactly one `DROP NOT NULL` and no destructive statement
 
 Manual, on a real guild, since no automated test reaches Discord:
 

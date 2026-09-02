@@ -37,6 +37,7 @@ import { handleDmApplicationReply } from "../services/dmApplicationService.ts";
 import { bumpStickyMessageCounter } from "../services/stickyMessageService.ts";
 import { getGuildConfig, stickyChannelHint } from "../core/guildConfigCache.ts";
 import { passesBanGateForMessage } from "../core/banGate.ts";
+import { deliverReply, hasPendingPrompts } from "../services/pendingPrompts.ts";
 import { logger } from "../utils/logger.ts";
 
 // Guilds whose config we've asked for but haven't received yet. Without
@@ -75,6 +76,18 @@ export function onMessageCreate(bot: AppealyBot) {
           userId: message.author.id.toString(),
         });
       }
+      return;
+    }
+
+    // An answer to a question the bot asked in this channel — /poll's close
+    // time, today. Consumed here and processed no further: a reply to the bot
+    // is not also a sticky bump.
+    //
+    // hasPendingPrompts() is checked first and is an integer compare on a Map
+    // that is empty almost always. Only when something is genuinely
+    // outstanding does this build a key string, which is the difference
+    // between free and an allocation per message across every guild.
+    if (hasPendingPrompts() && deliverReply(message.channelId, authorId, message.content ?? "")) {
       return;
     }
 
