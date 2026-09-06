@@ -313,6 +313,61 @@ Register a Discord application at https://discord.com/developers/applications,
 enable the **Server Members Intent** and **Message Content Intent** under
 Bot settings, and set the OAuth2 redirect URI to match `DISCORD_REDIRECT_URI`.
 
+### What is served where
+
+One container serves all of it, split by path in `web/nginx.conf`:
+
+| URL | Is |
+|---|---|
+| `http://localhost:5173/` | The marketing site (`site/`) |
+| `http://localhost:5173/dashboard/` | The console — this is where you log in |
+| `http://localhost:5173/status/` | The shard status page |
+| `http://localhost:5173/auth/…`, `/api/…` | Proxied through to the API |
+
+Port 3001 is still published for the API so you can `curl` it or replay a
+webhook against it directly. **The browser should never use it.**
+
+### The redirect URI has to be on the console's origin
+
+`DISCORD_REDIRECT_URI` defaults to
+`http://localhost:5173/auth/discord/callback` — port **5173**, the console,
+not 3001. The same rule holds in production: it is the console's URL, never
+the API service's.
+
+This is not a preference. The session cookie is `SameSite=Lax`, which means
+the browser attaches it only to same-**site** requests, and "site" is the
+registrable domain rather than the origin. Serve the console on one hostname
+and call the API on another and the cookie is simply never sent: login looks
+like it worked and every request after it is anonymous. CORS cannot fix that —
+CORS decides whether a response may be *read*, `SameSite` decides whether the
+cookie is *attached* at all.
+
+So nginx proxies `/auth/` and `/api/` from the console's own origin, and
+`VITE_API_URL` is **empty** — the bundle calls those paths relative. Setting
+it to an absolute URL puts the two back on separate origins and reintroduces
+the bug. The full reasoning, including why Cloud Run's default `*.run.app`
+hostnames make this worse rather than better, is at the top of
+`web/nginx.conf`.
+
+Local development hides all of this: `localhost:5173` and `localhost:3001`
+differ only by port, and ports are not part of a site, so the cookie flows and
+everything works right up until it is deployed.
+
+### Signing in opens a popup
+
+`/auth/discord/login?mode=popup` runs the OAuth round trip in a small window
+and posts the result back to the opener, so the console keeps its state
+instead of being torn down and rebuilt around a redirect. If the popup is
+blocked — no user activation, or Discord's in-app browser, which does not give
+a popup a `window.opener` — the client falls back to a full-page redirect
+automatically. Nothing sensitive crosses `postMessage`; the session is the
+httpOnly cookie, and the message carries only whether it worked.
+
+Keeping `window.opener` alive across the trip to `discord.com` needs
+`Cross-Origin-Opener-Policy: same-origin-allow-popups`, which `web/nginx.conf`
+sets on the console's shell. A stricter `same-origin` there silently breaks the
+popup and leaves the redirect fallback as the only working path.
+
 ## Project layout
 
 ```

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/docs/self-hosting.html
+
+  Drawn from SELF_HOSTING.md, plus the same-origin section that lives at the
+  top of web/nginx.conf.
+
+  "THE ONE MISTAKE THAT BREAKS LOGIN" IS WHY THIS PAGE IS ON THE SITE AT ALL.
+  It is the highest-value paragraph here: the failure is silent, it looks like
+  a session bug, local development cannot reproduce it, and the obvious fix
+  (CORS) is the wrong one. Someone hitting it without having read this loses an
+  afternoon in the wrong file. Do not shorten it into a config snippet.
+
+  Deliberately avoids naming CAP_* variables, DEPLOYMENT_MODE values and the
+  Postgres pool size. Those are environment specifics that belong in
+  .env.example, which is the file the reader will have open, and duplicating
+  them here creates a second place to forget to update. The concepts are here;
+  the exact names are one link away.
+
+  Written from the code and from the repository's own markdown, not from a
+  template. Every claim here is checkable against a file named beside it. If
+  one stops being true, the code changed: fix the code or fix this page, but
+  do not leave them disagreeing.
+
+  Static, like the rest of site/. No JavaScript. Documentation that renders
+  blank while a bundle downloads is documentation nobody reads, and this
+  section in particular has to answer when the app does not — "how do I get
+  in" is the question people ask precisely when they cannot get in.
+
+  Assets are root-relative (/site.css, /brand/...) matching every other page
+  here. That means these files do not render correctly opened straight off
+  disk from this subdirectory; preview them through the container, which is
+  where the extensionless URLs come from anyway.
+-->
+
+<title>Self-hosting — Appealy</title>
+<meta name="description" content="Run Appealy on your own hardware for free: billing off, caps yours, no telemetry. Includes the SameSite cookie mistake that silently breaks login behind a real domain.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/docs/self-hosting">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/docs/self-hosting">
+<meta property="og:title" content="Self-hosting — Appealy">
+<meta property="og:description" content="Run Appealy on your own hardware for free: billing off, caps yours, no telemetry. Includes the SameSite cookie mistake that silently breaks login behind a real domain.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+<meta property="og:image:alt" content="The Appealy mark: an open door.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Self-hosting — Appealy">
+<meta name="twitter:description" content="Run Appealy on your own hardware for free: billing off, caps yours, no telemetry. Includes the SameSite cookie mistake that silently breaks login behind a real domain.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav aria-label="Documentation">
+        <ul class="doc-nav">
+        <li><a href="/docs">Documentation</a></li>
+        <li><a href="/docs/getting-started">Getting started</a></li>
+        <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+        <li><a href="/docs/outcomes">Review outcomes</a></li>
+        <li><a href="/docs/self-hosting" aria-current="page">Self-hosting</a></li>
+        </ul>
+      </nav>
+
+      <h1>Self-hosting</h1>
+      <p class="lede">Run the whole thing on your own hardware for nothing. Billing off, no
+        merchant account, caps yours to raise, and no telemetry &mdash; asserted in code
+        rather than promised in prose.</p>
+
+      <h2>Start it</h2>
+
+<pre><code>cp .env.example .env
+# fill: DISCORD_BOT_TOKEN, DISCORD_APPLICATION_ID, DISCORD_PUBLIC_KEY,
+#       DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, SESSION_SECRET,
+#       TOKEN_ENCRYPTION_KEY, OPS_USER_IDS
+
+docker compose up
+cd bot &amp;&amp; deno task sync-commands   # once, and after changing commands</code></pre>
+
+      <p>Then open <strong><code>http://localhost:5173/dashboard/</code></strong>. One
+        container serves all three surfaces, split by path:</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">URL</th><th scope="col">Is</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><code>/</code></th><td>This marketing site</td></tr>
+            <tr><th scope="row"><code>/dashboard/</code></th><td>The console &mdash; where you log in</td></tr>
+            <tr><th scope="row"><code>/status/</code></th><td>The shard status page</td></tr>
+            <tr><th scope="row"><code>/auth/</code>, <code>/api/</code></th><td>Proxied straight through to the API</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><code>.env.example</code> ships with the deployment mode pinned to
+        <strong>self</strong>. Leave it. Billing is off, no payment account is needed, and
+        caps come from the flat values in your own environment. That was the blocker worth
+        fixing: the payment credentials used to be unconditionally required, so a clone of an
+        open-source project crashed on startup asking for a merchant account.</p>
+
+      <h2>The one mistake that breaks login</h2>
+
+      <p>It is worth reading this section before you put the stack behind a domain, because
+        the failure is silent and does not look like what it is.</p>
+
+      <p>The session is an httpOnly cookie marked <code>SameSite=Lax</code>. A Lax cookie is
+        attached to a cross-origin request only when that request is same-<strong>site</strong>,
+        and &ldquo;site&rdquo; means the registrable domain, not the origin. Serve the console
+        on one hostname and the API on another and the browser simply never sends the cookie:
+        <strong>login appears to succeed and every request after it is anonymous.</strong></p>
+
+      <div class="callout">
+        <strong>CORS does not fix this and never could.</strong> CORS decides whether a
+        response may be <em>read</em>. <code>SameSite</code> decides whether the cookie is
+        <em>attached</em> in the first place. Getting CORS right and the cookie wrong produces
+        a clean 200 on the preflight followed by a 401 on the real request, which reads as a
+        session bug rather than a cookie-scoping one &mdash; and sends you looking in exactly
+        the wrong file.
+      </div>
+
+      <p>So the console&rsquo;s nginx proxies <code>/auth/</code> and <code>/api/</code> from
+        its own origin, the browser only ever talks to one host, and the cookie is
+        first-party by construction. Two consequences for your configuration:</p>
+
+      <ul>
+        <li><strong><code>VITE_API_URL</code> stays empty.</strong> It is baked into the
+          bundle at build time. Pointing it at an absolute URL puts the console and the API
+          back on separate origins and reintroduces the bug.</li>
+        <li><strong>The redirect URI is the console&rsquo;s URL</strong>, never the
+          API&rsquo;s. It defaults to
+          <code>http://localhost:5173/auth/discord/callback</code> &mdash; port 5173. Port
+          3001 is published so you can call the API with <code>curl</code>; no browser should
+          ever be pointed at it.</li>
+      </ul>
+
+      <p>Behind a real domain, the whole set moves together, and all three name the
+        console:</p>
+
+<pre><code>DISCORD_REDIRECT_URI=https://appeals.example.com/auth/discord/callback
+FRONTEND_ORIGIN=https://appeals.example.com
+DASHBOARD_BASE_URL=https://appeals.example.com</code></pre>
+
+      <p>Paste that redirect URI into the Developer Portal under <strong>OAuth2 &rarr;
+        Redirects</strong> character for character, and note that it has to be HTTPS &mdash;
+        Discord rejects plain HTTP on anything that is not <code>localhost</code>.</p>
+
+      <div class="callout is-accent">
+        <strong>Local development hides the entire problem.</strong>
+        <code>localhost:5173</code> and <code>localhost:3001</code> differ only by port, and
+        ports are not part of a site &mdash; so the cookie flows, everything works, and it
+        keeps working right up until the day it is deployed. That is why this is written down
+        here rather than left to be discovered.
+      </div>
+
+      <h2>What changes between the two modes</h2>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col">Hosted</th>
+              <th scope="col">Self-hosted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Billing</th><td>Required</td><td>Off, credentials unread</td></tr>
+            <tr><th scope="row">Rate limits</th><td>Tier from the price list</td><td>Flat, from your own environment</td></tr>
+            <tr><th scope="row">Appeal link in a ban notice</th><td>The dashboard</td><td>Your support URL, or omitted</td></tr>
+            <tr><th scope="row">Public status page</th><td>On</td><td>Off</td></tr>
+            <tr><th scope="row">Telemetry</th><td>None</td><td>None</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>An explicit mode always wins; blank it and the mode is inferred from whether payment
+        credentials are present. The template pins <em>self</em> rather than leaving it blank
+        because <code>.env.example</code> is a file everybody copies, and stray credentials in
+        a cloned environment would otherwise promote a self-hosted instance into hosted mode
+        and switch on billing routes nobody asked for. An explicit value cannot be surprised
+        into changing.</p>
+
+      <p>Placeholders count as blank, because &ldquo;non-empty&rdquo; turned out to be a bad
+        proxy for &ldquo;configured&rdquo;: a leftover <code>your_key_here</code> is ignored,
+        and the log says it was ignored rather than failing mysteriously later.</p>
+
+      <p>One combination refuses to start: real payment credentials with no webhook secret.
+        That pairing means checkout succeeds, the customer is charged, and no plan ever
+        activates, with nothing in the logs to say so. Failing at boot is much cheaper than
+        finding out from a refund request.</p>
+
+      <h2>Caps are still there, and they are yours</h2>
+
+      <p>Not a price ladder any more, but they still protect your database &mdash; the
+        connection pool is small on purpose, and a runaway loop takes the gateway down with
+        it. The defaults are roughly the middle paid tier. Raise them: <strong>it is your
+        hardware.</strong></p>
+
+      <p>They are still finite, though. Infinity is rejected at startup, because
+        &ldquo;as high as this was designed to go&rdquo; is a real answer and an invented
+        number is not.</p>
+
+      <h2>No telemetry</h2>
+
+      <p>Asserted as a constant in <code>shared/config/deployment.ts</code> rather than
+        promised in prose, so it shows up in a diff if it ever changes. Nothing here counts
+        installs, users or servers, and there is nothing to opt out of.</p>
+
+      <h2>Not handled</h2>
+
+      <p>Stated plainly rather than left to be discovered: sharding beyond a single process,
+        automatic migrations on upgrade, and backups. If you are running this for a community
+        that would notice losing its application history, the third one is yours to solve.</p>
+
+      <p class="doc-foot">The full version of this page, with the environment variable names
+        and the reasoning behind each decision, is
+        <a href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md">SELF_HOSTING.md</a>
+        in the repository. For a Raspberry&nbsp;Pi specifically, see
+        <a href="https://github.com/creeperdiamonds/appealy/blob/main/PI.md">PI.md</a>.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Operator checklist</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

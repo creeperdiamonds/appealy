@@ -57,6 +57,42 @@ Those flags are in the workflow now. With them, Cloud Run bills CPU
 continuously, which is roughly e2-micro pricing with more moving parts — a
 small Compute Engine VM is cheaper and simpler for the bot specifically.
 
+## The console proxies the API, and that needs two runtime env vars
+
+`web/nginx.conf` forwards `/auth/`, `/api/` and `/webhooks/` to the API rather
+than letting the browser call it directly, so the console and the API are one
+origin and the `SameSite=Lax` session cookie is first-party by construction.
+The reasoning is written at the top of that file; the Docker-shaped part of it
+is that the `web` service now reads two variables **at container start**, not
+at build time:
+
+| Variable | Compose | Cloud Run |
+|---|---|---|
+| `API_ORIGIN` | `http://api:3001` | the API service's `https://…` URL |
+| `DNS_RESOLVER` | `127.0.0.11` (Docker's embedded DNS) | `169.254.169.254` (the metadata server) |
+
+`DNS_RESOLVER` is not optional. `proxy_pass` built from a variable makes nginx
+resolve the backend per request, and nginx will not use the system resolver for
+that — without an explicit `resolver` directive the config fails to load at
+all. The upside of paying that cost is that a backend which changes address
+does not need an nginx restart to be noticed.
+
+`VITE_API_URL` went the other way: it is now **empty** by default. It is baked
+into the bundle at build time, so pointing it at an absolute URL puts the
+console and the API back on separate origins — which works on localhost, where
+the two differ only by port, and stops working the moment they are deployed to
+real hostnames. Changing it means rebuilding the image; changing `API_ORIGIN`
+means restarting the container. That asymmetry is why the proxy target is the
+one that is runtime config.
+
+**`/webhooks/` is proxied and `/health` is not**, deliberately. Tebex posts
+payment callbacks to `/webhooks`, and before that location existed the request
+fell through to the static `try_files` and got a 404 — checkout completed, the
+customer was charged, and the plan never activated, with nothing visible
+failing. `/health` stays off the console because it is Cloud Run's probe
+against the API service itself and has no reason to be reachable from a
+browser.
+
 ## Personal-site domain mapping — one-time, manual, not in the workflow
 
 `www.creeperdiamonds.xyz` is served by the same `web` container as Appealy,
@@ -134,5 +170,20 @@ access logs and rotation without redeploying.
 ```bash
 docker compose build --no-cache web    # this is the one that was broken
 docker compose up -d
-curl -I http://localhost:5173
+
+curl -s -o /dev/null -w "site      %{http_code}
+" http://localhost:5173/
+curl -s -o /dev/null -w "dashboard %{http_code}
+" http://localhost:5173/dashboard/
+curl -s -o /dev/null -w "proxy     %{http_code}
+" http://localhost:5173/api/invite
 ```
+
+Check all three, not just the first. A 200 on `/` only proves nginx started —
+the marketing site is static and would answer even with the proxy misconfigured
+and `API_ORIGIN` pointing at nothing. `/api/invite` is the cheapest request
+that has to travel the whole path to the API and back. **302 is the pass** —
+it is a redirect to Discord built from `DISCORD_CLIENT_ID`. A 404 means the
+proxy locations did not load and the request was answered by the static
+`try_files` instead; a 502 means they did load but `API_ORIGIN` or
+`DNS_RESOLVER` is wrong.

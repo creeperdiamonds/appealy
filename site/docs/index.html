@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/docs/index.html
+
+  The documentation hub. Four cards and an honest list of what is NOT here.
+
+  The "deliberately not here" table is load-bearing, not filler. The repository
+  carries two kinds of markdown — product documentation and engineering notes —
+  and the footer used to link both classes at GitHub indiscriminately. Publishing
+  SCALING.md on a marketing site would present an internal audit as a user
+  guide.
+
+  Written from the code and from the repository's own markdown, not from a
+  template. Every claim here is checkable against a file named beside it. If
+  one stops being true, the code changed: fix the code or fix this page, but
+  do not leave them disagreeing.
+
+  Static, like the rest of site/. No JavaScript. Documentation that renders
+  blank while a bundle downloads is documentation nobody reads, and this
+  section in particular has to answer when the app does not — "how do I get
+  in" is the question people ask precisely when they cannot get in.
+
+  Assets are root-relative (/site.css, /brand/...) matching every other page
+  here. That means these files do not render correctly opened straight off
+  disk from this subdirectory; preview them through the container, which is
+  where the extensionless URLs come from anyway.
+-->
+
+<title>Documentation — Appealy</title>
+<meta name="description" content="How Appealy works: getting started, ban appeals, review outcomes and self-hosting. Written from the code, with the file behind every claim.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/docs">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/docs">
+<meta property="og:title" content="Documentation — Appealy">
+<meta property="og:description" content="How Appealy works: getting started, ban appeals, review outcomes and self-hosting. Written from the code, with the file behind every claim.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+<meta property="og:image:alt" content="The Appealy mark: an open door.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Documentation — Appealy">
+<meta name="twitter:description" content="How Appealy works: getting started, ban appeals, review outcomes and self-hosting. Written from the code, with the file behind every claim.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs" aria-current="page">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav aria-label="Documentation">
+        <ul class="doc-nav">
+        <li><a href="/docs" aria-current="page">Documentation</a></li>
+        <li><a href="/docs/getting-started">Getting started</a></li>
+        <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+        <li><a href="/docs/outcomes">Review outcomes</a></li>
+        <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </nav>
+
+      <h1>Documentation</h1>
+      <p class="lede">Four documents, written from the code rather than around it. Each one
+        says what Appealy actually does, and where the reasoning behind it lives.</p>
+
+      <ul class="cards">
+        <li><a class="card card-link" href="/docs/getting-started">
+          <h3>Getting started</h3>
+          <p>Invite the bot, build a form, publish a panel. The three things that have to
+            happen outside the dashboard, and the seventeen slash commands.</p>
+        </a></li>
+        <li><a class="card card-link" href="/docs/ban-appeals">
+          <h3>Ban appeals</h3>
+          <p>The feature the product is named after. How a ban becomes a DM with a form,
+            and the rules the appeal system is deliberately shaped by.</p>
+        </a></li>
+        <li><a class="card card-link" href="/docs/outcomes">
+          <h3>Review outcomes</h3>
+          <p>&ldquo;Accept, as Trainee&rdquo; rather than one Accept button — and the two guards that
+            stop a review form becoming a privilege-escalation path.</p>
+        </a></li>
+        <li><a class="card card-link" href="/docs/self-hosting">
+          <h3>Self-hosting</h3>
+          <p>Run the whole thing on your own hardware for nothing. Billing off, caps yours,
+            no telemetry, and the one configuration mistake that breaks login.</p>
+        </a></li>
+      </ul>
+
+      <h2>How these are written</h2>
+
+      <p>Every page here cites the file it is describing. That is not decoration: it is the
+        only way a document like this stays true. A claim with a filename beside it can be
+        checked in ten seconds by anyone reading the repository, and it fails loudly when
+        the code moves. A claim without one quietly rots.</p>
+
+      <p>Where something is unfinished, these pages say so rather than describing the
+        intended version. Denial outcomes do not exist yet; the history purge ships
+        disabled; there is no ban-creation UI. Those are all stated on the page that would
+        otherwise imply otherwise.</p>
+
+      <div class="callout">
+        <strong>Nothing here is a promise about a future release.</strong> If a feature is
+        described in the present tense on this site, it is in <code>main</code> today. The
+        roadmap lives in the repository's issues, where it can be argued with.
+      </div>
+
+      <h2>What is deliberately not here</h2>
+
+      <p>The repository carries a second class of document — engineering notes written for
+        whoever is changing the code, not for whoever is running it. Those stay in the
+        repository, because putting them on a public site would present internal working
+        notes as product documentation:</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">In the repository</th><th scope="col">Is</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><a href="https://github.com/creeperdiamonds/appealy/blob/main/SCALING.md">SCALING.md</a></th>
+              <td>A scaling audit against the real code — what breaks first, and why it is the Postgres pool rather than the dashboard</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="https://github.com/creeperdiamonds/appealy/blob/main/STARTUP.md">STARTUP.md</a></th>
+              <td>Why command registration is a deploy step and not a boot step, and the Discord rate limit that decides it</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="https://github.com/creeperdiamonds/appealy/blob/main/DOCKER.md">DOCKER.md</a></th>
+              <td>Container and Cloud Run specifics: the port, the proxy, the domain mapping</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">SETUP.md</a></th>
+              <td>The operator checklist for the hosted deployment — migrations, caps, sharding, billing</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="https://github.com/creeperdiamonds/appealy/blob/main/PI.md">PI.md</a></th>
+              <td>Running the stack on a Raspberry&nbsp;Pi, including the parts that are about power supplies rather than software</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="doc-foot">Something on these pages wrong, or missing?
+        <a href="https://github.com/creeperdiamonds/appealy/issues">Open an issue</a> —
+        a documentation bug is a bug.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Operator checklist</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

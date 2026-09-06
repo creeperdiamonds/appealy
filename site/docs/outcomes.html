@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/docs/outcomes.html
+
+  Drawn from OUTCOMES.md, which is one of the few repository documents that is
+  genuinely product documentation rather than an engineering note -- it argues
+  a design rather than recording a port.
+
+  THE SECURITY SECTION COMES SECOND, NOT LAST. In the source document the
+  escalation surface is the section headed "the thing that decides whether this
+  is safe"; burying it under the UI discussion here would invert that. Someone
+  who reads only the first screen of this page should have read it.
+
+  The two ASCII blocks are copied from OUTCOMES.md with the box-drawing
+  characters written as entities, so the file stays ASCII-safe regardless of
+  what re-saves it. They illustrate; they are not a screenshot, and they are
+  cheaper to keep true than one would be.
+
+  Denial outcomes are NOT built. The callout near the end says so in those
+  words. If they ship, that callout is what changes -- do not let the page
+  drift into describing them in the present tense before then.
+
+  Written from the code and from the repository's own markdown, not from a
+  template. Every claim here is checkable against a file named beside it. If
+  one stops being true, the code changed: fix the code or fix this page, but
+  do not leave them disagreeing.
+
+  Static, like the rest of site/. No JavaScript. Documentation that renders
+  blank while a bundle downloads is documentation nobody reads, and this
+  section in particular has to answer when the app does not — "how do I get
+  in" is the question people ask precisely when they cannot get in.
+
+  Assets are root-relative (/site.css, /brand/...) matching every other page
+  here. That means these files do not render correctly opened straight off
+  disk from this subdirectory; preview them through the container, which is
+  where the extensionless URLs come from anyway.
+-->
+
+<title>Review outcomes — Appealy</title>
+<meta name="description" content="Accept an applicant as Trainee, Moderator or Head Moderator from one form, with two guards that stop a review form becoming a privilege-escalation path.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/docs/outcomes">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/docs/outcomes">
+<meta property="og:title" content="Review outcomes — Appealy">
+<meta property="og:description" content="Accept an applicant as Trainee, Moderator or Head Moderator from one form, with two guards that stop a review form becoming a privilege-escalation path.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+<meta property="og:image:alt" content="The Appealy mark: an open door.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Review outcomes — Appealy">
+<meta name="twitter:description" content="Accept an applicant as Trainee, Moderator or Head Moderator from one form, with two guards that stop a review form becoming a privilege-escalation path.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav aria-label="Documentation">
+        <ul class="doc-nav">
+        <li><a href="/docs">Documentation</a></li>
+        <li><a href="/docs/getting-started">Getting started</a></li>
+        <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+        <li><a href="/docs/outcomes" aria-current="page">Review outcomes</a></li>
+        <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </nav>
+
+      <h1>Review outcomes</h1>
+      <p class="lede">Review is modelled almost everywhere as accept or deny, which is not how
+        staffing decisions work. An outcome is <em>&ldquo;accept, as X&rdquo;</em> &mdash; its
+        own roles, its own message, its own log channel.</p>
+
+      <h2>The problem</h2>
+
+      <p>Someone applies for Trainee and reads as ready for Moderator. Someone applies for
+        Moderator and is worth taking on as Trainee. With a single Accept button both cases
+        require accepting into the wrong role and fixing it by hand, or denying a good
+        applicant and asking them to reapply.</p>
+
+      <p>So the reviewer picks from a menu instead:</p>
+
+<pre>Trainee application from @someone
+
+  &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+  &#9474; Accept as&hellip;                     &#9662; &#9474;
+  &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+        Trainee
+        limited perms, supervised
+        Moderator
+        full permissions, can ban members
+        Head Moderator
+        can manage other staff
+
+  [ Deny ]</pre>
+
+      <h2>Outcomes are a privilege-escalation surface</h2>
+
+      <p>This is the part that decides whether the feature is safe at all. The moment a form
+        can grant more than one role, &ldquo;who may pick which outcome&rdquo; stops being a
+        preference and becomes a security question.</p>
+
+      <p>A trainee moderator with permission to review trainee applications &mdash; normal,
+        and the reason this feature is wanted in the first place &mdash; could otherwise
+        accept their friend as Head Moderator through the trainee form. They never needed
+        Manage Roles. The application form became the escalation path.</p>
+
+      <p>Two guards:</p>
+
+      <h3>A minimum staff level, per outcome</h3>
+
+      <p>Ranked against the same permission levels the rest of the dashboard uses. Outcomes
+        above the reviewer&rsquo;s level are <strong>not rendered for them at all</strong>
+        &mdash; filtered, not rejected. A button that is visible and always fails teaches
+        people the bot is broken, and it leaks your staff hierarchy to anyone who can see the
+        review message.</p>
+
+      <p>The default is the lowest level, so nothing changes until you raise it. Raise it on
+        the outcomes that actually grant power.</p>
+
+      <h3>Role hierarchy, checked against the reviewer</h3>
+
+      <p>Not just against the bot. A reviewer may not grant a role at or above their own
+        highest. Discord enforces hierarchy for the bot and not for the human pressing the
+        button, so an admin-level reviewer sitting low in the Discord hierarchy could
+        otherwise hand out roles above themselves.</p>
+
+      <h2>Always a menu, never buttons</h2>
+
+      <p>Even with two outcomes, and even though a button would save a click.</p>
+
+      <ul>
+        <li><strong>Deny stops sharing a row with the accepts.</strong> This is the real
+          reason. With buttons, an irreversible action sits one misclick away from the thing
+          you are scanning across. Picking from a menu to accept and pressing a distinct
+          button to deny are different gestures, and hard to confuse when you are forty
+          applications deep.</li>
+        <li><strong>Descriptions are visible at decision time.</strong> A button shows a
+          label. A menu option shows <em>Moderator</em> with <em>full permissions, can ban
+          members</em> underneath. For a decision that hands out power, that line is worth
+          more than the click it costs.</li>
+        <li><strong>The interface does not reshuffle.</strong> With buttons, adding a fifth
+          outcome silently converts every review message in the server to a different
+          interaction, and everyone who had muscle memory starts misclicking.</li>
+      </ul>
+
+      <h2>The confirmation is not &ldquo;are you sure?&rdquo;</h2>
+
+      <p>That distinction is the whole design. It is on by default for every outcome and
+        mandatory for any with a raised staff level &mdash; you cannot disable the guard
+        where it is load-bearing.</p>
+
+<pre>  Accept @someone as Moderator?
+
+  Gains     @Moderator, @Staff
+  Loses     @Applicant, @Pending Review
+  They get  a DM with your accept message
+  Logged in #staff-log
+
+  &#9888; Won&rsquo;t be applied
+  @Admin &mdash; sits above my highest role.
+
+  [ Confirm ]  [ Cancel ]</pre>
+
+      <p>A prompt carrying no information gets clicked through within a day. That is not a
+        discipline problem: the reviewer learns the second click is part of the gesture and
+        stops reading, at which point it costs a click on every review and prevents
+        nothing.</p>
+
+      <p>This one carries things the reviewer does not already know. They picked a label from
+        a menu; here they find out it also strips <em>@Trusted</em>, or that the role list is
+        empty because the outcome was misconfigured, or that a role cannot be applied at all.
+        Those are worth catching, and they are what keeps the step worth reading at the
+        fortieth application &mdash; which is what stops the click becoming reflex.</p>
+
+      <p>Three details that follow from that:</p>
+
+      <ul>
+        <li><strong>Privileged outcomes look different.</strong> Red embed, warning line,
+          destructive button. Same reflex problem one layer up: if every confirm looks
+          identical, the dangerous one does not register as dangerous.</li>
+        <li><strong>The unmanageable-role warning moved earlier.</strong> It used to be
+          reported after accepting, which is too late &mdash; the applicant has already been
+          told they are a Moderator. It is now on the confirm, before anything happens.</li>
+        <li><strong>Ephemeral and single-use.</strong> Only the reviewer who chose can see or
+          fire it, bound to their user id. It is consumed on read, so a double-click cannot
+          apply twice, and it expires after two minutes.</li>
+      </ul>
+
+      <p>Because it is ephemeral, another reviewer can decide the same submission while a
+        confirm sits open. The handler re-checks the submission&rsquo;s status at confirm
+        time rather than trusting what was true when the menu opened.</p>
+
+      <h2>The audit trail does not rewrite itself</h2>
+
+      <p>The outcome label is stored on the submission as a snapshot, duplicated rather than
+        looked up. Outcomes get renamed and deleted; <em>&ldquo;accepted as Moderator on 3
+        June&rdquo;</em> has to stay true afterwards. An audit trail that changes when
+        someone edits a form is not an audit trail. Delete the outcome and the text
+        survives.</p>
+
+      <h2>Nothing changes until you add one</h2>
+
+      <p>A form with no outcomes behaves exactly as it always did: one Accept button using
+        the form&rsquo;s own role grants. Nothing migrates, and nothing changes for existing
+        servers until someone adds an outcome. The editor is reachable from the Outcomes
+        action on each row of the Forms page.</p>
+
+      <div class="callout">
+        <strong>Denial outcomes do not exist yet.</strong> <em>&ldquo;Denied, reapply in 30
+        days&rdquo;</em> and <em>&ldquo;denied, do not reapply&rdquo;</em> are different
+        decisions and are still flattened into one. The same argument applies in reverse, and
+        it is cheaper to add now that the accept side exists &mdash; but it is not built, so
+        this page does not describe it as though it were.
+      </div>
+
+      <p class="doc-foot">The same shape maps onto appeals &mdash; <em>unban</em>,
+        <em>unban with a warning</em>, <em>reduce to a timeout</em> &mdash; which is much
+        closer to how moderation decisions actually get made than accept or deny. See
+        <a href="/docs/ban-appeals">Ban appeals</a>.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Operator checklist</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

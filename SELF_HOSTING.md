@@ -12,6 +12,39 @@ docker compose up
 deno task sync-commands      # once, and after changing commands
 ```
 
+Then open **`http://localhost:5173/dashboard/`**. `/` is the marketing site
+and `/status/` is the status page; all three come out of the same container,
+split by path in `web/nginx.conf`.
+
+### One origin, and why the redirect URI is port 5173
+
+`DISCORD_REDIRECT_URI` ships as `http://localhost:5173/auth/discord/callback`.
+Paste that into the Developer Portal under **OAuth2 → Redirects**, character
+for character. Port 3001 is published so you can `curl` the API, but no
+browser should ever be pointed at it.
+
+The session cookie is `SameSite=Lax`, so the browser attaches it only when the
+request is same-**site** — registrable domain, not origin. If the console and
+the API answer on different hostnames the cookie is never sent, login appears
+to succeed, and every request after it comes back anonymous. CORS does not
+help: it governs whether a response may be *read*, not whether the cookie is
+*attached*.
+
+nginx therefore proxies `/auth/` and `/api/` from the console's own origin,
+and `VITE_API_URL` stays empty so the bundle calls them as relative paths.
+Leave it empty.
+
+**When you put this behind a real domain**, the whole set moves together:
+
+```
+DISCORD_REDIRECT_URI=https://appeals.example.com/auth/discord/callback
+FRONTEND_ORIGIN=https://appeals.example.com
+DASHBOARD_BASE_URL=https://appeals.example.com
+```
+
+All three name the console, and the redirect URI must be HTTPS — Discord
+rejects plain HTTP on anything that is not `localhost`.
+
 No Tebex account needed. That was the blocker — the payment credentials were
 unconditionally required, so a clone of an open-source project crashed on
 startup asking for a merchant account.

@@ -634,6 +634,96 @@ th.num {
 }
 
 /* ------------------------------------------------------------------ *
+ * Docs (/docs)
+ *
+ * The docs pages are `.prose` plus three things prose did not need until the
+ * repository's markdown moved onto the site: code blocks, a sibling-page nav,
+ * and cards that are whole links.
+ * ------------------------------------------------------------------ */
+
+/* No `pre` rule existed before this section, because no page had a code block
+ * — privacy and terms are running text. Docs have shell commands and env
+ * fragments, and an unstyled `pre` inherits the body background, which reads
+ * as a paragraph in the wrong font rather than as something you can copy. */
+pre {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  padding: 1rem 1.125rem;
+  margin: 1.25rem 0;
+  /* A command line is one line. Wrapping it mid-flag produces something that
+   * looks copyable and is not, so it scrolls instead — and the box scrolls,
+   * never the page. */
+  overflow-x: auto;
+  color: var(--text-dim);
+  max-width: 70ch;
+}
+/* `code` inside `pre` would otherwise draw its own inline chip on top of the
+ * block's background: a border and a fill around every line. */
+pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+.prose.wide > pre {
+  max-width: 70ch;
+}
+
+/* Sibling pages, above the heading. Not a sidebar: at 360px a sidebar becomes
+ * a stack of links the reader has to scroll past to reach the page they
+ * already chose, and there are five documents, not fifty. */
+.doc-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding: 0 0 1.75rem;
+  margin: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 0.9375rem;
+}
+.doc-nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.doc-nav a:hover {
+  color: var(--text);
+}
+.doc-nav a[aria-current="page"] {
+  color: var(--text);
+}
+
+/* The hub's index. `.card` with the whole tile as the link target, because a
+ * card whose only hit area is four words of heading is a card that gets
+ * missed on a phone. */
+.card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+.card-link:hover {
+  border-color: var(--accent-line);
+}
+.card-link h3 {
+  color: var(--text);
+}
+
+/* Where to go after reading one. Sits at the end of every docs page so the
+ * reader is never returned to a dead end. */
+.doc-foot {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-soft);
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ *
  * Footer
  * ------------------------------------------------------------------ */
 .site-footer {

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/docs/getting-started.html
+
+  The first-run page. Ordered by what actually blocks people rather than by what
+  is conceptually first: the three portal and deploy steps come before form
+  building because those are the ones that produce a bot which installs and then
+  does nothing.
+
+  THE INTENT LIST IS THE POINT OF THIS PAGE. Server Moderation gates
+  guildBanAdd, and without it a fully configured appeal system is silent with no
+  error anywhere to explain why. SETUP.md carries the same item as a launch step.
+
+  The command table is the seventeen files in bot/src/commands/, one row each,
+  with each description copied from the command definition. If a command is
+  added, add a row -- the "seventeen" on the landing page counts the same set.
+
+  Written from the code and from the repository's own markdown, not from a
+  template. Every claim here is checkable against a file named beside it. If
+  one stops being true, the code changed: fix the code or fix this page, but
+  do not leave them disagreeing.
+
+  Static, like the rest of site/. No JavaScript. Documentation that renders
+  blank while a bundle downloads is documentation nobody reads, and this
+  section in particular has to answer when the app does not — "how do I get
+  in" is the question people ask precisely when they cannot get in.
+
+  Assets are root-relative (/site.css, /brand/...) matching every other page
+  here. That means these files do not render correctly opened straight off
+  disk from this subdirectory; preview them through the container, which is
+  where the extensionless URLs come from anyway.
+-->
+
+<title>Getting started — Appealy</title>
+<meta name="description" content="Invite Appealy, turn on the intents ban appeals need, register the commands, build a form and publish a panel. All seventeen slash commands listed.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/docs/getting-started">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/docs/getting-started">
+<meta property="og:title" content="Getting started — Appealy">
+<meta property="og:description" content="Invite Appealy, turn on the intents ban appeals need, register the commands, build a form and publish a panel. All seventeen slash commands listed.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+<meta property="og:image:alt" content="The Appealy mark: an open door.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Getting started — Appealy">
+<meta name="twitter:description" content="Invite Appealy, turn on the intents ban appeals need, register the commands, build a form and publish a panel. All seventeen slash commands listed.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav aria-label="Documentation">
+        <ul class="doc-nav">
+        <li><a href="/docs">Documentation</a></li>
+        <li><a href="/docs/getting-started" aria-current="page">Getting started</a></li>
+        <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+        <li><a href="/docs/outcomes">Review outcomes</a></li>
+        <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </nav>
+
+      <h1>Getting started</h1>
+      <p class="lede">Invite the bot, build a form, publish a panel. Most of it happens in the
+        dashboard; three things cannot, and they are the three that cause the
+        &ldquo;it&nbsp;installed&nbsp;but&nbsp;nothing&nbsp;happens&rdquo; support ticket.</p>
+
+      <h2>1. Add the bot</h2>
+
+      <p>The <strong>Add to Discord</strong> button on this site is a redirect the API builds
+        from its own client id, so it always invites the deployment you are actually
+        looking at. It carries no server id, which is why Discord shows you the picker
+        rather than assuming.</p>
+
+      <p>The invite requests nine permissions. They are the set the features need, and
+        every one of them is load-bearing somewhere: manage roles to grant what an accept
+        grants, ban members to lift a ban when an appeal succeeds, manage channels for
+        ticket panels. An invite missing one produces a feature that silently does
+        nothing, which is the failure the dashboard&rsquo;s invite flow exists to prevent.</p>
+
+      <h2>2. Turn on the intents &mdash; including the moderation one</h2>
+
+      <p>Only relevant if you are running your own instance; on the hosted deployment these
+        are already on. In the
+        <a href="https://discord.com/developers/applications">Discord Developer Portal</a>,
+        under <strong>Bot</strong>:</p>
+
+      <ul>
+        <li><strong>Server Members Intent</strong> &mdash; without it the welcomer, the
+          verification gate and the auto-kick timer never see anyone join.</li>
+        <li><strong>Message Content Intent</strong></li>
+        <li><strong>Server Moderation</strong> &mdash; this is the one people miss.
+          Ban appeals are driven by the <code>guildBanAdd</code> gateway event, and Discord
+          does not send it until the portal agrees. The code is complete either way, so the
+          symptom is a ban appeal system that is configured, enabled, and silent.</li>
+      </ul>
+
+      <h2>3. Register the slash commands</h2>
+
+      <p>Once per deployment, and again after changing a command:</p>
+
+<pre><code>cd bot &amp;&amp; deno task sync-commands</code></pre>
+
+      <p>This is deliberately a deploy step rather than something that happens on boot.
+        Discord allows <strong>200 global command creates per day per application</strong>,
+        and a bot that registers on every start spends that budget on crash loops &mdash; at
+        which point it cannot start at all until the window resets, which is a far worse
+        outage than whatever caused the loop.</p>
+
+      <h2>4. Build a form</h2>
+
+      <p>Open <a href="/dashboard/">the dashboard</a> and pick your server. A form is a list
+        of questions plus what happens when one is accepted: which roles are granted, which
+        are removed, what the applicant is sent, and where it is logged.</p>
+
+      <p>Two things worth setting up front:</p>
+
+      <ul>
+        <li><strong>Cooldowns and limits.</strong> A form with neither is a form one person
+          can submit forty times. <code>/reset-cooldown</code> exists for when you want to
+          let a specific person retry.</li>
+        <li><strong>Answer validation.</strong> Questions can require a minimum and maximum
+          length, and optionally a regular expression &mdash;
+          <code>^[A-Za-z0-9_]{3,16}$</code> for a Minecraft username, say. It is enforced at
+          both submission points, the in-server modal and the DM flow, through the same
+          shared code so the two cannot drift apart.</li>
+      </ul>
+
+      <h2>5. Publish a panel</h2>
+
+      <p>A panel is the message with the button on it. <code>/panel</code> creates and
+        publishes one; the dashboard manages them. This is the step that makes a form
+        reachable &mdash; a form with no panel exists and nobody can find it.</p>
+
+      <p>Applicants can also use <code>/apply</code>, and <code>/forms</code> lists what is
+        available in the server.</p>
+
+      <h2>The commands</h2>
+
+      <p>Seventeen, and this is all of them:</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Command</th><th scope="col">Does</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><code>/apply</code></th><td>Apply for an application form in this server</td></tr>
+            <tr><th scope="row"><code>/forms</code></th><td>List all application forms configured in this server</td></tr>
+            <tr><th scope="row"><code>/panel</code></th><td>Manage application panels</td></tr>
+            <tr><th scope="row"><code>/ticket-panel</code></th><td>Manage ticket panels</td></tr>
+            <tr><th scope="row"><code>/role-menu</code></th><td>Manage self-assignable role menus</td></tr>
+            <tr><th scope="row"><code>/verify-setup</code></th><td>Configure and publish server verification</td></tr>
+            <tr><th scope="row"><code>/anti-raid</code></th><td>Configure join-velocity raid detection</td></tr>
+            <tr><th scope="row"><code>/giveaway</code></th><td>Manage giveaways</td></tr>
+            <tr><th scope="row"><code>/poll</code></th><td>Create and publish a poll</td></tr>
+            <tr><th scope="row"><code>/reset-cooldown</code></th><td>Clear one user&rsquo;s cooldown or limit for one application form</td></tr>
+            <tr><th scope="row"><code>/dashboard</code></th><td>Get a link to the web dashboard for this server</td></tr>
+            <tr><th scope="row"><code>/botstats</code></th><td>Show bot health and usage stats</td></tr>
+            <tr><th scope="row"><code>/ping</code></th><td>Check the bot&rsquo;s latency</td></tr>
+            <tr><th scope="row"><code>/export_applications</code></th><td>Export submitted applications to a CSV file</td></tr>
+            <tr><th scope="row"><code>/export</code></th><td>Export all of this server&rsquo;s Appealy data as a JSON file (owner only)</td></tr>
+            <tr><th scope="row"><code>/import-appealy</code></th><td>Import another server&rsquo;s Appealy setup from an <code>/export</code> file</td></tr>
+            <tr><th scope="row"><code>/import-appy</code></th><td>Import Appy application submissions into an Appealy form (owner only)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout is-accent">
+        <strong><code>/export</code> is not a formality.</strong> It writes every form,
+        panel, submission and answer this server has as one JSON file, and
+        <code>/import-appealy</code> reads it back. Leaving is a supported operation rather
+        than something you negotiate with support &mdash; which is the point of it existing
+        before you need it.
+      </div>
+
+      <h2>Signing in</h2>
+
+      <p>The dashboard signs you in through Discord in a popup rather than by navigating the
+        page away, so the console keeps its state instead of being torn down and rebuilt
+        around a redirect. If the popup is blocked &mdash; no user gesture, or Discord&rsquo;s
+        own in-app browser, which does not give a popup an opener to talk back through
+        &mdash; it falls back to a full-page redirect on its own.</p>
+
+      <p>Nothing sensitive crosses that boundary. The session is an httpOnly cookie the
+        browser holds and no script can read; the message the popup posts back carries only
+        whether it worked.</p>
+
+      <p class="doc-foot">Next: <a href="/docs/ban-appeals">Ban appeals</a>, or
+        <a href="/docs/outcomes">Review outcomes</a> if you are setting up a staff
+        application with more than one possible yes.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Operator checklist</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

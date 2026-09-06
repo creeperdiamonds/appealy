@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/docs/ban-appeals.html
+
+  Drawn from APPEALS.md. The first half of that document is a port log and a
+  bug write-up for whoever is changing the code; only the second half -- "The
+  rules, and why they're shaped this way" -- is public-facing, and that is the
+  half this page carries.
+
+  Every number here is read out of APPEAL_RULES in shared/schema/platformBans.ts
+  -- five attempts for an automated ban and three for a reviewed one
+  (maxAttemptsAutomated, maxAttemptsReviewed), 30 days between attempts
+  (cooldownDays), 180 days to reopen (reopenAfterDays), two apologies for life
+  (maxApologiesLifetime) -- except the twenty-character denial note, which is
+  enforced in api/src/routes/opsAppeals.ts. Nothing generates this page. If a
+  constant changes, change it here in the same commit: a published promise the
+  code does not keep is worse than no page.
+
+  The word "final" appears once, in the opening quotation of the sentence this
+  project was written in response to. That is the only place it belongs. The
+  rule it describes is that no string the PRODUCT shows a banned person uses
+  it, so do not "improve" a paragraph below into saying a decision is never
+  final -- that puts the word back in front of exactly the reader it was kept
+  away from.
+
+  Written from the code and from the repository's own markdown, not from a
+  template. Every claim here is checkable against a file named beside it. If
+  one stops being true, the code changed: fix the code or fix this page, but
+  do not leave them disagreeing.
+
+  Static, like the rest of site/. No JavaScript. Documentation that renders
+  blank while a bundle downloads is documentation nobody reads, and this
+  section in particular has to answer when the app does not — "how do I get
+  in" is the question people ask precisely when they cannot get in.
+
+  Assets are root-relative (/site.css, /brand/...) matching every other page
+  here. That means these files do not render correctly opened straight off
+  disk from this subdirectory; preview them through the container, which is
+  where the extensionless URLs come from anyway.
+-->
+
+<title>Ban appeals — Appealy</title>
+<meta name="description" content="How a Discord ban becomes a DM with an appeal form, and the rules Appealy's appeal system is deliberately shaped by: attempts pause and never end, denials need a real sentence, and nothing is ever called final.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/docs/ban-appeals">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/docs/ban-appeals">
+<meta property="og:title" content="Ban appeals — Appealy">
+<meta property="og:description" content="How a Discord ban becomes a DM with an appeal form, and the rules Appealy's appeal system is deliberately shaped by: attempts pause and never end, denials need a real sentence, and nothing is ever called final.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+<meta property="og:image:alt" content="The Appealy mark: an open door.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ban appeals — Appealy">
+<meta name="twitter:description" content="How a Discord ban becomes a DM with an appeal form, and the rules Appealy's appeal system is deliberately shaped by: attempts pause and never end, denials need a real sentence, and nothing is ever called final.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav aria-label="Documentation">
+        <ul class="doc-nav">
+        <li><a href="/docs">Documentation</a></li>
+        <li><a href="/docs/getting-started">Getting started</a></li>
+        <li><a href="/docs/ban-appeals" aria-current="page">Ban appeals</a></li>
+        <li><a href="/docs/outcomes">Review outcomes</a></li>
+        <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </nav>
+
+      <h1>Ban appeals</h1>
+      <p class="lede">Appealy exists because a bot once said <em>&ldquo;this decision is final
+        and cannot be appealed.&rdquo;</em> Everything on this page is shaped against becoming
+        that.</p>
+
+      <h2>Two different things are called an appeal</h2>
+
+      <p>They are unrelated systems, and confusing them is the main hazard in this area.</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col">Server ban appeals</th>
+              <th scope="col">Platform bans</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Who bans</th><td>A server bans its own member</td><td>We ban a user or server from the bot</td></tr>
+            <tr><th scope="row">Appeals to</th><td>That server&rsquo;s staff</td><td>Us</td></tr>
+            <tr><th scope="row">Entry point</th><td>The ban itself &mdash; a DM with a form</td><td>The ban screen on the dashboard</td></tr>
+            <tr><th scope="row">Reviewed in</th><td>The server&rsquo;s own submission queue</td><td>The operator queue, behind an explicit allow-list</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Server staff can never see platform bans, and there is no path from one to the
+        other. The separation is enforced in the schema rather than by convention, so
+        nobody can wire them together by accident.</p>
+
+      <p><strong>The next section is about the first column</strong> &mdash; the appeals your
+        own server runs. The section after it is about the second, the bans we issue against
+        the bot itself, and it is there because the rules we hold ourselves to are the ones
+        worth publishing.</p>
+
+      <h2>How a server ban appeal works</h2>
+
+      <ol>
+        <li>Someone is banned. Appealy sees the gateway&rsquo;s ban event &mdash; which needs
+          the <strong>Server Moderation</strong> intent enabled in the Developer Portal, or
+          nothing below ever happens. See
+          <a href="/docs/getting-started">Getting started</a>.</li>
+        <li>They are DM&rsquo;d, with the reason and a link to the appeal, and walked through
+          the appeal form one question at a time.</li>
+        <li>The appeal lands in the same review queue as everything else, so staff review it
+          the way they review an application.</li>
+        <li>An accept lifts the ban. That is the whole point of the accept &mdash; it is not
+          a note that someone then has to action by hand.</li>
+      </ol>
+
+      <p>An appeal form is a normal form with its kind set to <em>appeal</em>, and it must be
+        delivered by direct message: a banned member cannot see a channel to press a button
+        in. The API enforces that pairing on create <em>and</em> on edit, against the merged
+        row rather than only the fields sent, because each half passes on its own and the
+        combination produces an appeal form no banned user can reach.</p>
+
+      <div class="callout">
+        <strong>Two states the dashboard warns about</strong>, because neither produces an
+        error: an appeal system that is enabled with no form selected, and a form that is
+        set with the ban-time DM switched off. Both mean there is no entry point at all,
+        and both are otherwise discovered months later when nobody has appealed.
+      </div>
+
+      <h2>The rules we hold ourselves to</h2>
+
+      <p>This section is about platform bans &mdash; the ones we issue. Your server sets its
+        own policy and we do not constrain it; what follows is what the code enforces on
+        <em>us</em>, and it is published because a promise nobody can check is not a promise.</p>
+
+      <p>The platform ban system could easily have become a queue-protection pattern copied
+        from anywhere else. These are the decisions that stop it.</p>
+
+      <h3>Automated bans get more attempts than reviewed ones</h3>
+
+      <p>Five versus three. A ban nobody looked at is the most likely to be wrong, and the
+        person on the other end did nothing to deserve a shorter rope than someone a human
+        actually considered.</p>
+
+      <h3>Running out of attempts pauses appeals. It never ends them</h3>
+
+      <p>Attempts are spaced 30 days apart, and once they are exhausted the counter resets
+        180 days later with a fresh allowance. The message says the date. &ldquo;You may
+        appeal again on a day you can count towards&rdquo; is something a person can plan
+        around; &ldquo;you are out of appeals&rdquo; is not.</p>
+
+      <p>The reopen window is deliberately finite rather than large. Six months is a long
+        time to wait, and it is a different thing from never, which is the distinction the
+        whole system turns on.</p>
+
+      <p>The limits are real, and they are not there to be dismissive: one person filing
+        fifty appeals buries every genuine one behind them, and the people that harms are
+        the other appellants. Protecting the queue is protecting them. It just does not
+        require telling anyone their case is closed forever.</p>
+
+      <h3>An apology is a second lane, and it is scarce on purpose</h3>
+
+      <p>Two per person, for life, never reset &mdash; deliberately unlike every other limit
+        here. That looks like a contradiction of the rule above, so it is worth being
+        precise: running out of apologies takes nothing away. The appeal path stays open on
+        its own schedule, and it is the path that can actually overturn a ban. An apology is
+        an extra lane offered on top, and it only works <em>because</em> it is scarce.</p>
+
+      <p>Two rather than one because the first is often spent early and clumsily, by someone
+        who has just been banned and is not thinking well. Two rather than three because by
+        the third, &ldquo;I am sorry&rdquo; is a form response.</p>
+
+      <h3>Denials require a real sentence</h3>
+
+      <p>At least twenty characters, enforced by the API rather than requested in a
+        placeholder. &ldquo;Denied&rdquo; is technically a note and tells the appellant
+        nothing. There is a second reason for the rule: if a ban cannot be explained in
+        twenty characters, that is worth noticing <em>before</em> the denial goes out.</p>
+
+      <h3>The word &ldquo;final&rdquo; appears in no user-facing string</h3>
+
+      <p>Anywhere. It is a thing to grep for before merging anything in this area.</p>
+
+      <h3>Ban notices always state the reason and always link the appeal</h3>
+
+      <p>Unqualified, with no configuration flag to turn either half off.</p>
+
+      <h2>The structural argument</h2>
+
+      <p>The strongest thing here is not any single rule. It is that a self-hosted bot means
+        a false ban from <em>us</em> is survivable in a way a false ban from a hosted bot is
+        not &mdash; they hold the token, you do not. Every rule above is a promise, and a
+        promise is only worth what happens when it is broken. Being able to take the whole
+        thing and run it yourself is what makes the promise cost something.</p>
+
+      <p class="doc-foot">Next: <a href="/docs/outcomes">Review outcomes</a>, which is where
+        <em>unban</em>, <em>unban with a warning</em> and <em>reduce to a timeout</em> will
+        live once denial outcomes exist &mdash; or
+        <a href="/docs/self-hosting">Self-hosting</a> for the argument above, in commands.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Source</h2>
+        <ul>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md">Operator checklist</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/brand/README.md">The mark</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

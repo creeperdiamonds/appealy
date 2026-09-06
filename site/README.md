@@ -1,6 +1,6 @@
 # Public site
 
-Six pages, one stylesheet, and two files for crawlers. No build step, no
+Eleven pages, one stylesheet, and two files for crawlers. No build step, no
 framework, no bundler, and no JavaScript at all.
 
 | File | Is |
@@ -13,7 +13,8 @@ framework, no bundler, and no JavaScript at all.
 | `tebex.html` | Front door for a Tebex review — links to what is sold, what it costs, the terms, the privacy policy and refunds rather than restating them |
 | `site.css` | Shared styles |
 | `robots.txt` | Allows everything, names the answer-engine crawlers explicitly, points at the sitemap |
-| `sitemap.xml` | The five canonical URLs, with no `lastmod` — see the comment in the file |
+| `docs/` | Five documentation pages — see below |
+| `sitemap.xml` | The ten canonical URLs, with no `lastmod` — see the comment in the file |
 
 ## The URLs are extensionless, and the sitemap has to match
 
@@ -22,8 +23,57 @@ Every page's `<link rel="canonical">` points at `/pricing`, not
 the extensionless form: listing the other would ask Google to index one URL
 while every page's canonical names a different one.
 
-If you change how the host maps URLs to files, `sitemap.xml` and the five
-canonical tags have to move together.
+If you change how the host maps URLs to files, `sitemap.xml` and the canonical
+tags have to move together.
+
+`/docs` is the one directory, and it resolves through the same `try_files`
+chain in `web/nginx.conf` — `$uri` misses, `$uri.html` misses, `$uri/` hits the
+directory and nginx serves its `index.html`. So the canonical is the bare
+`/docs`, with no trailing slash and no `/index.html`, and the sitemap says the
+same.
+
+## `docs/` — the documentation section
+
+| File | Is |
+|---|---|
+| `docs/index.html` | The hub. Four cards, plus an explicit list of what is *not* published and why |
+| `docs/getting-started.html` | Invite, intents, command registration, first form, first panel, all seventeen commands |
+| `docs/ban-appeals.html` | The two things called "appeal", and the rules the platform ban system holds itself to |
+| `docs/outcomes.html` | "Accept, as X", and the two guards that stop it becoming a privilege-escalation path |
+| `docs/self-hosting.html` | Running it yourself, including the SameSite mistake that silently breaks login |
+
+**Assets are root-relative here** (`/site.css`, `/brand/…`), like every other
+page on this site. The top-level pages link `site.css` relatively, which is the
+one inconsistency left; both resolve identically from a web root, and only the
+root-relative form resolves from a subdirectory. Preview these through the
+container rather than by opening the file, which is where the extensionless
+URLs come from anyway.
+
+### The repository has two kinds of markdown, and only one kind belongs here
+
+`APPEALS.md`, `OUTCOMES.md` and `SELF_HOSTING.md` argue a design to whoever is
+*running* the thing. `SCALING.md`, `STARTUP.md`, `DOCKER.md`, `SETUP.md`,
+`PI.md`, `POC.md` and `CHANGES.md` are notes to whoever is *changing* it —
+audits, port logs, checklists, a scaling report written against real line
+numbers.
+
+Only the first group is on the site. `docs/index.html` names the second group
+in a table and links it at GitHub, so nothing is hidden; what it does not do is
+present an internal audit as product documentation. **If you add a document to
+the repository, decide which group it is in before deciding whether it gets a
+page.**
+
+### These pages restate constants, and nothing checks them
+
+Same hazard as `pricing.html`. The appeal numbers on `docs/ban-appeals.html` —
+three attempts, five, thirty days, a hundred and eighty, two apologies — are
+read out of `APPEAL_RULES` in `shared/schema/platformBans.ts`, and the
+twenty-character denial note is enforced in `api/src/routes/opsAppeals.ts`.
+The command table on `docs/getting-started.html` is the seventeen files in
+`bot/src/commands/`, with each description copied from its definition.
+
+Nothing generates any of it. **Change a constant, change the page in the same
+commit** — a published promise the code does not keep is worse than no page.
 
 ## Why it's static
 
@@ -43,8 +93,8 @@ for "is Appealy down".
 markup with a real `<title>`, a description, Open Graph tags and JSON-LD costs
 nothing here and is a fight with a client-side router anywhere else.
 
-**It's five documents.** A framework would earn its place if there were state
-to manage. There is none.
+**It's a folder of documents.** A framework would earn its place if there were
+state to manage. There is none.
 
 ## Serving it
 
@@ -56,6 +106,12 @@ to manage. There is none.
 /privacy.html
 /terms.html
 /tebex.html
+/appy-alternative.html
+/docs         -> site/docs/index.html   (via try_files $uri/)
+/docs/getting-started.html
+/docs/ban-appeals.html
+/docs/outcomes.html
+/docs/self-hosting.html
 /site.css
 /brand/      -> brand/            (wordmark.svg, icon.svg, favicon.svg)
 /dashboard   -> the console (web/)

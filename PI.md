@@ -112,3 +112,12 @@ If you expose the dashboard beyond your LAN, put it behind a reverse proxy
 with TLS (Caddy is the least work on a Pi) and set `DISCORD_REDIRECT_URI` to
 the public HTTPS URL — Discord will reject a plain-HTTP redirect on a
 non-localhost host.
+
+Point it at the **console's** URL, the one that serves `/dashboard/`, and move
+`FRONTEND_ORIGIN` and `DASHBOARD_BASE_URL` to the same host in the same edit.
+The API must stay behind that one origin too: the `web` container already
+proxies `/auth/` and `/api/` to it, so Caddy needs a single upstream, not two.
+Publishing the API on a second hostname breaks login in a way that looks like a
+session bug — the `SameSite=Lax` cookie is never attached, so signing in
+appears to work and every request afterwards is anonymous. `SELF_HOSTING.md`
+has the long version.
