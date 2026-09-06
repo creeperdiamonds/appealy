@@ -126,8 +126,23 @@ every player who saved the address with its port, and for every Bedrock
 client — neither of which uses the SRV record that would otherwise save them.
 
 This is created **once**, not per deploy. `deploy-merged.yml` builds and
-deploys the `web` service on every merge; it does not touch domain mappings,
-and re-running it is not how DNS or the mapping get updated.
+deploys the `web` service, but it does not touch domain mappings, and
+re-running it is not how DNS or the mapping get updated.
+
+**Nothing deploys on a merge.** Both `deploy-merged.yml` and
+`deploy-cloudrun.yml` are `workflow_dispatch` only; the sole workflow that runs
+on a push to `main` is `ci.yml`. So a green tick on a commit means the tests
+passed, not that the change is live — pushing a fix to `site/`, `web/nginx.conf`
+or anything else in the image changes nothing that is being served until someone
+runs the deploy by hand:
+
+```bash
+gh workflow run deploy-merged.yml -f migrations=skip
+```
+
+`migrations` defaults to `apply` in the workflow's own input, which is right for
+a normal deploy and wrong for one that only changes static files. Pass `skip`
+when the commit touches nothing under `db/migrations/`.
 
 ### Verifying
 

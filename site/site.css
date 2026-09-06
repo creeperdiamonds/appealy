@@ -596,6 +596,7 @@ th.num {
 .prose.wide > p,
 .prose.wide > ul,
 .prose.wide > ol,
+.prose.wide > pre,
 .prose.wide > .callout {
   max-width: 70ch;
 }
@@ -669,10 +670,6 @@ pre code {
   padding: 0;
   font-size: inherit;
 }
-.prose.wide > pre {
-  max-width: 70ch;
-}
-
 /* Sibling pages, above the heading. Not a sidebar: at 360px a sidebar becomes
  * a stack of links the reader has to scroll past to reach the page they
  * already chose, and there are five documents, not fifty. */
