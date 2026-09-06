@@ -12,6 +12,18 @@
   rules, and why they're shaped this way" -- is public-facing, and that is the
   half this page carries.
 
+  THREE SYSTEMS, NOT TWO. APPEALS.md's own table has two columns because it
+  splits on WHO REVIEWS -- the server, or us. That is the right split for
+  someone reading the schema and the wrong one for someone who has just been
+  told they cannot use the bot, because a platform ban lands on either an
+  account or a whole server and those are not the same experience: different
+  wording, different person allowed to file, different thing being taken away.
+  So this page splits on WHAT WAS BANNED and carries three columns.
+
+  They remain one implementation -- one table, one set of rules, a `subject`
+  column of "user" or "guild". The only place the two branch is authorization,
+  and the page says so rather than implying a second system exists.
+
   Every number here is read out of APPEAL_RULES in shared/schema/platformBans.ts
   -- five attempts for an automated ban and three for a reviewed one
   (maxAttemptsAutomated, maxAttemptsReviewed), 30 days between attempts
@@ -45,19 +57,19 @@
 -->
 
 <title>Ban appeals — Appealy</title>
-<meta name="description" content="How a Discord ban becomes a DM with an appeal form, and the rules Appealy's appeal system is deliberately shaped by: attempts pause and never end, denials need a real sentence, and nothing is ever called final.">
+<meta name="description" content="The three appeal systems in Appealy: a server's own ban appeals, and platform bans against an account or against a whole server. Attempts pause and never end; denials need a real sentence.">
 <link rel="canonical" href="https://appealy.creeperdiamonds.xyz/docs/ban-appeals">
 
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Appealy">
 <meta property="og:url" content="https://appealy.creeperdiamonds.xyz/docs/ban-appeals">
 <meta property="og:title" content="Ban appeals — Appealy">
-<meta property="og:description" content="How a Discord ban becomes a DM with an appeal form, and the rules Appealy's appeal system is deliberately shaped by: attempts pause and never end, denials need a real sentence, and nothing is ever called final.">
+<meta property="og:description" content="The three appeal systems in Appealy: a server's own ban appeals, and platform bans against an account or against a whole server. Attempts pause and never end; denials need a real sentence.">
 <meta property="og:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
 <meta property="og:image:alt" content="The Appealy mark: an open door.">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Ban appeals — Appealy">
-<meta name="twitter:description" content="How a Discord ban becomes a DM with an appeal form, and the rules Appealy's appeal system is deliberately shaped by: attempts pause and never end, denials need a real sentence, and nothing is ever called final.">
+<meta name="twitter:description" content="The three appeal systems in Appealy: a server's own ban appeals, and platform bans against an account or against a whole server. Attempts pause and never end; denials need a real sentence.">
 <meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/brand/icon.svg">
 
 <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
@@ -105,36 +117,100 @@
         and cannot be appealed.&rdquo;</em> Everything on this page is shaped against becoming
         that.</p>
 
-      <h2>Two different things are called an appeal</h2>
+      <h2>Three things are called an appeal</h2>
 
-      <p>They are unrelated systems, and confusing them is the main hazard in this area.</p>
+      <p>They are separate systems, and confusing them is the main hazard in this area. The
+        first is the product: your server, moderating its own members. The other two are us
+        moderating our own platform, and they split by <em>what</em> was banned &mdash; an
+        account or a whole server.</p>
 
       <div class="table-scroll">
         <table>
           <thead>
             <tr>
               <th scope="col"></th>
-              <th scope="col">Server ban appeals</th>
-              <th scope="col">Platform bans</th>
+              <th scope="col">1. Server ban appeal</th>
+              <th scope="col">2. Platform ban, account</th>
+              <th scope="col">3. Platform ban, server</th>
             </tr>
           </thead>
           <tbody>
-            <tr><th scope="row">Who bans</th><td>A server bans its own member</td><td>We ban a user or server from the bot</td></tr>
-            <tr><th scope="row">Appeals to</th><td>That server&rsquo;s staff</td><td>Us</td></tr>
-            <tr><th scope="row">Entry point</th><td>The ban itself &mdash; a DM with a form</td><td>The ban screen on the dashboard</td></tr>
-            <tr><th scope="row">Reviewed in</th><td>The server&rsquo;s own submission queue</td><td>The operator queue, behind an explicit allow-list</td></tr>
+            <tr>
+              <th scope="row">Who bans</th>
+              <td>A server bans its own member</td>
+              <td colspan="2">We ban someone from Appealy itself</td>
+            </tr>
+            <tr>
+              <th scope="row">What is banned</th>
+              <td>One member, in one server</td>
+              <td>One Discord account</td>
+              <td>One Discord server</td>
+            </tr>
+            <tr>
+              <th scope="row">What it stops</th>
+              <td>Being in that server</td>
+              <td>That account using Appealy anywhere</td>
+              <td>Appealy working in that server, for everyone in it</td>
+            </tr>
+            <tr>
+              <th scope="row">Who may appeal</th>
+              <td>The banned member</td>
+              <td>The banned account, and nobody else</td>
+              <td>Anyone with Manage Server on it</td>
+            </tr>
+            <tr>
+              <th scope="row">Appeals to</th>
+              <td>That server&rsquo;s staff</td>
+              <td colspan="2">Us</td>
+            </tr>
+            <tr>
+              <th scope="row">Entry point</th>
+              <td>The ban itself &mdash; a DM with a form</td>
+              <td colspan="2">The ban screen, wherever they next try to use the bot</td>
+            </tr>
+            <tr>
+              <th scope="row">Reviewed in</th>
+              <td>The server&rsquo;s own submission queue</td>
+              <td colspan="2">The operator queue, behind an explicit allow-list</td>
+            </tr>
           </tbody>
         </table>
       </div>
 
       <p>Server staff can never see platform bans, and there is no path from one to the
-        other. The separation is enforced in the schema rather than by convention, so
-        nobody can wire them together by accident.</p>
+        other. The separation is enforced in the schema rather than by convention, so nobody
+        can wire them together by accident.</p>
+
+      <h3>Why 2 and 3 are one system and not two</h3>
+
+      <p>They are the same table, distinguished by a single column saying whether the subject
+        is an account or a server. That is deliberate: the rules below &mdash; the attempt
+        counts, the reopen window, the requirement that a denial be written out &mdash; are
+        the part worth getting right, and they should not quietly differ depending on which
+        kind of thing was banned.</p>
+
+      <p>What genuinely differs is <strong>who is allowed to file</strong>, and it is the one
+        place the two are checked differently:</p>
+
+      <ul>
+        <li><strong>An account ban</strong> can only be appealed by that account. Nobody
+          appeals on someone else&rsquo;s behalf.</li>
+        <li><strong>A server ban</strong> is appealed by anyone who owns it or holds Manage
+          Server &mdash; verified against Discord&rsquo;s live answer at the moment of
+          filing, not against a stored role and not against our own record of who is in
+          which server, either of which can be out of date by the time it matters.</li>
+      </ul>
+
+      <p>The distinction shows up in what the banned party is told, too. An account ban says
+        <em>your account can&rsquo;t use Appealy</em> and points you at the appeal. A server
+        ban says <em>this server can&rsquo;t use Appealy</em> and says that anyone with
+        Manage Server can appeal &mdash; because the person who happened to run the command
+        is very often not the person who can do anything about it.</p>
 
       <p><strong>The next section is about the first column</strong> &mdash; the appeals your
-        own server runs. The section after it is about the second, the bans we issue against
-        the bot itself, and it is there because the rules we hold ourselves to are the ones
-        worth publishing.</p>
+        own server runs, which is the feature you are here for. The section after it covers
+        the other two, and it is published because the rules we hold ourselves to are the
+        ones worth being able to check.</p>
 
       <h2>How a server ban appeal works</h2>
 
@@ -166,9 +242,11 @@
 
       <h2>The rules we hold ourselves to</h2>
 
-      <p>This section is about platform bans &mdash; the ones we issue. Your server sets its
-        own policy and we do not constrain it; what follows is what the code enforces on
-        <em>us</em>, and it is published because a promise nobody can check is not a promise.</p>
+      <p>This section is about the second and third columns &mdash; the bans we issue, against
+        an account or against a server. Your own server sets its own policy and we do not
+        constrain it; what follows is what the code enforces on <em>us</em>, and it applies
+        identically to both kinds. It is published because a promise nobody can check is not
+        a promise.</p>
 
       <p>The platform ban system could easily have become a queue-protection pattern copied
         from anywhere else. These are the decisions that stop it.</p>

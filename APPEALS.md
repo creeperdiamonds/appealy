@@ -1,17 +1,53 @@
-# Two things called "appeal"
+# Three things called "appeal"
 
-Unrelated systems. Confusing them is the main hazard in this area.
+Confusing them is the main hazard in this area.
 
-| | Guild ban appeals | Platform bans |
-|---|---|---|
-| Who bans | A guild bans its own member | We ban a user/guild from the bot |
-| Appeals to | That guild's staff | Us |
-| Tables | `appeal_configs`, `forms.kind='appeal'` | `platform_bans`, `platform_ban_appeals` |
-| Entry point | `guildBanAdd` → DM with a form | Ban screen on the dashboard |
-| Reviewed in | The guild's submission queue | `/api/ops`, behind `OPS_USER_IDS` |
+| | 1. Guild ban appeal | 2. Platform ban, account | 3. Platform ban, guild |
+|---|---|---|---|
+| Who bans | A guild bans its own member | We ban a user from the bot | We ban a guild from the bot |
+| Subject | A member of one guild | `subject='user'` | `subject='guild'` |
+| What it stops | Being in that guild | That account, everywhere | The bot, for everyone in that guild |
+| Who may file | The banned member | That account only | Owner, or `MANAGE_GUILD` |
+| Appeals to | That guild's staff | Us | Us |
+| Tables | `appeal_configs`, `forms.kind='appeal'` | `platform_bans`, `platform_ban_appeals` | same |
+| Entry point | `guildBanAdd` → DM with a form | `banGate.ts`, on the next interaction | same |
+| Reviewed in | The guild's submission queue | `/api/ops`, behind `OPS_USER_IDS` | same |
 
 Guild staff can never see `platform_bans`. The prefix exists so nobody wires
 one to the other.
+
+## Two and three are one implementation, split on one column
+
+`banSubjectEnum` is `["user", "guild"]` and that is the whole difference in
+storage. Keeping them in one table is deliberate — `APPEAL_RULES` is the part
+worth getting right, and attempt counts, the reopen window and the
+twenty-character denial note should not quietly diverge by subject.
+
+**Authorization is the one place they branch**, in `platformAppeals.ts`:
+
+- `subject='user'` — `ban.subjectId !== appellantId` is a 403. Nobody appeals
+  for someone else.
+- `subject='guild'` — checked against the **live OAuth guilds payload**, not a
+  stored role and not the `guilds` table, which goes stale the moment the bot
+  is removed. Owner, or the `MANAGE_GUILD` bit.
+
+They are also two different messages, in `banGate.ts`:
+
+```
+user   Your account can't use Appealy.   -> "You can appeal at …"
+guild  This server can't use Appealy.    -> "Anyone with Manage Server can appeal at …"
+```
+
+That second line matters more than it looks. The member who happened to run the
+command is very often not the person who can do anything about it, and telling
+them "you can appeal" sends them to a form that will 403.
+
+**Why the split is worth naming at all**, given it is one table: a document
+organised around who reviews sees two systems, which is right for reading the
+schema. Someone who has just been told they cannot use the bot is living in one
+of three situations, and which one decides what they are told, who has to act,
+and what has actually been taken away. `site/docs/ban-appeals.html` is written
+on the second split for that reason.
 
 ## Guild ban appeals — restored from `appealy-with-ban-appeals.zip`
 
