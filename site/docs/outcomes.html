@@ -16,10 +16,18 @@
   is safe"; burying it under the UI discussion here would invert that. Someone
   who reads only the first screen of this page should have read it.
 
-  The two ASCII blocks are copied from OUTCOMES.md with the box-drawing
-  characters written as entities, so the file stays ASCII-safe regardless of
-  what re-saves it. They illustrate; they are not a screenshot, and they are
-  cheaper to keep true than one would be.
+  THE TWO DIAGRAMS ARE STRICTLY ASCII, and that is not a stylistic preference.
+  OUTCOMES.md draws its boxes with U+2500 and U+2502, which line up in a
+  terminal and in an editor. They do NOT line up here: the `pre` stack falls
+  back to whatever monospace font the visitor's system provides, box-drawing
+  glyphs are frequently not the same advance width as a space in those fonts,
+  and the first version of this page shipped with a box whose top edge was
+  visibly shorter than its sides. Same for the warning sign and the arrow.
+  +---+ and | and v are the same width everywhere, which is the only property
+  that matters in a diagram made of characters.
+
+  They illustrate; they are not screenshots, and they are far cheaper to keep
+  true than screenshots would be.
 
   Denial outcomes are NOT built. The callout near the end says so in those
   words. If they ship, that callout is what changes -- do not let the page
@@ -113,9 +121,9 @@
 
 <pre>Trainee application from @someone
 
-  &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
-  &#9474; Accept as&hellip;                     &#9662; &#9474;
-  &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+  +-----------------------------------+
+  | Accept as...                    v |
+  +-----------------------------------+
         Trainee
         limited perms, supervised
         Moderator
@@ -188,8 +196,8 @@
   They get  a DM with your accept message
   Logged in #staff-log
 
-  &#9888; Won&rsquo;t be applied
-  @Admin &mdash; sits above my highest role.
+  (!) Won't be applied
+      @Admin - sits above my highest role.
 
   [ Confirm ]  [ Cancel ]</pre>
 
