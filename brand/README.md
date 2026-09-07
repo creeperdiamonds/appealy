@@ -62,3 +62,27 @@ Raster exports. Generate what you need:
 # Discord wants 512x512 for the bot avatar
 npx svgexport brand/icon.svg avatar.png 512:512
 ```
+
+### One raster IS committed, and it is not this directory's
+
+`site/og.png` — the 1200x630 Open Graph card. It breaks the rule above on
+purpose, and the reasoning is worth keeping so nobody "fixes" it later.
+
+**It cannot be generated at deploy.** `site/` is static and has no build step,
+which is a deliberate decision documented in `site/README.md`. A generated
+asset would mean introducing one, for a single file.
+
+**Every share was a bare link without it.** `og:image` pointed at
+`brand/icon.svg`, and neither Discord nor Reddit renders an SVG card — which
+are exactly the two places a Discord bot gets passed around.
+
+**It is not an export of anything here.** It is a composed layout: the mark,
+the wordmark set in Space Grotesk, a tagline, on the console's ground. Running
+`svgexport` on `icon.svg` would produce a square letterboxed into a wide frame
+with empty blurple either side, which is why the card is drawn rather than
+converted. `make_og.py` (not committed — it is a one-off) redraws the mark from
+this directory's own coordinates.
+
+**If the mark changes, the card is stale and nothing will tell you.** Same
+class of hazard as the permission bits in `site/README.md`. Regenerate it in
+the same commit.

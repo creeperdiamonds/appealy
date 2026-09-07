@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/discord-giveaway-bot.html
+
+  Targets "discord giveaway bot".
+
+  Every option named here is a column on the giveaways table or an option on
+  bot/src/commands/giveaway.ts. The winner ceiling of 20 and the one-minute
+  minimum are the command's own validation, not a guess.
+
+  Written from the code. Every claim has a file behind it, listed at the top of
+  the generator that produced this page. If one stops being true, the code
+  changed: fix the code or fix this page, but do not leave them disagreeing.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text.
+  Google treats a mismatch as a structured-data violation, and more to the
+  point, marking up an answer a visitor cannot read is the definition of doing
+  it for the crawler rather than the person.
+-->
+
+<title>Discord Giveaway Bot — Appealy</title>
+<meta name="description" content="Run Discord giveaways with role requirements, blacklists, bonus entries for roles, multiple winners and a reroll. Free, open source and self-hostable.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/discord-giveaway-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/discord-giveaway-bot">
+<meta property="og:title" content="Discord Giveaway Bot — Appealy">
+<meta property="og:description" content="Run Discord giveaways with role requirements, blacklists, bonus entries for roles, multiple winners and a reroll. Free, open source and self-hostable.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord Giveaway Bot — Appealy">
+<meta name="twitter:description" content="Run Discord giveaways with role requirements, blacklists, bonus entries for roles, multiple winners and a reroll. Free, open source and self-hostable.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.creeperdiamonds.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Giveaway bot",
+          "item": "https://appealy.creeperdiamonds.xyz/discord-giveaway-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can I require a role to enter?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, and you can blacklist roles too \u2014 usually staff, who should not win the giveaway they are running."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can some people get more entries than others?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Bonus entries are set per role, so boosters or subscribers can get several entries without you running a separate giveaway for them."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How many winners can one giveaway have?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Up to twenty, and the command enforces that rather than leaving it as advice. The shortest giveaway you can run is one minute."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens if a winner never claims?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Reroll it. That draws a replacement without re-running the whole giveaway, which is the usual reason people need it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are giveaways free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, including the entry rules, the bonus entries, multiple winners and the reroll. Paid plans raise throughput caps only, and the bot can be self-hosted for free."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li aria-current="page">Giveaway bot</li>
+        </ol>
+      </nav>
+
+      <h1>Discord giveaway bot</h1>
+      <p class="lede">Pick a channel, a prize and a length. Optionally require a role, exclude
+        one, and give some roles extra entries. Reroll if a winner never claims.</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+        <a class="btn" href="/pricing">See pricing</a>
+      </p>
+
+      <h2>Entry rules that are not just a reaction</h2>
+
+      <ul>
+        <li><strong>Required roles.</strong> Subscribers only, verified only, level ten only —
+          whatever your roles mean.</li>
+        <li><strong>Blacklisted roles.</strong> The usual use is staff, who should not be
+          winning the thing they are running.</li>
+        <li><strong>Bonus entries per role.</strong> Boosters get three entries instead of
+          one, without running a separate giveaway for them.</li>
+        <li><strong>Multiple winners.</strong> Up to twenty in one draw.</li>
+      </ul>
+
+      <h2>Ending and rerolling</h2>
+
+      <p>Giveaways end on their own at the time you set. You can end one early, and you can
+        reroll — because the winner who never replies is the normal case, not the exception,
+        and re-running the whole giveaway to deal with it is a bad answer.</p>
+
+<pre><code>/giveaway create channel: #giveaways prize: Nitro duration_minutes: 1440 winners: 3
+/giveaway end giveaway_id: …
+/giveaway reroll giveaway_id: …</code></pre>
+
+      <p>The minimum length is one minute and the maximum number of winners is twenty. Both
+        are enforced by the command rather than left as advice.</p>
+
+      <h2>What it costs</h2>
+
+      <p><strong>Nothing.</strong> Giveaways are not a premium feature — no feature is. Paid
+        plans raise throughput caps only, and
+        <a href="/docs/self-hosting">self-hosting</a> is free under the AGPL-3.0.</p>
+
+      <p>Worth saying plainly, because this category is full of bots that put a second winner
+        or a reroll behind a subscription: the entry rules, the bonus entries, the winner
+        count and the reroll are all in the free tier, and they are in the source.</p>
+
+      <h2>It is not only a giveaway bot</h2>
+
+      <p>Also <a href="/">staff applications</a>,
+        <a href="/discord-ban-appeal-bot">ban appeals</a>,
+        <a href="/discord-ticket-bot">tickets</a>,
+        <a href="/discord-verification-bot">verification</a> and
+        <a href="/discord-anti-raid-bot">anti-raid</a>. Appealy also has
+        <a href="/">polls</a> built on Discord's own poll system rather than on reactions.</p>
+
+      <h2 id="faq">Questions</h2>
+      <h3>Can I require a role to enter?</h3>
+      <p>Yes, and you can blacklist roles too — usually staff, who should not win the giveaway they are running.</p>
+
+      <h3>Can some people get more entries than others?</h3>
+      <p>Yes. Bonus entries are set per role, so boosters or subscribers can get several entries without you running a separate giveaway for them.</p>
+
+      <h3>How many winners can one giveaway have?</h3>
+      <p>Up to twenty, and the command enforces that rather than leaving it as advice. The shortest giveaway you can run is one minute.</p>
+
+      <h3>What happens if a winner never claims?</h3>
+      <p>Reroll it. That draws a replacement without re-running the whole giveaway, which is the usual reason people need it.</p>
+
+      <h3>Are giveaways free?</h3>
+      <p>Yes, including the entry rules, the bonus entries, multiple winners and the reroll. Paid plans raise throughput caps only, and the bot can be self-hosted for free.</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

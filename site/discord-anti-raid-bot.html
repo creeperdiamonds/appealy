@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/discord-anti-raid-bot.html
+
+  Targets "discord anti raid bot".
+
+  The scope paragraph is load-bearing. This is join-velocity detection and
+  nothing else: no content filtering, no alt detection, no account-age rules.
+  Pages in this category routinely imply all three. Naming the limit is what
+  makes the rest of the page believable.
+
+  Written from the code. Every claim has a file behind it, listed at the top of
+  the generator that produced this page. If one stops being true, the code
+  changed: fix the code or fix this page, but do not leave them disagreeing.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text.
+  Google treats a mismatch as a structured-data violation, and more to the
+  point, marking up an answer a visitor cannot read is the definition of doing
+  it for the crawler rather than the person.
+-->
+
+<title>Discord Anti-Raid Bot — Appealy</title>
+<meta name="description" content="Join-velocity raid detection: set how many joins in how many seconds counts as a raid, and what happens when it does — alert, force verification, or kick new joins.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/discord-anti-raid-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/discord-anti-raid-bot">
+<meta property="og:title" content="Discord Anti-Raid Bot — Appealy">
+<meta property="og:description" content="Join-velocity raid detection: set how many joins in how many seconds counts as a raid, and what happens when it does — alert, force verification, or kick new joins.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord Anti-Raid Bot — Appealy">
+<meta name="twitter:description" content="Join-velocity raid detection: set how many joins in how many seconds counts as a raid, and what happens when it does — alert, force verification, or kick new joins.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.creeperdiamonds.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Anti-raid bot",
+          "item": "https://appealy.creeperdiamonds.xyz/discord-anti-raid-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How does it decide something is a raid?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Join velocity: how many accounts joined inside a time window. The default is ten joins in sixty seconds and both numbers are yours to change."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What can it do when a raid is detected?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "One of three things: alert a channel and ping roles, force verification on for the duration, or kick accounts that join during the lockdown."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does the lockdown stay on until I turn it off?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It expires by itself after thirty minutes by default, and you can clear it early with a command. An automatic lockdown nobody notices until lunchtime does more damage than most raids."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it filter messages or detect alt accounts?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It looks at join velocity only \u2014 not message content, not account age, not username or avatar patterns. It answers one question and does not pretend to answer others."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is anti-raid free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every feature is on every tier, and the bot can be self-hosted for free under the AGPL-3.0."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li aria-current="page">Anti-raid bot</li>
+        </ol>
+      </nav>
+
+      <h1>Discord anti-raid bot</h1>
+      <p class="lede">You decide how many joins inside how many seconds counts as a raid, and
+        what happens when it does. Then it happens at three in the morning without you.</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+        <a class="btn" href="/pricing">See pricing</a>
+      </p>
+
+      <h2>One rule, three responses</h2>
+
+      <p>The rule is join velocity: a threshold and a window. Ten accounts in sixty seconds is
+        the default, and both numbers are yours to set — a 200-member server and a 40,000-member
+        server do not have the same normal.</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Response</th><th scope="col">What happens</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Alert only</th>
+              <td>Posts to a channel you pick and pings the roles you name. Changes nothing else — the right setting while you learn what your server's normal actually looks like</td>
+            </tr>
+            <tr>
+              <th scope="row">Force verification</th>
+              <td>Switches <a href="/discord-verification-bot">verification</a> on for the duration, so the raid meets a challenge that was not there a minute ago</td>
+            </tr>
+            <tr>
+              <th scope="row">Kick new joins</th>
+              <td>Removes accounts that arrive during the lockdown. The heaviest option, and a kick is not a ban — anyone caught wrongly can come back</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>A lockdown ends on its own</h2>
+
+      <p>Thirty minutes by default, and you can clear it early. That expiry is deliberate: the
+        failure mode of an automatic lockdown is not that it triggers, it is that it triggers
+        while everyone is asleep and stays on until somebody notices at lunchtime. A server
+        that quietly kicked every genuine new member for nine hours is a worse outcome than
+        the raid.</p>
+
+<pre><code>/anti-raid status    what is configured, and whether a lockdown is live
+/anti-raid clear     end a lockdown now</code></pre>
+
+      <div class="callout">
+        <strong>This detects join velocity, and nothing else.</strong> Not message content,
+        not account age, not avatar or username patterns, not alt detection. It answers one
+        question — did a lot of accounts arrive at once — and it answers it well. Anything
+        else you read on this page would be an invention, and a raid tool you have the wrong
+        model of is worse than one you have no model of.
+      </div>
+
+      <h2>Setting it up</h2>
+
+<pre><code>/anti-raid setup join_threshold: 10 window_seconds: 60 action: Alert staff only alert_channel: #mod-log</code></pre>
+
+      <p>Start on <strong>alert only</strong>. Watch it for a week, see what trips it, then
+        decide whether to give it teeth. Turning on kick-new-joins before you know your
+        server's baseline is how a popular post gets treated as an attack.</p>
+
+      <h2>What it costs</h2>
+
+      <p><strong>Nothing.</strong> Paid plans raise throughput caps; every feature is on every
+        tier. <a href="/docs/self-hosting">Self-host it</a> free under the AGPL-3.0.</p>
+
+      <h2>It is not only an anti-raid bot</h2>
+
+      <p>Also <a href="/">staff applications</a>,
+        <a href="/discord-ban-appeal-bot">ban appeals</a>,
+        <a href="/discord-ticket-bot">tickets</a>,
+        <a href="/discord-verification-bot">verification</a> and
+        <a href="/discord-giveaway-bot">giveaways</a>.</p>
+
+      <h2 id="faq">Questions</h2>
+      <h3>How does it decide something is a raid?</h3>
+      <p>Join velocity: how many accounts joined inside a time window. The default is ten joins in sixty seconds and both numbers are yours to change.</p>
+
+      <h3>What can it do when a raid is detected?</h3>
+      <p>One of three things: alert a channel and ping roles, force verification on for the duration, or kick accounts that join during the lockdown.</p>
+
+      <h3>Does the lockdown stay on until I turn it off?</h3>
+      <p>No. It expires by itself after thirty minutes by default, and you can clear it early with a command. An automatic lockdown nobody notices until lunchtime does more damage than most raids.</p>
+
+      <h3>Does it filter messages or detect alt accounts?</h3>
+      <p>No. It looks at join velocity only — not message content, not account age, not username or avatar patterns. It answers one question and does not pretend to answer others.</p>
+
+      <h3>Is anti-raid free?</h3>
+      <p>Yes. Every feature is on every tier, and the bot can be self-hosted for free under the AGPL-3.0.</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

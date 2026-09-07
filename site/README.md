@@ -1,7 +1,7 @@
 # Public site
 
-Eleven pages, one stylesheet, and two files for crawlers. No build step, no
-framework, no bundler, and no JavaScript at all.
+Seventeen pages, one stylesheet, one image, and two files for crawlers. No
+build step, no framework, no bundler, and no JavaScript at all.
 
 | File | Is |
 |---|---|
@@ -13,6 +13,13 @@ framework, no bundler, and no JavaScript at all.
 | `tebex.html` | Front door for a Tebex review — links to what is sold, what it costs, the terms, the privacy policy and refunds rather than restating them |
 | `site.css` | Shared styles |
 | `robots.txt` | Allows everything, names the answer-engine crawlers explicitly, points at the sitemap |
+| `discord-ban-appeal-bot.html` | | 
+| `discord-ticket-bot.html` | |
+| `discord-verification-bot.html` | The five query-targeted feature pages — see below |
+| `discord-anti-raid-bot.html` | |
+| `discord-giveaway-bot.html` | |
+| `appeal-gg-alternative.html` | The second comparison page. Deliberately has no migration section — see below |
+| `og.png` | The 1200×630 Open Graph card. The one committed raster; `brand/README.md` says why |
 | `docs/` | Five documentation pages — see below |
 | `sitemap.xml` | The ten canonical URLs, with no `lastmod` — see the comment in the file |
 
@@ -48,6 +55,47 @@ one inconsistency left; both resolve identically from a web root, and only the
 root-relative form resolves from a subdirectory. Preview these through the
 container rather than by opening the file, which is where the extensionless
 URLs come from anyway.
+
+## The query-targeted pages
+
+Six pages that exist for one reason: the site was discoverable for two things
+while the product does nine. `index.html` itself carries the heading *"It is not
+only an application bot"* and then lists tickets, verification, giveaways, polls,
+role menus, welcomer and anti-raid — none of which had a page anyone could land
+on.
+
+Each one owns one query and links to the others. They are real pages about real
+features, written from the commands and schema columns that back them; the
+generator that produced them lists the file behind every section. **They are not
+doorway pages**, and if one ever stops describing something the code does, it
+should be deleted rather than softened.
+
+### Two things about them that are easy to undo by accident
+
+**`index.html` must not target "ban appeal bot".** It used to be titled *Discord
+Application & Ban Appeal Bot*. Shipping `/discord-ban-appeal-bot` beside that put
+two pages of one site in competition for one term, which is how both lose — so
+home was retitled to own *application bot* broadly. If you retitle home, check
+that page.
+
+**The FAQ markup and the visible questions are the same text.** Google treats a
+mismatch as a structured-data violation, and marking up an answer the visitor
+cannot read is doing it for the crawler rather than the person. Edit both or
+neither.
+
+## `appeal-gg-alternative.html` has no migration section, and that is a finding
+
+`appy-alternative.html` has one because Appy ships `/export_applications` and
+`/import-appy` consumes the file the user hands over. **Appeal.gg has no data
+export at all** — verified from inside a logged-in account, September 2026 — so
+there is nothing for an importer to read, and Appealy does not scrape
+competitors.
+
+The page also states plainly, above the comparison table, that **Appealy does not
+do mute or warn appeals.** Discord has no API for either, so Appeal.gg must track
+those punishments in its own database and Appealy structurally cannot. No export
+would change that. Burying it would be selling someone a switch that breaks half
+of what they rely on.
 
 ### The repository has two kinds of markdown, and only one kind belongs here
 
@@ -107,6 +155,13 @@ state to manage. There is none.
 /terms.html
 /tebex.html
 /appy-alternative.html
+/discord-ban-appeal-bot.html
+/discord-ticket-bot.html
+/discord-verification-bot.html
+/discord-anti-raid-bot.html
+/discord-giveaway-bot.html
+/appeal-gg-alternative.html
+/og.png
 /docs         -> site/docs/index.html   (via try_files $uri/)
 /docs/getting-started.html
 /docs/ban-appeals.html
@@ -196,15 +251,13 @@ Fonts, matching the console. Everything else is local. Keep it that way.
 
 ## What was deliberately left out
 
-- **A raster Open Graph image.** `brand/` ships SVG only, and `brand/README.md`
-  says raster exports are generated rather than committed. The `og:image` tags
-  point at `brand/icon.svg`; several social platforms won't render an SVG card.
-  Generating a 1200×630 PNG and repointing those four tags is the single
-  highest-value change left on this site.
-
-  ```bash
-  npx svgexport brand/icon.svg og.png 1200:630
-  ```
+- ~~**A raster Open Graph image.**~~ **Done.** `site/og.png` is a composed
+  1200×630 card and every page points at it, with `twitter:card` raised from
+  `summary` to `summary_large_image` to match. It went from "highest-value change
+  left" to first in the batch when the site owner mentioned that crawlers found
+  Appealy through a Reddit reply: the traffic that exists arrives through links
+  people click in a feed, and Reddit and Discord both render a card and neither
+  renders SVG. Every share until now was a bare link.
 
 - **Screenshots.** The dashboard exists, but a screenshot committed today is a
   screenshot that's wrong in a month and nothing will catch it.

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/discord-ban-appeal-bot.html
+
+  Targets "discord ban appeal bot". The home page must NOT also target this
+  query — it was retitled to own "application bot" broadly when this page
+  shipped, because two pages competing for one term is two pages losing it.
+
+  Written from the code. Every claim has a file behind it, listed at the top of
+  the generator that produced this page. If one stops being true, the code
+  changed: fix the code or fix this page, but do not leave them disagreeing.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text.
+  Google treats a mismatch as a structured-data violation, and more to the
+  point, marking up an answer a visitor cannot read is the definition of doing
+  it for the crawler rather than the person.
+-->
+
+<title>Discord Ban Appeal Bot — Appealy</title>
+<meta name="description" content="Ban someone and Appealy DMs them the appeal form. Accepting the appeal lifts the ban. Free, open source, self-hostable, and no feature is behind a paid tier.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/discord-ban-appeal-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/discord-ban-appeal-bot">
+<meta property="og:title" content="Discord Ban Appeal Bot — Appealy">
+<meta property="og:description" content="Ban someone and Appealy DMs them the appeal form. Accepting the appeal lifts the ban. Free, open source, self-hostable, and no feature is behind a paid tier.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord Ban Appeal Bot — Appealy">
+<meta name="twitter:description" content="Ban someone and Appealy DMs them the appeal form. Accepting the appeal lifts the ban. Free, open source, self-hostable, and no feature is behind a paid tier.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.creeperdiamonds.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Ban appeal bot",
+          "item": "https://appealy.creeperdiamonds.xyz/discord-ban-appeal-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does accepting an appeal unban the user automatically?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Lifting the ban is what the accept does, not a reminder to somebody to do it later. Denying sends the reason your staff wrote."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why does nothing happen when I ban someone?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Almost always the Server Moderation intent is off in the Discord Developer Portal. Discord will not send the ban event until you enable it, and there is no error anywhere to tell you \u2014 the appeal system just stays silent."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can the appeal form be a button in a channel instead of a DM?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No, and Appealy refuses to save that combination. A banned member cannot see any channel in your server, so an appeal form behind a button in one is unreachable by exactly the people it is for."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the ban appeal feature free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every feature is on every tier \u2014 paid plans raise throughput caps only. You can also self-host the whole bot for free under the AGPL-3.0."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it appeal mutes or timeouts?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Discord has no API for appealing a timeout or a warning, so Appealy handles bans only. A bot claiming otherwise is tracking those punishments in its own database rather than in Discord."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li aria-current="page">Ban appeal bot</li>
+        </ol>
+      </nav>
+
+      <h1>Discord ban appeal bot</h1>
+      <p class="lede">Ban someone and Appealy sends them the appeal form. If your staff
+        accept it, the ban is lifted — the accept <em>is</em> the unban, not a note asking
+        somebody to go and do it by hand.</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+        <a class="btn" href="/pricing">See pricing</a>
+      </p>
+
+      <h2>How an appeal actually runs</h2>
+
+      <ol>
+        <li><strong>Someone is banned.</strong> Appealy sees Discord's ban event and starts
+          the appeal itself — nobody has to remember to send a link.</li>
+        <li><strong>They get a DM</strong> with the reason and the appeal form, asked one
+          question at a time rather than as a wall of fields.</li>
+        <li><strong>It lands in your normal review queue</strong>, beside applications, so
+          there is no second place to check.</li>
+        <li><strong>Accepting lifts the ban.</strong> Denying sends the reason you wrote.</li>
+      </ol>
+
+      <div class="callout is-accent">
+        <strong>The appeal form has to be delivered by DM</strong>, and Appealy enforces that
+        rather than trusting you to remember it. A banned member cannot see a channel, so an
+        appeal form set to open from a button in one is a form nobody can reach. The check
+        runs on create <em>and</em> on edit, against the whole form rather than only the
+        fields you changed — each half passes on its own and the combination is broken.
+      </div>
+
+      <h2>It is opinionated about appeals, on purpose</h2>
+
+      <p>Appealy exists because a bot once told someone a decision was final and could not be
+        appealed. The rules are shaped against becoming that, and they are enforced in code
+        rather than promised in a policy page:</p>
+
+      <ul>
+        <li><strong>Running out of attempts pauses appeals; it never ends them.</strong> The
+          counter resets, and the message says when.</li>
+        <li><strong>A denial needs a real sentence.</strong> Twenty characters minimum,
+          enforced by the API. If a ban cannot be explained in twenty characters, that is
+          worth noticing before the denial goes out.</li>
+        <li><strong>An automated ban gets more attempts than a reviewed one.</strong> Five
+          against three. A ban nobody looked at is the one most likely to be wrong.</li>
+      </ul>
+
+      <p>Those apply to platform bans — the ones we issue. Your server sets its own policy
+        and Appealy does not constrain it. <a href="/docs/ban-appeals">The full reasoning is
+        in the docs.</a></p>
+
+      <h2>Setting it up</h2>
+
+      <p>Three things, and the first is the one people miss:</p>
+
+      <ol>
+        <li><strong>Turn on the Server Moderation intent</strong> in the Discord Developer
+          Portal. Discord does not send the ban event until the portal agrees, and the code
+          is complete either way — so without it you get an appeal system that is configured,
+          enabled, and completely silent.</li>
+        <li><strong>Build an appeal form</strong> in the dashboard and set it to be delivered
+          by direct message.</li>
+        <li><strong>Switch appeals on</strong> for the server and pick that form.</li>
+      </ol>
+
+      <p>The dashboard warns about the two states that do nothing: appeals enabled with no
+        form chosen, and a form chosen with the ban-time DM switched off. Neither raises an
+        error, and both mean nobody can appeal — which you would otherwise discover months
+        later, when nobody has.</p>
+
+      <h2>What it costs</h2>
+
+      <p><strong>Nothing.</strong> Ban appeals are not a premium feature, because no feature
+        is: paid plans raise throughput caps and nothing else. You can also
+        <a href="/docs/self-hosting">run the whole thing on your own hardware</a> under the
+        AGPL-3.0 and pay for nothing at all.</p>
+
+      <p>That last part is the argument that matters most here. A false ban from a hosted bot
+        is unappealable in a way a false ban from software you run yourself is not — they
+        hold the token, you do not.</p>
+
+      <h2>It is not only an appeal bot</h2>
+
+      <p>The same review queue runs <a href="/">staff applications</a>, and the same bot does
+        <a href="/discord-ticket-bot">tickets</a>,
+        <a href="/discord-verification-bot">verification</a>,
+        <a href="/discord-anti-raid-bot">anti-raid</a> and
+        <a href="/discord-giveaway-bot">giveaways</a>. If you are replacing several bots at
+        once, that is the point.</p>
+
+      <h2 id="faq">Questions</h2>
+      <h3>Does accepting an appeal unban the user automatically?</h3>
+      <p>Yes. Lifting the ban is what the accept does, not a reminder to somebody to do it later. Denying sends the reason your staff wrote.</p>
+
+      <h3>Why does nothing happen when I ban someone?</h3>
+      <p>Almost always the Server Moderation intent is off in the Discord Developer Portal. Discord will not send the ban event until you enable it, and there is no error anywhere to tell you — the appeal system just stays silent.</p>
+
+      <h3>Can the appeal form be a button in a channel instead of a DM?</h3>
+      <p>No, and Appealy refuses to save that combination. A banned member cannot see any channel in your server, so an appeal form behind a button in one is unreachable by exactly the people it is for.</p>
+
+      <h3>Is the ban appeal feature free?</h3>
+      <p>Yes. Every feature is on every tier — paid plans raise throughput caps only. You can also self-host the whole bot for free under the AGPL-3.0.</p>
+
+      <h3>Can it appeal mutes or timeouts?</h3>
+      <p>No. Discord has no API for appealing a timeout or a warning, so Appealy handles bans only. A bot claiming otherwise is tracking those punishments in its own database rather than in Discord.</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

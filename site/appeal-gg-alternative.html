@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/appeal-gg-alternative.html
+
+  Targets "appeal.gg alternative".
+
+  THIS PAGE HAS NO MIGRATION SECTION, unlike appy-alternative.html, and that is
+  a finding rather than an omission. Appeal.gg has no data export — verified by
+  the site owner from inside their own account on 2026-09-07 — so there is
+  nothing for an importer to consume. Appealy never scrapes a competitor;
+  /import-appy works only because Appy ships its own /export_applications.
+
+  The mute/warn limitation is stated prominently and early. Discord has no API
+  for either, so Appeal.gg must track those punishments in its own database,
+  and Appealy structurally cannot. No export would change that. A comparison
+  page that buried this would be selling a switch that breaks half of what the
+  reader currently relies on.
+
+  Written from the code. Every claim has a file behind it, listed at the top of
+  the generator that produced this page. If one stops being true, the code
+  changed: fix the code or fix this page, but do not leave them disagreeing.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text.
+  Google treats a mismatch as a structured-data violation, and more to the
+  point, marking up an answer a visitor cannot read is the definition of doing
+  it for the crawler rather than the person.
+-->
+
+<title>Appeal.gg Alternative for Discord — Appealy</title>
+<meta name="description" content="An open-source alternative to Appeal.gg for Discord ban appeals, self-hostable under the AGPL-3.0. Honest about what it does not do: no mute or warn appeals.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/appeal-gg-alternative">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/appeal-gg-alternative">
+<meta property="og:title" content="Appeal.gg Alternative for Discord — Appealy">
+<meta property="og:description" content="An open-source alternative to Appeal.gg for Discord ban appeals, self-hostable under the AGPL-3.0. Honest about what it does not do: no mute or warn appeals.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Appeal.gg Alternative for Discord — Appealy">
+<meta name="twitter:description" content="An open-source alternative to Appeal.gg for Discord ban appeals, self-hostable under the AGPL-3.0. Honest about what it does not do: no mute or warn appeals.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.creeperdiamonds.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Appeal.gg alternative",
+          "item": "https://appealy.creeperdiamonds.xyz/appeal-gg-alternative"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can I import my Appeal.gg appeals into Appealy?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Appeal.gg has no data export, so there is no file for an importer to read, and Appealy does not scrape other services. In practice it matters little: decided appeals have almost no forward value, unlike staff applications, which is why the Appy migration does have a real importer."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Appealy handle mute and warn appeals like Appeal.gg?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No, bans only. Discord has no API for appealing a timeout or a warning, so a product offering it is tracking those punishments in its own database. If much of your appeal volume is not bans, Appealy will not replace what you have."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Appealy the same project as Appeal.gg?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. They are separate projects by different people and are not affiliated. Appeal.gg is a hosted appeal portal covering bans, mutes and warns. Appealy is an open-source Discord bot for staff applications and tickets that also runs ban appeals, and can be self-hosted under the AGPL-3.0."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I get my data out of Appealy later?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The /export command writes every form, panel, submission and answer for your server as one JSON file, and /import-appealy reads it back into another server."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Appealy free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes for every feature \u2014 paid plans raise throughput caps only. Self-hosting is free under the AGPL-3.0."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li aria-current="page">Appeal.gg alternative</li>
+        </ol>
+      </nav>
+
+      <h1>An open-source alternative to Appeal.gg</h1>
+      <p class="lede">Both run Discord ban appeals. One is a hosted appeal portal; the other
+        is a bot you can read, fork and run yourself. Which is better depends on something
+        specific, and this page tries to be straight about what.</p>
+
+      <div class="callout is-accent">
+        <strong>Read this first: Appealy does not do mute or warn appeals.</strong> Appeal.gg
+        does. Discord has no API for appealing a timeout or a warning, so any product offering
+        it is tracking those punishments in its own database — which is a real feature and a
+        real reason to stay. If a meaningful share of your appeals are not bans, stop here;
+        Appealy will not replace what you have.
+      </div>
+
+      <h2>Side by side</h2>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col">Appeal.gg</th>
+              <th scope="col">Appealy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Ban appeals</th><td>Yes</td><td>Yes</td></tr>
+            <tr><th scope="row">Mute and warn appeals</th><td>Yes</td><td><strong>No</strong></td></tr>
+            <tr><th scope="row">Shape</th><td>Hosted web portal, one link per server</td><td>Discord bot plus a dashboard</td></tr>
+            <tr><th scope="row">Where appeals are reviewed</th><td>In Discord or the web dashboard</td><td>The same queue as your staff applications</td></tr>
+            <tr><th scope="row">Accepting an appeal</th><td>Handled in the portal</td><td>Lifts the Discord ban directly</td></tr>
+            <tr><th scope="row">Source available</th><td>No</td><td>Yes — AGPL-3.0</td></tr>
+            <tr><th scope="row">Self-hostable</th><td>No</td><td>Yes, free</td></tr>
+            <tr><th scope="row">Also does</th><td>Appeals</td><td>Applications, tickets, verification, anti-raid, giveaways, polls, role menus, welcomer</td></tr>
+            <tr><th scope="row">Export your data</th><td>No export</td><td><code>/export</code> — every form, panel, submission and answer as JSON</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Switching costs you nothing to carry across</h2>
+
+      <p>There is no import command for Appeal.gg, and there cannot be one:
+        <strong>Appeal.gg has no data export.</strong> Appealy does not scrape competitors —
+        its Appy importer works only because Appy ships an export command and you hand Appealy
+        the file.</p>
+
+      <p>In practice this matters far less than it sounds. Appeal.gg holds <em>appeals</em>,
+        and a decided appeal has almost no forward value — last year's resolved case is not
+        something you consult. That is unlike staff applications, which are history you
+        genuinely want to keep, and which is why the
+        <a href="/appy-alternative">Appy migration</a> has a real importer behind it.</p>
+
+      <p>So switching is: invite Appealy, build an appeal form, turn appeals on. Your old
+        appeals stay readable wherever they are for as long as that account exists.</p>
+
+      <h2>Why you might switch</h2>
+
+      <ul>
+        <li><strong>One bot instead of two.</strong> If you already want applications,
+          tickets or verification, appeals come with them and share one review queue.</li>
+        <li><strong>You can leave.</strong> <code>/export</code> writes everything as JSON and
+          <code>/import-appealy</code> reads it back. Leaving is a supported operation, not a
+          conversation with support.</li>
+        <li><strong>You can hold the token.</strong> <a href="/docs/self-hosting">Self-host
+          it</a> and a wrong decision by us cannot take your appeals offline, because there is
+          no us in the path.</li>
+      </ul>
+
+      <h2>Why you might not</h2>
+
+      <ul>
+        <li><strong>Mutes and warns</strong>, as above. This is the big one.</li>
+        <li><strong>A portal is a different thing from a bot.</strong> Appeal.gg's whole
+          mechanic — swap <code>discord.gg</code> for <code>appeal.gg</code> in an invite and a
+          banned user lands on your appeal page — is genuinely good, and it works for someone
+          who cannot see your server at all.</li>
+        <li><strong>It is built for exactly this.</strong> If a standard appeal portal is all
+          you want, a product that does one thing will usually do it better than one feature
+          of a bot that does nine.</li>
+      </ul>
+
+      <p>Appeal.gg is a separate project by different people and we are not affiliated with
+        it. If it fits you better, use it.</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+        <a class="btn" href="/pricing">See pricing</a>
+      </p>
+
+      <h2 id="faq">Questions</h2>
+      <h3>Can I import my Appeal.gg appeals into Appealy?</h3>
+      <p>No. Appeal.gg has no data export, so there is no file for an importer to read, and Appealy does not scrape other services. In practice it matters little: decided appeals have almost no forward value, unlike staff applications, which is why the Appy migration does have a real importer.</p>
+
+      <h3>Does Appealy handle mute and warn appeals like Appeal.gg?</h3>
+      <p>No, bans only. Discord has no API for appealing a timeout or a warning, so a product offering it is tracking those punishments in its own database. If much of your appeal volume is not bans, Appealy will not replace what you have.</p>
+
+      <h3>Is Appealy the same project as Appeal.gg?</h3>
+      <p>No. They are separate projects by different people and are not affiliated. Appeal.gg is a hosted appeal portal covering bans, mutes and warns. Appealy is an open-source Discord bot for staff applications and tickets that also runs ban appeals, and can be self-hosted under the AGPL-3.0.</p>
+
+      <h3>Can I get my data out of Appealy later?</h3>
+      <p>Yes. The /export command writes every form, panel, submission and answer for your server as one JSON file, and /import-appealy reads it back into another server.</p>
+
+      <h3>Is Appealy free?</h3>
+      <p>Yes for every feature — paid plans raise throughput caps only. Self-hosting is free under the AGPL-3.0.</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

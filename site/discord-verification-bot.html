@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/discord-verification-bot.html
+
+  Targets "discord verification bot".
+
+  THE CAPTCHA PARAGRAPH IS NOT OPTIONAL. README.md is explicit that this is a
+  retype-the-code challenge and not an image CAPTCHA, because a real one needs
+  an external rendering service. Every competitor page in this category implies
+  an image CAPTCHA. Saying plainly what this is costs a little and is the
+  difference between a page that is true and a page that is marketing.
+
+  Written from the code. Every claim has a file behind it, listed at the top of
+  the generator that produced this page. If one stops being true, the code
+  changed: fix the code or fix this page, but do not leave them disagreeing.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text.
+  Google treats a mismatch as a structured-data violation, and more to the
+  point, marking up an answer a visitor cannot read is the definition of doing
+  it for the crawler rather than the person.
+-->
+
+<title>Discord Verification Bot — Appealy</title>
+<meta name="description" content="Verify new members with a button or a short code, with an optional gate role on join and an optional auto-kick for people who never verify. Free and open source.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/discord-verification-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/discord-verification-bot">
+<meta property="og:title" content="Discord Verification Bot — Appealy">
+<meta property="og:description" content="Verify new members with a button or a short code, with an optional gate role on join and an optional auto-kick for people who never verify. Free and open source.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord Verification Bot — Appealy">
+<meta name="twitter:description" content="Verify new members with a button or a short code, with an optional gate role on join and an optional auto-kick for people who never verify. Free and open source.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.creeperdiamonds.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Verification bot",
+          "item": "https://appealy.creeperdiamonds.xyz/discord-verification-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is this a real CAPTCHA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It is a short random code shown privately and retyped into a box. A real image CAPTCHA needs an external rendering service, which Appealy does not use. It screens out unattended auto-join bots; it will not stop a human or an attacker who is paying attention."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can unverified members be locked out of the server?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. An optional gate role is applied on join and removed on verify, so denying that role access to your channels means an unverified account sees nothing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it kick people who never verify?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, on an optional timer. It is off by default, because removing real people who got distracted is usually worse than leaving a few dormant accounts."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does verification help during a raid?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Anti-raid can force verification on automatically when it detects a join spike, so a raid runs into a challenge that was not there a minute before."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every feature is on every tier, and the whole bot can be self-hosted for free under the AGPL-3.0."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li aria-current="page">Verification bot</li>
+        </ol>
+      </nav>
+
+      <h1>Discord verification bot</h1>
+      <p class="lede">A button to press, or a short code to retype. Optionally a gate role
+        applied on join and stripped on verify, and optionally a timer that removes people who
+        never bother.</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+        <a class="btn" href="/pricing">See pricing</a>
+      </p>
+
+      <h2>Two methods</h2>
+
+      <ul>
+        <li><strong>Button.</strong> One press, role granted. Enough for most servers, and it
+          costs a new member nothing.</li>
+        <li><strong>Code challenge.</strong> A short random code is shown privately and has to
+          be typed back into a box. It screens out naive auto-join bots, which do not read
+          ephemeral messages or fill in modals.</li>
+      </ul>
+
+      <div class="callout">
+        <strong>The code challenge is not an image CAPTCHA, and this page will not call it
+        one.</strong> A real image CAPTCHA needs an external rendering service, which Appealy
+        does not use. What this stops is unattended join-and-spam automation. What it does not
+        stop is a human, or a bot with someone reading the screen. If you need to defeat a
+        determined attacker, this is not that, and no bot listing that claims otherwise is
+        being straight with you.
+      </div>
+
+      <h2>The gate role is the part that actually matters</h2>
+
+      <p>An optional role applied the moment someone joins and removed when they verify. Deny
+        that role access to everything, and an unverified account sees an empty server rather
+        than a live one — which is the difference between verification that gates and
+        verification that politely asks.</p>
+
+      <p>You can also set an auto-kick timer for accounts that never verify. It is off by
+        default, because removing real people who got distracted is a worse outcome than a few
+        dormant accounts, and that is a judgement about your server rather than a default.</p>
+
+      <h2>It doubles as your raid brake</h2>
+
+      <p><a href="/discord-anti-raid-bot">Anti-raid</a> can force verification on when a join
+        spike is detected, so a raid meets a challenge that was not there a minute earlier.
+        That combination is the reason both features live in one bot.</p>
+
+      <h2>Setting it up</h2>
+
+<pre><code>/verify-setup</code></pre>
+
+      <p>Choose the method, the role to grant, and optionally the gate role and the timer. The
+        panel's title and text are yours to write — it is the first thing a new member reads
+        in your server.</p>
+
+      <h2>What it costs</h2>
+
+      <p><strong>Nothing.</strong> No feature sits behind a tier; paid plans raise throughput
+        caps only. <a href="/docs/self-hosting">Self-hosting</a> is free under the AGPL-3.0.</p>
+
+      <h2>It is not only a verification bot</h2>
+
+      <p>Also <a href="/">staff applications</a>,
+        <a href="/discord-ban-appeal-bot">ban appeals</a>,
+        <a href="/discord-ticket-bot">tickets</a>,
+        <a href="/discord-anti-raid-bot">anti-raid</a> and
+        <a href="/discord-giveaway-bot">giveaways</a>.</p>
+
+      <h2 id="faq">Questions</h2>
+      <h3>Is this a real CAPTCHA?</h3>
+      <p>No. It is a short random code shown privately and retyped into a box. A real image CAPTCHA needs an external rendering service, which Appealy does not use. It screens out unattended auto-join bots; it will not stop a human or an attacker who is paying attention.</p>
+
+      <h3>Can unverified members be locked out of the server?</h3>
+      <p>Yes. An optional gate role is applied on join and removed on verify, so denying that role access to your channels means an unverified account sees nothing.</p>
+
+      <h3>Can it kick people who never verify?</h3>
+      <p>Yes, on an optional timer. It is off by default, because removing real people who got distracted is usually worse than leaving a few dormant accounts.</p>
+
+      <h3>Does verification help during a raid?</h3>
+      <p>Yes. Anti-raid can force verification on automatically when it detects a join spike, so a raid runs into a challenge that was not there a minute before.</p>
+
+      <h3>Is it free?</h3>
+      <p>Yes. Every feature is on every tier, and the whole bot can be self-hosted for free under the AGPL-3.0.</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

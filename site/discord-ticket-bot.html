@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/discord-ticket-bot.html
+
+  Targets "discord ticket bot" and "discord ticket bot free". The features
+  listed are the columns of ticketConfigs and tickets in shared/schema/schema.ts
+  — if a column goes, the sentence naming it goes with it.
+
+  Written from the code. Every claim has a file behind it, listed at the top of
+  the generator that produced this page. If one stops being true, the code
+  changed: fix the code or fix this page, but do not leave them disagreeing.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text.
+  Google treats a mismatch as a structured-data violation, and more to the
+  point, marking up an answer a visitor cannot read is the definition of doing
+  it for the crawler rather than the person.
+-->
+
+<title>Discord Ticket Bot — Appealy</title>
+<meta name="description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and transcripts on close. Free, open source, and self-hostable.">
+<link rel="canonical" href="https://appealy.creeperdiamonds.xyz/discord-ticket-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.creeperdiamonds.xyz/discord-ticket-bot">
+<meta property="og:title" content="Discord Ticket Bot — Appealy">
+<meta property="og:description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and transcripts on close. Free, open source, and self-hostable.">
+<meta property="og:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord Ticket Bot — Appealy">
+<meta name="twitter:description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and transcripts on close. Free, open source, and self-hostable.">
+<meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/og.png">
+
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.creeperdiamonds.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Ticket bot",
+          "item": "https://appealy.creeperdiamonds.xyz/discord-ticket-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does it use channels or threads?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Either, chosen per panel: a private channel in a category you pick, a private thread, or a public thread. Different ticket types in the same server can use different ones."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I get transcripts when a ticket closes?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Turn on transcript-on-close and pick a channel, and the conversation is posted there when the ticket ends."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can staff claim a ticket so two people do not reply at once?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, claiming is a per-panel setting and the claimer is recorded on the ticket."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I stop one person opening twenty tickets?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Each panel has a maximum number of tickets one user may have open at a time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the ticket system free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every feature is on every tier \u2014 paid plans raise throughput caps only, and you can self-host the whole bot for free under the AGPL-3.0."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li aria-current="page">Ticket bot</li>
+        </ol>
+      </nav>
+
+      <h1>Discord ticket bot</h1>
+      <p class="lede">A panel with a button. Someone presses it and gets a private channel or
+        a thread, your support role gets pinged, and when it closes you keep a transcript.</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+        <a class="btn" href="/pricing">See pricing</a>
+      </p>
+
+      <h2>Channels or threads — you choose per panel</h2>
+
+      <p>Three options, set when you create the panel: a <strong>private channel</strong> in a
+        category you pick, a <strong>private thread</strong>, or a <strong>public
+        thread</strong>. Threads keep a busy server's channel list short; channels survive
+        longer and are easier to hand around. Different ticket types can use different ones —
+        the choice belongs to the panel, not the server.</p>
+
+      <h2>What you get without configuring anything clever</h2>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Setting</th><th scope="col">Does</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Support roles</th><td>Who can see and manage tickets from this panel</td></tr>
+            <tr><th scope="row">Ping roles</th><td>Who gets notified when one opens — separate from who can see it</td></tr>
+            <tr><th scope="row">Claiming</th><td>A staff member takes a ticket, so two people do not answer at once</td></tr>
+            <tr><th scope="row">Ratings</th><td>The opener leaves a score and a comment when it closes</td></tr>
+            <tr><th scope="row">Transcript on close</th><td>Posted to a channel you choose, so the conversation survives the ticket</td></tr>
+            <tr><th scope="row">Max open per user</th><td>Stops one person opening fifteen</td></tr>
+            <tr><th scope="row">Ticket name format</th><td>Your own naming, rather than a scheme you have to live with</td></tr>
+            <tr><th scope="row">Welcome message</th><td>Sent inside the ticket, so the first reply is not "what do you need?"</td></tr>
+            <tr><th scope="row">Creator can close</th><td>On or off — some teams want it, some very much do not</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Saved replies, because most tickets are the same ticket</h2>
+
+      <p>Quick responses are stored per server and grouped into categories, so the answer to
+        "how do I appeal" is one pick rather than something a moderator retypes forty times
+        and gets slightly wrong on the fortieth.</p>
+
+      <h2>Setting it up</h2>
+
+<pre><code>/ticket-panel create name: Support channel_type: Private thread support_role: @Staff</code></pre>
+
+      <p>That publishes the panel in the channel you run it in. Everything else — the welcome
+        message, claiming, ratings, transcripts, the open limit — is in the dashboard
+        afterwards, and none of it is required to get a working ticket.</p>
+
+      <h2>What it costs</h2>
+
+      <p><strong>Nothing.</strong> Tickets are not a premium feature, because no feature is —
+        paid plans raise throughput caps and nothing else. Or
+        <a href="/docs/self-hosting">run it yourself</a> under the AGPL-3.0, where the caps
+        are whatever your hardware will take.</p>
+
+      <h2>It is not only a ticket bot</h2>
+
+      <p>The same bot runs <a href="/">staff applications</a>,
+        <a href="/discord-ban-appeal-bot">ban appeals</a>,
+        <a href="/discord-verification-bot">verification</a>,
+        <a href="/discord-anti-raid-bot">anti-raid</a> and
+        <a href="/discord-giveaway-bot">giveaways</a> — one bot to invite, one dashboard, one
+        export if you ever leave.</p>
+
+      <h2 id="faq">Questions</h2>
+      <h3>Does it use channels or threads?</h3>
+      <p>Either, chosen per panel: a private channel in a category you pick, a private thread, or a public thread. Different ticket types in the same server can use different ones.</p>
+
+      <h3>Do I get transcripts when a ticket closes?</h3>
+      <p>Yes. Turn on transcript-on-close and pick a channel, and the conversation is posted there when the ticket ends.</p>
+
+      <h3>Can staff claim a ticket so two people do not reply at once?</h3>
+      <p>Yes, claiming is a per-panel setting and the claimer is recorded on the ticket.</p>
+
+      <h3>Can I stop one person opening twenty tickets?</h3>
+      <p>Yes. Each panel has a maximum number of tickets one user may have open at a time.</p>
+
+      <h3>Is the ticket system free?</h3>
+      <p>Yes. Every feature is on every tier — paid plans raise throughput caps only, and you can self-host the whole bot for free under the AGPL-3.0.</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/status/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started">Getting started</a></li>
+          <li><a href="/docs/ban-appeals">Ban appeals</a></li>
+          <li><a href="/docs/outcomes">Review outcomes</a></li>
+          <li><a href="/docs/self-hosting">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

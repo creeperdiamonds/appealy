@@ -2,12 +2,16 @@
 <!--
   site/sitemap.xml
 
-  Ten URLs, matching the ten <link rel="canonical"> values exactly. That match
-  is the whole job: /pricing and /pricing.html both return 200, so a sitemap
-  listing the .html form would ask Google to index one URL while every page's
-  canonical points at another.
+  Sixteen URLs, matching the sixteen <link rel="canonical"> values exactly.
+  That match is the whole job: /pricing and /pricing.html both return 200, so a
+  sitemap listing the .html form would ask Google to index one URL while every
+  page's canonical points at another.
 
-  The docs section is five of the ten. /docs is a directory with an index, so
+  Six of the sixteen are the query-targeted pages. They exist because the site
+  was discoverable for two things while the product does nine — someone
+  searching for a Discord ticket bot or a verification bot had no door in.
+
+  The docs section is five of the sixteen. /docs is a directory with an index, so
   its canonical and its entry here are both the bare /docs — no trailing slash,
   no /index.html, matching how nginx's try_files resolves it.
 
@@ -22,11 +26,12 @@
   Google to index something the page itself refuses, and a sitemap that
   contradicts its own pages is treated as less trustworthy as a whole.
 
-  Priorities are relative to each other and to nothing else. The docs sit below
-  the landing and comparison pages because someone searching for a Discord
-  appeal bot should land on what the product is, not on the middle of its
-  configuration guide — but above the legal pages, because unlike those they
-  answer questions people actually type.
+  Priorities are relative to each other and to nothing else. The comparison
+  pages rank highest after the home page because "<product> alternative" is the
+  highest-intent query anyone types about software they are already using. The
+  feature pages sit just under them, the docs below that — someone searching for
+  a Discord appeal bot should land on what the product is, not in the middle of
+  its configuration guide — and the legal pages last.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
@@ -40,6 +45,30 @@
   <url>
     <loc>https://appealy.creeperdiamonds.xyz/appy-alternative</loc>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/appeal-gg-alternative</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/discord-ban-appeal-bot</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/discord-ticket-bot</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/discord-verification-bot</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/discord-anti-raid-bot</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://appealy.creeperdiamonds.xyz/discord-giveaway-bot</loc>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://appealy.creeperdiamonds.xyz/docs</loc>

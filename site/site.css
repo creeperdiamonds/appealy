@@ -720,6 +720,40 @@ pre code {
   color: var(--text-muted);
 }
 
+/* Breadcrumbs, on the query-targeted pages only.
+ *
+ * Selectors are `.crumbs ol li` rather than `.crumbs li`, because `.prose li`
+ * already sets a bottom margin at the same specificity and whichever rule came
+ * later would win. Winning by source order is not winning. */
+.crumbs {
+  margin: 0 0 1.75rem;
+}
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+}
+.crumbs ol li {
+  margin: 0;
+  color: var(--text-muted);
+}
+.crumbs ol li + li::before {
+  content: "/";
+  margin-right: 0.375rem;
+  color: var(--line);
+}
+.crumbs a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--text);
+}
+
 /* ------------------------------------------------------------------ *
  * Footer
  * ------------------------------------------------------------------ */
