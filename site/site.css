@@ -249,6 +249,10 @@ code {
   align-items: center;
   line-height: 0;
 }
+.site-header .home picture {
+  display: inline-flex;
+  line-height: 0;
+}
 .site-header .home img {
   width: 122px;
 }

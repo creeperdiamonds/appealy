@@ -54,6 +54,23 @@ Browsers draw favicons on the tab background at 16px, so a rounded square would
 eat a third of the area for nothing. The arrow uses `currentColor`, so inlined
 it inherits the page's text colour and works on light and dark from one file.
 
+## Two wordmarks, and they must stay in step
+
+`wordmark.svg` has near-white letterforms (`#E6E8F0`). That was the only
+wordmark for as long as every page was dark. The console and the site now ship
+a light ground too, on which it is very nearly invisible — so
+`wordmark-light.svg` is the same file with that one fill changed to `#0E1116`.
+
+The site header picks between them with `<picture>` and
+`prefers-color-scheme`, which needs no JavaScript. The alternative was inlining
+the SVG so `currentColor` could reach the paths — an `<img>` is opaque to CSS —
+and that means seventeen copies of the same letterform data instead of one 1KB
+file fetched once.
+
+**Change one, regenerate the other.** Nothing checks, and the failure is a
+wordmark that is invisible on exactly one theme, which is the theme whoever
+made the change was probably not using.
+
 ## Not included
 
 Raster exports. Generate what you need:
