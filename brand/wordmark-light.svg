@@ -3,14 +3,17 @@
 
   <!--
     LIGHT-GROUND VARIANT of wordmark.svg. Generated from it by changing one
-    fill: the letterforms go from #E6E8F0 to #0E1116, which is --text on the
+    fill: the letterforms go from #E6E8F0 to #0E1116, the text colour on the
     light theme. The tile and the door are untouched, because blurple and
     white read on either ground.
 
     Selected by <picture> and prefers-color-scheme in the site header. It
-    exists because an <img> is opaque to CSS — currentColor cannot reach
-    inside one — and inlining the SVG into seventeen pages to get that would
-    trade a 1KB file for seventeen copies of the same paths.
+    exists because an <img> is opaque to CSS (currentColor cannot reach inside
+    one), and inlining the SVG into seventeen pages to get that would trade a
+    1KB file fetched once for seventeen copies of the same path data.
+
+    Do not write a double hyphen anywhere in this comment. XML forbids it, and
+    the result is a file that serves 200 and renders as a broken image.
 
     IF wordmark.svg CHANGES, REGENERATE THIS. Nothing checks.
   -->
