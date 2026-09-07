@@ -3,7 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <!-- Both grounds ship, so the shell must not assert one. `dark light`
+         orders the preference without excluding the other; a bare "dark" here
+         made the browser paint native controls and the scrollbar dark even
+         when the user is on the light theme. -->
+    <meta name="color-scheme" content="dark light" />
+    <!-- The first frame, before any script runs. src/lib/theme.ts rewrites the
+         content of this tag on load and on every switch — but until it does,
+         these are what the browser's address bar uses, and a missing tag means
+         a white strip above a dark app for as long as the bundle takes to
+         parse. Values track --bg for each ground in src/index.css. -->
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8" />
     <title>Appealy Console</title>
     <!-- Relative, not root-absolute: the console is served under /dashboard/,
          and a "/favicon.svg" here would resolve against the marketing site at

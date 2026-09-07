@@ -14,48 +14,87 @@
  */
 
 :root {
-  /* Ground — from web/src/index.css. */
-  --ink: #0e1420;
-  --surface: #161d2c;
-  --raised: #1e2738;
-  --line: #2a3547;
-  --line-soft: #212b3c;
+  color-scheme: dark;
 
-  --text: #e8ecf3;
-  --text-dim: #a3b0c4;
-  --text-muted: #7987a0;
+  /* Ground — from web/src/index.css, copied verbatim. */
+  --bg: #0d1016;
+  --surface: #151a22;
+  --raised: #1e242e;
+  --line: #2a323e;
+  --line-soft: #1f2530;
 
-  --accent: #5865f2;
-  --accent-soft: #5865f229;
-  --accent-line: #5865f259;
+  --text: #eef1f5;
+  --text-dim: #a2acba;
+  --text-muted: #727d8c;
+
+  --accent: #5aa9ff;
+  --accent-ink: #06121f;
+  --accent-soft: #5aa9ff1f;
+  --accent-line: #5aa9ff59;
 
   /* Signal. Same three steps as the console, used here only where the page is
    * actually reporting a state: free vs paid, included vs capped. */
-  --ok: #3dd9a4;
+  --ok: #35c99a;
   --watch: #e8a33d;
   /* Carried over for parity with the console even though nothing on a
    * marketing page should ever be in the "act now" state. If a future page
    * needs to mark something as failed, this is the colour it uses. */
-  --act: #e5484d;
+  --act: #f2555a;
 
-  /* Derived, and the only addition to the console palette.
+  /* Link text inside a paragraph.
    *
-   * --accent on --ink measures 4.09:1, under WCAG AA for body text. It is fine
-   * as a button fill (white on it clears 4.5:1) and fine as a focus ring
-   * (3:1 is the bar for non-text), but not as the colour of a link inside a
-   * paragraph. This is the same hue lightened until it clears 8:1, used for
-   * exactly that and nothing else. */
-  --accent-text: #98a3ff;
+   * It exists for the same reason it always did, but the arithmetic inverted.
+   * The old blurple was too DARK on the old ground (4.09:1) and had to be
+   * lightened. The azure is already bright: #5aa9ff on #0d1016 clears AA
+   * comfortably, so on this ground --accent-text is simply --accent. It stays
+   * a separate token because on the light ground below it is not — a bright
+   * azure on near-white fails as body text and has to go deep instead. One
+   * token, two grounds, and no component has to know which it is on. */
+  --accent-text: #5aa9ff;
 
-  --display: "Space Grotesk", system-ui, sans-serif;
-  --body: "Inter", system-ui, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --display: "Archivo", system-ui, sans-serif;
+  --body: "Archivo", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
+  --r-md: 8px;
+  --r-lg: 12px;
 
   --wrap: 1120px;
+}
+
+/* The site follows the reader's device and offers no switch of its own.
+ *
+ * The console has a toggle because it is an app someone lives in; this is six
+ * pages of reading, and site/README.md commits to no JavaScript at all. A
+ * toggle needs script and somewhere to persist a choice, so honouring the
+ * device is the whole of what a static site can honestly do — and it is what
+ * most people want anyway. */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --raised: #eceef2;
+    --line: #d8dbe2;
+    --line-soft: #e4e7ec;
+
+    --text: #0e1116;
+    --text-dim: #4d5561;
+    --text-muted: #767e8b;
+
+    --accent: #0b63ce;
+    --accent-ink: #ffffff;
+    --accent-soft: #0b63ce14;
+    --accent-line: #0b63ce4d;
+
+    --ok: #0b7a5a;
+    --watch: #a35a06;
+    --act: #c62828;
+
+    --accent-text: #0b63ce;
+  }
 }
 
 * {
@@ -68,7 +107,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--ink);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--body);
   font-size: 16px;
@@ -192,7 +231,7 @@ code {
  * ------------------------------------------------------------------ */
 .site-header {
   border-bottom: 1px solid var(--line-soft);
-  background: var(--ink);
+  background: var(--bg);
   position: sticky;
   top: 0;
   z-index: 20;

@@ -15,7 +15,7 @@ import OpsAppeals from "./pages/OpsAppeals";
 import { BannedError } from "./lib/api";
 import { useEffect, useState } from "react";
 import { api, ApiError, http, type GuildSummary } from "./lib/api";
-import { Banner, Pill } from "./components/ui";
+import { Banner, Pill, Sheet, ThemeToggle } from "./components/ui";
 import Overview from "./pages/Overview";
 import Submissions from "./pages/Submissions";
 import Operations from "./pages/Operations";
@@ -103,6 +103,20 @@ const ICONS: Record<View, string> = {
   support: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01",
   "ops-appeals": "M12 3l9 5v6c0 5-4 9-9 10-5-1-9-5-9-10V8zM9 12l2 2 4-4",
 };
+
+/**
+ * The four the phone bar carries, plus More.
+ *
+ * Chosen by what someone opens the console ON A PHONE to do, which is not the
+ * same as what the sidebar is ordered by. Overview and the review queue are
+ * why you pull a phone out; Forms and Tickets are the two you edit most often
+ * from one. Everything else is a deliberate second tap rather than a worse
+ * version of nineteen equal ones.
+ *
+ * Deliberately four and not five: the fifth slot is More, and a bar that fills
+ * every slot with a destination has nowhere to put the other fifteen.
+ */
+const TAB_VIEWS: View[] = ["overview", "submissions", "forms", "tickets"];
 
 /** Icons are decoration next to a text label, so they are hidden from AT. */
 function NavIcon({ view }: { view: View }) {
@@ -276,6 +290,7 @@ export default function App() {
   const [discordReachable, setDiscordReachable] = useState(true);
   const [view, setView] = useState<View>(viewFromLocation);
   const [fatal, setFatal] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -304,6 +319,13 @@ export default function App() {
         if (err instanceof ApiError && err.status !== 401) setFatal(err.message);
       });
   }, []);
+
+  // Any navigation closes the sheet, including the browser's Back button —
+  // otherwise Back dismisses the screen underneath and leaves the menu sitting
+  // over whatever it landed on.
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [view]);
 
   useEffect(() => {
     const path = pathForView(view);
@@ -396,6 +418,7 @@ export default function App() {
         </nav>
 
         <div className="rail-foot">
+          <ThemeToggle />
           <button
             className="nav-item"
             onClick={() => api.logout().then(() => window.location.reload())}
@@ -533,6 +556,108 @@ export default function App() {
           {view === "ops-appeals" && <OpsAppeals />}
         </main>
       </div>
+
+      {/* Phone navigation. Hidden above 760px by index.css, so the sidebar and
+          the bar are never both on screen and neither has to know about the
+          other. */}
+      <nav className="tabbar" aria-label="Sections">
+        {TAB_VIEWS.map((id) => {
+          const item = NAV_GROUPS.flatMap((g) => g.items).find((n) => n.id === id);
+          if (!item) return null;
+          return (
+            <button
+              key={id}
+              aria-current={view === id ? "page" : undefined}
+              onClick={() => setView(id)}
+            >
+              <NavIcon view={id} />
+              {item.label}
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setMoreOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          // Not aria-current even when the open screen lives behind More. The
+          // bar would then show two current sections, and "More" is not where
+          // you are — it is a way to get somewhere.
+        >
+          <svg
+            className="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M5 12h.01M12 12h.01M19 12h.01" />
+          </svg>
+          More
+        </button>
+      </nav>
+
+      {moreOpen && (
+        <Sheet title="Everything else" onClose={() => setMoreOpen(false)}>
+          {/* The same groups as the sidebar, in the same order. The headings
+              are the point — dropping them is what made the old phone nav a
+              flat scroll of nineteen indistinguishable rows. */}
+          <div className="sheet-nav">
+            {NAV_GROUPS.map(({ group, items }) => {
+              const visible = items.filter(
+                (item) =>
+                  (!item.needs || config?.features?.[item.needs] !== false) &&
+                  // Already one tap away in the bar below. Repeating them here
+                  // makes the menu longer without making anything reachable.
+                  !TAB_VIEWS.includes(item.id),
+              );
+              if (visible.length === 0) return null;
+              return (
+                <div key={group}>
+                  <div className="nav-group eyebrow">{group}</div>
+                  {visible.map((item) => (
+                    <button
+                      key={item.id}
+                      className="nav-item"
+                      aria-current={view === item.id ? "page" : undefined}
+                      onClick={() => setView(item.id)}
+                    >
+                      <NavIcon view={item.id} />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+
+            {isOperator && (
+              <div>
+                <div className="nav-group eyebrow">Operator</div>
+                <button
+                  className="nav-item"
+                  aria-current={view === "ops-appeals" ? "page" : undefined}
+                  onClick={() => setView("ops-appeals")}
+                >
+                  <NavIcon view="ops-appeals" />
+                  Appeal queue
+                </button>
+              </div>
+            )}
+
+            <div>
+              <div className="nav-group eyebrow">This device</div>
+              <ThemeToggle />
+              <button
+                className="nav-item"
+                onClick={() => api.logout().then(() => window.location.reload())}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        </Sheet>
+      )}
     </div>
   );
 }

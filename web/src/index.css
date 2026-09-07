@@ -2,60 +2,155 @@
  *
  * Design system for the Appealy console.
  *
- * The visual direction is "instrument panel", not "marketing dashboard".
- * This screen is opened by someone who wants to know whether their server
- * is about to hit a wall, and to do something about it. Everything here is
- * in service of legibility at a glance: one accent colour reserved for
- * interactive things, a three-step signal palette (fine / watch / act) that
- * only appears when a number actually warrants attention, and a mono face
- * for anything a person might need to read digit by digit — snowflake IDs,
- * counters, RTT.
+ * The direction is "paper on a dark ground": editorial contrast, a sturdy
+ * grotesque, and colour spent sparingly enough that a state pill still reads
+ * as state. Both grounds ship — dark is the default, light is the same
+ * identity resolved the other way, and the switch between them is designed
+ * rather than left to a repaint.
  *
- * The blurple is not a stylistic pick. 0x5865F2 is already the default
- * embed colour throughout this codebase (panels, welcomer, role menus), so
- * the console shares a palette with the messages it publishes.
+ * MOBILE FIRST, and that is the point of the redesign rather than a
+ * qualifier. A Discord bot's invite link is very often opened on a phone,
+ * from inside Discord's own in-app browser, so the phone is the first surface
+ * a server owner ever sees and usually the one they are on when something
+ * needs reviewing. Every size below is chosen at 360px and then allowed to
+ * widen.
+ *
+ * THE ACCENT IS NO LONGER DISCORD'S BLURPLE, and that is deliberate. It used
+ * to be 0x5865F2 so the console matched the embeds the bot publishes. The bot
+ * keeps that colour — nothing about the embeds changed — but the console now
+ * sits at hue ~208, a genuine azure, because at 235 it was indistinguishable
+ * from every other Discord dashboard. Where the console PREVIEWS something the
+ * bot sends, it uses --brand-discord below, so the match survives exactly where
+ * it carries meaning and nowhere it does not.
+ *
+ * Tokens are duplicated verbatim in site/site.css. If one changes here, change
+ * it there — there is no build step keeping them in sync, and a marketing site
+ * that no longer matches the app reads as an old page nobody maintains.
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
+/* ------------------------------------------------------------------ *
+ * Tokens
+ *
+ * DARK IS THE BARE :root, so it is what the un-stamped document gets.
+ * Light is applied in two places on purpose:
+ *   - a prefers-color-scheme query, guarded so an explicit dark choice wins
+ *   - a [data-theme="light"] stamp, so the toggle wins in the other direction
+ * Nothing outside this block may name a colour literal. That single rule is
+ * what makes the second theme nearly free instead of a second design.
+ * ------------------------------------------------------------------ */
 :root {
-  /* Ground. Deep navy rather than neutral black — a true black console
-   * reads as a terminal emulator, and this is a place where you make
-   * changes that cost money, not a place you tail logs. */
-  --ink: #0e1420;
-  --surface: #161d2c;
-  --raised: #1e2738;
-  --line: #2a3547;
-  --line-soft: #212b3c;
+  color-scheme: dark;
 
-  --text: #e8ecf3;
-  --text-dim: #a3b0c4;
-  --text-muted: #7987a0;
+  /* Ground. Cool near-black rather than the old navy and rather than a warm
+   * charcoal — the neutrals carry a slight blue bias so the azure accent sits
+   * in the same family as the surfaces behind it. */
+  --bg: #0d1016;
+  --surface: #151a22;
+  --raised: #1e242e;
+  --line: #2a323e;
+  --line-soft: #1f2530;
 
-  --accent: #5865f2;
-  --accent-soft: #5865f229;
-  --accent-line: #5865f259;
+  --text: #eef1f5;
+  --text-dim: #a2acba;
+  --text-muted: #727d8c;
 
-  /* Signal. Three steps, used only for capacity and health. Reserving
-   * these for state means a coloured pixel anywhere on screen is
-   * information, never decoration. */
-  --ok: #3dd9a4;
+  --accent: #5aa9ff;
+  --accent-ink: #06121f;   /* text ON the accent, never guessed per-component */
+  --accent-soft: #5aa9ff1f;
+  --accent-line: #5aa9ff59;
+
+  /* Signal. Three steps, used only for capacity and health. Reserving these
+   * for state means a coloured pixel anywhere on screen is information, never
+   * decoration. Re-picked per ground rather than reused: an amber that reads
+   * as a warning on black reads as a highlighter on white. */
+  --ok: #35c99a;
   --watch: #e8a33d;
-  --act: #e5484d;
-  --ok-soft: #3dd9a41f;
+  --act: #f2555a;
+  --ok-soft: #35c99a1f;
   --watch-soft: #e8a33d1f;
-  --act-soft: #e5484d1f;
+  --act-soft: #f2555a1f;
 
-  --display: "Space Grotesk", system-ui, sans-serif;
-  --body: "Inter", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Discord's own blurple. NOT the console's accent — this is for previewing
+   * what the bot publishes (panels, welcomer, role menus), where showing our
+   * colour instead of theirs would misrepresent the message. */
+  --brand-discord: #5865f2;
+
+  --display: "Archivo", system-ui, sans-serif;
+  --body: "Archivo", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
 
   --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
+  --r-md: 8px;
+  --r-lg: 12px;
+
+  /* A thumb, not a mouse. Every interactive element that a phone user has to
+   * hit takes this as its minimum, from one place rather than per component. */
+  --tap: 46px;
 
   --rail-w: 232px;
   --bar-h: 60px;
+  --tabbar-h: 58px;
+}
+
+/* Light — same identity, other ground. The accent goes deep instead of bright
+ * because azure on white fails contrast as button and link text, and the
+ * signals darken for the same reason. Nothing else changes: same type, same
+ * scale, same spacing, same radii. If the light theme had needed a different
+ * type scale to work, the tokens would be wrong. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --raised: #eceef2;
+    --line: #d8dbe2;
+    --line-soft: #e4e7ec;
+
+    --text: #0e1116;
+    --text-dim: #4d5561;
+    --text-muted: #767e8b;
+
+    --accent: #0b63ce;
+    --accent-ink: #ffffff;
+    --accent-soft: #0b63ce14;
+    --accent-line: #0b63ce4d;
+
+    --ok: #0b7a5a;
+    --watch: #a35a06;
+    --act: #c62828;
+    --ok-soft: #0b7a5a14;
+    --watch-soft: #a35a0614;
+    --act-soft: #c6282814;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --raised: #eceef2;
+  --line: #d8dbe2;
+  --line-soft: #e4e7ec;
+
+  --text: #0e1116;
+  --text-dim: #4d5561;
+  --text-muted: #767e8b;
+
+  --accent: #0b63ce;
+  --accent-ink: #ffffff;
+  --accent-soft: #0b63ce14;
+  --accent-line: #0b63ce4d;
+
+  --ok: #0b7a5a;
+  --watch: #a35a06;
+  --act: #c62828;
+  --ok-soft: #0b7a5a14;
+  --watch-soft: #a35a0614;
+  --act-soft: #c6282814;
 }
 
 * {
@@ -70,7 +165,7 @@ body,
 
 body {
   margin: 0;
-  background: var(--ink);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--body);
   font-size: 14px;
@@ -123,7 +218,7 @@ button {
 ::-webkit-scrollbar-thumb {
   background: var(--line);
   border-radius: 10px;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--bg);
 }
 
 /* ------------------------------------------------------------------ *
@@ -299,7 +394,7 @@ button {
   align-items: center;
   gap: 14px;
   padding: 0 24px;
-  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
@@ -567,7 +662,7 @@ button {
      rather than deleting the usages, because "secondary" is the right word for
      what they are and three separate pages independently reached for it. */
   background: transparent;
-  color: var(--dim);
+  color: var(--text-dim);
 }
 .btn-secondary:hover:not(:disabled) {
   background: var(--raised);
@@ -739,30 +834,24 @@ input.input {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Phone
+ *
+ * What this replaces is the reason for the redesign. The rail used to become
+ * a horizontally-scrolling strip here, with `.nav-group { display: none }`
+ * dropping the headings that organised it — so nineteen entries sat in one
+ * sideways row with the labels that made them findable switched off, and
+ * getting to Role menus meant scrolling past Panels, Polls and Welcomer
+ * hunting for a word. It is a bottom bar now: four sections you actually use,
+ * and everything else behind More.
+ * ------------------------------------------------------------------ */
 @media (max-width: 760px) {
   .shell {
     grid-template-columns: 1fr;
   }
+  /* Gone, not restyled. The sidebar is a desktop object. */
   .rail {
-    position: static;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    overflow-x: auto;
-    padding: 10px 12px;
-    gap: 10px;
-  }
-  .brand,
-  .nav-group {
     display: none;
-  }
-  .nav {
-    flex-direction: row;
-    gap: 4px;
-  }
-  .nav-item {
-    white-space: nowrap;
-    width: auto;
   }
   .grid-4,
   .grid-3,
@@ -774,9 +863,124 @@ input.input {
   }
   .content {
     padding: 16px;
+    /* Clear the fixed bar, plus the home indicator on a notched phone. The
+     * last row of every list was otherwise unreachable behind it. */
+    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 16px);
   }
   .topbar {
     padding: 0 16px;
+  }
+  .tabbar {
+    display: grid;
+  }
+  /* Anything a thumb has to hit grows to the tap target here rather than
+   * everywhere — a 46px input on a desktop form looks like a mistake. */
+  .btn,
+  .input,
+  select.input {
+    min-height: var(--tap);
+  }
+  .btn-sm {
+    min-height: 38px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * The bottom bar. Hidden above 760px; `display: grid` restored above.
+ * ------------------------------------------------------------------ */
+.tabbar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+.tabbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 52px;
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-family: var(--body);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.tabbar button[aria-current="page"] {
+  color: var(--accent);
+}
+
+.tabbar svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The More sheet. Bottom-anchored, because the top of a phone screen is the
+ * part a thumb cannot reach. */
+.sheet-nav {
+  display: grid;
+  gap: 4px;
+}
+
+.sheet-nav .nav-group {
+  margin-top: 0.75rem;
+}
+.sheet-nav > div:first-child .nav-group {
+  margin-top: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Theme switching
+ *
+ * Three things, and the third is the one that gets forgotten.
+ *
+ * 1. Where the browser has view transitions, the swap is a real crossfade of
+ *    the rendered frame. No library, and nothing to maintain.
+ * 2. Where it does not, `.theme-switching` turns on colour transitions for
+ *    ~180ms and is then removed. SCOPED ON PURPOSE: leaving these on
+ *    permanently makes every hover and focus feel laggy on a mid-range phone,
+ *    which is the opposite of what this is for.
+ * 3. color-scheme and <meta name="theme-color"> flip with it (see
+ *    src/lib/theme.ts). Without that, native controls, the scrollbar and —
+ *    most visibly on a phone — the browser's own address bar stay the old
+ *    theme. A light strip above a dark app is exactly what reads as cheap.
+ * ------------------------------------------------------------------ */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    fill 180ms ease,
+    stroke 180ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switching,
+  .theme-switching *,
+  .theme-switching *::before,
+  .theme-switching *::after {
+    transition: none !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }
 
@@ -836,10 +1040,10 @@ input.input {
 .appeal-kind { display: flex; gap: .375rem; margin-bottom: .75rem; }
 .btn-toggle {
   flex: 1; padding: .5rem .75rem; border-radius: 2px; cursor: pointer;
-  background: var(--bg); border: 1px solid var(--line); color: var(--dim);
+  background: var(--bg); border: 1px solid var(--line); color: var(--text-dim);
   font: inherit; font-size: .8125rem; text-align: center;
 }
-.btn-toggle:hover { color: inherit; border-color: var(--dim); }
+.btn-toggle:hover { color: inherit; border-color: var(--text-dim); }
 .btn-toggle.is-on { color: inherit; border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .btn-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
@@ -850,18 +1054,30 @@ input.input {
 .banned-avatar svg { position: absolute; inset: 0; stroke: var(--act); }
 
 .guild-option { display: flex; align-items: center; gap: .625rem; width: 100%; text-align: left; padding: .5rem; border-radius: 2px; }
-.guild-option.is-banned .guild-name { color: var(--dim); }
+.guild-option.is-banned .guild-name { color: var(--text-dim); }
 .guild-option.is-banned { border-color: var(--act); }
 .guild-option-body { display: grid; min-width: 0; }
 .guild-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .guild-sub { font-size: .6875rem; }
 
 .sheet-backdrop { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 1rem; background: color-mix(in srgb, var(--bg) 84%, transparent); }
-.sheet { width: 100%; max-width: 31rem; max-height: 100%; overflow-y: auto; padding: 1.25rem; border-radius: 2px; background: var(--panel); border: 1px solid var(--line); }
+.sheet { width: 100%; max-width: 31rem; max-height: 100%; overflow-y: auto; padding: 1.25rem; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
 .sheet-head { display: flex; gap: .75rem; align-items: flex-start; margin-bottom: 1.25rem; }
 .sheet-head h2 { margin: 0 0 .25rem; font-size: 1.0625rem; letter-spacing: -.01em; }
-.sheet-close { margin-left: auto; font-size: 1.25rem; line-height: 1; padding: 0 .375rem; color: var(--dim); }
-@media (max-width: 30rem) { .sheet-backdrop { align-items: end; } }
+.sheet-close { margin-left: auto; font-size: 1.25rem; line-height: 1; padding: 0 .375rem; color: var(--text-dim); }
+@media (max-width: 30rem) {
+  .sheet-backdrop { align-items: end; padding: 0; }
+  /* Anchored to the bottom edge on a phone, because the top of the screen
+   * is the part a thumb cannot reach. Squared off against that edge, and
+   * padded clear of the home indicator. */
+  .sheet {
+    max-width: none;
+    max-height: 85vh;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    border-bottom: 0;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}
 
 @media (prefers-reduced-motion: reduce) { .sheet, .sheet-backdrop { animation: none !important; } }
 
@@ -896,14 +1112,14 @@ input.input {
 /* --- Outcome editor preview --- */
 .menu-preview { border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
 .menu-preview-bar {
-  padding: .5rem .75rem; background: var(--panelHi, var(--panel));
-  border-bottom: 1px solid var(--line); font-size: .875rem; color: var(--dim);
+  padding: .5rem .75rem; background: var(--panelHi, var(--surface));
+  border-bottom: 1px solid var(--line); font-size: .875rem; color: var(--text-dim);
 }
 .menu-preview-option { padding: .5rem .75rem; font-size: .875rem; }
 .menu-preview-option + .menu-preview-option { border-top: 1px solid var(--line); }
 .menu-preview-deny {
   margin: .5rem .75rem; padding: .375rem .75rem; display: inline-block;
-  border: 1px solid var(--line); border-radius: 2px; font-size: .8125rem; color: var(--dim);
+  border: 1px solid var(--line); border-radius: 2px; font-size: .8125rem; color: var(--text-dim);
 }
 .field input[type="text"], .field input:not([type]) {
   width: 100%; padding: .5rem .625rem; border-radius: 2px;
@@ -918,12 +1134,12 @@ input.input {
   background: var(--bg); color: inherit; font: inherit; font-size: .8125rem; cursor: pointer;
 }
 .role-chip:hover .role-chip-x { color: var(--act); }
-.role-chip-x { color: var(--dim); font-size: .875rem; line-height: 1; }
+.role-chip-x { color: var(--text-dim); font-size: .875rem; line-height: 1; }
 .role-dot { width: .5rem; height: .5rem; border-radius: 50%; flex: none; }
 .role-add { font-size: .8125rem; }
 .role-list {
   margin-top: .5rem; border: 1px solid var(--line); border-radius: 2px;
-  max-height: 16rem; overflow-y: auto; background: var(--panel);
+  max-height: 16rem; overflow-y: auto; background: var(--surface);
 }
 .role-search {
   width: 100%; padding: .5rem .625rem; border: 0; border-bottom: 1px solid var(--line);
@@ -969,7 +1185,7 @@ input.input {
   margin: 0;
   padding: 12px 14px;
   border-radius: var(--r-sm);
-  background: var(--ink);
+  background: var(--bg);
   border: 1px solid var(--line-soft);
   font-family: var(--mono);
   font-size: 12px;

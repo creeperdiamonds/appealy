@@ -16,17 +16,20 @@
   If a claim here stops being true, the code changed. Fix the code or fix this
   page — do not leave them disagreeing.
 
-  ONE CLAIM IS CURRENTLY A PROMISE, NOT A DESCRIPTION. "Reviewed submissions
-  are deleted once they pass your server's history retention window" is true
-  only where HISTORY_PURGE_ENABLED=true. It defaults to FALSE, because the
-  purge had never run and the first tick after enabling it deletes the whole
-  accumulated backlog at once — that is a decision someone makes having seen
-  the numbers, not a deploy-time default. While disabled the purge still logs
-  what it WOULD delete (bot/src/core/scheduler.ts, runHistoryPurge).
+  THE RETENTION SECTION DESCRIBES WHAT RUNS, NOT WHAT IS INTENDED. It used to
+  state flatly that reviewed submissions are deleted once they pass the
+  retention window, which is true only where HISTORY_PURGE_ENABLED=true. It
+  defaults to FALSE and is not set in the deploy workflow, so on the live
+  deployment nothing is being deleted — the purge runs in reporting mode and
+  logs what it WOULD remove (bot/src/core/scheduler.ts, runHistoryPurge).
 
-  So this page must not be served publicly by a deployment that has not
-  enabled it. Either turn it on, or change the sentence. SETUP.md carries this
-  as a launch step rather than a nice-to-have.
+  That was a published privacy policy promising something the deployment does
+  not do. The sentence now says "eligible for deletion" and a callout states
+  plainly that automatic deletion is off.
+
+  WHEN THE PURGE IS ENABLED, DELETE THE CALLOUT. Leaving it is the same class
+  of error in the other direction: a page under-claiming is still a page that
+  disagrees with the code. SETUP.md carries the switch-on as a launch step.
 -->
 
 <title>Privacy — Appealy</title>
@@ -47,11 +50,13 @@
 <meta name="twitter:description" content="What Appealy stores, for how long, who can see it, and what it does not collect.">
 <meta name="twitter:image" content="https://appealy.creeperdiamonds.xyz/og.png">
 
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
 <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
@@ -193,11 +198,27 @@
 
     <h2>How long it is kept</h2>
     <p>
-      Reviewed submissions &mdash; accepted, denied or withdrawn &mdash; are deleted once they pass
-      your server&rsquo;s history retention window. That window is one of the metered caps: 30 days
-      on the free tier, up to five years at the ceiling. Answers are deleted with the submission
-      they belong to.
+      Every server has a history retention window, and it is one of the metered caps: 30 days on
+      the free tier, up to five years at the ceiling. Reviewed submissions &mdash; accepted, denied
+      or withdrawn &mdash; are eligible for deletion once they pass it, and answers are deleted
+      with the submission they belong to.
     </p>
+    <div class="callout">
+      <strong>Automatic deletion is not switched on yet, and this page will not claim otherwise.</strong>
+      The retention window is enforced everywhere it is read, and the job that removes expired
+      submissions is written and running &mdash; but it is in reporting mode, recording what it
+      would delete rather than deleting it. So reviewed submissions past their window are still
+      stored today.
+      <br><br>
+      The reason is not oversight. The purge has never run, so the first time it does it removes
+      every expired submission that has accumulated <em>because</em> it never ran &mdash;
+      irreversibly, across every server at once. That is a decision to make having seen the
+      numbers, not a default to leave switched on and discover afterwards. When it is enabled this
+      paragraph goes and the sentence above stands on its own.
+      <br><br>
+      If you want a server&rsquo;s history gone before then, <code>/export</code> takes a copy and
+      a deletion request at the address below is honoured by hand.
+    </div>
     <p>
       <strong>Pending submissions are never purged</strong>, at any tier. One of those is live work
       sitting in a review queue, and deleting it because it aged out would silently drop an

@@ -3,8 +3,10 @@
 // Shared primitives. Small enough to live in one file; splitting them into
 // eleven modules would add navigation cost without adding clarity.
 
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { RateLimitCaps } from "../lib/api";
+import { nextChoice, setTheme, storedChoice, type ThemeChoice } from "../lib/theme";
 
 /* ------------------------------------------------------------------ *
  * Thresholds
@@ -298,4 +300,125 @@ export function formatRelative(iso: string): string {
  * raid — a wall of accounts created the same hour is the tell. */
 export function snowflakeDate(id: string): Date {
   return new Date(Number(BigInt(id) >> 22n) + 1420070400000);
+}
+
+/* ------------------------------------------------------------------ *
+ * Sheet
+ *
+ * The pattern already existed, hand-rolled inside ServerBanned.tsx. It is
+ * shared now because the phone navigation depends on it, and two copies of a
+ * dialog is two places to get focus handling wrong.
+ *
+ * Bottom-anchored on a phone (see index.css): the top of the screen is the
+ * part a thumb cannot reach, and a centred dialog puts the close button
+ * exactly there.
+ * ------------------------------------------------------------------ */
+export function Sheet({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const headingId = useId();
+
+  useEffect(() => {
+    // Focus moves into the dialog, or a keyboard user is left tabbing through
+    // the page behind it with no idea anything opened.
+    closeRef.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+
+    // The page behind must not scroll under the sheet — on a phone that reads
+    // as the sheet itself failing to scroll.
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headingId}
+        // Without this a click on the sheet bubbles to the backdrop and closes
+        // the thing the user was reaching for.
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="sheet-head">
+          <h2 id={headingId}>{title}</h2>
+          <button ref={closeRef} className="sheet-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </header>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Theme toggle
+ *
+ * Cycles system → light → dark → system. System stays IN the cycle rather
+ * than being buried in a settings screen: it is the default, it is what people
+ * want back after trying the other two, and a control you cannot return to the
+ * default with is a trap.
+ *
+ * The label says what you will get, not what you have. A control captioned
+ * with its current state and a control captioned with its next state look
+ * identical and mean opposite things, and the second is the one people read
+ * correctly.
+ * ------------------------------------------------------------------ */
+/* One glyph per state, on the same 24x24 grid as the nav icons, stroked with
+ * currentColor. A monitor for "follow the device" rather than a half-filled
+ * circle: the half-circle is the convention, and it is also the one people
+ * read as "contrast" or "partial". A screen is unambiguous. */
+const THEME_ICON: Record<ThemeChoice, string> = {
+  system: "M3 5h18v11H3zM8 20h8M12 16v4",
+  light: "M12 4V2M12 22v-2M4 12H2M22 12h-2M6 6 4.5 4.5M19.5 19.5 18 18M6 18l-1.5 1.5M19.5 4.5 18 6M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8",
+  dark: "M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5",
+};
+
+export function ThemeToggle({ className = "nav-item" }: { className?: string }) {
+  const [choice, setChoice] = useState<ThemeChoice>(() => storedChoice());
+  const next = nextChoice(choice);
+
+  return (
+    <button
+      className={className}
+      onClick={() => setChoice(setTheme(next))}
+      // The accessible name has to carry the destination too — an icon button
+      // labelled "Theme" tells a screen reader user nothing about what pressing
+      // it does.
+      aria-label={`Switch to ${next === "system" ? "system" : next} theme`}
+      title={`Theme: ${choice}. Switch to ${next}.`}
+    >
+      <svg
+        className="nav-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d={THEME_ICON[choice]} />
+      </svg>
+      {choice === "system" ? "System theme" : choice === "light" ? "Light" : "Dark"}
+    </button>
+  );
 }
