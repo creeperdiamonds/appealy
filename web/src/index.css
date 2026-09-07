@@ -870,9 +870,6 @@ input.input {
   .topbar {
     padding: 0 16px;
   }
-  .tabbar {
-    display: grid;
-  }
   /* Anything a thumb has to hit grows to the tap target here rather than
    * everywhere — a 46px input on a desktop form looks like a mistake. */
   .btn,
@@ -889,6 +886,14 @@ input.input {
  * The bottom bar. Hidden above 760px; `display: grid` restored above.
  * ------------------------------------------------------------------ */
 .tabbar {
+  /* Hidden by default and switched on in the query directly below.
+   *
+   * That query has to come AFTER this block. Both selectors are a single
+   * class, so they have identical specificity and source order decides — the
+   * first version of this file put the `display: grid` in the phone media
+   * query near the top and this `display: none` two hundred lines later, which
+   * meant the bar was hidden at every width. The sidebar still hid correctly,
+   * so the page looked almost right and the navigation was simply absent. */
   display: none;
   position: fixed;
   left: 0;
@@ -927,6 +932,14 @@ input.input {
 .tabbar svg {
   width: 20px;
   height: 20px;
+}
+
+/* Phone only. Placed here, after the block above, on purpose — see the comment
+ * on .tabbar. */
+@media (max-width: 760px) {
+  .tabbar {
+    display: grid;
+  }
 }
 
 /* The More sheet. Bottom-anchored, because the top of a phone screen is the
