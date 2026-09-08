@@ -13,6 +13,7 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
+import { renderTranscript, type TranscriptMessage } from "../../../shared/lib/transcript.ts";
 import { checkAndConsumeDailyCap } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
 import { describeDiscordError } from "../utils/discordError.ts";
@@ -223,22 +224,82 @@ export async function closeTicket(
   return { transcriptUrl };
 }
 
-/** Renders a plain-text transcript of the ticket channel's message history
- * and posts it to the configured transcript channel (if set) as a file
- * attachment. Kept intentionally simple (text, not HTML) to avoid pulling
- * in a rendering dependency for what's fundamentally a compliance/reference
- * artifact rather than a polished deliverable. */
+/**
+ * Fetches a ticket channel's history, renders it, posts it to the configured
+ * transcript channel, and returns a link to that post.
+ *
+ * FOUR THINGS WERE WRONG HERE, three of them silent.
+ *
+ * 1. It fetched `{ limit: 100 }` once. That is Discord's per-call maximum, not
+ *    a channel's message count — so any ticket longer than a hundred messages
+ *    was transcribed from its last hundred, with nothing anywhere saying so.
+ *    The busiest tickets, which are the ones a transcript is actually for,
+ *    were the ones least likely to be complete. It pages now, and when it hits
+ *    the cap the transcript says so in its own first line.
+ *
+ * 2. Attachments were dropped. core/client.ts caches them with the comment
+ *    "Ticket transcripts include what was attached, not just what was typed"
+ *    — the intent was written down in one file and never implemented in this
+ *    one. A screenshot rendered as an empty line.
+ *
+ * 3. It returned the posted attachment's CDN url, and that url expires.
+ *    Discord signs attachment links and they stop resolving after about a
+ *    day, so `tickets.transcript_url` was filling up with links that were dead
+ *    before anyone clicked them. It returns a MESSAGE link now: permanent,
+ *    and it lands on the post, from which the file downloads with a fresh
+ *    signature.
+ *
+ * 4. It read the whole channel and then discarded the result when no
+ *    transcript channel was configured. Harmless at one REST call; not
+ *    harmless now that it pages. The check moved to the top.
+ *
+ * Rendering is in shared/lib/transcript.ts so it can be tested without a
+ * gateway connection. See shared/lib/__tests__/transcript.test.ts — every case
+ * in it is one of the above.
+ */
+
+/** Discord's own per-request maximum. Not a choice. */
+const TRANSCRIPT_PAGE = 100;
+
+/**
+ * Ten pages, so a thousand messages.
+ *
+ * A bound is necessary — without one, one pathological channel blocks a close
+ * behind an unbounded number of REST calls. A thousand is well past any real
+ * support ticket, and the transcript is explicit when it is reached, which is
+ * the part that makes the limit honest rather than lossy.
+ */
+const TRANSCRIPT_MAX_PAGES = 10;
+
 async function generateAndPostTranscript(
   bot: AppealyBot,
   ticket: typeof schema.tickets.$inferSelect & { config: typeof schema.ticketConfigs.$inferSelect },
 ): Promise<string | null> {
-  const messages = await bot.helpers.getMessages(ticket.channelId, { limit: 100 });
-  const lines = [...messages]
-    .reverse()
-    .map((m) => `[${new Date(m.timestamp ?? Date.now()).toISOString()}] ${m.author?.username ?? "unknown"}: ${m.content ?? ""}`);
-  const transcriptText = lines.join("\n") || "(no messages)";
-
+  // Before the work, not after it.
   if (!ticket.config.transcriptChannelId) return null;
+
+  const collected: TranscriptMessage[] = [];
+  let before: bigint | undefined;
+  let truncated = false;
+
+  for (let page = 0; page < TRANSCRIPT_MAX_PAGES; page++) {
+    const batch = await bot.helpers.getMessages(ticket.channelId, {
+      limit: TRANSCRIPT_PAGE,
+      ...(before ? { before } : {}),
+    });
+    const rows = [...batch];
+    if (rows.length === 0) break;
+
+    collected.push(...rows);
+    // Discord returns newest first, so the last row of a page is the oldest
+    // one seen — which is where the next page continues from.
+    before = rows[rows.length - 1].id;
+
+    if (rows.length < TRANSCRIPT_PAGE) break;
+    if (page === TRANSCRIPT_MAX_PAGES - 1) truncated = true;
+  }
+
+  const transcriptText = renderTranscript(collected.reverse(), { truncated });
 
   const file = {
     blob: new Blob([new TextEncoder().encode(transcriptText)], { type: "text/plain" }),
@@ -250,6 +311,7 @@ async function generateAndPostTranscript(
     files: [file],
   });
 
-  const attachment = posted.attachments?.[0];
-  return attachment?.url ?? null;
+  // A message link rather than posted.attachments[0].url. See (3) above.
+  if (!posted?.id) return null;
+  return `https://discord.com/channels/${ticket.guildId}/${ticket.config.transcriptChannelId}/${posted.id}`;
 }
