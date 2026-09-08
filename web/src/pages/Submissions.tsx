@@ -89,57 +89,59 @@ export default function Submissions({ guildId }: { guildId: string }) {
             }
           />
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Applicant</th>
-                <th>Form</th>
-                <th>Status</th>
-                <th>Took</th>
-                <th>Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <div className="mono">{s.applicantId}</div>
-                    {/* Account age from the snowflake. When a wave of
-                        applications arrives from accounts created the same
-                        week, that is the single most useful column here. */}
-                    <div className="dim" style={{ fontSize: 11 }}>
-                      account created {snowflakeDate(s.applicantId).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td>{formName(s.formId)}</td>
-                  <td>
-                    <Pill
-                      level={
-                        s.status === "accepted"
-                          ? "ok"
-                          : s.status === "denied"
-                            ? "act"
-                            : s.status === "pending"
-                              ? "watch"
-                              : undefined
-                      }
-                    >
-                      {s.status}
-                    </Pill>
-                    {s.reviewerId && (
-                      <div className="dim mono" style={{ fontSize: 11, marginTop: 3 }}>
-                        by {s.reviewerId}
-                      </div>
-                    )}
-                  </td>
-                  <td className="mono dim">
-                    {s.completionSeconds ? formatDuration(s.completionSeconds) : "—"}
-                  </td>
-                  <td className="dim">{formatRelative(s.createdAt)}</td>
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Applicant</th>
+                  <th>Form</th>
+                  <th>Status</th>
+                  <th>Took</th>
+                  <th>Submitted</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((s) => (
+                  <tr key={s.id}>
+                    <td>
+                      <div className="mono">{s.applicantId}</div>
+                      {/* Account age from the snowflake. When a wave of
+                          applications arrives from accounts created the same
+                          week, that is the single most useful column here. */}
+                      <div className="dim" style={{ fontSize: 11 }}>
+                        account created {snowflakeDate(s.applicantId).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td>{formName(s.formId)}</td>
+                    <td>
+                      <Pill
+                        level={
+                          s.status === "accepted"
+                            ? "ok"
+                            : s.status === "denied"
+                              ? "act"
+                              : s.status === "pending"
+                                ? "watch"
+                                : undefined
+                        }
+                      >
+                        {s.status}
+                      </Pill>
+                      {s.reviewerId && (
+                        <div className="dim mono" style={{ fontSize: 11, marginTop: 3 }}>
+                          by {s.reviewerId}
+                        </div>
+                      )}
+                    </td>
+                    <td className="mono dim">
+                      {s.completionSeconds ? formatDuration(s.completionSeconds) : "—"}
+                    </td>
+                    <td className="dim">{formatRelative(s.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Panel>
 

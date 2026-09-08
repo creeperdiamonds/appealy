@@ -446,50 +446,52 @@ export default function Forms({ guildId }: { guildId: string }) {
             hint="Create one, then point a panel or the ban-appeal flow at it."
           />
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Delivery</th>
-                <th>Questions</th>
-                <th>Status</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {forms.map((f) => (
-                <tr key={f.id}>
-                  <td>
-                    <strong>{f.name}</strong>
-                    {f.kind === "appeal" && <span className="dim block">ban appeal</span>}
-                  </td>
-                  <td className="dim">
-                    {f.applicationType === "direct_message" ? "Direct message" : "In server"}
-                  </td>
-                  <td className="dim">{f.questions.length}</td>
-                  <td>
-                    <Pill level={f.active ? "ok" : "watch"}>{f.active ? "active" : "inactive"}</Pill>
-                  </td>
-                  <td>
-                    <div className="row">
-                      <button
-                        className="btn btn-sm"
-                        onClick={() => { setDraft({ ...f }); setSaved(false); setError(null); }}
-                      >
-                        Edit
-                      </button>
-                      <button className="btn btn-sm" onClick={() => setOutcomesFor(f.id)}>
-                        Outcomes
-                      </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(f.id)}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Delivery</th>
+                  <th>Questions</th>
+                  <th>Status</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {forms.map((f) => (
+                  <tr key={f.id}>
+                    <td>
+                      <strong>{f.name}</strong>
+                      {f.kind === "appeal" && <span className="dim block">ban appeal</span>}
+                    </td>
+                    <td className="dim">
+                      {f.applicationType === "direct_message" ? "Direct message" : "In server"}
+                    </td>
+                    <td className="dim">{f.questions.length}</td>
+                    <td>
+                      <Pill level={f.active ? "ok" : "watch"}>{f.active ? "active" : "inactive"}</Pill>
+                    </td>
+                    <td>
+                      <div className="row">
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => { setDraft({ ...f }); setSaved(false); setError(null); }}
+                        >
+                          Edit
+                        </button>
+                        <button className="btn btn-sm" onClick={() => setOutcomesFor(f.id)}>
+                          Outcomes
+                        </button>
+                        <button className="btn btn-sm btn-danger" onClick={() => setConfirmDelete(f.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Panel>
 

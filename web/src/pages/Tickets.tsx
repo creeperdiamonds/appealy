@@ -494,67 +494,69 @@ export default function Tickets({ guildId }: { guildId: string }) {
         )}
 
         {configs.length > 0 && (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Opens as</th>
-                <th>Panel in</th>
-                <th>State</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {configs.map((c) => {
-                const problems = problemsFor(toDraft(c));
-                return (
-                  <tr key={c.id}>
-                    <td>
-                      <strong>{c.name}</strong>
-                      <span className="dim block">
-                        {c.buttonEmoji ? `${c.buttonEmoji} ` : ""}
-                        {c.buttonLabel}
-                      </span>
-                    </td>
-                    <td className="dim">
-                      {CHANNEL_TYPES.find((t) => t.value === c.channelType)?.label ?? c.channelType}
-                    </td>
-                    <td className="dim mono">{channelName(c.channelId) ?? c.channelId}</td>
-                    <td>
-                      <div className="row wrap">
-                        <Pill level={c.active ? "ok" : "watch"}>{c.active ? "Active" : "Inactive"}</Pill>
-                        {problems.length > 0 && (
-                          <Pill level={worst(problems)}>
-                            {problems.length} problem{problems.length === 1 ? "" : "s"}
-                          </Pill>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="actions">
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => { setDraft(toDraft(c)); setError(null); setNotice(null); }}
-                        >
-                          {draft?.id === c.id ? "Editing" : "Edit"}
-                        </button>
-                        <button
-                          className="btn btn-sm"
-                          disabled={publishing}
-                          onClick={() => setConfirmPublish(c)}
-                        >
-                          Post panel
-                        </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelete(c)}>
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Opens as</th>
+                  <th>Panel in</th>
+                  <th>State</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {configs.map((c) => {
+                  const problems = problemsFor(toDraft(c));
+                  return (
+                    <tr key={c.id}>
+                      <td>
+                        <strong>{c.name}</strong>
+                        <span className="dim block">
+                          {c.buttonEmoji ? `${c.buttonEmoji} ` : ""}
+                          {c.buttonLabel}
+                        </span>
+                      </td>
+                      <td className="dim">
+                        {CHANNEL_TYPES.find((t) => t.value === c.channelType)?.label ?? c.channelType}
+                      </td>
+                      <td className="dim mono">{channelName(c.channelId) ?? c.channelId}</td>
+                      <td>
+                        <div className="row wrap">
+                          <Pill level={c.active ? "ok" : "watch"}>{c.active ? "Active" : "Inactive"}</Pill>
+                          {problems.length > 0 && (
+                            <Pill level={worst(problems)}>
+                              {problems.length} problem{problems.length === 1 ? "" : "s"}
+                            </Pill>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="actions">
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => { setDraft(toDraft(c)); setError(null); setNotice(null); }}
+                          >
+                            {draft?.id === c.id ? "Editing" : "Edit"}
+                          </button>
+                          <button
+                            className="btn btn-sm"
+                            disabled={publishing}
+                            onClick={() => setConfirmPublish(c)}
+                          >
+                            Post panel
+                          </button>
+                          <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelete(c)}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Panel>
 

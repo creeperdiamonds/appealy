@@ -435,6 +435,10 @@ button {
 }
 .panel-head {
   display: flex;
+  /* A heading and its controls sit side by side while they fit and stack when
+   * they do not. "Applications" plus a status filter plus a form filter is
+   * about 380px of content, which is wider than the phone it was rendering on. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -686,6 +690,21 @@ button {
 /* ------------------------------------------------------------------ *
  * Tables
  * ------------------------------------------------------------------ */
+/* Wide content scrolls inside its own box; the page body never scrolls
+ * sideways. Every table here has an action column of two or three buttons, and
+ * on a phone that plus the text pushed the table past the viewport — which
+ * dragged the whole page with it, so the sticky topbar sat over content that
+ * had slid out from under it.
+ *
+ * A wrapper element rather than `display: block` on the table itself: that
+ * trick works but stops the columns sharing one grid, and a table whose header
+ * no longer lines up with its body is a worse bug than the one being fixed. */
+.table-scroll {
+  overflow-x: auto;
+  /* Momentum scrolling, and a scrollbar that does not steal a row's height. */
+  -webkit-overflow-scrolling: touch;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -1125,7 +1144,15 @@ input.input {
 .page-head h1 { margin: 0 0 .25rem; font-size: 1.375rem; letter-spacing: -.01em; }
 .page-head p { margin: 0; font-size: .875rem; }
 .block { display: block; }
-.row { display: flex; gap: .625rem; align-items: flex-start; padding: .5rem 0; }
+/* NOTE: `.row` is declared twice in this file — once in the utilities section
+ * above and again here. This one is later, so this one wins. They were not
+ * merged because the earlier declaration is used by layouts that expect
+ * centre alignment and no padding, and quietly changing those to fix a comment
+ * is how a tidy-up becomes a regression. Change both or neither.
+ *
+ * flex-wrap is the fix: a row of two filter selects could not wrap, so on a
+ * phone it ran off the side of the panel and took the page with it. */
+.row { display: flex; flex-wrap: wrap; gap: .625rem; align-items: flex-start; padding: .5rem 0; }
 .row + .row { border-top: 1px solid var(--line); }
 .row input[type="checkbox"] { margin-top: .25rem; flex: none; }
 .field { display: grid; gap: .375rem; padding: .625rem 0; }
