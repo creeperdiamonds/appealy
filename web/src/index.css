@@ -942,8 +942,38 @@ input.input {
      * last row of every list was otherwise unreachable behind it. */
     padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 16px);
   }
+  /* GRID, not flex, at phone width.
+   *
+   * The probe measured this bar at 396px inside a 360px viewport, and named it
+   * as the OUTERMOST overflowing box — .shell and .main were not flagged, so
+   * the bar was wider than its own parent. flex-wrap cannot fix that: wrapping
+   * changes how items are placed on a line, not how wide the box is allowed to
+   * be, and `flex: 1 1 12rem` on the select did not help either because a flex
+   * item's basis is a starting point rather than a ceiling.
+   *
+   * A grid container is a block-level box, so it takes its containing block's
+   * width and cannot be pushed past it. `minmax(0, 1fr)` is the part that
+   * matters: a bare `1fr` is `minmax(auto, 1fr)`, whose automatic minimum is
+   * the track's min-content — which is exactly the "will not shrink" behaviour
+   * being escaped. With a 0 minimum the select track absorbs whatever is left
+   * after the pill and can go as narrow as it needs to.
+   *
+   * Two columns because at this width the topbar has two visible children: the
+   * server select and one access pill. The hint is display:none below 720px,
+   * and the uninvited and access pills are mutually exclusive. A third child
+   * would wrap to a second row, which min-height (rather than the old fixed
+   * height) now allows. */
   .topbar {
     padding: 0 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  /* The select fills its track instead of insisting on 280px. The inline
+     max-width in App.tsx caps it on a desktop; here the track is the cap. */
+  .topbar .input {
+    width: 100%;
+    max-width: none;
   }
   /* Anything a thumb has to hit grows to the tap target here rather than
    * everywhere — a 46px input on a desktop form looks like a mistake. */
