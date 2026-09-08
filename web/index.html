@@ -28,6 +28,89 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!--
+      Horizontal-overflow probe. INERT unless the URL carries ?overflow.
+
+      It exists because the failing device is a phone and the developer is not
+      holding it. Reproducing a 360px viewport elsewhere kept failing — an
+      artifact sandbox blocks writing into an iframe, and without an iframe
+      there is no second viewport to measure in — so the page reports on
+      itself instead, at the width where it actually breaks.
+
+      The technique is the standard one: walk every element, compare its
+      bounding box against the documentElement's client width, and mark the
+      ones that pass the right edge. Outermost first, because a child sticking
+      out is usually a symptom of the ancestor that would not shrink.
+
+      Guarded rather than removed after use. It costs nothing when the flag is
+      absent, and the next person to hit this will not have to rebuild it.
+    -->
+    <script>
+      (function () {
+        if (window.location.search.indexOf("overflow") === -1) return;
+
+        var panel = document.createElement("div");
+        panel.id = "overflow-probe";
+        panel.style.cssText =
+          "position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#000;" +
+          "color:#0f0;font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;" +
+          "padding:8px;max-height:50vh;overflow:auto;border-top:2px solid #0f0;white-space:pre-wrap";
+        document.body.appendChild(panel);
+
+        function label(el) {
+          var c = typeof el.className === "string" && el.className.trim()
+            ? "." + el.className.trim().split(/\s+/).slice(0, 3).join(".")
+            : "";
+          return el.tagName.toLowerCase() + c;
+        }
+
+        function scan() {
+          var de = document.documentElement;
+          var vw = de.clientWidth;
+          var over = de.scrollWidth - vw;
+          var lines = [
+            "viewport " + vw + "  scrollWidth " + de.scrollWidth + "  OVERFLOW " + over + "px",
+            ""
+          ];
+
+          document.querySelectorAll("[data-of]").forEach(function (el) {
+            el.style.outline = "";
+            el.removeAttribute("data-of");
+          });
+
+          if (over <= 0) {
+            lines.push("No horizontal overflow at this width.");
+          } else {
+            var hits = [];
+            document.querySelectorAll("body *").forEach(function (el) {
+              if (el.id === "overflow-probe" || panel.contains(el)) return;
+              var r = el.getBoundingClientRect();
+              if (r.width > 0 && r.right > vw + 1) hits.push({ el: el, r: r });
+            });
+            hits.slice(0, 12).forEach(function (h, i) {
+              h.el.style.outline = i === 0 ? "3px solid #ff0" : "1px dashed #f0f";
+              h.el.setAttribute("data-of", "1");
+              lines.push(
+                (i === 0 ? "> " : "  ") + label(h.el) +
+                "  w=" + Math.round(h.r.width) +
+                " right=" + Math.round(h.r.right)
+              );
+            });
+            lines.push("");
+            lines.push("The FIRST line, outlined yellow, is the one to fix.");
+          }
+
+          panel.textContent = lines.join("\n");
+        }
+
+        window.addEventListener("resize", scan);
+        // The console is a single-page app, so the DOM changes without a
+        // navigation. Re-scan on a timer rather than guessing at router hooks.
+        setInterval(scan, 1500);
+        setTimeout(scan, 800);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
