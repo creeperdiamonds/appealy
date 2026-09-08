@@ -829,6 +829,18 @@ input.input {
   .grid-4 {
     grid-template-columns: repeat(2, 1fr);
   }
+  /* Two up means the labels get half the width, and some of them wrap:
+   * "Running giveaways" takes two lines where "Open tickets" takes one. The
+   * number underneath then sits a line lower than the number beside it, and a
+   * row of counters whose figures do not share a baseline reads as broken
+   * before anyone works out why.
+   *
+   * Reserving two lines for every label costs one empty line on the short ones
+   * and buys alignment across the row. Scoped to this breakpoint because at
+   * four-up on a desktop nothing wraps and the reserve would be dead space. */
+  .stat .eyebrow {
+    min-height: 2.8em;
+  }
   .grid-3 {
     grid-template-columns: repeat(2, 1fr);
   }
