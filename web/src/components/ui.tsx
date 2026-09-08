@@ -422,3 +422,18 @@ export function ThemeToggle({ className = "nav-item" }: { className?: string }) 
     </button>
   );
 }
+
+/**
+ * A tier as a person should read it.
+ *
+ * `guild.tier` is the stored enum — "free", "tier1", "tier2", "custom" — and it
+ * was being rendered straight into the capacity pill, so the console said
+ * "tier2 plan". That is the database's word for it, not the customer's, and
+ * the pricing page calls the same thing "Throughput tier 2".
+ */
+export function formatTier(tier: string | null | undefined): string {
+  if (!tier) return "Free";
+  const preset = /^tier(\d+)$/.exec(tier);
+  if (preset) return `Tier ${preset[1]}`;
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}

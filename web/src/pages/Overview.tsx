@@ -28,6 +28,7 @@ import {
   levelFor,
   formatDuration,
   formatRelative,
+  formatTier,
 } from "../components/ui";
 
 const POLL_MS = 15_000;
@@ -184,7 +185,7 @@ export default function Overview({ guildId }: { guildId: string }) {
         <Panel
           eyebrow="Capacity"
           title="What you're using"
-          action={<Pill level={worst ? worst.level : "ok"}>{data.guild?.tier ?? "free"} plan</Pill>}
+          action={<Pill level={worst ? worst.level : "ok"}>{formatTier(data.guild?.tier)} plan</Pill>}
         >
           <CapacityRail
             caps={capacity.caps}

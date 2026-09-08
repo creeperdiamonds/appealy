@@ -853,7 +853,21 @@ input.input {
   .rail {
     display: none;
   }
-  .grid-4,
+  /* Two up, not one.
+   *
+   * grid-4 is used in exactly one place — the four counters at the top of the
+   * Overview — and they are short: a label, a number, and four words. Stacked
+   * one per row they cost about 430px of a roughly 700px viewport to report
+   * that nothing has happened, so the first thing you see on a quiet server is
+   * four screens of zero. Side by side they cost half that and read as a group,
+   * which is what they are.
+   *
+   * grid-3 and grid-2 stay single-column: those carry form fields and plan
+   * cards (anti-raid, billing, giveaways, tickets), and half a phone width is
+   * not enough for an input with a label. */
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .grid-3,
   .grid-2 {
     grid-template-columns: 1fr;
