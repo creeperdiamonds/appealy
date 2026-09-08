@@ -7,6 +7,7 @@ import { MessageComponentTypes, ButtonStyles } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
+import { emojiForComponent } from "../../../shared/lib/emoji.ts";
 
 export async function publishRoleMenu(bot: AppealyBot, menuId: string) {
   const menu = await db.query.roleMenus.findFirst({
@@ -32,7 +33,7 @@ export async function publishRoleMenu(bot: AppealyBot, menuId: string) {
               label: o.label,
               value: o.roleId.toString(),
               description: o.description ?? undefined,
-              emoji: o.emoji ? { name: o.emoji } : undefined,
+              emoji: emojiForComponent(o.emoji),
             })),
           },
         ],

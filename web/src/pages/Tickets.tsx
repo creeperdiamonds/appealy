@@ -686,7 +686,10 @@ function Editor({
               onChange={(e) => onPatch({ buttonEmoji: e.target.value.trim() || null })}
             />
             <span className="dim">
-              A standard emoji. Custom server emoji are sent by name only, so they won't render.
+              A standard emoji, or a custom one pasted straight from Discord — those arrive
+              looking like <code>{"<:name:123456789>"}</code> and now work.{" "}
+              <code>{":shortcode:"}</code> will not: only Discord's own message box converts
+              those, so it would save fine and then render as nothing.
             </span>
           </label>
         </div>

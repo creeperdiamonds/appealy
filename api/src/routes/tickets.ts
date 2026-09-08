@@ -10,13 +10,28 @@ import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
 import { requestTicketPanelPublish } from "../services/botBridge.ts";
 import type { TicketConfigDTO, TicketDTO } from "../../../shared/types/index.ts";
+import { parseEmoji } from "../../../shared/lib/emoji.ts";
 
 export const ticketsRouter = Router({ mergeParams: true });
 
 const configSchema = z.object({
   name: z.string().min(1).max(100),
   buttonLabel: z.string().min(1).max(80).default("Open Ticket"),
-  buttonEmoji: z.string().nullable().optional(),
+  // Validated here rather than left to fail at publish time. A shortcode like
+  // :ticket: saves fine, publishes fine, and renders as nothing — so the only
+  // signal anyone got was a button that looked wrong, with no way to tell
+  // whether the emoji, the panel or the bot was at fault.
+  buttonEmoji: z
+    .string()
+    .nullable()
+    .optional()
+    .superRefine((value, ctx) => {
+      if (value == null) return;
+      const parsed = parseEmoji(value);
+      if (!parsed.ok) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: parsed.message });
+      }
+    }),
   channelId: z.string(),
   categoryId: z.string().nullable().optional(),
   channelType: z.enum(["private_channel", "private_thread", "public_thread"]).default("private_channel"),

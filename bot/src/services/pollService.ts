@@ -10,6 +10,7 @@ import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { toNativePollHours } from "../../../shared/lib/when.ts";
 import { logger } from "../utils/logger.ts";
+import { emojiForComponent } from "../../../shared/lib/emoji.ts";
 
 /** Discord's cap on answers in a native poll. Appealy's own cap is 9. */
 export const NATIVE_POLL_MAX_ANSWERS = 10;
@@ -71,7 +72,9 @@ async function publishNativePoll(
     poll: {
       question: { text: poll.question },
       answers: poll.options.slice(0, NATIVE_POLL_MAX_ANSWERS).map((o) => ({
-        pollMedia: o.emoji ? { text: o.label, emoji: { name: o.emoji } } : { text: o.label },
+        pollMedia: emojiForComponent(o.emoji)
+        ? { text: o.label, emoji: emojiForComponent(o.emoji) }
+        : { text: o.label },
       })),
       duration: durationHours,
       allowMultiselect: poll.allowMultiselect,
@@ -154,7 +157,7 @@ export async function publishPoll(bot: AppealyBot, pollId: string) {
             options: poll.options.map((o) => ({
               label: o.label,
               value: o.id,
-              emoji: o.emoji ? { name: o.emoji } : undefined,
+              emoji: emojiForComponent(o.emoji),
             })),
           },
         ],

@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
+import { emojiForComponent } from "../../../shared/lib/emoji.ts";
 
 export async function publishTicketPanel(bot: AppealyBot, configId: string) {
   const config = await db.query.ticketConfigs.findFirst({ where: eq(schema.ticketConfigs.id, configId) });
@@ -31,7 +32,7 @@ export async function publishTicketPanel(bot: AppealyBot, configId: string) {
             type: 2,
             style: 1,
             label: config.buttonLabel,
-            emoji: config.buttonEmoji ? { name: config.buttonEmoji } : undefined,
+            emoji: emojiForComponent(config.buttonEmoji),
             customId: encodeCustomId("ticket", "open", config.id),
           },
         ],
