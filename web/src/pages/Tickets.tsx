@@ -510,18 +510,18 @@ export default function Tickets({ guildId }: { guildId: string }) {
                   const problems = problemsFor(toDraft(c));
                   return (
                     <tr key={c.id}>
-                      <td>
+                      <td data-cell="head">
                         <strong>{c.name}</strong>
                         <span className="dim block">
                           {c.buttonEmoji ? `${c.buttonEmoji} ` : ""}
                           {c.buttonLabel}
                         </span>
                       </td>
-                      <td className="dim">
+                      <td data-label="Opens as" className="dim">
                         {CHANNEL_TYPES.find((t) => t.value === c.channelType)?.label ?? c.channelType}
                       </td>
-                      <td className="dim mono">{channelName(c.channelId) ?? c.channelId}</td>
-                      <td>
+                      <td data-label="Panel in" className="dim mono">{channelName(c.channelId) ?? c.channelId}</td>
+                      <td data-label="State">
                         <div className="row wrap">
                           <Pill level={c.active ? "ok" : "watch"}>{c.active ? "Active" : "Inactive"}</Pill>
                           {problems.length > 0 && (
@@ -531,7 +531,7 @@ export default function Tickets({ guildId }: { guildId: string }) {
                           )}
                         </div>
                       </td>
-                      <td>
+                      <td data-cell="actions">
                         <div className="actions">
                           <button
                             className="btn btn-sm"

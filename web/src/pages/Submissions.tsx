@@ -103,7 +103,7 @@ export default function Submissions({ guildId }: { guildId: string }) {
               <tbody>
                 {rows.map((s) => (
                   <tr key={s.id}>
-                    <td>
+                    <td data-cell="head">
                       <div className="mono">{s.applicantId}</div>
                       {/* Account age from the snowflake. When a wave of
                           applications arrives from accounts created the same
@@ -112,8 +112,8 @@ export default function Submissions({ guildId }: { guildId: string }) {
                         account created {snowflakeDate(s.applicantId).toLocaleDateString()}
                       </div>
                     </td>
-                    <td>{formName(s.formId)}</td>
-                    <td>
+                    <td data-label="Form">{formName(s.formId)}</td>
+                    <td data-label="Status">
                       <Pill
                         level={
                           s.status === "accepted"
@@ -133,10 +133,10 @@ export default function Submissions({ guildId }: { guildId: string }) {
                         </div>
                       )}
                     </td>
-                    <td className="mono dim">
+                    <td data-label="Took" className="mono dim">
                       {s.completionSeconds ? formatDuration(s.completionSeconds) : "—"}
                     </td>
-                    <td className="dim">{formatRelative(s.createdAt)}</td>
+                    <td data-label="Submitted" className="dim">{formatRelative(s.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

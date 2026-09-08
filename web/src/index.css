@@ -1042,6 +1042,88 @@ input.input {
 /* Phone only. Placed here, after the block above, on purpose — see the comment
  * on .tabbar. */
 @media (max-width: 760px) {
+  /* A row becomes a card, rather than a thing you drag sideways.
+   *
+   * The table still scrolled to reach Edit / Outcomes / Delete, which is a
+   * poor way to reach the only controls on the screen: the buttons are the
+   * point of the row, and they were the part furthest from the thumb.
+   *
+   * So the table stops being a table below 760px. Each cell is a line, each
+   * row is a bordered card, and the actions sit underneath where they read as
+   * belonging to the row above them. The column headings move onto the cells
+   * themselves through data-label, because a stacked cell without its heading
+   * is a bare value — "In server" and "0" mean nothing on their own.
+   *
+   * display:block on table parts is safe here precisely BECAUSE the columns
+   * stop sharing a grid: that is the intent, not a side effect. It is the
+   * wrong tool when a table must stay a table, which is why the desktop
+   * layout is untouched. */
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+  }
+
+  /* The headings are carried by data-label on each cell now. */
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: var(--raised);
+  }
+  .table tr:last-child {
+    margin-bottom: 0;
+  }
+  /* The desktop rule draws a line under every cell; here each row is already
+     a bordered box, so the internal lines are noise. */
+  .table td {
+    border: 0;
+    padding: 3px 0;
+  }
+
+  .table td[data-label]::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 7.5rem;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* The card's title: the form name, the ticket type, the applicant. */
+  .table td[data-cell="head"] {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: var(--m-track, -0.01em);
+    padding-bottom: 8px;
+  }
+
+  .table td[data-cell="actions"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .table td[data-cell="actions"] .btn,
+  .table td[data-cell="actions"] button {
+    flex: 1 1 auto;
+    min-height: var(--tap);
+  }
+
+  /* Nothing is wide any more, so the scroll box has nothing to scroll. Left in
+     place rather than removed: it is still the guard if a cell ever holds
+     something that cannot wrap, such as a snowflake id. */
+
   .tabbar {
     display: grid;
   }

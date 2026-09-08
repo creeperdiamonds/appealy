@@ -460,18 +460,18 @@ export default function Forms({ guildId }: { guildId: string }) {
               <tbody>
                 {forms.map((f) => (
                   <tr key={f.id}>
-                    <td>
+                    <td data-cell="head">
                       <strong>{f.name}</strong>
                       {f.kind === "appeal" && <span className="dim block">ban appeal</span>}
                     </td>
-                    <td className="dim">
+                    <td data-label="Delivery" className="dim">
                       {f.applicationType === "direct_message" ? "Direct message" : "In server"}
                     </td>
-                    <td className="dim">{f.questions.length}</td>
-                    <td>
+                    <td data-label="Questions" className="dim">{f.questions.length}</td>
+                    <td data-label="Status">
                       <Pill level={f.active ? "ok" : "watch"}>{f.active ? "active" : "inactive"}</Pill>
                     </td>
-                    <td>
+                    <td data-cell="actions">
                       <div className="row">
                         <button
                           className="btn btn-sm"
