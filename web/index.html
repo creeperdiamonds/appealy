@@ -99,6 +99,42 @@
             });
             lines.push("");
             lines.push("The FIRST line, outlined yellow, is the one to fix.");
+
+            // Where did that width come from? A box can only be wider than the
+            // viewport because something gave it the room, so walk up from the
+            // offender printing each ancestor's width. The first ancestor that
+            // is NOT overflowing is the one whose child broke out of it, and
+            // that boundary is the actual bug.
+            if (hits.length) {
+              lines.push("");
+              lines.push("ancestor chain (width / clientWidth / display):");
+              var el = hits[0].el;
+              while (el && el !== document.documentElement) {
+                var cs = getComputedStyle(el);
+                lines.push(
+                  "  " + label(el) +
+                  "  w=" + Math.round(el.getBoundingClientRect().width) +
+                  " client=" + el.clientWidth +
+                  " " + cs.display +
+                  (cs.flexDirection !== "row" ? "/" + cs.flexDirection : "") +
+                  " minW=" + cs.minWidth
+                );
+                el = el.parentElement;
+              }
+
+              lines.push("");
+              lines.push("children of the offender:");
+              Array.prototype.forEach.call(hits[0].el.children, function (c) {
+                var cr = c.getBoundingClientRect();
+                var ccs = getComputedStyle(c);
+                lines.push(
+                  "  " + label(c) +
+                  "  w=" + Math.round(cr.width) +
+                  " flex=" + ccs.flex +
+                  " maxW=" + ccs.maxWidth
+                );
+              });
+            }
           }
 
           panel.textContent = lines.join("\n");
