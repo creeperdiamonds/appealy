@@ -437,7 +437,9 @@ export default function App() {
                 value={guildId ?? ""}
                 onChange={(e) => setGuildId(e.target.value)}
                 aria-label="Choose a server"
-                style={{ maxWidth: 280 }}
+                // maxWidth caps it on a desktop; minWidth 0 lets it shrink on a
+                // phone, where 280px of select plus the access pill does not fit.
+                style={{ maxWidth: 280, minWidth: 0, flex: "1 1 12rem" }}
               >
                 {guilds.map((g) => (
                   <option key={g.id} value={g.id}>

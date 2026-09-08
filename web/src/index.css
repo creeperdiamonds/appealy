@@ -388,7 +388,15 @@ button {
 }
 
 .topbar {
-  height: var(--bar-h);
+  /* Wraps, and stops being a fixed height when it does.
+   *
+   * At 360px there is 328px of room after padding. The guild select is capped
+   * at 280, the access pill is about 70, and the gap is 14 — 364 into 328,
+   * with nothing allowed to wrap. It overflowed by roughly 36px, and because
+   * overflow from any descendant grows the document's scrollable area, that
+   * alone made the whole page slide sideways. */
+  flex-wrap: wrap;
+  min-height: var(--bar-h);
   border-bottom: 1px solid var(--line-soft);
   display: flex;
   align-items: center;
@@ -427,6 +435,28 @@ button {
 /* ------------------------------------------------------------------ *
  * Panels
  * ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ *
+ * The automatic minimum size, disabled where content can be wide.
+ *
+ * A grid or flex item has `min-width: auto`, which resolves to its min-content
+ * width — so an item containing something wide refuses to shrink, and pushes
+ * its container past the viewport instead. `.main` already carried
+ * `min-width: 0` for exactly this reason at the shell level; everything below
+ * it needed the same and did not have it, which is why wrapping the tables in
+ * a scroll box was not enough on its own. The panel still would not shrink,
+ * so the page still slid sideways and the page heading still clipped.
+ *
+ * Applied to the containers that hold page content rather than globally: a
+ * blanket `* { min-width: 0 }` also disables it for things that legitimately
+ * rely on it, like table cells sizing to their text.
+ * ------------------------------------------------------------------ */
+.content,
+.stack > *,
+.grid > *,
+.panel {
+  min-width: 0;
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--line-soft);
