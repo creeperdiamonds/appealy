@@ -164,10 +164,10 @@
 
     <h2>Availability</h2>
     <p>
-      There is no uptime guarantee. The <a href="/status/">status page</a> is deliberately a static
-      file that does not depend on the API or the database, so it keeps working during the outage it
-      is reporting. It says nothing when the gateway stops reporting in, and after a minute of
-      silence it says so plainly rather than showing a stale green.
+      There is no uptime guarantee. The <a href="https://status.appealy.app/">status page</a> is hosted on
+      Cloudflare, separately from the service itself, so it keeps working during the outage it is
+      reporting. It checks the dashboard and API from outside every minute, and when the bot stops
+      reporting in it shows the bot as down rather than a stale green.
     </p>
     <p>
       The service and the software are provided as-is, without warranty of any kind, as stated in
@@ -205,7 +205,7 @@
           <li><a href="/#features">Features</a></li>
           <li><a href="/pricing">Pricing</a></li>
           <li><a href="/dashboard/">Dashboard</a></li>
-          <li><a href="/status/">Status</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
         </ul>
       </section>
       <section>

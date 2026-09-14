@@ -1,153 +1,132 @@
 // bot/src/core/statusPublisher.ts
 //
-// Public shard status.
+// Heartbeat for the public status page.
 //
-// The one rule
-// ------------
-// A status page must survive the outage it exists to report. That rules out
-// serving it from api/ (same Postgres pool that will be the thing that broke)
-// and it rules out Redis-in-the-request-path (one more thing between the
-// visitor and an answer). So the write path is: gateway writes a small JSON
-// file to a shared volume every 10s, nginx serves it as a static asset, and
-// nothing in the read path can fail independently of nginx itself.
+// The page is a Cloudflare Worker (the status-page branch), not part of this
+// deployment, so it survives the outage it reports. The Worker checks the
+// dashboard and the API from outside by itself. The two things it cannot see
+// from outside are the Discord shards and the database, so this process tells
+// it, every 30 seconds.
 //
-// Staleness is the signal
+// Silence is the signal
+// ---------------------
+// Nothing here ever reports "the bot is down" — a dead process can't. The
+// Worker treats a heartbeat older than 90s as the bot being down, which is
+// also exactly what a crash, a failed deploy or a Google Cloud outage looks
+// like from outside. Don't add a "shutting down" message on top of this.
+//
+// What is deliberately NOT sent
+// -----------------------------
+// Per shard, an id and up/degraded/down. No latency figures, host ids, worker
+// ids or guild counts. Published together those are a map of the
+// infrastructure and a way to tell which shard is weakest — which is the
+// shard to aim at. The internal console has them.
+//
+// One process, all shards
 // -----------------------
-// Same trick as TTL-based liveness. If the gateway dies, the file stops being
-// rewritten, `generatedAt` goes stale, and the page says so — which is a more
-// honest outage report than anything the dead process could have published
-// about itself. Don't build a heartbeat on top of this; the timestamp is it.
-//
-// What is deliberately NOT in this file
-// -------------------------------------
-// No host ids, no worker ids, no per-shard RTT, no guild counts. Those are
-// operator data and they're in the internal console. Published together they
-// are a map of your infrastructure and a way to tell which shard is weakest
-// — which is the shard to aim at. A visitor needs one thing: is the shard my
-// server is on up or not.
+// The Worker keeps a single latest heartbeat. That is right for today's
+// deployment (maxScale 1, every shard in this process). If shards are ever
+// split across processes, each would overwrite the others' report, and this
+// needs a per-process key first.
 
-import { writeFile, rename } from "node:fs/promises";
-import { join } from "node:path";
+import { sql } from "drizzle-orm";
 import type { AppealyBot } from "./client.ts";
+import { db } from "../db/client.ts";
 import { logger } from "../utils/logger.ts";
+import { classifyShard, type Heartbeat } from "./statusShape.ts";
 
-const INTERVAL_MS = 10_000;
+const INTERVAL_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 10_000;
+const DATABASE_TIMEOUT_MS = 5_000;
 
-type PublicShardState = "up" | "degraded" | "down";
+let started = false;
 
-interface StatusSnapshot {
-  generatedAt: string;
-  totalShards: number;
-  shards: { id: number; state: PublicShardState; since: string }[];
-  summary: { up: number; degraded: number; down: number };
-}
+function collectShards(bot: AppealyBot): Pick<Heartbeat, "totalShards" | "shards"> {
+  // Read defensively, as controlServer.ts does: Discordeno's gateway
+  // internals have shifted between releases, and a heartbeat that throws is a
+  // heartbeat that stops — which the page would report as an outage.
+  const gateway = (bot as unknown as {
+    gateway?: {
+      totalShards?: number;
+      shards?: Map<number, { id: number; state?: number; heart?: { rtt?: number } }>;
+    };
+  }).gateway;
 
-/** Remembered so `since` reports when the state last CHANGED, not when we
- *  last looked. "Down for 3 minutes" and "down since Tuesday" are different
- *  messages and only one of them is worth waiting through. */
-const changedAt = new Map<number, { state: PublicShardState; at: string }>();
-
-function classify(shard: { connected?: boolean; rtt?: number }): PublicShardState {
-  if (!shard.connected) return "down";
-  if ((shard.rtt ?? 0) > 500) return "degraded";
-  return "up";
-}
-
-async function publish(bot: AppealyBot, outDir: string): Promise<void> {
-  const now = new Date().toISOString();
-  const shards: StatusSnapshot["shards"] = [];
-  const summary = { up: 0, degraded: 0, down: 0 };
-
-  // ⚠️ Adjust to however your gateway exposes shard state. The shape this
-  // needs is only { id, connected, rtt } — everything else stays internal.
-  for (const shard of bot.gateway.shards.values()) {
-    const state = classify(shard as never);
-    const prev = changedAt.get(shard.id);
-    if (!prev || prev.state !== state) changedAt.set(shard.id, { state, at: now });
-
-    shards.push({ id: shard.id, state, since: changedAt.get(shard.id)!.at });
-    summary[state]++;
-  }
-
-  const snapshot: StatusSnapshot = {
-    generatedAt: now,
-    totalShards: shards.length,
-    shards: shards.sort((a, b) => a.id - b.id),
-    summary,
+  const shards = gateway?.shards ? [...gateway.shards.values()] : [];
+  return {
+    totalShards: Math.max(gateway?.totalShards ?? 0, shards.length, 1),
+    shards: shards.map((s) => ({ id: s.id, state: classifyShard(s) })).sort((a, b) => a.id - b.id),
   };
-
-  // Write-then-rename. A visitor loading mid-write would otherwise get a
-  // truncated file and a JSON parse error, which the page would render as an
-  // outage it invented itself. rename() is atomic on the same filesystem.
-  const tmp = join(outDir, ".status.json.tmp");
-  await writeFile(tmp, JSON.stringify(snapshot));
-  await rename(tmp, join(outDir, "status.json"));
 }
 
-function isUnrecoverable(err: unknown): boolean {
-  // A permission or missing-directory failure will not fix itself on the
-  // next tick, so it is treated as fatal to the publisher (not to the bot):
-  // stop retrying rather than log the same warning every ten seconds
-  // forever, which buries the warnings that do mean something.
-  return err instanceof Deno.errors.NotCapable || err instanceof Deno.errors.NotFound;
+async function checkDatabase(): Promise<Heartbeat["database"]> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      db.execute(sql`select 1`),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("timeout")), DATABASE_TIMEOUT_MS);
+      }),
+    ]);
+    return "up";
+  } catch {
+    return "down";
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-export async function startStatusPublisher(bot: AppealyBot): Promise<void> {
-  // Opt-in, not default-on. There is currently no path from this container's
-  // filesystem to anything nginx can serve — deploy/service.yaml declares no
-  // shared volume between the `bot` and `web` containers (Cloud Run sidecars
-  // do not share a filesystem unless one is explicitly mounted), so a file
-  // written here today is unreachable by any reader. The intended wiring
-  // (bot and web sharing a `status` volume) is documented in
-  // status/README.md, but it is unwired everywhere, not just here:
-  // docker-compose.yml has no `status` volume and no STATUS_OUT_DIR either,
-  // so this is design documentation for a feature that has never actually
-  // been connected, in any deployment target.
-  //
-  // Defaulting OUT_DIR to /srv/status and starting unconditionally — the
-  // previous behaviour — meant every production boot logged "started"
-  // immediately followed by "disabled": an announcement and its own
-  // contradiction, back to back, on every single boot since the first
-  // deploy (see task-11-brief.md). Requiring an explicit STATUS_OUT_DIR
-  // means the common case (unset, no shared volume) logs nothing at all,
-  // and the publisher only ever announces itself when it might actually
-  // work. Do not reintroduce a default path here — set STATUS_OUT_DIR
-  // explicitly once a shared volume exists for this deployment target.
-  const outDir = Deno.env.get("STATUS_OUT_DIR");
-  if (outDir === undefined) return;
+/**
+ * Opt-in. Both STATUS_HEARTBEAT_URL and STATUS_HEARTBEAT_SECRET must be set;
+ * without them (local development, self-hosting) this does nothing and logs
+ * nothing.
+ */
+export function startStatusPublisher(bot: AppealyBot): void {
+  const url = Deno.env.get("STATUS_HEARTBEAT_URL");
+  const secret = Deno.env.get("STATUS_HEARTBEAT_SECRET");
+  if (!url || !secret) return;
 
-  let timer: number | undefined;
-  let disabled = false;
+  // onReady runs this for shard 0, and shard 0 sends READY again on every
+  // fresh session. Without this, each reconnect would add another interval.
+  if (started) return;
+  started = true;
 
-  const attempt = async () => {
+  // Logged on the transition only. A Worker outage would otherwise write the
+  // same warning every 30 seconds and bury the ones that matter.
+  let failing = false;
+
+  const beat = async () => {
+    const heartbeat: Heartbeat = {
+      sentAt: new Date().toISOString(),
+      ...collectShards(bot),
+      database: await checkDatabase(),
+    };
+
     try {
-      await publish(bot, outDir);
-    } catch (err) {
-      if (isUnrecoverable(err)) {
-        disabled = true;
-        if (timer !== undefined) clearInterval(timer);
-        logger.warn(
-          "Status publishing disabled: cannot write to the output directory. " +
-            "Set STATUS_OUT_DIR to a writable path and grant --allow-write to enable it.",
-          { dir: outDir, error: (err as Error).name },
-        );
-        return;
-      }
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${secret}` },
+        body: JSON.stringify(heartbeat),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      await res.body?.cancel();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      logger.warn("Status publish failed", { error: String(err) });
+      if (failing) {
+        failing = false;
+        logger.info("Status heartbeat recovered", {});
+      }
+    } catch (err) {
+      if (!failing) {
+        failing = true;
+        logger.warn("Status heartbeat failed", { error: String(err) });
+      }
     }
   };
 
-  // Awaited, and logged only after: this is the writability check. Logging
-  // "started" before this resolved is the actual bug task 11 exists to fix
-  // — it announced a service that, in the same breath, turned out to be
-  // disabled. If STATUS_OUT_DIR is set but wrong, the warning above is the
-  // only log line this function ever produces.
-  await attempt();
-  if (disabled) return;
-
-  logger.info("Status publisher started", { dir: outDir, intervalMs: INTERVAL_MS });
-  timer = setInterval(() => void attempt(), INTERVAL_MS) as unknown as number;
+  void beat();
+  setInterval(() => void beat(), INTERVAL_MS);
+  logger.info("Status heartbeat started", { intervalMs: INTERVAL_MS });
 }
 
 /**
@@ -155,14 +134,8 @@ export async function startStatusPublisher(bot: AppealyBot): Promise<void> {
  *
  *   (guild_id >> 22) % total_shards
  *
- * Discord's own formula. Exported because the status page computes it
- * client-side from a pasted server id — that keeps the lookup off your
- * servers entirely, so it works under load and logs nothing about who asked
- * about which server.
- *
- * Resharding changes the answer for every guild. If you ever reshard, the
- * page must not be cached past that point — see the Cache-Control note in
- * status/README.md.
+ * Discord's own formula. The status page computes it client-side from a
+ * pasted server id, which keeps the lookup off every server entirely.
  */
 export function shardForGuild(guildId: bigint, totalShards: number): number {
   return Number((guildId >> 22n) % BigInt(totalShards));

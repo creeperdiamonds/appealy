@@ -7,7 +7,7 @@
 <!--
   site/index.html — the public landing page.
 
-  Static HTML, no framework, no build step, for the same reason status/ is:
+  Static HTML, no framework, no build step, for the same reason the status page is kept apart:
   this page must work when the app does not. A visitor who has never signed in
   gets the console shell, which 401s and bounces them to Discord OAuth, so
   until this file existed there was no way to find out what the product was
@@ -633,8 +633,8 @@
         <li class="card">
           <h3>Is it me, or is it down?</h3>
           <p>
-            <a href="/status/">The status page</a> is served independently of the app, so it still
-            answers when the app does not. Check there first: an outage and a misconfiguration
+            <a href="https://status.appealy.app/">The status page</a> is hosted on Cloudflare, apart from the app's own
+            servers, so it still answers when the app does not. Check there first: an outage and a misconfiguration
             look identical from inside a Discord server.
           </p>
         </li>
@@ -711,7 +711,7 @@
           <li><a href="#features">Features</a></li>
           <li><a href="/pricing">Pricing</a></li>
           <li><a href="/dashboard/">Dashboard</a></li>
-          <li><a href="/status/">Status</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
         </ul>
       </section>
       <section>

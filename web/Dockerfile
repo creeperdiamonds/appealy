@@ -71,12 +71,13 @@ COPY web/appealy-proxy.conf /etc/nginx/appealy-proxy.conf
 #   /            the marketing site — static, no build step, and the only part
 #                a logged-out visitor can see
 #   /dashboard/  the console bundle, which is why vite sets base to match
-#   /status/     the shard status page, deliberately independent of both so it
-#                still answers when the app is down
+#
+# The status page is not in this image. It is a Cloudflare Worker (status-page branch),
+# because anything served from here goes down with the app it reports on;
+# nginx.conf redirects /status to it.
 COPY site /usr/share/nginx/html
 # The marks live in brand/ and are served, not duplicated — see brand/README.md.
 COPY brand /usr/share/nginx/html/brand
-COPY status /usr/share/nginx/html/status
 # The apex page, served by the server_name block in nginx.conf on
 # creeperdiamonds.xyz only. Self-contained, so it needs nothing else copied
 # alongside it.

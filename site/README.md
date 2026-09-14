@@ -125,7 +125,7 @@ commit** — a published promise the code does not keep is worse than no page.
 
 ## Why it's static
 
-Same reason `status/` is, plus one more.
+Same reason the status page is kept apart from the app, plus one more.
 
 **The console can't be the front door.** An unauthenticated visitor to the
 dashboard gets the app shell, which 401s and bounces them to Discord OAuth.
@@ -170,7 +170,7 @@ state to manage. There is none.
 /site.css
 /brand/      -> brand/            (wordmark.svg, icon.svg, favicon.svg)
 /dashboard   -> the console (web/)
-/status/     -> status/index.html
+/status      -> 301 to https://status.appealy.app/
 ```
 
 **One thing to reconcile before launch.** Every "Open dashboard" link on this

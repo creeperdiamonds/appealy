@@ -7,7 +7,7 @@ worked example, an about paragraph, and contact.
 This is deliberately *not* part of `site/`. That directory is the Appealy
 marketing site and is served from the app's own deployment at
 `appealy.app`, under the same nginx that serves the console at
-`/dashboard/` and the status page at `/status/`. The apex is a different host
+`/dashboard/`. The apex is a different host
 with nothing else on it, so a page there cannot reference `site/site.css` or
 `/brand/icon.svg` — those paths resolve inside the Appealy deployment and
 nowhere else.
