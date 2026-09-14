@@ -1,0 +1,41 @@
+;;
+;; appealy.app — Appealy's own domain. Registrar and DNS are both Cloudflare.
+;;
+;; Import in Cloudflare: DNS > Records > Import and Export > Import DNS records.
+;;
+;; SET PROXY STATUS TO "DNS ONLY" (grey cloud) on every record below.
+;; Cloud Run issues and renews its own certificate by reaching these records. A
+;; proxied record puts Cloudflare's certificate in front of that process and
+;; the mapping never validates — CertificateProvisioned stays Unknown forever
+;; with nothing saying why.
+;;
+;; The apex takes A and AAAA records, not a CNAME, because DNS does not allow a
+;; CNAME at a zone apex — which is why Cloud Run prints addresses for the apex
+;; mapping and a CNAME only for www. These are the addresses it printed.
+;;
+;; www is a CNAME and is mapped too, but only so it can answer at all.
+;; web/nginx.conf redirects it to the apex.
+;;
+;; Issued by:
+;;   gcloud beta run domain-mappings create --service=appealy \
+;;     --domain=appealy.app --region=us-central1 --project=yahav-project-505809
+;;   gcloud beta run domain-mappings create --service=appealy \
+;;     --domain=www.appealy.app --region=us-central1 --project=yahav-project-505809
+;;
+;; Both fail unless appealy.app is verified in Search Console for the account
+;; running gcloud: `gcloud domains verify appealy.app`. That verification is a
+;; google-site-verification TXT record at the apex, which is not listed here —
+;; it belongs to one Google account, and removing it un-verifies the domain.
+;;
+;; TTL 1 is Cloudflare's "Auto".
+;;
+
+appealy.app.	1	IN	A	216.239.32.21
+appealy.app.	1	IN	A	216.239.34.21
+appealy.app.	1	IN	A	216.239.36.21
+appealy.app.	1	IN	A	216.239.38.21
+appealy.app.	1	IN	AAAA	2001:4860:4802:32::15
+appealy.app.	1	IN	AAAA	2001:4860:4802:34::15
+appealy.app.	1	IN	AAAA	2001:4860:4802:36::15
+appealy.app.	1	IN	AAAA	2001:4860:4802:38::15
+www.appealy.app.	1	IN	CNAME	ghs.googlehosted.com.

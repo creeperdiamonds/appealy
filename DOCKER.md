@@ -93,6 +93,38 @@ failing. `/health` stays off the console because it is Cloud Run's probe
 against the API service itself and has no reason to be reachable from a
 browser.
 
+## appealy.app domain mapping — one-time, manual, not in the workflow
+
+`appealy.app` is Appealy's public address. It replaced
+`appealy.creeperdiamonds.xyz`, whose mapping still exists and now only
+redirects — see the server block for it in `web/nginx.conf`, and why
+`/webhooks/` is the one path it still proxies.
+
+```bash
+gcloud domains verify appealy.app      # once, per Google account; create fails without it
+gcloud beta run domain-mappings create --service=appealy --domain=appealy.app \
+  --region=us-central1 --project=yahav-project-505809
+gcloud beta run domain-mappings create --service=appealy --domain=www.appealy.app \
+  --region=us-central1 --project=yahav-project-505809
+```
+
+The apex takes four A and four AAAA records; `www` is a CNAME to
+`ghs.googlehosted.com`. All DNS-only in Cloudflare, for the same reason as
+below. The records are in `deploy/dns/appealy.app.zone`.
+
+The mapping only makes the name reach the service. What the app believes its
+own address is comes from the `PUBLIC_ORIGIN` repository variable, rendered
+into `DISCORD_REDIRECT_URI`, `FRONTEND_ORIGIN` and `DASHBOARD_BASE_URL` by
+`scripts/render-service.py`. Moving the address again is, in order:
+
+1. Add the new `…/auth/discord/callback` to the Discord Developer Portal's
+   OAuth2 redirects. Keep the old one until step 3 is live.
+2. `gh variable set PUBLIC_ORIGIN --body https://<new-domain>`
+3. `gh workflow run deploy-merged.yml -f migrations=skip`
+
+Doing 2 and 3 before the new name has a certificate sends every sign-in to a
+host that fails TLS.
+
 ## Personal-site domain mapping — one-time, manual, not in the workflow
 
 `www.creeperdiamonds.xyz` is served by the same `web` container as Appealy,
@@ -151,8 +183,9 @@ gcloud beta run domain-mappings describe --domain=www.creeperdiamonds.xyz \
   --region=us-central1 --project=yahav-project-505809
 
 curl -s -o /dev/null -w "www       %{http_code}\n" https://www.creeperdiamonds.xyz/
-curl -s -o /dev/null -w "appealy   %{http_code}\n" https://appealy.creeperdiamonds.xyz/
-curl -s -o /dev/null -w "dashboard %{http_code}\n" https://appealy.creeperdiamonds.xyz/dashboard/
+curl -s -o /dev/null -w "appealy   %{http_code}\n" https://appealy.app/
+curl -s -o /dev/null -w "dashboard %{http_code}\n" https://appealy.app/dashboard/
+curl -s -o /dev/null -w "old host  %{http_code} %{redirect_url}\n" https://appealy.creeperdiamonds.xyz/pricing   # 301 https://appealy.app/pricing
 ```
 
 The certificate takes roughly fifteen minutes after DNS propagates, and until
