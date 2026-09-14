@@ -12,17 +12,28 @@
 //
 // Where the data comes from
 // -------------------------
-// Every minute, a Cron Trigger checks the dashboard and the API from outside,
-// the way a visitor would reach them. The two things invisible from outside —
-// Discord shards and the database — come from a heartbeat the bot posts every
-// 30s. A heartbeat older than 90s means the bot is down: a dead process can't
-// say so, but it stops saying anything, and that is the signal.
+// A check probes the dashboard and the API from outside, the way a visitor
+// would reach them. The two things invisible from outside — Discord shards and
+// the database — come from a heartbeat the bot posts every 30s. A heartbeat
+// older than 90s means the bot is down: a dead process can't say so, but it
+// stops saying anything, and that is the signal.
+//
+// When a check runs
+// -----------------
+// Two things start one, and either is enough:
+//   - the Cron Trigger, every minute;
+//   - a request for /status.json that finds the summary a minute old or more.
+// The second exists because Cloudflare's scheduler has been seen to register a
+// trigger on a new Workers Free account and then never fire it, silently — a
+// page that depended on it alone showed "no data" forever. Both paths claim the
+// minute in the `ticks` table first, so whichever arrives second does nothing
+// and no minute is ever counted twice.
 //
 // Free-plan budget
 // ----------------
 // The page is a static asset, which costs nothing. /status.json reads one
-// precomputed row and is edge-cached for 30s. The cron does the expensive
-// part once a minute: a few upserts, a read of 90 days of daily rows, and one
+// precomputed row and is edge-cached for 30s. A check does the expensive part at
+// most once a minute: a few upserts, a read of 90 days of daily rows, and one
 // write of the summary. Roughly 17k D1 rows written and 520k read per day,
 // against limits of 100k and 5M. See README.md.
 
@@ -31,6 +42,8 @@ import {
   dayKey,
   evaluate,
   historyDays,
+  minuteOf,
+  needsRefresh,
   parseHeartbeat,
   type ComponentId,
   type DailyRow,
@@ -52,6 +65,8 @@ export interface Env {
 const PROBE_TIMEOUT_MS = 8_000;
 /** A real heartbeat is a few hundred bytes. */
 const MAX_HEARTBEAT_BYTES = 64_000;
+/** Minute claims older than a day are pruned; nothing ever reads them. */
+const TICK_RETENTION_MINUTES = 1_440;
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
@@ -133,13 +148,35 @@ async function receiveHeartbeat(request: Request, env: Env): Promise<Response> {
 // Page data
 // ---------------------------------------------------------------------------
 
+type SummaryRow = { generated_at: number; body: string };
+
+function readSummary(env: Env): Promise<SummaryRow | null> {
+  return env.DB.prepare("SELECT generated_at, body FROM summary WHERE id = 1").first<SummaryRow>();
+}
+
 async function serveSummary(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const cache = caches.default;
   const key = new Request(new URL("/status.json", request.url).toString(), { method: "GET" });
   const cached = await cache.match(key);
   if (cached) return cached;
 
-  const row = await env.DB.prepare("SELECT body FROM summary WHERE id = 1").first<{ body: string }>();
+  const now = Date.now();
+  let row = await readSummary(env);
+
+  if (!row) {
+    // Nothing has ever been checked. Run one now rather than answer "no data":
+    // this request waits a few seconds once, instead of every visitor waiting
+    // on a scheduler that may never come.
+    await tick(now, env);
+    row = await readSummary(env);
+  } else if (needsRefresh(Number(row.generated_at), now)) {
+    // Serve what there is immediately and bring it up to date behind it. The
+    // minute lock means a crowd of stale requests still produces one check.
+    ctx.waitUntil(
+      tick(now, env).catch((error: unknown) => console.error("status refresh failed", String(error))),
+    );
+  }
+
   if (!row) {
     return Response.json({ error: "no_data" }, { status: 503, headers: { "cache-control": "no-store" } });
   }
@@ -147,8 +184,8 @@ async function serveSummary(request: Request, env: Env, ctx: ExecutionContext): 
   const response = new Response(row.body, {
     headers: {
       "content-type": "application/json; charset=utf-8",
-      // Short on purpose. The cron rewrites this every minute, and a status
-      // page that lags an outage by more than a refresh is lying.
+      // Short on purpose. The data is refreshed every minute, and a status page
+      // that lags an outage by more than a refresh is lying.
       "cache-control": "public, max-age=30",
     },
   });
@@ -157,7 +194,7 @@ async function serveSummary(request: Request, env: Env, ctx: ExecutionContext): 
 }
 
 // ---------------------------------------------------------------------------
-// Cron
+// Checks
 // ---------------------------------------------------------------------------
 
 async function probe(url: string): Promise<ProbeResult> {
@@ -181,7 +218,18 @@ async function probeWithRetry(url: string): Promise<ProbeResult> {
   return first.ok ? first : probe(url);
 }
 
-async function tick(scheduledTime: number, env: Env): Promise<void> {
+/**
+ * One check, for the minute `time` falls in. Called by the cron and by stale
+ * requests alike; the first to claim the minute does the work, and any other
+ * caller for that minute returns without touching the counts.
+ */
+async function tick(time: number, env: Env): Promise<void> {
+  const minute = minuteOf(time);
+  const claim = await env.DB.prepare("INSERT INTO ticks (minute) VALUES (?1) ON CONFLICT (minute) DO NOTHING")
+    .bind(minute)
+    .run();
+  if (!claim.meta.changes) return;
+
   const [dashboard, api, beatRow, summaryRow] = await Promise.all([
     probeWithRetry(env.DASHBOARD_URL),
     probeWithRetry(env.API_URL),
@@ -195,12 +243,12 @@ async function tick(scheduledTime: number, env: Env): Promise<void> {
   const beat: ReceivedHeartbeat | null = beatRow
     ? { receivedAt: Number(beatRow.received_at), heartbeat: JSON.parse(beatRow.body) as Heartbeat }
     : null;
-  // Date.now(), not scheduledTime, for staleness: the probes above may have
-  // taken seconds, and a heartbeat that arrived during them is still fresh.
+  // Date.now(), not `time`, for staleness: the probes above may have taken
+  // seconds, and a heartbeat that arrived during them is still fresh.
   const reading = evaluate(Date.now(), beat, dashboard, api);
 
-  const day = dayKey(scheduledTime);
-  const oldestKept = historyDays(scheduledTime)[0];
+  const day = dayKey(time);
+  const oldestKept = historyDays(time)[0];
   const upsert = env.DB.prepare(
     `INSERT INTO daily (day, component, up, degraded, down) VALUES (?1, ?2, ?3, ?4, ?5)
      ON CONFLICT (day, component) DO UPDATE SET
@@ -220,17 +268,18 @@ async function tick(scheduledTime: number, env: Env): Promise<void> {
   const results = await env.DB.batch([
     ...writes,
     env.DB.prepare("DELETE FROM daily WHERE day < ?1").bind(oldestKept),
+    env.DB.prepare("DELETE FROM ticks WHERE minute < ?1").bind(minute - TICK_RETENTION_MINUTES),
     env.DB.prepare("SELECT day, component, up, degraded, down FROM daily WHERE day >= ?1").bind(oldestKept),
   ]);
   const rows = (results[results.length - 1].results ?? []) as DailyRow[];
 
   const previous = summaryRow ? (JSON.parse(summaryRow.body) as Summary) : null;
-  const summary = buildSummary(scheduledTime, reading, previous, rows, beat);
+  const summary = buildSummary(time, reading, previous, rows, beat);
 
   await env.DB.prepare(
     `INSERT INTO summary (id, generated_at, body) VALUES (1, ?1, ?2)
      ON CONFLICT (id) DO UPDATE SET generated_at = excluded.generated_at, body = excluded.body`,
   )
-    .bind(scheduledTime, JSON.stringify(summary))
+    .bind(time, JSON.stringify(summary))
     .run();
 }

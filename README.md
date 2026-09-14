@@ -9,7 +9,7 @@ shared secret (`deploy/service.yaml`, `scripts/render-service.py`).
 
 - `public/index.html` — the page. A static asset: served before the Worker
   runs, free, and unlimited.
-- `src/index.ts` — `/status.json`, `/api/heartbeat`, and a cron every minute.
+- `src/index.ts` — `/status.json`, `/api/heartbeat`, and the checks.
 - `src/model.ts` — every decision, with no I/O. Tested in `test/`.
 - `migrations/` — the D1 schema.
 
@@ -24,8 +24,8 @@ not the database, not the DNS record.
 
 | Component | Checked by |
 |---|---|
-| Dashboard | The cron fetches `https://appealy.app/dashboard/` from outside |
-| API | The cron fetches `https://appealy.app/api/config` (no database involved) |
+| Dashboard | Each check fetches `https://appealy.app/dashboard/` from outside |
+| API | Each check fetches `https://appealy.app/api/config` (no database involved) |
 | Discord bot | Heartbeat from the bot every 30s, per shard up/degraded/down |
 | Database | The same heartbeat: the bot's `select 1` |
 
@@ -38,12 +38,42 @@ the only view of it.
 A probe that fails is retried once, so one dropped connection doesn't paint a
 red minute. A probe slower than 2.5s is degraded.
 
+## When a check runs
+
+Either of two things starts one:
+
+- **The Cron Trigger**, every minute.
+- **A request for `/status.json`** that finds the summary a minute old or more.
+  The very first request, when nothing has been checked yet, waits for the
+  check; after that the request is answered straight away and the check runs
+  behind it.
+
+The second is there because **the cron alone was not enough**. On a new Workers
+Free account, Cloudflare registered the trigger, showed its next run in the
+dashboard, and then never fired it — no scheduled events, no errors, for as
+long as anyone watched. Cloudflare's community forum has the same report from
+other new accounts. A page that depended on the cron showed "no data" the
+whole time.
+
+Both paths claim the minute first, by inserting it into `ticks`. The first
+insert wins and does the work; any other check for that minute sees its insert
+do nothing and stops. So a crowd of stale requests produces one check, and if
+the cron starts firing it simply becomes one more claimant — no minute is ever
+counted twice.
+
+**The cost of the fallback:** with the cron not firing, minutes are only checked
+while something is requesting the page. A minute nobody asked about is a gap in
+the history, not downtime. An uptime pinger that fetches `/status.json` once a
+minute (cron-job.org, for example) closes those gaps, and is also just a
+visitor.
+
 ## History
 
-Each cron adds one minute to a per-component, per-UTC-day row in `daily`:
+Each check adds one minute to a per-component, per-UTC-day row in `daily`:
 minutes up, degraded, and down. The page shows 90 days. Slow counts as
-available in the uptime percentage; a minute with no reading (the bot silent,
-for the database) is left out rather than counted either way.
+available in the uptime percentage; a minute with no reading — the bot silent,
+for the database, or nobody checking at all — is left out rather than counted
+either way.
 
 A day is amber for any downtime under 30 minutes and red from 30. A redeploy
 costs the bot a minute or two, and painting that red would make routine
@@ -53,12 +83,13 @@ restarts look like bad days.
 
 | | Per day | Free limit |
 |---|---|---|
-| D1 rows written | ~17k (4 upserts + summary per minute, heartbeat every 30s) | 100k |
-| D1 rows read | ~520k (90 days × 4 components per minute) | 5M |
+| D1 rows written | ~17k at most (one check per minute: 4 upserts, a minute claim and the summary; heartbeat every 30s) | 100k |
+| D1 rows read | ~520k at most (90 days × 4 components per check) | 5M |
 | Worker requests | ~2.9k heartbeats + 1 per viewer per minute | 100k |
 
-`/status.json` reads one prebuilt row and is edge-cached for 30 seconds. The
-page polls once a minute. The one thing that scales with traffic is Worker
+A check runs at most once a minute however many requests arrive, so traffic
+does not multiply D1 usage. `/status.json` reads one prebuilt row and is
+edge-cached for 30 seconds. The one thing that scales with traffic is Worker
 requests from open pages: 100k a day is about 70 people with the page open
 around the clock. Beyond that, requests get 429 until the day resets.
 

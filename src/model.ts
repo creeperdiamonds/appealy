@@ -155,6 +155,19 @@ export function dayKey(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
+/** A summary older than this is refreshed by the next request for it. */
+export const REFRESH_AFTER_MS = 60_000;
+
+/** The minute a timestamp falls in: the key a check claims so each minute is
+ *  counted exactly once, whether a cron or a request got there first. */
+export function minuteOf(ms: number): number {
+  return Math.floor(ms / 60_000);
+}
+
+export function needsRefresh(generatedAt: number, now: number): boolean {
+  return now - generatedAt >= REFRESH_AFTER_MS;
+}
+
 /** The last HISTORY_DAYS UTC days, oldest first, ending with today. */
 export function historyDays(now: number): string[] {
   const today = Math.floor(now / DAY_MS) * DAY_MS;

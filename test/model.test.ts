@@ -114,3 +114,17 @@ test("daily rows land on the right component and day", () => {
   assert.equal(summary.components.find((c) => c.id === "database")!.state, null);
   assert.equal(summary.shards, null);
 });
+
+import { REFRESH_AFTER_MS, minuteOf, needsRefresh } from "../src/model.ts";
+
+test("every moment inside one minute claims the same minute, and the next minute a new one", () => {
+  const start = Date.parse("2026-09-14T12:00:00.000Z");
+  assert.equal(minuteOf(start), minuteOf(start + 59_999));
+  assert.equal(minuteOf(start + 60_000), minuteOf(start) + 1);
+});
+
+test("a summary is refreshed once it is a minute old, not before", () => {
+  const generated = Date.parse("2026-09-14T12:00:00Z");
+  assert.equal(needsRefresh(generated, generated + REFRESH_AFTER_MS - 1), false);
+  assert.equal(needsRefresh(generated, generated + REFRESH_AFTER_MS), true);
+});
