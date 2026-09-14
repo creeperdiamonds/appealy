@@ -504,6 +504,7 @@ export default function Forms({ guildId }: { guildId: string }) {
           channelsFailed={channelsFailed}
           saving={saving}
           saved={saved}
+          error={error}
           onPatch={patch}
           onPatchQuestion={patchQuestion}
           onMove={move}
@@ -530,6 +531,7 @@ function FormEditor({
   channelsFailed,
   saving,
   saved,
+  error,
   onPatch,
   onPatchQuestion,
   onMove,
@@ -542,6 +544,9 @@ function FormEditor({
   channelsFailed: boolean;
   saving: boolean;
   saved: boolean;
+  /** Shown beside Save as well as at the top: a long form puts the top of the
+   *  page out of sight, and a save that silently does nothing reads as broken. */
+  error: string | null;
   onPatch: (next: Partial<Draft>) => void;
   onPatchQuestion: (i: number, next: Partial<QuestionDTO>) => void;
   onMove: (i: number, by: number) => void;
@@ -815,6 +820,11 @@ function FormEditor({
         </button>
         {saved && <span className="dim">Saved.</span>}
       </div>
+      {error && (
+        <Banner level="act" title="Couldn't save">
+          {error}
+        </Banner>
+      )}
     </>
   );
 }

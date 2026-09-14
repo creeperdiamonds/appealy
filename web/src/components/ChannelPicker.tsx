@@ -62,6 +62,9 @@ export const POSTABLE_CHANNEL_TYPES = [0, 5, 15];
  * Never throws. A page's own data failing is an error screen; the picker list
  * failing is a smaller field, and it must not take the page with it.
  */
+/** Retries after the first failed load, at 2s and then 4s. */
+const CHANNEL_LIST_RETRIES = 2;
+
 export function useGuildChannels(guildId: string): {
   channels: GuildChannel[] | null;
   failed: boolean;
@@ -74,16 +77,30 @@ export function useGuildChannels(guildId: string): {
     setChannels(null);
     setFailed(false);
 
-    api
-      .channels(guildId)
-      // Position order, matching the sidebar someone is picking from. Discord
-      // hands them back in no order anyone would recognise.
-      .then((list) => {
-        if (live) setChannels([...list].sort((a, b) => a.position - b.position));
-      })
-      .catch(() => {
-        if (live) setFailed(true);
-      });
+    // A couple of quiet retries before giving up on the list. One failed
+    // request used to leave the field as an ID box for the rest of the visit,
+    // and a form needs a log channel to save — so a single blip on page load
+    // was enough to make a first form impossible to create.
+    const load = (attempt: number) => {
+      api
+        .channels(guildId)
+        // Position order, matching the sidebar someone is picking from. Discord
+        // hands them back in no order anyone would recognise.
+        .then((list) => {
+          if (live) setChannels([...list].sort((a, b) => a.position - b.position));
+        })
+        .catch(() => {
+          if (!live) return;
+          if (attempt < CHANNEL_LIST_RETRIES) {
+            setTimeout(() => {
+              if (live) load(attempt + 1);
+            }, 2_000 * (attempt + 1));
+          } else {
+            setFailed(true);
+          }
+        });
+    };
+    load(0);
 
     return () => {
       live = false;
@@ -185,8 +202,8 @@ function Picker({
           onChange={(e) => onChange(e.target.value.trim())}
         />
         <span className="dim">
-          Couldn't reach the bot to list channels, so this is an ID for now. The picker comes
-          back on its own once the bot is up.
+          Couldn't load the channel list, so this takes a channel ID for now — right-click the
+          channel in Discord and choose Copy Channel ID. Reloading the page tries the list again.
         </span>
       </label>
     );
