@@ -2,18 +2,18 @@
 <!--
   site/sitemap.xml
 
-  Sixteen URLs, matching the sixteen <link rel="canonical"> values exactly.
+  Eleven URLs, matching the eleven <link rel="canonical"> values exactly.
   That match is the whole job: /pricing and /pricing.html both return 200, so a
   sitemap listing the .html form would ask Google to index one URL while every
   page's canonical points at another.
 
-  Six of the sixteen are the query-targeted pages. They exist because the site
+  Six of the eleven are the query-targeted pages. They exist because the site
   was discoverable for two things while the product does nine — someone
   searching for a Discord ticket bot or a verification bot had no door in.
 
-  The docs section is five of the sixteen. /docs is a directory with an index, so
-  its canonical and its entry here are both the bare /docs — no trailing slash,
-  no /index.html, matching how nginx's try_files resolves it.
+  The docs are not here. They are rendered from the docs branch and served at
+  docs.appealy.app, which has its own generated sitemap — a sitemap lists URLs
+  on its own host, and appealy.app/docs/* now only redirects.
 
   NO <lastmod>. It would have to be updated by hand on every edit, nothing
   checks it, and a sitemap that claims a page changed today when it did not is
@@ -29,9 +29,7 @@
   Priorities are relative to each other and to nothing else. The comparison
   pages rank highest after the home page because "<product> alternative" is the
   highest-intent query anyone types about software they are already using. The
-  feature pages sit just under them, the docs below that — someone searching for
-  a Discord appeal bot should land on what the product is, not in the middle of
-  its configuration guide — and the legal pages last.
+  feature pages sit just under them, and the legal pages last.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
@@ -69,26 +67,6 @@
   <url>
     <loc>https://appealy.app/discord-giveaway-bot</loc>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://appealy.app/docs</loc>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://appealy.app/docs/getting-started</loc>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://appealy.app/docs/ban-appeals</loc>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://appealy.app/docs/outcomes</loc>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://appealy.app/docs/self-hosting</loc>
-    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://appealy.app/privacy</loc>

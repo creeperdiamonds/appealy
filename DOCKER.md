@@ -125,6 +125,27 @@ into `DISCORD_REDIRECT_URI`, `FRONTEND_ORIGIN` and `DASHBOARD_BASE_URL` by
 Doing 2 and 3 before the new name has a certificate sends every sign-in to a
 host that fails TLS.
 
+## docs.appealy.app — rendered from the docs branch, served by this service
+
+The documentation is Markdown on the `docs` branch, with no app code beside
+it. The deploy checks that branch out into `docs-content/`, `web/Dockerfile`
+renders it with `web/docs-renderer/`, and the `server_name docs.appealy.app`
+block in `web/nginx.conf` serves the result from the same `web` container.
+`/site.css` and `/brand/` come from the marketing site's files, so there is
+one copy of each, and `appealy.app/docs/*` redirects to the matching page.
+
+A docs edit goes live on the next deploy — the image is where the pages are
+built, so pushing to `docs` alone changes nothing that is being served.
+
+```bash
+gcloud beta run domain-mappings create --service=appealy --domain=docs.appealy.app \
+  --region=us-central1 --project=yahav-project-505809
+```
+
+One record, `docs CNAME ghs.googlehosted.com`, DNS-only in Cloudflare — see
+`deploy/dns/appealy.app.zone`. No separate verification: it is a subdomain of
+the already-verified `appealy.app`.
+
 ## Personal-site domain mapping — one-time, manual, not in the workflow
 
 `www.creeperdiamonds.xyz` is served by the same `web` container as Appealy,
