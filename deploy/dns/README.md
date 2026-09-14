@@ -1,11 +1,12 @@
 # DNS
 
-One zone file, for one record — and a constraint worth writing down so nobody
-undoes it later.
+Two zones, each in BIND format for Cloudflare's importer — and, for the first,
+a constraint worth writing down so nobody undoes it later.
 
 | File | Is |
 |---|---|
-| `creeperdiamonds.xyz.zone` | The single `www` CNAME the personal site needs, in BIND format for Cloudflare's importer |
+| `creeperdiamonds.xyz.zone` | The single `www` CNAME the personal site needs |
+| `appealy.app.zone` | Appealy's own domain: apex A/AAAA and a `www` CNAME, all Cloud Run. Nothing else shares the zone, so none of the constraints below apply to it |
 
 ## The apex belongs to Minecraft
 
