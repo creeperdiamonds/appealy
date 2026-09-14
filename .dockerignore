@@ -29,8 +29,6 @@
 *.zip
 
 # Runtime artifacts
-status/status.json
-status/directory.json
 *.log
 logs/
 pgdata/

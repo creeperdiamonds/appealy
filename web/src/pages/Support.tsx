@@ -118,11 +118,11 @@ export default function Support({
 
         <Panel title="Is it me, or is it down?">
           <p className="dim">
-            The status page is served independently of this console, so it still answers when this
-            does not. Check it first — an outage and a misconfiguration look identical from inside
+            The status page is hosted apart from this console, on Cloudflare, so it still answers
+            when this does not. Check it first — an outage and a misconfiguration look identical from inside
             a Discord server.
           </p>
-          <a className="btn" href="/status/" target="_blank" rel="noreferrer">
+          <a className="btn" href="https://status.appealy.app/" target="_blank" rel="noreferrer">
             Service status
           </a>
         </Panel>

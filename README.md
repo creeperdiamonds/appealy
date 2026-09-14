@@ -321,7 +321,7 @@ One container serves all of it, split by path in `web/nginx.conf`:
 |---|---|
 | `http://localhost:5173/` | The marketing site (`site/`) |
 | `http://localhost:5173/dashboard/` | The console — this is where you log in |
-| `http://localhost:5173/status/` | The shard status page |
+| `http://localhost:5173/status` | A redirect to the public status page, which is a Cloudflare Worker on this repository's `status-page` branch rather than part of this container |
 | `http://localhost:5173/auth/…`, `/api/…` | Proxied through to the API |
 
 Port 3001 is still published for the API so you can `curl` it or replay a

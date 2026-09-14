@@ -60,12 +60,6 @@ deno.lock.bak
 # ---------------------------------------------------------------------------
 # Runtime artifacts
 # ---------------------------------------------------------------------------
-# Written by bot/src/core/statusPublisher.ts. Regenerated every 10s; committing
-# a snapshot would publish a stale one to anyone reading the repo.
-status/status.json
-status/directory.json
-status/.*.tmp
-
 *.log
 logs/
 pids/

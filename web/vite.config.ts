@@ -19,13 +19,6 @@ function marketingSite(): Plugin {
   // brand/ is served at /brand rather than copied into site/, so the marks
   // have one home. nginx does the same in the built image.
   const brand = path.resolve(__dirname, "../brand");
-  // The status page is a sibling of the site, not part of it — production
-  // copies status/ into the nginx root alongside site/. Serving it here too
-  // keeps /status/ from 404ing in development, which mattered more than it
-  // sounds: the footer links it on every page and the support section tells
-  // people to check it before reporting anything, so a dead link there sends
-  // them to report the outage they were meant to rule out first.
-  const status = path.resolve(__dirname, "../status");
   const types: Record<string, string> = {
     ".html": "text/html",
     ".css": "text/css",
@@ -55,6 +48,16 @@ function marketingSite(): Plugin {
           return;
         }
 
+        // The status page is a Cloudflare Worker (status-page branch), not a
+        // file in this repository. Redirect exactly as nginx does, so the
+        // footer link on every page still goes somewhere in development.
+        if (url === "/status" || url.startsWith("/status/")) {
+          res.statusCode = 301;
+          res.setHeader("Location", "https://status.appealy.app/");
+          res.end();
+          return;
+        }
+
         // Everything the app owns keeps its normal handling.
         if (
           url.startsWith("/dashboard") ||
@@ -65,10 +68,10 @@ function marketingSite(): Plugin {
           return next();
         }
 
-        // Both directories are read by request path, which is the shape of a
-        // traversal bug — hence the startsWith guard on the resolved path in
-        // each, same as the site root below.
-        for (const [prefix, root] of [["/brand/", brand], ["/status/", status]] as const) {
+        // brand/ is read by request path, which is the shape of a traversal
+        // bug — hence the startsWith guard on the resolved path, same as the
+        // site root below.
+        for (const [prefix, root] of [["/brand/", brand]] as const) {
           if (!url.startsWith(prefix)) continue;
           const rest = url.slice(prefix.length);
           const file = path.resolve(root, rest === "" ? "index.html" : rest);

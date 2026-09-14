@@ -12,9 +12,11 @@ docker compose up
 deno task sync-commands      # once, and after changing commands
 ```
 
-Then open **`http://localhost:5173/dashboard/`**. `/` is the marketing site
-and `/status/` is the status page; all three come out of the same container,
-split by path in `web/nginx.conf`.
+Then open **`http://localhost:5173/dashboard/`**. `/` is the marketing site;
+both come out of the same container, split by path in `web/nginx.conf`. The
+status page is not in it: it is a separate Cloudflare Worker on the
+`status-page` branch, and running your own is optional — see that branch's
+`README.md`.
 
 ### One origin, and why the redirect URI is port 5173
 
