@@ -1,0 +1,42 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "appealy-status",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+
+  // public/ is served before the Worker runs. Asset requests are free and
+  // don't count against the Workers Free daily request limit.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+
+  // Cloudflare creates the DNS record and certificate for this itself.
+  "routes": [{ "pattern": "status.appealy.app", "custom_domain": true }],
+
+  // Every minute: probe the dashboard and API, fold the bot's latest
+  // heartbeat in, and rebuild the summary.
+  "triggers": { "crons": ["* * * * *"] },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "appealy-status",
+      // From `npx wrangler d1 create appealy-status`.
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Checked from outside, the way a visitor reaches them. /api/config goes
+  // through nginx into the API process and touches no database.
+  "vars": {
+    "DASHBOARD_URL": "https://appealy.app/dashboard/",
+    "API_URL": "https://appealy.app/api/config"
+  },
+
+  // HEARTBEAT_SECRET is a secret, not a var:
+  //   npx wrangler secret put HEARTBEAT_SECRET
+
+  "observability": { "enabled": true }
+}

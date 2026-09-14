@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Appealy status</title>
+<meta name="description" content="Live status and 90-day uptime for the Appealy Discord bot, dashboard and API.">
+<!--
+  Public status page, served by a Cloudflare Worker (src/index.ts).
+
+  Hosted apart from Appealy on purpose: it shares no server, database or DNS
+  record with the app, so it still answers when the app does not.
+
+  The server-id lookup runs entirely in the browser — the shard formula is
+  arithmetic, so there is no reason to send someone's server id anywhere, and
+  not sending it means nothing to log, cache or leak.
+-->
+<style>
+  :root {
+    --bg: #07080f; --panel: #10121e; --line: #1e2233; --empty: #191c2b;
+    --fg: #e6e8f0; --dim: #6c7391;
+    --up: #7c9bff; --degraded: #ffb84d; --down: #ff4d6d;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 3rem 1.25rem; background: var(--bg); color: var(--fg);
+    font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 42rem; margin: 0 auto; }
+  h1 { font-size: 1.75rem; letter-spacing: -.02em; margin: 0 0 .25rem; }
+  a { color: var(--up); }
+  .dim { color: var(--dim); }
+  .eyebrow { font-size: .625rem; letter-spacing: .22em; text-transform: uppercase; color: var(--dim); }
+
+  .headline { display: flex; align-items: baseline; gap: .625rem; margin: 1.75rem 0 .5rem; }
+  .dot { width: .625rem; height: .625rem; border-radius: 50%; flex: none; background: var(--dim); }
+  .is-up .dot { background: var(--up); } .is-degraded .dot { background: var(--degraded); } .is-down .dot { background: var(--down); }
+  .is-up .headline-text { color: var(--up); } .is-degraded .headline-text { color: var(--degraded); } .is-down .headline-text { color: var(--down); }
+  .headline-text { font-size: 1.25rem; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 2px; padding: 1.125rem; margin: 1.5rem 0; }
+  .stale { border-left: 2px solid var(--degraded); padding-left: .75rem; color: var(--degraded); }
+
+  .component + .component { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+  .component-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .component-name { font-weight: 600; }
+  .state { font-size: .875rem; }
+  .state.up { color: var(--up); } .state.degraded { color: var(--degraded); } .state.down { color: var(--down); } .state.unknown { color: var(--dim); }
+
+  .bars { display: flex; gap: 2px; height: 28px; margin-top: .625rem; }
+  .bar { flex: 1 1 0; min-width: 0; border-radius: 1px; background: var(--empty); border: 0; padding: 0; cursor: default; }
+  .bar.up { background: var(--up); } .bar.degraded { background: var(--degraded); } .bar.down { background: var(--down); }
+  .bar:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+  .bars-foot { display: flex; justify-content: space-between; gap: 1rem; font-size: .75rem; color: var(--dim); margin-top: .375rem; }
+  .day-detail { font-size: .8125rem; margin-top: .25rem; min-height: 1.3em; }
+
+  .lookup input {
+    width: 100%; padding: .625rem .75rem; margin-top: .5rem; border-radius: 2px;
+    background: var(--bg); border: 1px solid var(--line); color: inherit;
+    font-family: var(--mono); font-size: .875rem;
+  }
+  .lookup input:focus-visible { outline: 2px solid var(--up); outline-offset: 1px; }
+  .result { margin-top: .875rem; font-size: .9375rem; }
+
+  .grid { display: flex; flex-wrap: wrap; gap: 4px; margin-top: .75rem; }
+  .cell { width: 22px; height: 22px; border-radius: 2px; display: grid; place-items: center;
+          font: 500 9px/1 var(--mono); color: rgba(7,8,15,.75); }
+  .cell.up { background: var(--up); } .cell.degraded { background: var(--degraded); } .cell.down { background: var(--down); }
+  .cell.mine { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; font-size: .75rem; color: var(--dim); }
+  .legend span { display: flex; align-items: center; gap: .375rem; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+  footer { margin-top: 2.5rem; font-size: .75rem; color: var(--dim); font-family: var(--mono); }
+</style>
+</head>
+<body>
+<main>
+  <span class="eyebrow">Appealy</span>
+  <h1>Status</h1>
+
+  <div id="headline" class="headline"><span class="dot"></span><span class="headline-text">Checking…</span></div>
+  <p class="dim" id="detail"></p>
+
+  <div class="card" id="components-card" hidden>
+    <span class="eyebrow">Last 90 days</span>
+    <div id="components"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--up)"></i>Up</span>
+      <span><i class="swatch" style="background:var(--degraded)"></i>Slow, or down under 30 min</span>
+      <span><i class="swatch" style="background:var(--down)"></i>Down 30 min or more</span>
+      <span><i class="swatch" style="background:var(--empty)"></i>No data</span>
+    </div>
+  </div>
+
+  <div class="card lookup" id="lookup-card" hidden>
+    <label class="eyebrow" for="gid">Check your server</label>
+    <input id="gid" inputmode="numeric" autocomplete="off" spellcheck="false"
+           placeholder="Paste your server ID">
+    <div class="result dim" id="result"></div>
+  </div>
+
+  <div class="card" id="shards-card" hidden>
+    <span class="eyebrow">Discord shards</span>
+    <p class="dim" id="shards-note" hidden></p>
+    <div class="grid" id="grid"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--up)"></i>Up</span>
+      <span><i class="swatch" style="background:var(--degraded)"></i>Slow</span>
+      <span><i class="swatch" style="background:var(--down)"></i>Down</span>
+    </div>
+  </div>
+
+  <footer id="footer"></footer>
+</main>
+
+<script>
+// The Worker rebuilds status.json every minute. Well past that, the checks
+// themselves have stopped, which is worth saying — but it says nothing about
+// whether Appealy is up, so it is shown as a warning, not an outage.
+const STALE_MS = 3 * 60_000;
+// Matches the Worker: a heartbeat older than this means the bot is silent.
+const HEARTBEAT_STALE_MS = 90_000;
+const POLL_MS = 60_000;
+const LOOKUP_HINT = "Right-click your server in Discord and choose Copy Server ID. Nothing is sent anywhere — this runs in your browser.";
+const STATE_LABEL = { up: "Operational", degraded: "Degraded", down: "Down" };
+
+let summary = null;
+let failed = false;
+
+const $ = (id) => document.getElementById(id);
+
+const rel = (iso) => {
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso)) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+};
+
+const since = (iso) => {
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso)) / 1000));
+  if (s < 3600) return `for ${Math.max(1, Math.round(s / 60))} min`;
+  if (s < 86400) return `for ${Math.round(s / 3600)} h`;
+  return `since ${new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+};
+
+const minutes = (n) => (n < 60 ? `${n} min` : `${Math.floor(n / 60)} h ${n % 60} min`);
+
+// A single redeploy costs the bot a minute or two. Painting that day solid red
+// would make one routine restart look like a bad day, so red means a real
+// stretch of downtime and anything shorter is amber.
+function dayClass(d) {
+  if (!d) return "";
+  if (d.down >= 30) return "down";
+  if (d.down > 0 || d.degraded > 0) return "degraded";
+  return "up";
+}
+
+function dayText(name, d, day) {
+  const date = new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+  if (!d) return `${name} · ${date} (UTC): no data`;
+  const total = d.up + d.degraded + d.down;
+  const pct = Math.floor(((d.up + d.degraded) / total) * 10000) / 100;
+  const parts = [`${pct}% up`];
+  if (d.down) parts.push(`down ${minutes(d.down)}`);
+  if (d.degraded) parts.push(`slow ${minutes(d.degraded)}`);
+  return `${name} · ${date} (UTC): ${parts.join(", ")}`;
+}
+
+function renderHeadline() {
+  const headline = $("headline");
+  const text = headline.querySelector(".headline-text");
+  const detail = $("detail");
+
+  if (!summary) {
+    headline.className = "headline";
+    text.textContent = failed ? "Status unavailable" : "Checking…";
+    detail.textContent = failed ? "The status data couldn't be loaded. Try again in a minute." : "";
+    return;
+  }
+
+  const known = summary.components.filter((c) => c.state);
+  const down = known.filter((c) => c.state === "down");
+  const slow = known.filter((c) => c.state === "degraded");
+  const names = (list) => list.map((c) => c.name).join(", ");
+
+  if (down.length === known.length) {
+    headline.className = "headline is-down";
+    text.textContent = "Appealy is down";
+    detail.textContent = "Nothing is responding. We're aware — nothing on your side will fix this.";
+  } else if (down.length > 0) {
+    headline.className = "headline is-down";
+    text.textContent = "Partial outage";
+    detail.textContent = `Down: ${names(down)}.${slow.length ? ` Slow: ${names(slow)}.` : ""}`;
+  } else if (slow.length > 0) {
+    headline.className = "headline is-degraded";
+    text.textContent = "Degraded performance";
+    detail.textContent = `Slow or partly unavailable: ${names(slow)}.`;
+  } else {
+    headline.className = "headline is-up";
+    text.textContent = "All systems normal";
+    detail.textContent = "";
+  }
+
+  if (Date.now() - new Date(summary.generatedAt) > STALE_MS) {
+    const note = document.createElement("span");
+    note.className = "stale";
+    note.textContent = `These checks last ran ${rel(summary.generatedAt)}, so this may be out of date.`;
+    detail.textContent = "";
+    detail.appendChild(note);
+  }
+}
+
+function renderComponents() {
+  const root = $("components");
+  root.replaceChildren();
+
+  for (const c of summary.components) {
+    const box = document.createElement("div");
+    box.className = "component";
+
+    const head = document.createElement("div");
+    head.className = "component-head";
+    const name = document.createElement("span");
+    name.className = "component-name";
+    name.textContent = c.name;
+    const state = document.createElement("span");
+    state.className = `state ${c.state ?? "unknown"}`;
+    state.textContent = c.state
+      ? `${STATE_LABEL[c.state]}${c.state !== "up" && c.since ? ` ${since(c.since)}` : ""}`
+      : "Unknown — the bot isn't reporting";
+    head.append(name, state);
+
+    const bars = document.createElement("div");
+    bars.className = "bars";
+    const detail = document.createElement("div");
+    detail.className = "day-detail dim";
+
+    const days = c.days;
+    const first = new Date(summary.generatedAt);
+    days.forEach((d, i) => {
+      const day = d ? d.day : new Date(first.getTime() - (days.length - 1 - i) * 86_400_000).toISOString().slice(0, 10);
+      const bar = document.createElement("button");
+      bar.type = "button";
+      bar.className = `bar ${dayClass(d)}`;
+      const label = dayText(c.name, d, day);
+      bar.title = label;
+      bar.setAttribute("aria-label", label);
+      const show = () => { detail.textContent = label; };
+      bar.addEventListener("mouseenter", show);
+      bar.addEventListener("focus", show);
+      bar.addEventListener("click", show);
+      bars.appendChild(bar);
+    });
+
+    const foot = document.createElement("div");
+    foot.className = "bars-foot";
+    const left = document.createElement("span");
+    left.textContent = "90 days ago";
+    const middle = document.createElement("span");
+    middle.textContent = c.uptime === null ? "No data yet" : `${c.uptime}% uptime`;
+    const right = document.createElement("span");
+    right.textContent = "Today";
+    foot.append(left, middle, right);
+
+    box.append(head, bars, foot, detail);
+    root.appendChild(box);
+  }
+
+  $("components-card").hidden = false;
+}
+
+function renderShards() {
+  const shards = summary.shards;
+  const card = $("shards-card");
+  const lookupCard = $("lookup-card");
+  if (!shards) {
+    card.hidden = true;
+    lookupCard.hidden = true;
+    return;
+  }
+
+  const silent = Date.now() - new Date(shards.reportedAt) > HEARTBEAT_STALE_MS;
+  const note = $("shards-note");
+  note.hidden = !silent;
+  note.textContent = silent ? `The bot last reported ${rel(shards.reportedAt)}. These are its last known states.` : "";
+
+  const grid = $("grid");
+  grid.replaceChildren();
+  for (const s of shards.list) {
+    const el = document.createElement("div");
+    el.className = `cell ${silent ? "down" : s.state}`;
+    el.dataset.id = String(s.id);
+    el.textContent = s.id;
+    el.title = `Shard ${s.id}: ${silent ? "not reporting" : s.state}`;
+    grid.appendChild(el);
+  }
+
+  card.hidden = false;
+  lookupCard.hidden = false;
+  lookup();
+}
+
+function lookup() {
+  const raw = $("gid").value.trim();
+  const out = $("result");
+  document.querySelectorAll(".cell.mine").forEach((c) => c.classList.remove("mine"));
+  out.style.color = "";
+
+  if (!raw) {
+    out.className = "result dim";
+    out.textContent = LOOKUP_HINT;
+    return;
+  }
+  if (!/^\d{17,20}$/.test(raw) || !summary?.shards) {
+    out.className = "result dim";
+    out.textContent = "That doesn't look like a server ID — they're 17 to 20 digits.";
+    return;
+  }
+
+  // Discord's own formula. Pure arithmetic, so it stays on this device.
+  const { shards } = summary;
+  const id = Number((BigInt(raw) >> 22n) % BigInt(shards.totalShards));
+  document.querySelector(`.cell[data-id="${id}"]`)?.classList.add("mine");
+
+  const silent = Date.now() - new Date(shards.reportedAt) > HEARTBEAT_STALE_MS;
+  const shard = shards.list.find((s) => s.id === id);
+  const state = silent || !shard ? "down" : shard.state;
+  const copy = {
+    up: `Your server is on shard ${id}, which is up. If Appealy still isn't responding, it's not a shard problem.`,
+    degraded: `Your server is on shard ${id}, which is running slowly. Commands should work but may lag.`,
+    down: silent
+      ? `Your server is on shard ${id}. The bot isn't reporting at all right now — nothing you do will help, we're on it.`
+      : `Your server is on shard ${id}, which is down. Nothing you do will help — we're on it.`,
+  };
+  out.className = "result";
+  out.style.color = `var(--${state})`;
+  out.textContent = copy[state];
+}
+
+function render() {
+  renderHeadline();
+  if (summary) {
+    renderComponents();
+    renderShards();
+    $("footer").textContent = `checked ${rel(summary.generatedAt)} · hosted apart from Appealy, on Cloudflare`;
+  }
+}
+
+async function poll() {
+  try {
+    const res = await fetch("/status.json", { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    summary = await res.json();
+    failed = false;
+  } catch {
+    failed = true;
+    // Keep showing the last good data rather than blanking the page, but only
+    // while it is still recent enough for the stale warning to cover it.
+    if (summary && Date.now() - new Date(summary.generatedAt) > STALE_MS) summary = null;
+  }
+  render();
+}
+
+$("gid").addEventListener("input", lookup);
+poll();
+setInterval(poll, POLL_MS);
+// Relative times ("2m ago") drift between polls; refresh the text on its own.
+setInterval(() => { if (summary) render(); }, 15_000);
+</script>
+</body>
+</html>

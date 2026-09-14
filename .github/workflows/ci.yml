@@ -1,0 +1,35 @@
+name: CI
+
+# The status page lives on its own branch with no app code beside it, so it
+# carries its own checks. main's CI never sees these files.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  status:
+    name: status (worker)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # Plain `npm ci`, not --omit=optional: typescript ships its compiler
+      # binary as a platform-specific optional dependency.
+      - name: Install dependencies
+        run: npm ci
+
+      # Node strips the types itself, so the tests need no build step.
+      - name: Test
+        run: npm test
+
+      - name: Type check
+        run: npx tsc --noEmit -p tsconfig.json
