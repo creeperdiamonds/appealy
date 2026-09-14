@@ -37,6 +37,11 @@ redisdata/
 # Not needed at build time
 *.md
 !README.md
+# The docs branch's Markdown, checked out here by the deploy and rendered in
+# web/Dockerfile. "*.md" above only matches the repository root, so this is
+# not strictly needed today; it stops a future "**/*.md" from silently
+# shipping an image with no documentation.
+!docs-content/**
 .github
 # brand/ is NOT here on purpose. It was, and that silently broke the web image:
 # web/Dockerfile copies it into the nginx root so the marketing site can serve

@@ -46,7 +46,7 @@ them "you can appeal" sends them to a form that will 403.
 organised around who reviews sees two systems, which is right for reading the
 schema. Someone who has just been told they cannot use the bot is living in one
 of three situations, and which one decides what they are told, who has to act,
-and what has actually been taken away. `site/docs/ban-appeals.html` is written
+and what has actually been taken away. `getting-started/ban-appeals.md` on the `docs` branch is written
 on the second split for that reason.
 
 ## Guild ban appeals — restored from `appealy-with-ban-appeals.zip`

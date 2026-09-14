@@ -39,3 +39,9 @@ appealy.app.	1	IN	AAAA	2001:4860:4802:34::15
 appealy.app.	1	IN	AAAA	2001:4860:4802:36::15
 appealy.app.	1	IN	AAAA	2001:4860:4802:38::15
 www.appealy.app.	1	IN	CNAME	ghs.googlehosted.com.
+
+;; The documentation, served by the same Cloud Run service. web/nginx.conf
+;; splits it off by Host, the same way www.creeperdiamonds.xyz is.
+;;   gcloud beta run domain-mappings create --service=appealy \
+;;     --domain=docs.appealy.app --region=us-central1 --project=yahav-project-505809
+docs.appealy.app.	1	IN	CNAME	ghs.googlehosted.com.

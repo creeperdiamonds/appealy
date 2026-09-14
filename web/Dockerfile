@@ -39,6 +39,24 @@ ARG VITE_API_URL=
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
+# The documentation. It lives on the docs branch as Markdown, with no app code
+# beside it; the deploy checks that branch out into docs-content/ before
+# building, and this stage renders it with web/docs-renderer/.
+#
+# The content arrives through a bind mount of the build context rather than a
+# COPY, because docs-content/ is absent in a plain local checkout and COPY of a
+# missing path fails the whole build. Without it the renderer writes a
+# placeholder page — unless REQUIRE_DOCS=1, which the deploy passes, because a
+# production image with no documentation is a broken deploy, not a quiet one.
+FROM node:24-alpine AS docs
+WORKDIR /renderer
+COPY web/docs-renderer/package.json web/docs-renderer/package-lock.json ./
+RUN npm ci --omit=dev
+COPY web/docs-renderer/render.mjs ./
+ARG REQUIRE_DOCS=0
+RUN --mount=type=bind,source=.,target=/context \
+    REQUIRE_DOCS=$REQUIRE_DOCS node render.mjs /context/docs-content /out
+
 FROM nginx:1.27-alpine
 
 # Cloud Run injects PORT and expects the container to listen on it. nginx
@@ -83,4 +101,8 @@ COPY brand /usr/share/nginx/html/brand
 # alongside it.
 COPY home /usr/share/nginx/html/home
 COPY --from=build /app/web/dist /usr/share/nginx/html/dashboard
+# Served on docs.appealy.app by its own server_name block in nginx.conf. Beside
+# the marketing root rather than inside it, so no docs page also answers at
+# appealy.app/<page>.
+COPY --from=docs /out /usr/share/nginx/html/docs-site
 EXPOSE 8080

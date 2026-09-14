@@ -1,0 +1,12 @@
+{
+  "name": "appealy-docs-renderer",
+  "private": true,
+  "type": "module",
+  "description": "Renders the docs branch (Markdown) into the static pages served at docs.appealy.app.",
+  "scripts": {
+    "render": "node render.mjs ../../docs-content dist"
+  },
+  "dependencies": {
+    "marked": "18.0.13"
+  }
+}

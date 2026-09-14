@@ -45,6 +45,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The documentation is its own branch with no app code beside it. Checked
+      # out here so web/Dockerfile can render it into the image — and so the
+      # log records exactly which docs commit went live.
+      - name: Check out the docs branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs
+          path: docs-content
+
       - name: Fail early if billing credentials are missing
         env:
           A: ${{ secrets.TEBEX_PROJECT_ID }}
@@ -153,10 +162,12 @@ jobs:
         run: |
           set -eu
           SHA="${{ github.sha }}"
+          # REQUIRE_DOCS=1: web/Dockerfile refuses to build without docs-content/
+          # rather than shipping a placeholder. api and bot ignore the arg.
           for svc in api web bot; do
             IMAGE="$ARTIFACT_REGISTRY/appealy-$svc:$SHA"
             echo "::group::build $svc"
-            docker build -f "$svc/Dockerfile" -t "$IMAGE" .
+            docker build --build-arg REQUIRE_DOCS=1 -f "$svc/Dockerfile" -t "$IMAGE" .
             docker push "$IMAGE"
             echo "::endgroup::"
           done

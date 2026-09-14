@@ -86,5 +86,10 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# The docs branch, checked out locally to build the docs into the web image
+# (web/docs-renderer/README.md). It is its own history, never part of main.
+docs-content/
+web/docs-renderer/dist/
+
 # SDD scratch: ledger, briefs, reports, review packages
 .superpowers/
