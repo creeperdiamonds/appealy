@@ -93,21 +93,42 @@ async function loadGuildAccess(
     }
   }
 
-  try {
-    const allGuilds = await fetchUserGuilds(accessToken);
-    const access: CachedGuildAccess = {
-      manageable: filterManageableGuilds(allGuilds).map((g) => g.id),
-      owned: allGuilds.filter((g) => g.owner).map((g) => g.id),
-    };
-    await withRedis(
-      (r) => r.set(cacheKey(sessionId), JSON.stringify(access), "EX", PERMISSION_CACHE_SECONDS),
-      null,
-    );
-    return access;
-  } catch {
-    return null;
-  }
+  // Requests that miss the cache at the same moment share one lookup. A page
+  // load fires several requests together, and when the cached set had just
+  // expired each used to ask Discord on its own; Discord rate-limits that
+  // endpoint per user, so all but one failed and came back as a 503. That is
+  // what left the Forms page without a channel list and a form unsaveable.
+  const pending = inFlight.get(sessionId);
+  if (pending) return pending;
+
+  const lookup = (async (): Promise<CachedGuildAccess | null> => {
+    try {
+      const allGuilds = await fetchUserGuilds(accessToken);
+      const access: CachedGuildAccess = {
+        manageable: filterManageableGuilds(allGuilds).map((g) => g.id),
+        owned: allGuilds.filter((g) => g.owner).map((g) => g.id),
+      };
+      await withRedis(
+        (r) => r.set(cacheKey(sessionId), JSON.stringify(access), "EX", PERMISSION_CACHE_SECONDS),
+        null,
+      );
+      return access;
+    } catch (error) {
+      // Logged now: the failure used to be swallowed whole, so nobody could
+      // tell a rate limit from an expired token from an outage.
+      console.warn("guild access lookup failed", String(error));
+      return null;
+    } finally {
+      inFlight.delete(sessionId);
+    }
+  })();
+  inFlight.set(sessionId, lookup);
+  return lookup;
 }
+
+/** Discord lookups in progress, by session. Per process, which is right for
+ *  one API instance; across instances each would still share within itself. */
+const inFlight = new Map<string, Promise<CachedGuildAccess | null>>();
 
 /** Drops a session's cached permissions. Called on logout, and whenever
  * this dashboard changes something that affects access. */

@@ -216,6 +216,19 @@ async function request<T>(
     return request<T>(path, init, true, reauthed);
   }
 
+  // The API answers 503 permission_check_unavailable when it briefly couldn't
+  // confirm access with Discord, and says how long to wait. Retried once, like
+  // a 429: a page load that happened to land in that moment shouldn't lose a
+  // piece of the page for the rest of the visit.
+  if (res.status === 503 && !retried) {
+    const body = await res.clone().json().catch(() => ({}));
+    if (body?.error === "permission_check_unavailable") {
+      const wait = Number(body.retryAfter ?? 2);
+      await new Promise((r) => setTimeout(r, Math.min(Math.max(wait, 1), 10) * 1000));
+      return request<T>(path, init, true, reauthed);
+    }
+  }
+
   if (res.status === 403) {
 
     const body = await res.clone().json().catch(() => ({}));

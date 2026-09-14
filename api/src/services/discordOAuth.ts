@@ -84,11 +84,23 @@ export async function fetchDiscordUser(accessToken: string): Promise<DiscordUser
 }
 
 export async function fetchUserGuilds(accessToken: string): Promise<DiscordGuildSummary[]> {
-  const res = await fetch(`${DISCORD_API}/users/@me/guilds`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) throw new Error(`Failed to fetch user guilds: ${res.status}`);
-  return res.json();
+  // One retry on a rate limit, after as long as Discord asks (capped). This
+  // endpoint is limited per user token, and a dashboard opening a page sends
+  // several requests at once; one landing inside the window used to surface as
+  // "couldn't reach Discord" and break whichever part of the page it fed.
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${DISCORD_API}/users/@me/guilds`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.status === 429 && attempt === 0) {
+      const body = (await res.json().catch(() => ({}))) as { retry_after?: number };
+      const seconds = body.retry_after ?? Number(res.headers.get("retry-after") ?? 1);
+      await new Promise((resolve) => setTimeout(resolve, Math.min(Math.max(seconds * 1000, 250), 3_000)));
+      continue;
+    }
+    if (!res.ok) throw new Error(`Failed to fetch user guilds: ${res.status}`);
+    return res.json();
+  }
 }
 
 /** Guilds where the user is owner or has Administrator/Manage Guild — the
