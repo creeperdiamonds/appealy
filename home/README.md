@@ -6,7 +6,7 @@ worked example, an about paragraph, and contact.
 
 This is deliberately *not* part of `site/`. That directory is the Appealy
 marketing site and is served from the app's own deployment at
-`appealy.creeperdiamonds.xyz`, under the same nginx that serves the console at
+`appealy.app`, under the same nginx that serves the console at
 `/dashboard/` and the status page at `/status/`. The apex is a different host
 with nothing else on it, so a page there cannot reference `site/site.css` or
 `/brand/icon.svg` — those paths resolve inside the Appealy deployment and
@@ -27,7 +27,7 @@ only the content and structure are new.
 
 `web/Dockerfile:83` copies this directory to `/usr/share/nginx/html/home`,
 and the `server` block at `web/nginx.conf:181` serves it on the apex `Host`
-only — `creeperdiamonds.xyz`, not `appealy.creeperdiamonds.xyz`. It does not
+only — `creeperdiamonds.xyz`, not `appealy.app`. It does not
 run anywhere else. See those two files for the actual configuration rather
 than a copy here that can drift from it.
 
@@ -55,10 +55,10 @@ text replaces the placeholder.
 
 ## When links change
 
-If Appealy moves off `appealy.creeperdiamonds.xyz` to a permanent domain, the
-links in the Appealy section here need to move with it:
+Appealy moved from `appealy.creeperdiamonds.xyz` to `appealy.app` this way. If
+it moves again, the links in the Appealy section here need to move with it:
 
 ```bash
-grep -rl 'appealy\.creeperdiamonds\.xyz' home/ site/ \
-  | xargs sed -i 's|appealy\.creeperdiamonds\.xyz|<new-domain>|g'
+grep -rl 'appealy\.app' home/ site/ \
+  | xargs sed -i 's|appealy\.app|<new-domain>|g'
 ```

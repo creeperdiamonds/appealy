@@ -35,67 +35,67 @@
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/</loc>
+    <loc>https://appealy.app/</loc>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/pricing</loc>
+    <loc>https://appealy.app/pricing</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/appy-alternative</loc>
+    <loc>https://appealy.app/appy-alternative</loc>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/appeal-gg-alternative</loc>
+    <loc>https://appealy.app/appeal-gg-alternative</loc>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/discord-ban-appeal-bot</loc>
+    <loc>https://appealy.app/discord-ban-appeal-bot</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/discord-ticket-bot</loc>
+    <loc>https://appealy.app/discord-ticket-bot</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/discord-verification-bot</loc>
+    <loc>https://appealy.app/discord-verification-bot</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/discord-anti-raid-bot</loc>
+    <loc>https://appealy.app/discord-anti-raid-bot</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/discord-giveaway-bot</loc>
+    <loc>https://appealy.app/discord-giveaway-bot</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/docs</loc>
+    <loc>https://appealy.app/docs</loc>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/docs/getting-started</loc>
+    <loc>https://appealy.app/docs/getting-started</loc>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/docs/ban-appeals</loc>
+    <loc>https://appealy.app/docs/ban-appeals</loc>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/docs/outcomes</loc>
+    <loc>https://appealy.app/docs/outcomes</loc>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/docs/self-hosting</loc>
+    <loc>https://appealy.app/docs/self-hosting</loc>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/privacy</loc>
+    <loc>https://appealy.app/privacy</loc>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://appealy.creeperdiamonds.xyz/terms</loc>
+    <loc>https://appealy.app/terms</loc>
     <priority>0.5</priority>
   </url>
 </urlset>

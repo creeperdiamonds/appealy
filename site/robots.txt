@@ -44,4 +44,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://appealy.creeperdiamonds.xyz/sitemap.xml
+Sitemap: https://appealy.app/sitemap.xml
