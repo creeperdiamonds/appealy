@@ -22,8 +22,7 @@
     {
       "binding": "DB",
       "database_name": "appealy-status",
-      // From `npx wrangler d1 create appealy-status`.
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "c10e5a27-5219-41b3-bbc8-9921e64ada82",
       "migrations_dir": "migrations"
     }
   ],
