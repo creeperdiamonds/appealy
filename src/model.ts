@@ -168,6 +168,16 @@ export function needsRefresh(generatedAt: number, now: number): boolean {
   return now - generatedAt >= REFRESH_AFTER_MS;
 }
 
+/** How far into a minute the check loop fires. A few seconds in, not on the
+ *  boundary, so clock jitter can't land a run back in the minute before. */
+export const ALARM_OFFSET_MS = 5_000;
+
+/** When the check loop should fire next: early in the next minute, so every
+ *  run falls in — and claims — a minute of its own. */
+export function nextAlarmAt(now: number): number {
+  return (minuteOf(now) + 1) * 60_000 + ALARM_OFFSET_MS;
+}
+
 /** The last HISTORY_DAYS UTC days, oldest first, ending with today. */
 export function historyDays(now: number): string[] {
   const today = Math.floor(now / DAY_MS) * DAY_MS;

@@ -128,3 +128,16 @@ test("a summary is refreshed once it is a minute old, not before", () => {
   assert.equal(needsRefresh(generated, generated + REFRESH_AFTER_MS - 1), false);
   assert.equal(needsRefresh(generated, generated + REFRESH_AFTER_MS), true);
 });
+
+import { ALARM_OFFSET_MS, nextAlarmAt } from "../src/model.ts";
+
+test("the check loop fires a few seconds into the next minute, wherever in this one it ran", () => {
+  const minute = Date.parse("2026-09-14T12:00:00.000Z");
+  const next = minute + 60_000 + ALARM_OFFSET_MS;
+  assert.equal(nextAlarmAt(minute), next);
+  assert.equal(nextAlarmAt(minute + ALARM_OFFSET_MS), next);
+  assert.equal(nextAlarmAt(minute + 59_999), next);
+  // Always strictly in the future, and always in a different minute.
+  assert.ok(nextAlarmAt(minute + 30_000) > minute + 30_000);
+  assert.equal(minuteOf(nextAlarmAt(minute)), minuteOf(minute) + 1);
+});

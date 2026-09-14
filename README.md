@@ -40,32 +40,43 @@ red minute. A probe slower than 2.5s is degraded.
 
 ## When a check runs
 
-Either of two things starts one:
+Any of three things starts one:
 
+- **The check loop** — the `Ticker` Durable Object. Its alarm runs a check and
+  then sets the next alarm for five seconds into the next minute, so once
+  started it keeps the page current every minute with nobody visiting.
 - **The Cron Trigger**, every minute.
 - **A request for `/status.json`** that finds the summary a minute old or more.
   The very first request, when nothing has been checked yet, waits for the
   check; after that the request is answered straight away and the check runs
   behind it.
 
-The second is there because **the cron alone was not enough**. On a new Workers
+The loop is there because **the cron alone was not enough**. On a new Workers
 Free account, Cloudflare registered the trigger, showed its next run in the
 dashboard, and then never fired it — no scheduled events, no errors, for as
 long as anyone watched. Cloudflare's community forum has the same report from
-other new accounts. A page that depended on the cron showed "no data" the
-whole time.
+other new accounts. Durable Object alarms are a separate mechanism.
 
-Both paths claim the minute first, by inserting it into `ticks`. The first
+All three claim the minute first, by inserting it into `ticks`. The first
 insert wins and does the work; any other check for that minute sees its insert
 do nothing and stops. So a crowd of stale requests produces one check, and if
 the cron starts firing it simply becomes one more claimant — no minute is ever
 counted twice.
 
-**The cost of the fallback:** with the cron not firing, minutes are only checked
-while something is requesting the page. A minute nobody asked about is a gap in
-the history, not downtime. An uptime pinger that fetches `/status.json` once a
-minute (cron-job.org, for example) closes those gaps, and is also just a
-visitor.
+**The loop can't stay stopped.** Every page request that misses the edge cache,
+every cron run and every bot heartbeat asks the `Ticker` to start its alarm if
+none is set. Nothing is needed to start it after a deploy beyond someone
+loading the page, or the bot's next heartbeat.
+
+**If a check fails**, the alarm catches it, logs it, and sets the next alarm
+anyway. A thrown alarm would be retried with backoff and pile retries onto the
+next minute's run; one failed minute is a gap in the history, and the loop
+carrying on matters more.
+
+Durable Objects cost on the free plan: about 1,440 alarm runs a day plus the
+start checks, against a limit of 100,000 requests, and a few seconds of wall
+time per run, well under the 13,000 GB-s a day allowed. Only the SQLite-backed
+kind is available on Workers Free, which is what `wrangler.jsonc` declares.
 
 ## History
 

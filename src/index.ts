@@ -20,14 +20,18 @@
 //
 // When a check runs
 // -----------------
-// Two things start one, and either is enough:
+// Three things start one, and any of them is enough:
+//   - the Ticker Durable Object's alarm, which runs a check and sets its next
+//     alarm for early in the next minute — the loop that keeps the page current
+//     with nobody visiting;
 //   - the Cron Trigger, every minute;
 //   - a request for /status.json that finds the summary a minute old or more.
-// The second exists because Cloudflare's scheduler has been seen to register a
-// trigger on a new Workers Free account and then never fire it, silently — a
-// page that depended on it alone showed "no data" forever. Both paths claim the
-// minute in the `ticks` table first, so whichever arrives second does nothing
-// and no minute is ever counted twice.
+// The loop exists because Cloudflare's cron scheduler registered this Worker's
+// trigger on a new Workers Free account and then never fired it, silently.
+// Durable Object alarms are a separate mechanism. Every one of the three claims
+// its minute in the `ticks` table first, so whichever arrives second does
+// nothing and no minute is ever counted twice. Anything that reaches the Worker
+// — a page view, the cron, a heartbeat — also restarts the loop if it stopped.
 //
 // Free-plan budget
 // ----------------
@@ -35,8 +39,10 @@
 // precomputed row and is edge-cached for 30s. A check does the expensive part at
 // most once a minute: a few upserts, a read of 90 days of daily rows, and one
 // write of the summary. Roughly 17k D1 rows written and 520k read per day,
-// against limits of 100k and 5M. See README.md.
+// against limits of 100k and 5M. The loop is ~1,440 alarm runs a day, against a
+// Durable Objects limit of 100k requests. See README.md.
 
+import { DurableObject } from "cloudflare:workers";
 import {
   buildSummary,
   dayKey,
@@ -44,6 +50,7 @@ import {
   historyDays,
   minuteOf,
   needsRefresh,
+  nextAlarmAt,
   parseHeartbeat,
   type ComponentId,
   type DailyRow,
@@ -57,6 +64,7 @@ import {
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
+  TICKER: DurableObjectNamespace<Ticker>;
   HEARTBEAT_SECRET: string;
   DASHBOARD_URL: string;
   API_URL: string;
@@ -74,7 +82,7 @@ export default {
 
     if (pathname === "/api/heartbeat") {
       if (request.method !== "POST") return methodNotAllowed("POST");
-      return receiveHeartbeat(request, env);
+      return receiveHeartbeat(request, env, ctx);
     }
 
     if (pathname === "/status.json") {
@@ -87,13 +95,55 @@ export default {
     return env.ASSETS.fetch(request);
   },
 
-  async scheduled(controller, env): Promise<void> {
+  async scheduled(controller, env, ctx): Promise<void> {
+    ctx.waitUntil(keepLoopRunning(env));
     await tick(controller.scheduledTime, env);
   },
 } satisfies ExportedHandler<Env>;
 
 function methodNotAllowed(allow: string): Response {
   return new Response("Method not allowed", { status: 405, headers: { allow } });
+}
+
+// ---------------------------------------------------------------------------
+// The check loop
+// ---------------------------------------------------------------------------
+
+/**
+ * One instance, addressed by a fixed name, holding one alarm. Each alarm runs a
+ * check and sets the next alarm, so once started it runs every minute on its
+ * own. It keeps no state of its own; the alarm is the only thing it stores.
+ */
+export class Ticker extends DurableObject<Env> {
+  /** Starts the loop if no alarm is set. One storage read when it's running. */
+  async ensureRunning(): Promise<void> {
+    if ((await this.ctx.storage.getAlarm()) === null) {
+      await this.ctx.storage.setAlarm(nextAlarmAt(Date.now()));
+    }
+  }
+
+  async alarm(): Promise<void> {
+    try {
+      await tick(Date.now(), this.env);
+    } catch (error) {
+      // Caught rather than thrown: a thrown alarm is retried with backoff,
+      // which would stack retries on top of the next minute's run. One failed
+      // minute is a gap; the loop carrying on matters more.
+      console.error("status check failed", String(error));
+    } finally {
+      await this.ctx.storage.setAlarm(nextAlarmAt(Date.now()));
+    }
+  }
+}
+
+/** Anything that reaches the Worker calls this, so the loop can't stay stopped
+ *  for longer than it takes someone to look at the page. */
+async function keepLoopRunning(env: Env): Promise<void> {
+  try {
+    await env.TICKER.get(env.TICKER.idFromName("status")).ensureRunning();
+  } catch (error) {
+    console.error("could not start the check loop", String(error));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +162,7 @@ async function secretMatches(provided: string, expected: string): Promise<boolea
   return crypto.subtle.timingSafeEqual(a, b);
 }
 
-async function receiveHeartbeat(request: Request, env: Env): Promise<Response> {
+async function receiveHeartbeat(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const header = request.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
   if (!(await secretMatches(token, env.HEARTBEAT_SECRET))) {
@@ -141,6 +191,8 @@ async function receiveHeartbeat(request: Request, env: Env): Promise<Response> {
     .bind(Date.now(), JSON.stringify(heartbeat))
     .run();
 
+  // The bot calls every 30s, so while it's up the loop is checked twice a minute.
+  ctx.waitUntil(keepLoopRunning(env));
   return new Response(null, { status: 204 });
 }
 
@@ -160,13 +212,16 @@ async function serveSummary(request: Request, env: Env, ctx: ExecutionContext): 
   const cached = await cache.match(key);
   if (cached) return cached;
 
+  // Past the edge cache, so at most about twice a minute per location.
+  ctx.waitUntil(keepLoopRunning(env));
+
   const now = Date.now();
   let row = await readSummary(env);
 
   if (!row) {
     // Nothing has ever been checked. Run one now rather than answer "no data":
     // this request waits a few seconds once, instead of every visitor waiting
-    // on a scheduler that may never come.
+    // on a loop that has only just been started.
     await tick(now, env);
     row = await readSummary(env);
   } else if (needsRefresh(Number(row.generated_at), now)) {
@@ -219,9 +274,9 @@ async function probeWithRetry(url: string): Promise<ProbeResult> {
 }
 
 /**
- * One check, for the minute `time` falls in. Called by the cron and by stale
- * requests alike; the first to claim the minute does the work, and any other
- * caller for that minute returns without touching the counts.
+ * One check, for the minute `time` falls in. Called by the loop, the cron and
+ * stale requests alike; the first to claim the minute does the work, and any
+ * other caller for that minute returns without touching the counts.
  */
 async function tick(time: number, env: Env): Promise<void> {
   const minute = minuteOf(time);

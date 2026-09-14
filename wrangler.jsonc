@@ -37,5 +37,14 @@
   // HEARTBEAT_SECRET is a secret, not a var:
   //   npx wrangler secret put HEARTBEAT_SECRET
 
+  // A Durable Object whose alarm sets its next alarm every time it runs, so the
+  // checks keep going with nobody visiting. A separate mechanism from Cron
+  // Triggers, which register on this account but never fire. SQLite-backed,
+  // because that is the only kind the Workers Free plan allows.
+  "durable_objects": {
+    "bindings": [{ "name": "TICKER", "class_name": "Ticker" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Ticker"] }],
+
   "observability": { "enabled": true }
 }
