@@ -45,7 +45,6 @@ redisdata/
 # /brand/icon.svg, and a path excluded from the build context makes COPY fail
 # with "not found" — which reads like a missing directory rather than an
 # ignored one. The two files have to agree; this is the reminder.
-ops-console
 docker-compose*.yml
 setup.sh
 **/__tests__

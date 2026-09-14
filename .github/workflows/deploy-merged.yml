@@ -4,10 +4,6 @@ name: Deploy (single service)
 # Builds all three images and deploys them as ONE Cloud Run service, with
 # nginx as the ingress container and the API and bot alongside it.
 #
-# Deliberately a separate workflow rather than a rewrite of
-# deploy-cloudrun.yml. That one works and is the fallback; this one is the
-# change being tried. Once this has run happily for a while, delete the other.
-#
 # The reasoning for one service, and for why maxScale is pinned to 1, is in
 # deploy/service.yaml next to the settings themselves.
 # ---------------------------------------------------------------------------
@@ -77,7 +73,7 @@ jobs:
           cache: npm
           cache-dependency-path: api/package-lock.json
 
-      # Same reasoning as deploy-cloudrun.yml: additive changes must land
+      # Additive changes must land
       # before the new revision serves, destructive ones are refused because
       # the safe order for those is deploy-then-migrate, done deliberately.
       - name: Apply database migrations

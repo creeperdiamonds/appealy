@@ -161,8 +161,8 @@ This is created **once**, not per deploy. `deploy-merged.yml` builds and
 deploys the `web` service, but it does not touch domain mappings, and
 re-running it is not how DNS or the mapping get updated.
 
-**Nothing deploys on a merge.** Both `deploy-merged.yml` and
-`deploy-cloudrun.yml` are `workflow_dispatch` only; the sole workflow that runs
+**Nothing deploys on a merge.** `deploy-merged.yml` is `workflow_dispatch`
+only; the sole workflow that runs
 on a push to `main` is `ci.yml`. So a green tick on a commit means the tests
 passed, not that the change is live — pushing a fix to `site/`, `web/nginx.conf`
 or anything else in the image changes nothing that is being served until someone

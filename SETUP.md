@@ -186,8 +186,6 @@ sold them, so a self-hosted bot with its own token has none by construction.
 
 - No ban-creation UI. `POST /api/ops/bans` exists; decide who can issue bans
   before putting a button on it.
-- The ops console in `ops-console/` targets Discordeno v21 while `bot/` is v20,
-  and isn't wired to anything.
 - **`historyRetentionDays` is enforced, but the purge is off by default.**
   `runHistoryPurge` had always implemented retention correctly and the
   dispatcher had always handled a `purge_expired_history` job — nothing

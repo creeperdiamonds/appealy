@@ -101,7 +101,7 @@ of what they rely on.
 
 `APPEALS.md`, `OUTCOMES.md` and `SELF_HOSTING.md` argue a design to whoever is
 *running* the thing. `SCALING.md`, `STARTUP.md`, `DOCKER.md`, `SETUP.md`,
-`PI.md`, `POC.md` and `CHANGES.md` are notes to whoever is *changing* it —
+`PI.md` and `POC.md` are notes to whoever is *changing* it —
 audits, port logs, checklists, a scaling report written against real line
 numbers.
 
