@@ -224,14 +224,34 @@ async function handlePaymentCompleted(event: TebexWebhook) {
     return;
   }
 
+  // A renewal re-sends the basket it was bought with, so what it charges is the
+  // price quoted at checkout — which stops matching the recalculation the moment
+  // pricing.ts changes, and would refuse every existing subscription's renewal.
+  // quotedCents is written server-side into the basket's custom data
+  // (services/tebexService.ts) and the signature above proves Tebex returned it
+  // unmodified, so a payment equal to it is exactly the price we quoted. Baskets
+  // created before quotedCents existed fall back to the recalculation alone.
+  const quotedCents = Number(custom.quotedCents);
+  const matchesQuote = Number.isInteger(quotedCents) && quotedCents > 0 && paid.cents === quotedCents;
+
+  if (paid.cents !== expected.totalUsdCentsPerYear && !matchesQuote) {
+    logger.error("Tebex webhook: paid amount matches neither the recalculated plan nor its checkout quote, refusing", {
+      id: event.id,
+      guildId: custom.guildId,
+      paidCents: paid.cents,
+      expectedCents: expected.totalUsdCentsPerYear,
+      quotedCents: Number.isFinite(quotedCents) ? quotedCents : null,
+    });
+    return;
+  }
+
   if (paid.cents !== expected.totalUsdCentsPerYear) {
-    logger.error("Tebex webhook: paid amount does not match the recalculated plan, refusing", {
+    logger.warn("Tebex webhook: honouring the price quoted at checkout, which differs from current pricing", {
       id: event.id,
       guildId: custom.guildId,
       paidCents: paid.cents,
       expectedCents: expected.totalUsdCentsPerYear,
     });
-    return;
   }
 
   // Stored so the subscription's later events can be matched back to this

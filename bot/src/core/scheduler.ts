@@ -64,7 +64,7 @@ const MAX_ATTEMPTS = 3;
  * The purge had never run — see enqueueHistoryPurges — so the first run on a
  * live database is not a routine tick, it is a one-shot deletion of however
  * much reviewed history accumulated over the whole time retention was not
- * being enforced. Free tier is 30 days, so on an old guild that is nearly
+ * being enforced. Free tier is 60 days, so on an old guild that is nearly
  * everything, irreversibly, with answers cascading.
  *
  * Enforcing retention is the documented behaviour (site/privacy.html) and it

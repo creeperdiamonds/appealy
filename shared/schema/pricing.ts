@@ -88,9 +88,15 @@ export interface RateLimitCaps {
 //     so the tier was sold on a number nobody could exhaust while the cap that
 //     actually binds moved a fifth as fast.
 //
-//   Retention — 30 days, then six months, then two years. Round human
-//     durations beat an exact ratio here: "six months of history" is a thing
-//     an admin can reason about and 150 days is not.
+//   Retention — 60 days, then one year, then three years. Round human
+//     durations beat an exact ratio here: "a year of history" is a thing an
+//     admin can reason about and 305 days is not.
+//
+// THE FREE TIER IS GENEROUS ON PURPOSE. Ten forms and panels, 25 questions
+// and 60 days of history cost almost nothing to serve — rows, not traffic —
+// and "every feature and ten forms, free" is the reason a server tries this
+// bot over one that gates both. Throughput moved less (+50%), because it is
+// the axis that actually costs something.
 //
 // apiRequestsPerMinute sits outside all three at 60/180/600. It is not a
 // product allowance but a protective burst limit on our own API, it scales
@@ -104,29 +110,29 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
 }> = {
   free: {
     caps: {
-      submissionsPerDay: 100,
-      ticketsPerDay: 50,
-      giveawayEntriesPerDay: 500,
+      submissionsPerDay: 150,
+      ticketsPerDay: 75,
+      giveawayEntriesPerDay: 750,
       apiRequestsPerMinute: 60,
-      formsPerGuild: 5,
-      panelsPerGuild: 5,
-      rolesPerRuleType: 3,
-      questionsPerForm: 15,
-      historyRetentionDays: 30,
+      formsPerGuild: 10,
+      panelsPerGuild: 10,
+      rolesPerRuleType: 5,
+      questionsPerForm: 25,
+      historyRetentionDays: 60,
     },
     priceUsdCentsPerYear: 0,
   },
   tier1: {
     caps: {
-      submissionsPerDay: 500,
-      ticketsPerDay: 250,
-      giveawayEntriesPerDay: 2_500,
+      submissionsPerDay: 750,
+      ticketsPerDay: 375,
+      giveawayEntriesPerDay: 3_750,
       apiRequestsPerMinute: 180,
-      formsPerGuild: 20,
-      panelsPerGuild: 20,
-      rolesPerRuleType: 10,
-      questionsPerForm: 50,
-      historyRetentionDays: 180,
+      formsPerGuild: 40,
+      panelsPerGuild: 40,
+      rolesPerRuleType: 15,
+      questionsPerForm: 60,
+      historyRetentionDays: 365,
     },
     // $5/mo equivalent, billed annually as a single $60 charge — see the
     // module-level comment on why there is no monthly option.
@@ -134,15 +140,15 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
   },
   tier2: {
     caps: {
-      submissionsPerDay: 2_000,
-      ticketsPerDay: 1_000,
-      giveawayEntriesPerDay: 10_000,
+      submissionsPerDay: 3_000,
+      ticketsPerDay: 1_500,
+      giveawayEntriesPerDay: 15_000,
       apiRequestsPerMinute: 600,
-      formsPerGuild: 50,
-      panelsPerGuild: 50,
-      rolesPerRuleType: 25,
-      questionsPerForm: 100,
-      historyRetentionDays: 730,
+      formsPerGuild: 100,
+      panelsPerGuild: 100,
+      rolesPerRuleType: 40,
+      questionsPerForm: 150,
+      historyRetentionDays: 1_095,
     },
     // $15/mo equivalent, billed annually as a single $180 charge.
     priceUsdCentsPerYear: 18_000,
@@ -153,9 +159,9 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
 // persisted above these values under any circumstances — this is the
 // deliberate "no unlimited" backstop, not just a UI suggestion.
 export const CUSTOM_CAP_MAXIMUMS: RateLimitCaps = {
-  submissionsPerDay: 10_000,
-  ticketsPerDay: 5_000,
-  giveawayEntriesPerDay: 50_000,
+  submissionsPerDay: 15_000,
+  ticketsPerDay: 7_500,
+  giveawayEntriesPerDay: 75_000,
   apiRequestsPerMinute: 2_000,
   formsPerGuild: 300,
   panelsPerGuild: 300,
@@ -201,6 +207,10 @@ export function importedSubmissionCeiling(caps: RateLimitCaps): number {
 // the shape we want, since a preset should be the cheaper way to buy a
 // preset and custom should cost a little extra for being shaped to you.
 //
+// Rerun when the ladder was raised (free 10 forms / tier2 100 forms, three
+// years of history): tier1's caps now price at $60.90 against $60 (1.01x),
+// tier2's at $251.73 against $180 (1.40x), and the ceiling at $1,068.93.
+//
 // These two numbers were previously unrelated systems. Presets were flat
 // bundles; custom was linear from the free baseline at rates chosen with no
 // reference to them. They disagreed by a factor of 23.7 at tier1's caps and
@@ -221,28 +231,31 @@ const CUSTOM_CAP_UNIT_PRICE_CENTS_PER_YEAR: Record<
   number
 > = {
   // Throughput carries most of the price, because it is what actually costs
-  // us anything: $20 of tier1 across its 400 extra submissions/day, $10
-  // across its 200 extra tickets.
-  submissionsPerDay: 5, // $0.05/yr per submission/day
-  ticketsPerDay: 5,
-  // 9 rather than 8 so a custom set at tier1's exact caps clears tier1's $60
-  // instead of landing at $59.01. A preset that costs more than assembling it
-  // by hand cannot be sold, and the gap was small enough to look like nothing.
-  apiRequestsPerMinute: 9, // $0.09/yr per request/minute
+  // us anything: $18 of tier1 across its 600 extra submissions/day, $9
+  // across its 300 extra tickets.
+  submissionsPerDay: 3, // $0.03/yr per submission/day
+  ticketsPerDay: 3,
+  // Chosen together with the rates below so a custom set at tier1's exact
+  // caps clears tier1's $60 ($60.90) instead of landing under it. A preset
+  // that costs more than assembling it by hand cannot be sold, and a gap of
+  // a dollar is small enough to look like nothing.
+  apiRequestsPerMinute: 5, // $0.05/yr per request/minute
   // Configuration caps are cheap per unit and few in number, so they add a
   // modest amount to a custom set rather than dominating it. Under the old
   // table these three alone accounted for $1,152 of the $1,424 tier1-caps
   // quote — the price was set by the axis that costs us the least to serve.
-  formsPerGuild: 33, // $0.33/yr per form
-  panelsPerGuild: 33,
-  rolesPerRuleType: 43, // $0.43/yr per role per rule type
+  formsPerGuild: 21, // $0.21/yr per form
+  panelsPerGuild: 21,
+  rolesPerRuleType: 26, // $0.26/yr per role per rule type
   // Cheap per unit: a question costs one row and, per submission, one
   // answer row. The ladder above is what carries the price.
-  questionsPerForm: 10, // $0.10/yr per question
-  historyRetentionDays: 1, // $0.01/yr per extra day of history
+  questionsPerForm: 6, // $0.06/yr per question
+  // 2 rather than 1 since tier1 became a full year: 305 extra days at a cent
+  // left retention nearly free inside a tier whose headline feature it is.
+  historyRetentionDays: 2, // $0.02/yr per extra day of history
 };
 
-const GIVEAWAY_ENTRIES_PRICE_CENTS_PER_100_PER_YEAR = 25; // 25 cents per 100 entries/day
+const GIVEAWAY_ENTRIES_PRICE_CENTS_PER_100_PER_YEAR = 15; // 15 cents per 100 entries/day
 
 const FREE_BASELINE = RATE_LIMIT_PRESETS.free.caps;
 
