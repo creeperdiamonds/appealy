@@ -46,6 +46,10 @@ export interface TebexBasketCustom {
   /** JSON string rather than a nested object, so the shape survives whatever
    *  Tebex does to arbitrary custom data on the way back. */
   customCaps: string;
+  /** Integer cents charged at checkout, as a string for the same reason. A
+   *  renewal re-sends this basket, and the webhook honours this amount when
+   *  pricing.ts has changed since the plan was bought. */
+  quotedCents: string;
 }
 
 interface TebexBasketResponse {
@@ -138,6 +142,7 @@ export async function createTebexCheckout(args: CreateCheckoutArgs): Promise<Cre
     rateLimitTier: plan.rateLimitTier,
     hostingMode: plan.hostingMode,
     customCaps: plan.customCaps ? JSON.stringify(plan.customCaps) : "",
+    quotedCents: String(quote.totalUsdCentsPerYear),
   };
 
   const body = {
