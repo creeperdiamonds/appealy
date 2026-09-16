@@ -146,6 +146,24 @@ export function createApp() {
     });
   });
 
+  // What the payment page at /pay needs to open a Paddle checkout.
+  //
+  // Unauthenticated, and deliberately so: a client-side token is public by
+  // design (Paddle scopes it to checkout and nothing else), and the page that
+  // needs it is a static file on the marketing site with no session behind it.
+  // The API key is NOT here and must never reach a browser.
+  //
+  // Served rather than baked into the page because site/ is copied into the
+  // image verbatim — a hard-coded token would freeze at build time and be the
+  // same in sandbox and production, which are different tokens.
+  app.get("/api/paddle/config", (_req, res) => {
+    res.json({
+      configured: Boolean(env.PADDLE_CLIENT_TOKEN),
+      token: env.PADDLE_CLIENT_TOKEN || null,
+      environment: env.PADDLE_ENV === "production" ? "production" : "sandbox",
+    });
+  });
+
   app.get("/health", async (_req, res) => {
     // "memory" is a third state, not a degraded second one. Running on the
     // in-process substitute is a deliberate configuration (POC.md), and

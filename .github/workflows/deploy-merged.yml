@@ -186,6 +186,7 @@ jobs:
           PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
           PADDLE_ENV: ${{ vars.PADDLE_ENV }}
           PADDLE_CHECKOUT_URL: ${{ vars.PADDLE_CHECKOUT_URL }}
+          PADDLE_CLIENT_TOKEN: ${{ vars.PADDLE_CLIENT_TOKEN }}
           # Stored, not generated: it has to match the status Worker's
           # HEARTBEAT_SECRET, which lives on Cloudflare, not in this instance.
           STATUS_HEARTBEAT_SECRET: ${{ secrets.STATUS_HEARTBEAT_SECRET }}

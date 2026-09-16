@@ -102,6 +102,14 @@ export const env = {
   // integration, and these are unset until the Paddle account exists.
   PADDLE_API_KEY: optional("PADDLE_API_KEY", ""),
   PADDLE_WEBHOOK_SECRET: optional("PADDLE_WEBHOOK_SECRET", ""),
+  /**
+   * The browser-side token, from Paddle > Developer tools > Authentication.
+   * Public by design and scoped to checkout only — it is served to anyone who
+   * opens the payment page (routes/paddleConfig.ts), which is the point: the
+   * page cannot open a checkout without it, and it can do nothing else.
+   * NOT the API key, which must never reach a browser.
+   */
+  PADDLE_CLIENT_TOKEN: optional("PADDLE_CLIENT_TOKEN", ""),
   /** "sandbox" until a real account is verified, then "production". */
   PADDLE_ENV: optional("PADDLE_ENV", "sandbox"),
   /**

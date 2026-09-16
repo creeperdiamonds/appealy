@@ -15,6 +15,7 @@ Reads from the environment, writes the result to stdout:
   SHA                commit to tag every image with
   TEBEX_PROJECT_ID / TEBEX_PRIVATE_KEY / TEBEX_WEBHOOK_SECRET
   PADDLE_API_KEY / PADDLE_WEBHOOK_SECRET / PADDLE_ENV / PADDLE_CHECKOUT_URL
+  PADDLE_CLIENT_TOKEN  browser-side token, served to the payment page
                      optional, empty until the Paddle account exists
   RPC_SECRET         guards the bot's control server
   STATUS_HEARTBEAT_SECRET  shared with the status Worker (status-page branch)
@@ -61,7 +62,8 @@ for var in ("TEBEX_PROJECT_ID", "TEBEX_PRIVATE_KEY", "TEBEX_WEBHOOK_SECRET"):
 # They are still substituted unconditionally, because the sweep below fails the
 # deploy on any placeholder left in the spec — "optional" has to mean "renders
 # to nothing", not "skipped".
-for var in ("PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET", "PADDLE_ENV", "PADDLE_CHECKOUT_URL"):
+for var in ("PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET", "PADDLE_ENV", "PADDLE_CHECKOUT_URL",
+            "PADDLE_CLIENT_TOKEN"):
     spec = spec.replace(var + "_VALUE", os.environ.get(var, ""))
 
 spec = spec.replace("INTERNAL_RPC_SECRET_VALUE", os.environ["RPC_SECRET"])

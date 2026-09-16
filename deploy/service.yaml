@@ -237,6 +237,8 @@ spec:
               value: "PADDLE_ENV_VALUE"
             - name: PADDLE_CHECKOUT_URL
               value: "PADDLE_CHECKOUT_URL_VALUE"
+            - name: PADDLE_CLIENT_TOKEN
+              value: "PADDLE_CLIENT_TOKEN_VALUE"
           resources:
             limits:
               cpu: "750m"

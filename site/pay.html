@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/pay.html
+
+  Paddle's default payment link. A Paddle account cannot create transactions
+  at all until one is set, and the page it points at has to include Paddle.js
+  on an approved domain.
+
+  There is no checkout code here on purpose: Paddle.js sees the ?_ptxn=txn_...
+  that Paddle appends and opens the checkout itself. All this page does is
+  load it with the right token.
+
+  The token is fetched from /api/paddle/config rather than written in, because
+  site/ is copied into the image as-is — a token in this file would freeze at
+  build time, and sandbox and production use different ones.
+-->
+
+<title>Checkout — Appealy</title>
+<meta name="description" content="Secure checkout for Appealy, handled by Paddle.">
+<link rel="canonical" href="https://appealy.app/pay">
+<meta name="robots" content="noindex">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/pay">
+<meta property="og:title" content="Checkout — Appealy">
+<meta property="og:description" content="Secure checkout for Appealy, handled by Paddle.">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Checkout — Appealy">
+<meta name="twitter:description" content="Secure checkout for Appealy, handled by Paddle.">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="https://docs.appealy.app/">Docs</a>
+      <a href="/#self-hosting">Self-hosting</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose">
+
+    <p class="eyebrow">Checkout</p>
+    <h1>Opening your checkout</h1>
+
+    <p class="lede" id="status">
+      One moment &mdash; the payment form is loading.
+    </p>
+
+    <p class="dim" id="detail">
+      Payment is taken by Paddle, the merchant of record for Appealy. Card details are entered on
+      Paddle&rsquo;s form and never reach us.
+    </p>
+
+    <noscript>
+      <p class="lede">This page needs JavaScript, because the payment form runs in the browser.</p>
+    </noscript>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">Getting started</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">Ban appeals</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">Review outcomes</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/refunds">Refunds</a></li>
+          <li><a href="/refunds">Refunds</a></li>
+          <li><a href="/tebex">Tebex reviewer? Start here</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+  // Paddle appends ?_ptxn=txn_... to this URL. Paddle.js picks it up on its
+  // own once initialised, so there is nothing to call: the checkout opens.
+  (async function () {
+    var status = document.getElementById("status");
+    var detail = document.getElementById("detail");
+    var hasTransaction = window.location.search.indexOf("_ptxn=") !== -1;
+
+    function fail(message) {
+      status.textContent = message;
+      detail.innerHTML =
+        'Nothing has been charged. Go back to <a href="/dashboard/">your dashboard</a> and try ' +
+        'again, or email <a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a>.';
+    }
+
+    try {
+      var res = await fetch("/api/paddle/config", { headers: { accept: "application/json" } });
+      if (!res.ok) throw new Error("config " + res.status);
+      var cfg = await res.json();
+
+      if (!cfg.configured) {
+        // The account exists but this deployment has no token yet. Say so
+        // plainly rather than leaving a spinner that never resolves.
+        fail("Checkout is not configured on this deployment yet.");
+        return;
+      }
+
+      if (cfg.environment === "sandbox") Paddle.Environment.set("sandbox");
+      Paddle.Initialize({ token: cfg.token });
+
+      if (!hasTransaction) {
+        // Someone opened /pay directly. There is no basket to show them.
+        status.textContent = "There is no checkout to open.";
+        detail.innerHTML =
+          'Start from <a href="/dashboard/">your dashboard</a> &mdash; choosing a plan there is what ' +
+          'creates the checkout this page opens.';
+        return;
+      }
+
+      status.textContent = "Your checkout is open. If nothing appeared, allow pop-ups and reload.";
+    } catch (err) {
+      fail("The payment form could not be loaded.");
+    }
+  })();
+</script>
+</body>
+</html>
