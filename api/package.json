@@ -15,6 +15,7 @@
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts"
   },
   "dependencies": {
+    "@paddle/paddle-node-sdk": "^3.10.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.33.0",

@@ -78,6 +78,13 @@
       "when": 1788329869038,
       "tag": "0010_dazzling_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789576232211,
+      "tag": "0011_classy_gorgon",
+      "breakpoints": true
     }
   ]
 }

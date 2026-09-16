@@ -196,6 +196,17 @@ export const guilds = pgTable("guilds", {
   // subscription we cannot match to a guild, and the plan would simply never
   // end. Null for guilds on the free selection.
   tebexRecurringReference: text("tebex_recurring_reference"),
+  /**
+   * The same idea for Paddle, which is replacing Tebex: the subscription this
+   * guild's paid plan hangs off. Paddle's later lifecycle events (cancelled,
+   * past due, ended) carry the subscription id and nothing else of ours, so
+   * this is how they find their way back to a guild.
+   *
+   * Its own column rather than reusing the Tebex one: both integrations exist
+   * at once during the move, and an id from one provider looked up against the
+   * other would silently match nothing — or, worse, match something.
+   */
+  paddleSubscriptionId: text("paddle_subscription_id"),
   // Whether the bot is currently in this guild.
   //
   // A row here means the bot was in the guild at some point, not that it still

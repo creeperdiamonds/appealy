@@ -31,7 +31,9 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
+import { env } from "../env.ts";
 import { createTebexCheckout } from "../services/tebexService.ts";
+import { createPaddleCheckout } from "../services/paddleService.ts";
 import {
   calculateFullQuote,
   CUSTOM_CAP_MAXIMUMS,
@@ -136,12 +138,20 @@ billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
   }
 
   try {
-    const checkout = await createTebexCheckout({
+    const checkoutArgs = {
       guildId: routeParams(req).guildId,
       userId: req.userId!.toString(),
       plan: data,
       quote,
-    });
+    };
+    // Paddle is replacing Tebex: Tebex restricts per-request pricing to
+    // registered businesses, and this project is a sole trader (their Headless
+    // API cannot price a plan at all — see services/paddleService.ts). The
+    // switch is the API key rather than a flag, so the move happens exactly
+    // when the Paddle account exists and Tebex keeps selling until then.
+    const checkout = env.PADDLE_API_KEY
+      ? await createPaddleCheckout(checkoutArgs)
+      : await createTebexCheckout(checkoutArgs);
     res.json({ checkoutUrl: checkout.checkoutUrl });
   } catch (err) {
     res.status(502).json({ error: "checkout_creation_failed", detail: String(err) });

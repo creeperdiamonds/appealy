@@ -90,6 +90,28 @@ export const env = {
   TEBEX_PROJECT_ID: requiredInPlatformMode("TEBEX_PROJECT_ID"),
   TEBEX_PRIVATE_KEY: requiredInPlatformMode("TEBEX_PRIVATE_KEY"),
   TEBEX_WEBHOOK_SECRET: requiredInPlatformMode("TEBEX_WEBHOOK_SECRET"),
+  // Paddle is the merchant of record we are moving to. Tebex's Checkout API —
+  // the only one of theirs that accepts a price chosen at request time — is
+  // restricted to registered businesses, and this project is a sole trader.
+  // Their Headless API has no price field anywhere, so it cannot express a
+  // plan priced by shared/schema/pricing.ts at all. Paddle takes an inline
+  // "non-catalog" price per transaction, which is the same freedom, and
+  // accepts individuals.
+  //
+  // Optional even in platform mode for now: Tebex is still the live
+  // integration, and these are unset until the Paddle account exists.
+  PADDLE_API_KEY: optional("PADDLE_API_KEY", ""),
+  PADDLE_WEBHOOK_SECRET: optional("PADDLE_WEBHOOK_SECRET", ""),
+  /** "sandbox" until a real account is verified, then "production". */
+  PADDLE_ENV: optional("PADDLE_ENV", "sandbox"),
+  /**
+   * The hosted checkout page to send an admin to, e.g.
+   * https://pay.paddle.io/checkout/<hsc_id>. The transaction id is appended
+   * as ?transaction_id=... Only needed when Paddle does not return a checkout
+   * link of its own on the transaction (which it does once a default payment
+   * link is configured on the account).
+   */
+  PADDLE_CHECKOUT_URL: optional("PADDLE_CHECKOUT_URL", ""),
   FRONTEND_ORIGIN: optional("FRONTEND_ORIGIN", "http://localhost:5173"),
   NODE_ENV: optional("NODE_ENV", "development"),
 } as const;
