@@ -33,7 +33,8 @@ import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
 import { env } from "../env.ts";
 import { createTebexCheckout } from "../services/tebexService.ts";
-import { createPaddleCheckout } from "../services/paddleService.ts";
+import { logger } from "../utils/logger.ts";
+import { createPaddleCheckout, paddleReady } from "../services/paddleService.ts";
 import {
   calculateFullQuote,
   CUSTOM_CAP_MAXIMUMS,
@@ -146,12 +147,38 @@ billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
     };
     // Paddle is replacing Tebex: Tebex restricts per-request pricing to
     // registered businesses, and this project is a sole trader (their Headless
-    // API cannot price a plan at all — see services/paddleService.ts). The
-    // switch is the API key rather than a flag, so the move happens exactly
-    // when the Paddle account exists and Tebex keeps selling until then.
-    const checkout = env.PADDLE_API_KEY
-      ? await createPaddleCheckout(checkoutArgs)
-      : await createTebexCheckout(checkoutArgs);
+    // API cannot price a plan at all — see services/paddleService.ts).
+    //
+    // The switch used to be "is PADDLE_API_KEY set", which broke checkout the
+    // day the key was added: the key exists long before the Paddle account can
+    // sell, because that needs an approved checkout domain and a default
+    // payment link first. Every buyer got an error while Tebex sat working.
+    //
+    // So Paddle has to prove it can sell, twice. paddleReady() rules out a
+    // missing or mismatched key without a request. Everything else — domain
+    // not approved, no payment link, account suspended — only Paddle knows, so
+    // a refusal IS the check: we fall back and the buyer gets a working
+    // checkout instead of a 502.
+    const readiness = paddleReady();
+    let checkout: { checkoutUrl: string } | null = null;
+
+    if (readiness.ready) {
+      try {
+        checkout = await createPaddleCheckout(checkoutArgs);
+      } catch (paddleErr) {
+        // Loud, because this is the state we most want to know about: Paddle
+        // is configured, something about it does not work, and sales are only
+        // continuing because Tebex is still there to catch them.
+        logger.error("Paddle checkout failed; falling back to Tebex", {
+          guildId: routeParams(req).guildId,
+          error: String(paddleErr),
+        });
+      }
+    } else {
+      logger.debug("Paddle not ready, using Tebex", { reason: readiness.reason });
+    }
+
+    if (!checkout) checkout = await createTebexCheckout(checkoutArgs);
     res.json({ checkoutUrl: checkout.checkoutUrl });
   } catch (err) {
     res.status(502).json({ error: "checkout_creation_failed", detail: String(err) });

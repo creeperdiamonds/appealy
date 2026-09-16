@@ -157,10 +157,22 @@ export function createApp() {
   // image verbatim — a hard-coded token would freeze at build time and be the
   // same in sandbox and production, which are different tokens.
   app.get("/api/paddle/config", (_req, res) => {
+    const environment = env.PADDLE_ENV === "production" ? "production" : "sandbox";
+    // A client-side token carries its environment in its prefix: test_ for
+    // sandbox, live_ for production. Handing /pay a token that disagrees with
+    // the environment it is told to use gives a checkout that cannot open —
+    // and a page saying "not configured" is a better answer than one that
+    // spins forever, so the mismatch is reported as unconfigured.
+    const token = env.PADDLE_CLIENT_TOKEN;
+    const tokenIsSandbox = token.startsWith("test_");
+    const agrees = token
+      ? (environment === "sandbox" ? tokenIsSandbox : !tokenIsSandbox)
+      : false;
+
     res.json({
-      configured: Boolean(env.PADDLE_CLIENT_TOKEN),
-      token: env.PADDLE_CLIENT_TOKEN || null,
-      environment: env.PADDLE_ENV === "production" ? "production" : "sandbox",
+      configured: agrees,
+      token: agrees ? token : null,
+      environment,
     });
   });
 

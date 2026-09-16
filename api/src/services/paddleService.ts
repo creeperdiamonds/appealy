@@ -67,6 +67,41 @@ export interface CreatedCheckout {
   transactionId: string;
 }
 
+/**
+ * Whether Paddle is usable at all, judged before a request is attempted.
+ *
+ * "The API key is set" was the old test, and it was wrong: the key arrived
+ * before the Paddle account could sell anything, so checkout switched to a
+ * provider that answered every request with an error while Tebex sat working
+ * and unused.
+ *
+ * The key's own prefix says which environment it belongs to, so a key that
+ * disagrees with PADDLE_ENV is a misconfiguration we can catch here rather
+ * than discover at checkout: a sandbox key in production talks to the wrong
+ * account entirely, and a live key with PADDLE_ENV=sandbox points Paddle.js at
+ * an environment the credential is not valid for.
+ *
+ * This is necessary, not sufficient — whether Paddle can actually create a
+ * transaction today depends on account state (an approved checkout domain and
+ * a default payment link), which no local check can see. routes/billing.ts
+ * treats a refusal as the answer to that and falls back.
+ */
+export function paddleReady(): { ready: boolean; reason?: string } {
+  const key = env.PADDLE_API_KEY;
+  if (!key) return { ready: false, reason: "PADDLE_API_KEY is not set" };
+
+  const wantsProduction = env.PADDLE_ENV === "production";
+  const keyIsSandbox = key.startsWith("pdl_sdbx_");
+
+  if (wantsProduction && keyIsSandbox) {
+    return { ready: false, reason: "PADDLE_ENV is production but the API key is a sandbox key" };
+  }
+  if (!wantsProduction && !keyIsSandbox) {
+    return { ready: false, reason: "PADDLE_ENV is sandbox but the API key is not a sandbox key" };
+  }
+  return { ready: true };
+}
+
 let client: Paddle | null = null;
 
 function paddle(): Paddle {
