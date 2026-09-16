@@ -10,9 +10,19 @@
 // (ticketPanelService, roleMenuService, and pollService twice.) That shape is
 // correct for exactly one of the three things people actually type.
 
-/** What a Discord component accepts for `emoji`. */
+/**
+ * What a Discord component accepts for `emoji`.
+ *
+ * The id is a **bigint**, not a string. Discord sends snowflakes as strings on
+ * the wire, but discordeno's component types take them as bigint (see the
+ * `emoji?: { id?: bigint }` on its button and select-option types), and this
+ * object is handed straight to them. Declaring it as a string type-checked
+ * here and failed at every call site that was annotated — three errors that
+ * sat red in CI, with custom emoji rendering as nothing on the buttons this
+ * helper exists to fix.
+ */
 export interface ComponentEmoji {
-  id?: string;
+  id?: bigint;
   name?: string;
   animated?: boolean;
 }
@@ -56,11 +66,11 @@ export function parseEmoji(raw: string | null | undefined): EmojiParse {
   if (custom) {
     return {
       ok: true,
-      emoji: { id: custom[3], name: custom[2], animated: custom[1] === "a" },
+      emoji: { id: BigInt(custom[3]), name: custom[2], animated: custom[1] === "a" },
     };
   }
 
-  if (BARE_ID.test(s)) return { ok: true, emoji: { id: s } };
+  if (BARE_ID.test(s)) return { ok: true, emoji: { id: BigInt(s) } };
 
   if (SHORTCODE.test(s)) {
     return {

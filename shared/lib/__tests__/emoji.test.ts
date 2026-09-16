@@ -7,6 +7,8 @@ Deno.test("a unicode emoji passes through as a name", () => {
   assertEquals(parseEmoji("🎫"), { ok: true, emoji: { name: "🎫" } });
 });
 
+// The ids below are bigint literals because that is what discordeno's component
+// types take; see the note on ComponentEmoji in ../emoji.ts.
 Deno.test("a custom emoji is split into id, name and animated", () => {
   // THE BUG: this arrived as { name: "<:ticket:123…>" }, which Discord cannot
   // render, and the dashboard documented it as a limitation instead of fixing
@@ -14,21 +16,21 @@ Deno.test("a custom emoji is split into id, name and animated", () => {
   // the case people hit first.
   assertEquals(parseEmoji("<:ticket:1234567890123456789>"), {
     ok: true,
-    emoji: { id: "1234567890123456789", name: "ticket", animated: false },
+    emoji: { id: 1234567890123456789n, name: "ticket", animated: false },
   });
 });
 
 Deno.test("an animated custom emoji is marked animated", () => {
   assertEquals(parseEmoji("<a:spin:1234567890123456789>"), {
     ok: true,
-    emoji: { id: "1234567890123456789", name: "spin", animated: true },
+    emoji: { id: 1234567890123456789n, name: "spin", animated: true },
   });
 });
 
 Deno.test("a bare id is accepted", () => {
   assertEquals(parseEmoji("1234567890123456789"), {
     ok: true,
-    emoji: { id: "1234567890123456789" },
+    emoji: { id: 1234567890123456789n },
   });
 });
 
