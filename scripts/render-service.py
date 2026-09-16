@@ -14,6 +14,8 @@ Reads from the environment, writes the result to stdout:
   ARTIFACT_REGISTRY  us-central1-docker.pkg.dev/<project>/appealy-repo
   SHA                commit to tag every image with
   TEBEX_PROJECT_ID / TEBEX_PRIVATE_KEY / TEBEX_WEBHOOK_SECRET
+  PADDLE_API_KEY / PADDLE_WEBHOOK_SECRET / PADDLE_ENV / PADDLE_CHECKOUT_URL
+                     optional, empty until the Paddle account exists
   RPC_SECRET         guards the bot's control server
   STATUS_HEARTBEAT_SECRET  shared with the status Worker (status-page branch)
 """
@@ -50,6 +52,17 @@ for service, placeholder in (("api", "IMAGE_API"), ("web", "IMAGE_WEB"), ("bot",
 
 for var in ("TEBEX_PROJECT_ID", "TEBEX_PRIVATE_KEY", "TEBEX_WEBHOOK_SECRET"):
     spec = spec.replace(var + "_VALUE", os.environ[var])
+
+# Paddle is replacing Tebex (see api/src/services/paddleService.ts), and its
+# keys do not exist until the account does. So unlike the Tebex values above
+# these are NOT in REQUIRED: an empty string renders to an empty env var, which
+# api/src/env.ts reads as "not configured" and billing falls back to Tebex.
+#
+# They are still substituted unconditionally, because the sweep below fails the
+# deploy on any placeholder left in the spec — "optional" has to mean "renders
+# to nothing", not "skipped".
+for var in ("PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET", "PADDLE_ENV", "PADDLE_CHECKOUT_URL"):
+    spec = spec.replace(var + "_VALUE", os.environ.get(var, ""))
 
 spec = spec.replace("INTERNAL_RPC_SECRET_VALUE", os.environ["RPC_SECRET"])
 spec = spec.replace("CLOUDSQL_CONNECTION_NAME", os.environ["CLOUDSQL_CONNECTION_NAME"])

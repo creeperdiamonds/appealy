@@ -225,6 +225,18 @@ spec:
               value: "TEBEX_PRIVATE_KEY_VALUE"
             - name: TEBEX_WEBHOOK_SECRET
               value: "TEBEX_WEBHOOK_SECRET_VALUE"
+            # Paddle, which is replacing Tebex. Empty until the account exists —
+            # api/src/env.ts reads an empty PADDLE_API_KEY as "not configured"
+            # and routes/billing.ts keeps selling through Tebex until it is set.
+            # Not on the bot container: nothing under bot/ touches billing.
+            - name: PADDLE_API_KEY
+              value: "PADDLE_API_KEY_VALUE"
+            - name: PADDLE_WEBHOOK_SECRET
+              value: "PADDLE_WEBHOOK_SECRET_VALUE"
+            - name: PADDLE_ENV
+              value: "PADDLE_ENV_VALUE"
+            - name: PADDLE_CHECKOUT_URL
+              value: "PADDLE_CHECKOUT_URL_VALUE"
           resources:
             limits:
               cpu: "750m"

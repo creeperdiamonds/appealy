@@ -178,6 +178,14 @@ jobs:
           TEBEX_PROJECT_ID: ${{ secrets.TEBEX_PROJECT_ID }}
           TEBEX_PRIVATE_KEY: ${{ secrets.TEBEX_PRIVATE_KEY }}
           TEBEX_WEBHOOK_SECRET: ${{ secrets.TEBEX_WEBHOOK_SECRET }}
+          # Paddle, replacing Tebex. Deliberately absent from the "fail early"
+          # check above: these are empty until the account exists, and an empty
+          # PADDLE_API_KEY means billing keeps using Tebex rather than failing.
+          # ENV and CHECKOUT_URL are variables, not secrets — neither is one.
+          PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+          PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
+          PADDLE_ENV: ${{ vars.PADDLE_ENV }}
+          PADDLE_CHECKOUT_URL: ${{ vars.PADDLE_CHECKOUT_URL }}
           # Stored, not generated: it has to match the status Worker's
           # HEARTBEAT_SECRET, which lives on Cloudflare, not in this instance.
           STATUS_HEARTBEAT_SECRET: ${{ secrets.STATUS_HEARTBEAT_SECRET }}
