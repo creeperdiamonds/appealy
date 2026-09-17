@@ -33,6 +33,9 @@ import {
 
 const POLL_MS = 15_000;
 
+// Hosted apart from this console, on Cloudflare, so it answers when this does not.
+const STATUS_URL = "https://status.appealy.app/";
+
 export default function Overview({ guildId }: { guildId: string }) {
   const [data, setData] = useState<OverviewData | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -154,10 +157,25 @@ export default function Overview({ guildId }: { guildId: string }) {
         </Banner>
       )}
 
+      {/* Written for whoever is reading it, which is a server owner, not me.
+          The old copy said "check the bot container's logs" — advice for
+          someone with a container. What they actually need to know is whether
+          this is their setup or our outage, and the status page answers that
+          without asking anyone. It is hosted on Cloudflare, apart from this
+          console, so it still answers when this does not. */}
       {!bot && (
-        <Banner level="act" title="Can't reach the bot">
-          The API is running but the bot's control server didn't answer. Panels and giveaways
-          can't be published until it's back. Check the bot container's logs.
+        <Banner
+          level="act"
+          title="Can't reach the bot"
+          action={
+            <a className="btn" href={STATUS_URL} target="_blank" rel="noreferrer">
+              Check service status
+            </a>
+          }
+        >
+          The dashboard is fine, but the bot itself didn't answer — so panels and giveaways can't
+          be published until it's back. Nothing you configured is lost, and nothing here needs
+          fixing on your side. The status page says whether this is a known outage.
         </Banner>
       )}
 
@@ -212,7 +230,7 @@ export default function Overview({ guildId }: { guildId: string }) {
           </Panel>
 
           <Panel eyebrow="Runtime" title="Bot">
-            {bot ? <BotHealthGrid bot={bot} /> : <Empty title="Bot unreachable" hint="No response from the control server." />}
+            {bot ? <BotHealthGrid bot={bot} /> : <Empty title="Bot unreachable" hint="See the notice above — the status page says whether it's a known outage." />}
           </Panel>
         </div>
       </div>
