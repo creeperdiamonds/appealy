@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError, http, type GuildSummary } from "./lib/api";
 import { Banner, Pill, Sheet, ThemeToggle } from "./components/ui";
 import { dismissFeedback, feedbackDismissed } from "./lib/feedback";
+import FeedbackSheet from "./components/FeedbackSheet";
 import Overview from "./pages/Overview";
 import Submissions from "./pages/Submissions";
 import Operations from "./pages/Operations";
@@ -35,9 +36,9 @@ import Billing from "./pages/Billing";
 import Support from "./pages/Support";
 import AntiRaid from "./pages/AntiRaid";
 
-// Where feedback goes. The same server Support.tsx already points at for
-// help, rather than a second destination nobody is watching.
-const FEEDBACK_URL = "https://discord.gg/UwBMug9JyX";
+// Feedback is asked for in a sheet (components/FeedbackSheet.tsx) and stored,
+// rather than sent to Discord. Support.tsx still points at the server for
+// help, which is a different thing: help needs a reply, this needs a record.
 
 type View =
   | "overview"
@@ -295,6 +296,7 @@ export default function App() {
   const [discordReachable, setDiscordReachable] = useState(true);
   const [view, setView] = useState<View>(viewFromLocation);
   const [askFeedback, setAskFeedback] = useState(() => !feedbackDismissed());
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [fatal, setFatal] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -513,9 +515,9 @@ export default function App() {
               title="How is Appealy working out?"
               action={
                 <>
-                  <a className="btn btn-primary" href={FEEDBACK_URL} target="_blank" rel="noreferrer">
+                  <button className="btn btn-primary" onClick={() => setFeedbackOpen(true)}>
                     Tell us
-                  </a>
+                  </button>
                   <button
                     className="btn"
                     onClick={() => {
@@ -597,6 +599,21 @@ export default function App() {
           {view === "ops-appeals" && <OpsAppeals />}
         </main>
       </div>
+
+      {/* Asked in place rather than behind a link to Discord: four steps to
+          say one sentence is three more than most people will spend, and the
+          answers are worth more than the click-through was. Sending counts as
+          having been asked, so the banner does not come back. */}
+      {feedbackOpen && guildId && (
+        <FeedbackSheet
+          guildId={guildId}
+          onClose={() => setFeedbackOpen(false)}
+          onSent={() => {
+            dismissFeedback();
+            setAskFeedback(false);
+          }}
+        />
+      )}
 
       {/* Phone navigation. Hidden above 760px by index.css, so the sidebar and
           the bar are never both on screen and neither has to know about the

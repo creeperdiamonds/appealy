@@ -129,3 +129,31 @@ opsRouter.delete("/bans/:id", async (req, res) => {
   await publishBanChange("remove", toPublicBan(row));
   res.status(204).end();
 });
+
+/** What people say when asked how Appealy is working out.
+ *
+ *  Stored rather than posted to a Discord channel because these answers are
+ *  the record of why the product changed shape, and a channel scrolls. Read
+ *  newest first: the useful question is "what are people saying now", and the
+ *  backlog is still there below it.
+ *
+ *  Operator-only for the obvious reason — someone writing "the appeals page
+ *  confused me" is talking to the person who builds this, not publishing. */
+opsRouter.get("/feedback", async (_req, res) => {
+  const rows = await db.query.feedback.findMany({
+    orderBy: desc(schema.feedback.createdAt),
+    limit: 200,
+  });
+
+  res.json({
+    feedback: rows.map((f) => ({
+      id: f.id,
+      guildId: f.guildId.toString(),
+      authorId: f.authorId.toString(),
+      usedFor: f.usedFor,
+      annoyance: f.annoyance,
+      missing: f.missing,
+      createdAt: f.createdAt,
+    })),
+  });
+});

@@ -1220,6 +1220,43 @@ export const quickResponseCategoriesRelations = relations(quickResponseCategorie
   responses: many(quickResponses),
 }));
 
+/**
+ * What people say when asked how Appealy is working out.
+ *
+ * Kept here rather than posted to a Discord webhook, because the answers are
+ * the only record of why the product changed shape — a channel scrolls, and
+ * the reason for a decision taken in October is unfindable by March.
+ *
+ * Three columns because the dashboard asks three questions. Free text, no
+ * ratings: a number tells you something is wrong without telling you what, and
+ * at this size there is nothing to average anyway.
+ *
+ * No unique constraint on guild or author. Someone who comes back a month
+ * later with a second thought is exactly who is worth hearing from twice.
+ */
+export const feedback = pgTable(
+  "feedback",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    guildId: bigint("guild_id", { mode: "bigint" })
+      .notNull()
+      .references(() => guilds.id, { onDelete: "cascade" }),
+    /** The Discord account that wrote it, so a reply can find them. */
+    authorId: bigint("author_id", { mode: "bigint" }).notNull(),
+    /** "What do you use Appealy for?" */
+    usedFor: text("used_for"),
+    /** "What is the most annoying thing about it right now?" */
+    annoyance: text("annoyance"),
+    /** "What did you expect to find and didn't?" */
+    missing: text("missing"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    guildIdx: index("feedback_guild_idx").on(t.guildId),
+    createdIdx: index("feedback_created_idx").on(t.createdAt),
+  }),
+);
+
 export const quickResponsesRelations = relations(quickResponses, ({ one }) => ({
   category: one(quickResponseCategories, {
     fields: [quickResponses.categoryId],

@@ -36,6 +36,7 @@ import { roleMenusRouter } from "./routes/roleMenus.ts";
 import { antiRaidRouter } from "./routes/antiRaid.ts";
 import { quickResponsesRouter } from "./routes/quickResponses.ts";
 import { stickyMessagesRouter } from "./routes/stickyMessages.ts";
+import { feedbackRouter } from "./routes/feedback.ts";
 import { migrationRouter } from "./routes/migration.ts";
 import { appealConfigRouter } from "./routes/appealConfig.ts";
 import { outcomesRouter } from "./routes/outcomes.ts";
@@ -237,6 +238,7 @@ export function createApp() {
   app.use("/api/guilds/:guildId/anti-raid", antiRaidRouter);
   app.use("/api/guilds/:guildId/quick-responses", quickResponsesRouter);
   app.use("/api/guilds/:guildId/sticky-messages", stickyMessagesRouter);
+  app.use("/api/guilds/:guildId/feedback", feedbackRouter);
   app.use("/api/guilds/:guildId", migrationRouter);
 
   app.use(errorHandler);
