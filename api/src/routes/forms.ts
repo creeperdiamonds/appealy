@@ -103,7 +103,7 @@ const formBaseSchema = z.object({
   active: z.boolean().default(true),
   // The hard ceiling, not the guild's allowance. This was .max(10), a
   // number that appears nowhere in pricing.ts and sat BELOW the free
-  // tier's own questionsPerForm of 15 — so the cap the pricing page
+  // tier's own questionsPerForm (15 then, 25 now) — so the cap the pricing page
   // advertised could not be reached even on the tier that grants it.
   // The per-guild limit is applied after parsing, by checkQuestionLimits.
   questions: z.array(questionSchema).max(CUSTOM_CAP_MAXIMUMS.questionsPerForm).default([]),
