@@ -27,6 +27,7 @@ interface SupportProps {
   supportUrl: string;
   billingEnabled: boolean;
   onOpenBilling: () => void;
+  onOpenFeedback: () => void;
 }
 
 const REPO = "https://github.com/creeperdiamonds/appealy";
@@ -51,6 +52,7 @@ export default function Support({
   supportUrl,
   billingEnabled,
   onOpenBilling,
+  onOpenFeedback,
 }: SupportProps) {
   const [copied, setCopied] = useState(false);
 
@@ -119,9 +121,12 @@ export default function Support({
             it, and what you expected to find and did not — those three answers decide what gets
             built, more than anything else does.
           </p>
-          <a className="btn btn-primary" href={DISCORD} target="_blank" rel="noreferrer">
+          <button className="btn btn-primary" onClick={onOpenFeedback} disabled={!guildId}>
             Send feedback
-          </a>
+          </button>
+          {!guildId && (
+            <p className="dim">Pick a server first — feedback is filed against one.</p>
+          )}
         </Panel>
 
         <Panel title="Something is broken">

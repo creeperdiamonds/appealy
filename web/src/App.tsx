@@ -40,6 +40,18 @@ import AntiRaid from "./pages/AntiRaid";
 // rather than sent to Discord. Support.tsx still points at the server for
 // help, which is a different thing: help needs a reply, this needs a record.
 
+/**
+ * /dashboard/#feedback opens the feedback sheet over whatever is showing.
+ *
+ * The banner asks once and then never again, which left no way back to it for
+ * anyone who dismissed it and later had something to say. This is that way
+ * back: a URL that can be pasted, bookmarked or linked from the Support page.
+ *
+ * It is deliberately NOT a view — see viewFromLocation, which would otherwise
+ * read it as a screen name and render an empty page.
+ */
+const FEEDBACK_HASH = "feedback";
+
 type View =
   | "overview"
   | "submissions"
@@ -219,7 +231,10 @@ function viewFromLocation(): View {
   // Anything already bookmarked as /dashboard#tickets still lands correctly.
   // Cheap to honour, and the alternative is silently dropping someone on the
   // overview with no idea why.
-  if (hash.length > 1) return hash.slice(1) as View;
+  // #feedback opens a sheet rather than naming a screen, so it must not be
+  // read as one: view would become "feedback", match no branch below, and
+  // leave the person on a blank page wondering what they broke.
+  if (hash.length > 1 && hash.slice(1) !== FEEDBACK_HASH) return hash.slice(1) as View;
 
   const rest = pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) : "";
   return ((rest.split("/")[0] || "overview") as View);
@@ -296,7 +311,11 @@ export default function App() {
   const [discordReachable, setDiscordReachable] = useState(true);
   const [view, setView] = useState<View>(viewFromLocation);
   const [askFeedback, setAskFeedback] = useState(() => !feedbackDismissed());
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  // Opens straight away when the URL asks for it, so /dashboard/#feedback
+  // works on first paint rather than only after a navigation.
+  const [feedbackOpen, setFeedbackOpen] = useState(
+    () => window.location.hash.slice(1) === FEEDBACK_HASH,
+  );
   const [fatal, setFatal] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -348,7 +367,12 @@ export default function App() {
   // The browser's Back and Forward have to move between screens, which the
   // hash gave for free and pushState does not.
   useEffect(() => {
-    const onPop = () => setView(viewFromLocation());
+    const onPop = () => {
+      setView(viewFromLocation());
+      // Pasting /dashboard/#feedback into an already-open tab fires popstate
+      // without a reload, so the sheet has to be opened here too.
+      if (window.location.hash.slice(1) === FEEDBACK_HASH) setFeedbackOpen(true);
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -593,6 +617,7 @@ export default function App() {
               supportUrl={config.supportUrl}
               billingEnabled={config.features?.billing !== false}
               onOpenBilling={() => setView("billing")}
+              onOpenFeedback={() => setFeedbackOpen(true)}
             />
           )}
 
