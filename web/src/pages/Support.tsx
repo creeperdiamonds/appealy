@@ -106,6 +106,24 @@ export default function Support({
           </a>
         </Panel>
 
+        {/* Separate from the three below it on purpose. Those are for when
+            something is wrong, and someone who is merely unimpressed will
+            never click any of them — they just quietly stop using it. Nine
+            servers added Appealy without being asked and none of them has ever
+            opened a ticket, so the silence is not evidence that it is fine.
+            The dashboard banner asks once; this is where the ask lives
+            afterwards. */}
+        <Panel title="Tell me what to build next">
+          <p className="dim">
+            Nothing has to be broken for this one. What you use Appealy for, what annoys you about
+            it, and what you expected to find and did not — those three answers decide what gets
+            built, more than anything else does.
+          </p>
+          <a className="btn btn-primary" href={DISCORD} target="_blank" rel="noreferrer">
+            Send feedback
+          </a>
+        </Panel>
+
         <Panel title="Something is broken">
           <p className="dim">
             Open an issue. Include what you did, what happened, and the diagnostics below — those

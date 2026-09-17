@@ -16,6 +16,7 @@ import { BannedError } from "./lib/api";
 import { useEffect, useState } from "react";
 import { api, ApiError, http, type GuildSummary } from "./lib/api";
 import { Banner, Pill, Sheet, ThemeToggle } from "./components/ui";
+import { dismissFeedback, feedbackDismissed } from "./lib/feedback";
 import Overview from "./pages/Overview";
 import Submissions from "./pages/Submissions";
 import Operations from "./pages/Operations";
@@ -33,6 +34,10 @@ import StaffPermissions from "./pages/StaffPermissions";
 import Billing from "./pages/Billing";
 import Support from "./pages/Support";
 import AntiRaid from "./pages/AntiRaid";
+
+// Where feedback goes. The same server Support.tsx already points at for
+// help, rather than a second destination nobody is watching.
+const FEEDBACK_URL = "https://discord.gg/UwBMug9JyX";
 
 type View =
   | "overview"
@@ -289,6 +294,7 @@ export default function App() {
   const [guildId, setGuildId] = useState<string | null>(null);
   const [discordReachable, setDiscordReachable] = useState(true);
   const [view, setView] = useState<View>(viewFromLocation);
+  const [askFeedback, setAskFeedback] = useState(() => !feedbackDismissed());
   const [fatal, setFatal] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -491,6 +497,39 @@ export default function App() {
             <Banner level="watch" title="Server list may be incomplete">
               Discord didn't respond, so this list only includes servers where you have a
               delegated role. Refresh in a moment to see the full list.
+            </Banner>
+          )}
+
+          {/* Asked here rather than by DM. These servers found Appealy on their
+              own and never opened a ticket, and an unsolicited DM from a bot to
+              someone who never asked to be contacted is spam by Discord's own
+              rules. The dashboard is the one place they have already chosen to
+              be. Dismissed per browser (lib/feedback.ts) — asked once, then
+              never again. Last in the stack so a real problem is never pushed
+              down the page by a request for opinions. */}
+          {askFeedback && guilds && guilds.length > 0 && (
+            <Banner
+              level="watch"
+              title="How is Appealy working out?"
+              action={
+                <>
+                  <a className="btn btn-primary" href={FEEDBACK_URL} target="_blank" rel="noreferrer">
+                    Tell us
+                  </a>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      dismissFeedback();
+                      setAskFeedback(false);
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </>
+              }
+            >
+              What do you use it for, and what is the most annoying thing about it right now? Both
+              answers change what gets built next. This asks once and then leaves you alone.
             </Banner>
           )}
 
