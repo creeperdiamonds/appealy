@@ -140,15 +140,32 @@ opsRouter.delete("/bans/:id", async (req, res) => {
  *  Operator-only for the obvious reason — someone writing "the appeals page
  *  confused me" is talking to the person who builds this, not publishing. */
 opsRouter.get("/feedback", async (_req, res) => {
-  const rows = await db.query.feedback.findMany({
-    orderBy: desc(schema.feedback.createdAt),
-    limit: 200,
-  });
+  // Joined rather than two queries: a bare snowflake is unreadable, and
+  // "which server was this" is the first thing you want to know when an
+  // answer says the forms page is confusing.
+  const rows = await db
+    .select({
+      id: schema.feedback.id,
+      guildId: schema.feedback.guildId,
+      guildName: schema.guilds.name,
+      authorId: schema.feedback.authorId,
+      usedFor: schema.feedback.usedFor,
+      annoyance: schema.feedback.annoyance,
+      missing: schema.feedback.missing,
+      createdAt: schema.feedback.createdAt,
+    })
+    .from(schema.feedback)
+    .leftJoin(schema.guilds, eq(schema.feedback.guildId, schema.guilds.id))
+    .orderBy(desc(schema.feedback.createdAt))
+    .limit(200);
 
   res.json({
     feedback: rows.map((f) => ({
       id: f.id,
       guildId: f.guildId.toString(),
+      // Null when the guild has since been deleted — the answer outlives the
+      // server it came from, and is still worth reading.
+      guildName: f.guildName,
       authorId: f.authorId.toString(),
       usedFor: f.usedFor,
       annoyance: f.annoyance,

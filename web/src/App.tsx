@@ -12,6 +12,7 @@
 import Banned from "./pages/Banned";
 import AppealConfig from "./pages/AppealConfig";
 import OpsAppeals from "./pages/OpsAppeals";
+import OpsFeedback from "./pages/OpsFeedback";
 import { BannedError } from "./lib/api";
 import { useEffect, useState } from "react";
 import { api, ApiError, http, type GuildSummary } from "./lib/api";
@@ -71,7 +72,8 @@ type View =
   | "staff"
   | "billing"
   | "support"
-  | "ops-appeals";
+  | "ops-appeals"
+  | "ops-feedback";
 
 /**
  * Grouped, because a flat list stopped working.
@@ -120,6 +122,7 @@ const ICONS: Record<View, string> = {
   billing: "M3 6h18v12H3zM3 10h18M7 15h4",
   support: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01",
   "ops-appeals": "M12 3l9 5v6c0 5-4 9-9 10-5-1-9-5-9-10V8zM9 12l2 2 4-4",
+  "ops-feedback": "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM8 9h8M8 13h5",
 };
 
 /**
@@ -445,6 +448,14 @@ export default function App() {
                 <NavIcon view="ops-appeals" />
                 Appeal queue
               </button>
+              <button
+                className="nav-item"
+                aria-current={view === "ops-feedback" ? "page" : undefined}
+                onClick={() => setView("ops-feedback")}
+              >
+                <NavIcon view="ops-feedback" />
+                Feedback
+              </button>
             </>
           )}
         </nav>
@@ -622,6 +633,7 @@ export default function App() {
           )}
 
           {view === "ops-appeals" && <OpsAppeals />}
+          {view === "ops-feedback" && <OpsFeedback />}
         </main>
       </div>
 
@@ -724,6 +736,14 @@ export default function App() {
                 >
                   <NavIcon view="ops-appeals" />
                   Appeal queue
+                </button>
+                <button
+                  className="nav-item"
+                  aria-current={view === "ops-feedback" ? "page" : undefined}
+                  onClick={() => setView("ops-feedback")}
+                >
+                  <NavIcon view="ops-feedback" />
+                  Feedback
                 </button>
               </div>
             )}

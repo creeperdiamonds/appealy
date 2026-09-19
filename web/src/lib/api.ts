@@ -508,6 +508,8 @@ export const api = {
   // --- Platform bans (operator only; 404s for everyone else by design) ---
   opsAppeals: () => request<{ appeals: OpsAppeal[] }>("/api/ops/appeals"),
 
+  opsFeedback: () => request<{ feedback: OpsFeedback[] }>("/api/ops/feedback"),
+
   decideAppeal: (id: string, decision: "accept" | "deny", note: string) =>
     request<void>(`/api/ops/appeals/${id}/${decision}`, {
       method: "POST",
@@ -581,6 +583,23 @@ export interface OpsAppeal {
     notes: string | null;
     evidence: Record<string, unknown> | null;
   };
+}
+
+/** One answer to the dashboard's "how is Appealy working out?" sheet.
+ *
+ *  Every field but the identifiers is optional, because the sheet lets someone
+ *  answer one question and skip the rest — which is usually what happens, and
+ *  is worth more than a form nobody finishes. guildName is null when the
+ *  server has since been deleted; the answer outlives it. */
+export interface OpsFeedback {
+  id: string;
+  guildId: string;
+  guildName: string | null;
+  authorId: string;
+  usedFor: string | null;
+  annoyance: string | null;
+  missing: string | null;
+  createdAt: string;
 }
 
 export interface FormOutcomeDTO {
