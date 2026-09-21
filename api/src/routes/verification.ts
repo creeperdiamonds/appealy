@@ -7,7 +7,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
-import { requestVerificationPublish } from "../services/botBridge.ts";
+import { requestVerificationPublish, botCallFailure } from "../services/botBridge.ts";
 import type { VerificationConfigDTO } from "../../../shared/types/index.ts";
 
 export const verificationRouter = Router({ mergeParams: true });
@@ -76,7 +76,7 @@ verificationRouter.post("/publish", requireAdminAccess, async (req, res) => {
   try {
     await requestVerificationPublish(guildId.toString());
   } catch (err) {
-    return res.status(502).json({ error: "bot_unreachable", detail: String(err) });
+    return res.status(502).json(botCallFailure(err));
   }
   res.status(202).json({ status: "publish_requested" });
 });

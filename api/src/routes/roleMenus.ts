@@ -7,7 +7,7 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
-import { requestRoleMenuPublish } from "../services/botBridge.ts";
+import { requestRoleMenuPublish, botCallFailure } from "../services/botBridge.ts";
 
 export const roleMenusRouter = Router({ mergeParams: true });
 
@@ -124,7 +124,7 @@ roleMenusRouter.post("/:menuId/publish", requireAdminAccess, async (req, res) =>
   try {
     await requestRoleMenuPublish(menu.id);
   } catch (err) {
-    return res.status(502).json({ error: "bot_unreachable", detail: String(err) });
+    return res.status(502).json(botCallFailure(err));
   }
   res.status(202).json({ status: "publish_requested" });
 });

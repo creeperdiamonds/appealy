@@ -11,7 +11,7 @@ import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
-import { requestPanelPublish, requestPanelSync } from "../services/botBridge.ts";
+import { requestPanelPublish, requestPanelSync, botCallFailure } from "../services/botBridge.ts";
 import { checkStandingCap } from "../services/rateLimitService.ts";
 import type { PanelDTO } from "../../../shared/types/index.ts";
 
@@ -168,7 +168,10 @@ panelsRouter.post("/:panelId/publish", requireAdminAccess, async (req, res) => {
   try {
     await requestPanelPublish(panel.id);
   } catch (err) {
-    return res.status(502).json({ error: "bot_unreachable", detail: String(err) });
+    // "bot_unreachable" was a lie whenever the bot answered and Discord was
+    // the one refusing — which is the common case, and the one the person is
+    // able to fix. See botCallFailure.
+    return res.status(502).json(botCallFailure(err));
   }
   res.status(202).json({ status: "publish_requested" });
 });

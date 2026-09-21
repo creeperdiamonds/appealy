@@ -56,7 +56,25 @@ async function callBot(path: string, body: unknown, timeoutMs: number = BOT_CALL
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) {
-    throw new Error(`Bot control server returned ${res.status}: ${await res.text()}`);
+    // The bot answers a failed Discord call with {error, code, status, hint}.
+    // Passing the whole JSON blob through as text put literal braces on a
+    // user's screen; lifting the fields out keeps the cause and the fix and
+    // drops the punctuation. A non-JSON body (a crash, a proxy page) still
+    // falls back to the raw text, which is the only thing there to say.
+    const raw = await res.text();
+    let detail = raw;
+    let hint: string | undefined;
+    try {
+      const parsed = JSON.parse(raw) as { error?: string; hint?: string };
+      if (parsed.error) detail = parsed.error;
+      hint = parsed.hint;
+    } catch {
+      // Not JSON — keep the raw text.
+    }
+    throw Object.assign(new Error(hint ? `${detail} ${hint}` : detail), {
+      botStatus: res.status,
+      hint,
+    });
   }
   return res.json();
 }
@@ -71,6 +89,24 @@ async function callBot(path: string, body: unknown, timeoutMs: number = BOT_CALL
  * which members joining were still kicked, after an admin had been told the
  * lockdown was cleared.
  */
+/**
+ * The 502 body for a bot call that failed, told apart by whose fault it was.
+ *
+ * "bot_unreachable" used to be reported for both cases. It is only true when
+ * the bot never answered — a deploy, a crash, a timeout. When the bot answered
+ * and Discord refused (a missing permission, a deleted channel), calling it
+ * unreachable sends the reader to look at the wrong thing entirely, and it is
+ * the case they can actually fix.
+ *
+ * callBot sets botStatus on the thrown error whenever the bot replied, which
+ * is what separates the two here.
+ */
+export function botCallFailure(err: unknown): { error: string; detail: string } {
+  const botStatus = (err as { botStatus?: number }).botStatus;
+  const detail = err instanceof Error ? err.message : String(err);
+  return { error: botStatus ? "discord_refused" : "bot_unreachable", detail };
+}
+
 export function requestLockdownClear(guildId: string, clearedBy: string) {
   return callBot("/internal/anti-raid/clear-lockdown", { guildId, clearedBy }) as Promise<{
     cleared: boolean;

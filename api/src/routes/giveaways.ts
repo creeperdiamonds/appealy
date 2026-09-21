@@ -8,7 +8,7 @@ import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
-import { requestGiveawayPublish, requestGiveawayEnd, requestGiveawayReroll } from "../services/botBridge.ts";
+import { requestGiveawayPublish, requestGiveawayEnd, requestGiveawayReroll, botCallFailure } from "../services/botBridge.ts";
 import type { GiveawayDTO } from "../../../shared/types/index.ts";
 
 export const giveawaysRouter = Router({ mergeParams: true });
@@ -122,7 +122,7 @@ giveawaysRouter.post("/:giveawayId/publish", requireAdminAccess, async (req, res
   try {
     await requestGiveawayPublish(giveaway.id);
   } catch (err) {
-    return res.status(502).json({ error: "bot_unreachable", detail: String(err) });
+    return res.status(502).json(botCallFailure(err));
   }
   res.status(202).json({ status: "publish_requested" });
 });
@@ -139,7 +139,7 @@ giveawaysRouter.post("/:giveawayId/end", requireAdminAccess, async (req, res) =>
     const result = await requestGiveawayEnd(giveaway.id);
     res.json(result);
   } catch (err) {
-    res.status(502).json({ error: "bot_unreachable", detail: String(err) });
+    res.status(502).json(botCallFailure(err));
   }
 });
 
@@ -155,7 +155,7 @@ giveawaysRouter.post("/:giveawayId/reroll", requireAdminAccess, async (req, res)
     const result = await requestGiveawayReroll(giveaway.id);
     res.json(result);
   } catch (err) {
-    res.status(502).json({ error: "bot_unreachable", detail: String(err) });
+    res.status(502).json(botCallFailure(err));
   }
 });
 

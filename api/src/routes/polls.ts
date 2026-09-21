@@ -8,7 +8,7 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
-import { requestPollPublish } from "../services/botBridge.ts";
+import { requestPollPublish, botCallFailure } from "../services/botBridge.ts";
 import type { PollDTO } from "../../../shared/types/index.ts";
 
 export const pollsRouter = Router({ mergeParams: true });
@@ -140,7 +140,7 @@ pollsRouter.post("/:pollId/publish", requireAdminAccess, async (req, res) => {
   try {
     await requestPollPublish(poll.id);
   } catch (err) {
-    return res.status(502).json({ error: "bot_unreachable", detail: String(err) });
+    return res.status(502).json(botCallFailure(err));
   }
   res.status(202).json({ status: "publish_requested" });
 });

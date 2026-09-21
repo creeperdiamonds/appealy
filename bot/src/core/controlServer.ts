@@ -23,6 +23,38 @@ import { publishVerificationPanel } from "../services/verificationPanelService.t
 import { publishRoleMenu } from "../services/roleMenuService.ts";
 import { cacheStats, invalidateGuild } from "./guildConfigCache.ts";
 import { applyBanChange } from "./banCache.ts";
+import { describeDiscordError, type DiscordErrorInfo } from "../utils/discordError.ts";
+
+/**
+ * What to actually do about it, in the words of someone setting the bot up.
+ *
+ * Discord's own messages are written for the developer holding the token
+ * ("Missing Access"), not for the server owner who has to go and fix a
+ * channel permission. These are the codes that come up while a panel, ticket
+ * or giveaway is being posted for the first time, which is exactly when the
+ * person reading is least able to guess.
+ *
+ * Unmapped codes get no hint rather than a vague one — a wrong instruction
+ * costs more than an absent one.
+ */
+function hintFor(info: DiscordErrorInfo): string | undefined {
+  switch (info.code) {
+    case 50001: // Missing Access
+      return "The bot cannot see that channel. Give its role View Channel there, then try again.";
+    case 50013: // Missing Permissions
+      return "The bot can see the channel but cannot post in it. It needs Send Messages and Embed Links.";
+    case 10003: // Unknown Channel
+      return "That channel no longer exists. Pick a different one and save.";
+    case 50035: // Invalid Form Body
+      return "Discord rejected the message content — usually an image or thumbnail URL it cannot load.";
+    case 30013: // Too many pinned / component limits vary
+      return "Discord refused because a limit was reached. Try fewer buttons or options.";
+  }
+  if (info.status === 403) {
+    return "Discord refused the request as forbidden — check the bot's role permissions in that channel.";
+  }
+  return undefined;
+}
 import { withRedis } from "./redis.ts";
 import { logger } from "../utils/logger.ts";
 
@@ -181,8 +213,26 @@ export function startControlServer(bot: AppealyBot) {
 
       return new Response("not found", { status: 404 });
     } catch (err) {
-      logger.error("Control server request failed", { path: url.pathname, error: String(err) });
-      return Response.json({ error: String(err) }, { status: 500 });
+      // Discordeno rejects with the same sentence for every REST failure, so
+      // String(err) here produced "Failed to send request to discord." for a
+      // missing permission, a deleted channel and a DNS blip alike. That
+      // string travelled intact through botBridge to a real person's screen
+      // (2026-09-21, panels/publish) and told them nothing they could act on.
+      //
+      // describeDiscordError already existed for exactly this and was used in
+      // three other services but not here — the one place whose output is
+      // shown to a user rather than written to a log.
+      const info = describeDiscordError(err);
+      logger.error("Control server request failed", {
+        path: url.pathname,
+        status: info.status,
+        code: info.code,
+        error: info.message,
+      });
+      return Response.json(
+        { error: info.message, code: info.code, status: info.status, hint: hintFor(info) },
+        { status: 500 },
+      );
     }
   });
 
