@@ -444,6 +444,7 @@ export default function Forms({ guildId }: { guildId: string }) {
           <Empty
             title="No forms yet"
             hint="Create one, then point a panel or the ban-appeal flow at it."
+            learn={{ href: "https://docs.appealy.app/getting-started/", label: "How to build a form" }}
           />
         ) : (
           <div className="table-scroll">

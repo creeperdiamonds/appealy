@@ -33,6 +33,16 @@ interface SupportProps {
 const REPO = "https://github.com/creeperdiamonds/appealy";
 
 /**
+ * The documentation site.
+ *
+ * Worth stating why this is here at all: it existed for months and the
+ * dashboard linked to it zero times, so the only people who found it were the
+ * ones who already knew it was there. Every "how do I" route in this console
+ * should end up here rather than in a markdown file on github.com.
+ */
+const DOCS = "https://docs.appealy.app";
+
+/**
  * The project's community server.
  *
  * A constant rather than SUPPORT_URL, which is a different thing: that is set
@@ -94,6 +104,13 @@ export default function Support({
           saying plainly instead of implying a response time nobody is on call to meet — but every
           route below is real and read by a person.
         </p>
+        <p className="dim">
+          If you are setting it up for the first time, the walkthrough answers most of it faster
+          than asking will.
+        </p>
+        <a className="btn btn-primary" href={`${DOCS}/getting-started/`} target="_blank" rel="noreferrer">
+          Read the walkthrough
+        </a>
       </Panel>
 
       <div className="support-grid">
@@ -150,16 +167,25 @@ export default function Support({
           </a>
         </Panel>
 
+        {/* These pointed at SETUP.md and SELF_HOSTING.md on GitHub until the
+            first piece of feedback this dashboard ever collected said "I can't
+            figure it out stuff" and asked for tutorials. Sending someone who is
+            already lost into a raw markdown file on github.com — on a phone,
+            most likely — is not documentation, it is a second problem. The
+            same material is on the docs site, laid out and readable, so that
+            is where these go now. The repository links live under "Reading the
+            source", which is what they were always really for. */}
         <Panel title="Setting it up">
           <p className="dim">
-            Most setup questions are answered in one of these two. The first covers the hosted
-            path, the second running your own instance.
+            The walkthrough covers it end to end: adding the bot, the intents, the slash commands,
+            building your first form and posting a panel. The second is for running your own
+            instance.
           </p>
           <div className="btn-row">
-            <a className="btn" href={`${REPO}/blob/main/SETUP.md`} target="_blank" rel="noreferrer">
-              Setup guide
+            <a className="btn btn-primary" href={`${DOCS}/getting-started/`} target="_blank" rel="noreferrer">
+              Start here
             </a>
-            <a className="btn" href={`${REPO}/blob/main/SELF_HOSTING.md`} target="_blank" rel="noreferrer">
+            <a className="btn" href={`${DOCS}/self-hosting/`} target="_blank" rel="noreferrer">
               Self-hosting
             </a>
           </div>

@@ -235,11 +235,41 @@ export function Sparkline({ points }: { points: { day: string; count: number }[]
 /* ------------------------------------------------------------------ *
  * States
  * ------------------------------------------------------------------ */
-export function Empty({ title, hint }: { title: string; hint?: string }) {
+/**
+ * An empty state, optionally with somewhere to go.
+ *
+ * `learn` was added because the first piece of feedback the dashboard ever
+ * collected said "I can't figure it out stuff" and asked for "tutorials and
+ * how to use". The tutorials existed the whole time — docs.appealy.app walks
+ * through adding the bot, the intents, the commands, a form and a panel — and
+ * the dashboard linked to them exactly zero times. Someone stuck on an empty
+ * Forms page had no way of knowing there was a guide at all.
+ *
+ * Kept as `{ href, label }` rather than free children so every empty state
+ * points somewhere in the same shape, and so the link cannot quietly become a
+ * paragraph of prose that nobody reads.
+ */
+export function Empty({
+  title,
+  hint,
+  learn,
+}: {
+  title: string;
+  hint?: string;
+  learn?: { href: string; label: string };
+}) {
   return (
     <div className="empty">
       <strong>{title}</strong>
       {hint}
+      {learn && (
+        <>
+          {" "}
+          <a href={learn.href} target="_blank" rel="noreferrer">
+            {learn.label}
+          </a>
+        </>
+      )}
     </div>
   );
 }

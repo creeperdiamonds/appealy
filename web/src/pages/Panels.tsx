@@ -401,6 +401,7 @@ export default function Panels({ guildId }: { guildId: string }) {
           <Empty
             title="No panels yet"
             hint="Build one, point it at a form, then post it to a channel."
+            learn={{ href: "https://docs.appealy.app/getting-started/", label: "How to publish a panel" }}
           />
         ) : (
           <table className="table">
