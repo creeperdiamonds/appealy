@@ -121,6 +121,16 @@ export function createAppealyBot(token: string = env.DISCORD_BOT_TOKEN) {
       GatewayIntents.Guilds |
       GatewayIntents.GuildMembers |
       GatewayIntents.GuildMessages |
+      // Without this, Discord never delivers messageCreate for a DM at all —
+      // not with empty content, not at all. The DM application flow asks its
+      // questions one at a time and waits for the next message, so the whole
+      // feature sat dead: the bot asked question 1, the applicant answered,
+      // and nothing happened (2026-09-21, reported mid-setup).
+      //
+      // Guilds/GuildMessages do not imply it. DM events are their own intent,
+      // and it is not privileged — no portal toggle is needed, unlike
+      // MessageContent and GuildMembers.
+      GatewayIntents.DirectMessages |
       GatewayIntents.MessageContent |
       // Needed for guildBanAdd, which drives the ban-appeal DM. Renamed across
       // releases: GuildModeration here, GuildBans in older ones. If this stops
