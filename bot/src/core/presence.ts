@@ -76,9 +76,28 @@ async function publish(bot: AppealyBot): Promise<void> {
   try {
     await edit({
       status: "online",
+      // A CUSTOM status (type 4), not Watching. Custom is the only type whose
+      // text Discord renders verbatim — every other type is prefixed with
+      // "Playing"/"Watching"/"Listening", which caps what can be said at a
+      // noun phrase and leaves no room for the address.
+      //
+      // The text lives in `state`, not `name`: for type 4 Discord renders
+      // state and ignores name, which is why `name` is the conventional
+      // literal "Custom Status" and carries no meaning. Getting these the
+      // wrong way round shows a blank status rather than an error.
+      //
+      // One activity is all a bot gets, so this replaces the server count
+      // rather than joining it — hence both facts in one line.
+      //
       // created_at is deliberately absent: StatusUpdate omits it, and sending
       // it is rejected rather than ignored.
-      activities: [{ name: `${servers} ${servers === 1 ? "server" : "servers"}`, type: ActivityTypes.Watching }],
+      activities: [
+        {
+          name: "Custom Status",
+          type: ActivityTypes.Custom,
+          state: `${servers} ${servers === 1 ? "server" : "servers"} · appealy.app`,
+        },
+      ],
     });
     lastPublished = servers;
     logger.info("Presence updated", { servers });
