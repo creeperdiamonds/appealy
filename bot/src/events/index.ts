@@ -9,6 +9,7 @@ import { onGuildBanAdd } from "./guildBanAdd.ts";
 import { onEntitlementEvent } from "../core/entitlements.ts";
 import { onGuildCreate } from "./guildCreate.ts";
 import { onGuildDelete } from "./guildDelete.ts";
+import { refreshPresence } from "../core/presence.ts";
 import { onInteractionCreate } from "./interactionCreate.ts";
 import { onGuildMemberRemove } from "./guildMemberRemove.ts";
 import { onGuildMemberAdd } from "./guildMemberAdd.ts";
@@ -45,7 +46,15 @@ export function registerEventHandlers(bot: AppealyBot) {
   bot.events.entitlementCreate = (e) => onEntitlementEvent("create", e as never);
   bot.events.entitlementUpdate = (e) => onEntitlementEvent("update", e as never);
   bot.events.entitlementDelete = (e) => onEntitlementEvent("delete", e as never);
-  bot.events.guildCreate = (guild) => onGuildCreate(guild, shardIdForGuild(bot, guild.id));
+  // Hooked here rather than inside onGuildCreate because that function has no
+  // bot reference — it buffers guilds and flushes them in batches, and
+  // threading a client through it to publish a number would put presence
+  // concerns inside the upsert path. refreshPresence is debounced, so the
+  // startup burst of one event per guild still results in a single write.
+  bot.events.guildCreate = (guild) => {
+    refreshPresence(bot);
+    return onGuildCreate(guild, shardIdForGuild(bot, guild.id));
+  };
   bot.events.guildDelete = guildDelete;
   bot.events.interactionCreate = onInteractionCreate(bot);
   bot.events.guildMemberRemove = (user, guildId) => memberRemove({ guildId, user });

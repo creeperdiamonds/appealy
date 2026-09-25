@@ -28,8 +28,10 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { logger } from "../utils/logger.ts";
 import { forgetGuild } from "../core/guildLookup.ts";
+import { refreshPresence } from "../core/presence.ts";
+import type { AppealyBot } from "../core/client.ts";
 
-export function onGuildDelete(_bot: unknown) {
+export function onGuildDelete(bot: AppealyBot) {
   return async (guildId: bigint, _shardId: number) => {
     try {
       await db
@@ -43,6 +45,10 @@ export function onGuildDelete(_bot: unknown) {
       logger.info("Removed from guild; configuration kept", {
         guildId: guildId.toString(),
       });
+
+      // The profile says "Watching N servers"; N just changed. Debounced, so
+      // an outage that drops several guilds at once is still one write.
+      refreshPresence(bot);
     } catch (err) {
       logger.error("Failed to mark guild as departed", {
         guildId: guildId.toString(),

@@ -6,6 +6,7 @@ import { countRows } from "../db/count.ts";
 import { markShardReady } from "../core/startupProfile.ts";
 import { startBanCache } from "../core/banCache.ts";
 import { startStatusPublisher } from "../core/statusPublisher.ts";
+import { publishPresenceNow } from "../core/presence.ts";
 import { startReshardWatcher } from "../core/sharding.ts";
 import { startEntitlements } from "../core/entitlements.ts";
 import { startConfirmSweeper } from "../interactions/outcomeConfirm.ts";
@@ -32,6 +33,10 @@ export function onReady(
   if (payload.shardId === 0) {
     void startBanCache();
     void startStatusPublisher(bot);
+    // Immediately rather than debounced: the first ten seconds after a deploy
+    // are exactly when someone is looking at the bot to see whether it came
+    // back, and an empty status then reads as "still broken".
+    void publishPresenceNow(bot);
     startEntitlements();
     startConfirmSweeper();
     // Notices when the fleet outgrows its shard count. Logs; never reshards
