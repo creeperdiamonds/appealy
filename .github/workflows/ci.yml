@@ -58,7 +58,13 @@ jobs:
       # Deno.readTextFile resolves against the working directory, so running
       # this anywhere else fails with NotFound on every entry.
       - name: Test
-        run: deno test --allow-read -c bot/deno.json bot/src/
+        # shared/ as well as bot/src/, and the omission was not cosmetic:
+        # five test files under shared/ — pricing, regex validation, both
+        # import guards and the billing refund window — had never run in CI.
+        # They passed locally and the pipeline never executed them, which is
+        # the worst shape for a test to be in: it looks like cover and is not.
+        # pricing.test.ts guards the numbers every charge is calculated from.
+        run: deno test --allow-read -c bot/deno.json bot/src/ shared/
 
       - name: Type check
         run: deno check -c bot/deno.json bot/src/main.ts

@@ -33,6 +33,7 @@
 // hearing about it.
 
 import { useCallback, useEffect, useState } from "react";
+import { billingWindow } from "../../../shared/schema/billingWindow";
 import { DedicatedBotPanel } from "../components/DedicatedBotPanel";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Stat, Pill } from "../components/ui";
@@ -188,6 +189,7 @@ export default function Billing({ guildId }: { guildId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDowngrade, setConfirmDowngrade] = useState(false);
+  const [transferFrom, setTransferFrom] = useState("");
 
   const load = useCallback(async () => {
     // /config is unauthenticated and tells us whether billing exists at all,
@@ -334,6 +336,51 @@ export default function Billing({ guildId }: { guildId: string }) {
     }
   }
 
+  async function cancelRenewal() {
+    setBusy(true);
+    setError(null);
+    try {
+      await http.put<{ cancelled: boolean; paidUntil: string | null }>(
+        `${base}/cancel-renewal`,
+        {},
+      );
+      // The plan deliberately does not change here: it runs to its end, and
+      // the Paddle webhook returns this server to free when the period
+      // actually expires. Re-reading would show the same plan and look broken.
+      setError(null);
+    } catch (e) {
+      setError(describe(e, "Couldn't stop the renewal."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function transferIn() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await http.post<{
+        moved: boolean;
+        hostingLeftBehind: boolean;
+        quote: FullQuote;
+        customBillingRenewsAt: string | null;
+      }>(`${base}/transfer-in`, { fromGuildId: transferFrom });
+      setCurrent({ current: res.quote, customBillingRenewsAt: res.customBillingRenewsAt });
+      setTier(res.quote.throughput.tier);
+      setHosting(res.quote.hosting.mode);
+      setCaps(res.quote.throughput.caps);
+      setQuote(res.quote);
+      setTransferFrom("");
+    } catch (e) {
+      setError(describe(e, "Couldn't move that plan."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // NOT named `window`: this file already uses the global window.location,
+  // and shadowing it repoints that at a BillingWindow object.
+  const billing = billingWindow(current.customBillingRenewsAt);
   const freeCaps = presets.presets.free.caps;
 
   return (
@@ -579,18 +626,44 @@ export default function Billing({ guildId }: { guildId: string }) {
         )}
       </Panel>
 
-      <Panel title="Downgrade to free">
-        <p className="dim" style={{ margin: 0, fontSize: 13 }}>
-          Drops throughput to the free tier and moves back to the shared bot. It applies
-          immediately, with no refund for time remaining, and applications past{" "}
-          {freeCaps.submissionsPerDay.toLocaleString()} a day will be turned away from
-          that moment on.
-        </p>
+      {/* Two different things wear the word "cancel", and which one you get
+          depends only on the 14-day refund window — so the panel asks the
+          shared helper rather than deciding for itself. The API enforces the
+          same rule, and a screen that offers a button the server refuses is
+          worse than one that offers nothing. */}
+      <Panel title={billing.action === "cancel-renewal" ? "Stop renewing" : "Downgrade to free"}>
+        {billing.action === "cancel-renewal" ? (
+          <p className="dim" style={{ margin: 0, fontSize: 13 }}>
+            This plan is past its 14-day refund window, so the year is already bought and is not
+            coming back. Stopping the renewal keeps everything you paid for until{" "}
+            {current.customBillingRenewsAt
+              ? new Date(current.customBillingRenewsAt).toLocaleDateString()
+              : "it expires"}
+            , and it will not bill again after that.
+          </p>
+        ) : (
+          <p className="dim" style={{ margin: 0, fontSize: 13 }}>
+            Drops throughput to the free tier and moves back to the shared bot, and cancels the
+            subscription so it does not bill again. You are inside the 14-day window, so ask
+            Paddle for the refund — they took the payment. Applications past{" "}
+            {freeCaps.submissionsPerDay.toLocaleString()} a day will be turned away from that
+            moment on.
+          </p>
+        )}
         <div className="actions" style={{ marginTop: 10 }}>
           {alreadyFree ? (
             <span className="dim" style={{ fontSize: 12 }}>
               Already on the free plan with shared hosting.
             </span>
+          ) : billing.action === "cancel-renewal" ? (
+            <>
+              <button className="btn" onClick={() => void cancelRenewal()} disabled={busy}>
+                {busy ? "Stopping…" : "Stop renewing"}
+              </button>
+              <span className="dim" style={{ fontSize: 12 }}>
+                You keep the plan until it expires.
+              </span>
+            </>
           ) : confirmDowngrade ? (
             <>
               <button className="btn btn-danger" onClick={() => void downgrade()} disabled={busy}>
@@ -600,8 +673,8 @@ export default function Billing({ guildId }: { guildId: string }) {
                 Cancel
               </button>
               <span className="dim" style={{ fontSize: 12 }}>
-                {current.customBillingRenewsAt
-                  ? `You've paid through ${new Date(current.customBillingRenewsAt).toLocaleDateString()}; that time is not refunded.`
+                {billing.refundableUntil
+                  ? `Refundable until ${billing.refundableUntil.toLocaleDateString()} — ask Paddle.`
                   : "This can't be undone without paying again."}
               </span>
             </>
@@ -610,6 +683,37 @@ export default function Billing({ guildId }: { guildId: string }) {
               Downgrade to free
             </button>
           )}
+        </div>
+      </Panel>
+
+      {/* Deliberately asked FROM the server you are moving the plan TO. If the
+          other server was deleted, Discord stops listing it and there is no
+          screen there to press a button on — the plan would be stranded behind
+          a permission check on something that no longer exists. */}
+      <Panel title="Get a plan from another server">
+        <p className="dim" style={{ margin: 0, fontSize: 13 }}>
+          Moves a paid plan here from another server you own — useful if that server was deleted,
+          or you are consolidating. You must be the owner of the server the plan is on. A
+          dedicated bot does not move: that is the other server's own bot application, so this
+          server lands on shared hosting.
+        </p>
+        <label className="field" style={{ marginTop: 10 }}>
+          <span className="eyebrow">Server ID the plan is on</span>
+          <input
+            value={transferFrom}
+            onChange={(e) => setTransferFrom(e.target.value.trim())}
+            placeholder="123456789012345678"
+            inputMode="numeric"
+          />
+        </label>
+        <div className="actions">
+          <button
+            className="btn"
+            onClick={() => void transferIn()}
+            disabled={busy || !/^\d{17,20}$/.test(transferFrom)}
+          >
+            {busy ? "Moving…" : "Move the plan here"}
+          </button>
         </div>
       </Panel>
     </div>

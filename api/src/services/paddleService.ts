@@ -223,3 +223,52 @@ export async function createPaddleCheckout(args: CreateCheckoutArgs): Promise<Cr
 
   return { checkoutUrl, transactionId: created.id };
 }
+
+/**
+ * Stops a subscription from billing again.
+ *
+ * `when` is the whole decision, and it maps onto the refund window:
+ *
+ *   immediately          inside the 14 days. The plan ends now and Paddle
+ *                        refunds; used by the downgrade path.
+ *   next_billing_period  past the window. The year already paid for runs to
+ *                        its end and nothing is charged after it.
+ *
+ * Deliberately NOT a refund call. Paddle is the merchant of record, so the
+ * money is theirs to return and the customer asks them — see site/refunds.html.
+ * Cancelling here only stops the future charge.
+ *
+ * Nothing in this service cancelled anything before today, which meant
+ * "downgrade to free" cleared the plan in our database and left the
+ * subscription billing yearly, forever, with the guild already on free.
+ */
+export async function cancelPaddleSubscription(
+  subscriptionId: string,
+  when: "immediately" | "next_billing_period",
+): Promise<void> {
+  await paddle().subscriptions.cancel(subscriptionId, { effectiveFrom: when });
+}
+
+/**
+ * Repoints a live subscription at a different guild.
+ *
+ * Two places record which guild a subscription belongs to, and both have to
+ * move or they disagree:
+ *
+ *   1. guilds.paddle_subscription_id, which is how the webhook finds the
+ *      guild for a renewal or cancellation (routes/paddleWebhook.ts).
+ *   2. the subscription's own custom_data at Paddle, which is what a human
+ *      reads in their dashboard and what a future handler might trust.
+ *
+ * Only custom_data is sent. subscriptions.update removes any item omitted
+ * from an `items` array, so touching items here would silently empty the
+ * subscription — the API reference calls this out explicitly.
+ */
+export async function repointPaddleSubscription(
+  subscriptionId: string,
+  toGuildId: string,
+): Promise<void> {
+  await paddle().subscriptions.update(subscriptionId, {
+    customData: { guildId: toGuildId },
+  });
+}
