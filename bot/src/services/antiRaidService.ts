@@ -47,7 +47,8 @@
 import { eq } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
-import { pipeline, withRedis } from "../core/redis.ts";
+import { pipelineOrNull, withRedis } from "../core/redis.ts";
+import { recordLocalJoin } from "./localJoinWindow.ts";
 import { logger } from "../utils/logger.ts";
 
 function joinWindowKey(guildId: bigint) {
@@ -78,27 +79,71 @@ export async function recordJoinAndCheckRaid(
   if (!config?.enabled) return;
 
   const now = Date.now();
+
+  // 1. LOCKDOWN FIRST, before touching Redis at all.
+  //
+  // This used to run after the pipeline below, so every joiner during an
+  // active lockdown still cost four Redis commands to record a count that
+  // was already past the threshold and could change nothing. During the
+  // exact event this exists to survive — thousands of joins a minute — the
+  // defence was spending its budget fastest at the worst moment. On a
+  // metered Redis that is the attack paying for itself: exhaust the quota
+  // with one raid and the next one goes undetected.
+  //
+  // The 2s cache makes this nearly free and keeps the arming window
+  // imperceptible (see isLockdownActiveCached).
+  if (await isLockdownActiveCached(guildId)) return;
+
+  // 2. IN-PROCESS PRE-FILTER.
+  //
+  // A quiet guild now costs zero Redis commands. Redis is only consulted
+  // once this process has seen enough joins in the window to be worth
+  // asking about — which is also the only time the answer could matter.
+  //
+  // Deliberately a LOW watermark rather than the threshold itself: with
+  // more than one shard each process sees only its own share of joins, so
+  // requiring the full threshold locally would never fire. Half, floored to
+  // at least two, still collapses the common case to nothing while arming
+  // well before any single process could reach the real threshold alone.
+  const local = recordLocalJoin(guildId, now, config.windowSeconds);
+  const watermark = Math.max(2, Math.floor(config.joinThreshold / 2));
+  if (local < watermark) return;
+
   const key = joinWindowKey(guildId);
   const windowStart = now - config.windowSeconds * 1000;
 
   // One round-trip: record, bound the key's lifetime, evict everything
   // older than the window, then count what's left inside it.
-  const results = await pipeline([
+  const results = await pipelineOrNull([
     ["ZADD", key, now, `${userId}:${now}`],
     ["EXPIRE", key, Math.max(config.windowSeconds * 2, 300)],
     ["ZREMRANGEBYSCORE", key, 0, windowStart - 1],
     ["ZCOUNT", key, windowStart, now],
   ]);
 
-  const joinCountInWindow = Number(results[3] ?? 0);
-  if (joinCountInWindow < config.joinThreshold) return;
+  // 3. AN OUTAGE MUST NOT READ AS "NOTHING IS HAPPENING".
+  //
+  // pipeline() returned [] when Redis was unreachable, so the count came
+  // back 0, stayed under the threshold, and no lockdown was ever armed —
+  // raid detection silently switched itself off exactly when the
+  // infrastructure was already under strain. null now means unknown, and
+  // unknown falls back to what this process saw for itself. That
+  // undercounts across shards, which is the right direction to be wrong in:
+  // late detection beats none.
+  const joinCountInWindow = results === null ? local : Number(results[3] ?? 0);
+  if (results === null) {
+    logger.warn("Raid detection fell back to the in-process count; Redis did not answer", {
+      guildId: guildId.toString(),
+      localJoins: local,
+    });
+  }
 
-  // Already locked down — don't re-alert on every subsequent join past the
-  // threshold, which during a raid would mean thousands of pings.
-  if (await isLockdownActiveCached(guildId)) return;
+  if (joinCountInWindow < config.joinThreshold) return;
 
   await triggerLockdown(bot, guildId, config, joinCountInWindow);
 }
+
+
 
 async function triggerLockdown(
   bot: AppealyBot,

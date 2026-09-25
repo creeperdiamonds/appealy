@@ -133,6 +133,48 @@ export async function withRedis<T>(fn: (r: Redis) => Promise<T>, fallback: T): P
 }
 
 /**
+ * Like pipeline(), but says so when Redis did not answer.
+ *
+ * pipeline() returns [] on failure, which reads as "every command returned
+ * nothing" — indistinguishable from a genuine zero. antiRaidService consumed
+ * that as a join count of 0, stayed under the threshold, and armed no
+ * lockdown: a Redis outage silently disabled raid detection entirely, with
+ * one warning line per join and no other sign.
+ *
+ * null means "unknown", and callers must decide what unknown implies for
+ * them. For raid detection it means fall back to the in-process count rather
+ * than conclude nothing is happening.
+ */
+export async function pipelineOrNull(
+  commands: Array<[string, ...(string | number)[]]>,
+): Promise<unknown[] | null> {
+  const FAILED = Symbol("redis-unavailable");
+  const result = await withRedis<unknown[] | typeof FAILED>(async (r) => {
+    const anyR = r as unknown as {
+      pipeline?: () => { flush: () => Promise<unknown[]> } & Record<string, unknown>;
+      tx?: () => { flush: () => Promise<unknown[]> } & Record<string, unknown>;
+      sendCommand: (cmd: string, ...args: (string | number)[]) => Promise<unknown>;
+    };
+    const batch = anyR.pipeline?.() ?? anyR.tx?.();
+    if (batch && typeof batch.flush === "function") {
+      for (const [cmd, ...args] of commands) {
+        const fn = batch[cmd.toLowerCase()] as
+          | ((...a: (string | number)[]) => unknown)
+          | undefined;
+        if (fn) fn.call(batch, ...args);
+        else await anyR.sendCommand(cmd, ...args);
+      }
+      return await batch.flush();
+    }
+    const out: unknown[] = [];
+    for (const [cmd, ...args] of commands) out.push(await anyR.sendCommand(cmd, ...args));
+    return out;
+  }, FAILED);
+
+  return result === FAILED ? null : result;
+}
+
+/**
  * Executes several commands in a single round-trip.
  *
  * Deno's redis client exposes `tx()`/`pipeline()` depending on version;
