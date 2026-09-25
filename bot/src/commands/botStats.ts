@@ -15,6 +15,7 @@ const processStartedAt = Date.now();
 export const definition: CreateApplicationCommand = {
   name: "botstats",
   description: "Show bot health and usage stats",
+  descriptionLocalizations: { ja: "ボットの稼働状況と利用統計を表示します" },
   type: ApplicationCommandTypes.ChatInput,
 };
 

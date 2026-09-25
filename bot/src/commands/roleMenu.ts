@@ -17,6 +17,7 @@ const ADMINISTRATOR = 0x8n;
 export const definition: CreateApplicationCommand = {
   name: "role-menu",
   description: "Manage self-assignable role menus",
+  descriptionLocalizations: { ja: "自分で取得できるロールメニューを管理します" },
   type: ApplicationCommandTypes.ChatInput,
   // Discordeno takes permission NAMES here, not a bitfield string. The
   // old form type-checked against nothing and would have registered the
@@ -26,23 +27,24 @@ export const definition: CreateApplicationCommand = {
     {
       name: "create",
       description: "Create and publish a role menu in this channel",
+      descriptionLocalizations: { ja: "このチャンネルにロールメニューを作成して公開します" },
       type: ApplicationCommandOptionTypes.SubCommand,
       options: [
-        { name: "title", description: "Menu title", type: ApplicationCommandOptionTypes.String, required: true },
-        { name: "mode", description: "Selection mode", type: ApplicationCommandOptionTypes.String, required: true, choices: [
+        { name: "title", description: "Menu title", descriptionLocalizations: { ja: "メニューのタイトル" }, type: ApplicationCommandOptionTypes.String, required: true },
+        { name: "mode", description: "Selection mode", descriptionLocalizations: { ja: "選択方式" }, type: ApplicationCommandOptionTypes.String, required: true, choices: [
           { name: "Multiple roles allowed", value: "multi" },
           { name: "Only one role at a time", value: "single" },
         ] },
-        { name: "role1", description: "Role option 1", type: ApplicationCommandOptionTypes.Role, required: true },
-        { name: "label1", description: "Label for role option 1", type: ApplicationCommandOptionTypes.String, required: true },
-        { name: "role2", description: "Role option 2", type: ApplicationCommandOptionTypes.Role, required: false },
-        { name: "label2", description: "Label for role option 2", type: ApplicationCommandOptionTypes.String, required: false },
-        { name: "role3", description: "Role option 3", type: ApplicationCommandOptionTypes.Role, required: false },
-        { name: "label3", description: "Label for role option 3", type: ApplicationCommandOptionTypes.String, required: false },
-        { name: "role4", description: "Role option 4", type: ApplicationCommandOptionTypes.Role, required: false },
-        { name: "label4", description: "Label for role option 4", type: ApplicationCommandOptionTypes.String, required: false },
-        { name: "role5", description: "Role option 5", type: ApplicationCommandOptionTypes.Role, required: false },
-        { name: "label5", description: "Label for role option 5", type: ApplicationCommandOptionTypes.String, required: false },
+        { name: "role1", description: "Role option 1", descriptionLocalizations: { ja: "ロール 1" }, type: ApplicationCommandOptionTypes.Role, required: true },
+        { name: "label1", description: "Label for role option 1", descriptionLocalizations: { ja: "ロール 1 の表示名" }, type: ApplicationCommandOptionTypes.String, required: true },
+        { name: "role2", description: "Role option 2", descriptionLocalizations: { ja: "ロール 2" }, type: ApplicationCommandOptionTypes.Role, required: false },
+        { name: "label2", description: "Label for role option 2", descriptionLocalizations: { ja: "ロール 2 の表示名" }, type: ApplicationCommandOptionTypes.String, required: false },
+        { name: "role3", description: "Role option 3", descriptionLocalizations: { ja: "ロール 3" }, type: ApplicationCommandOptionTypes.Role, required: false },
+        { name: "label3", description: "Label for role option 3", descriptionLocalizations: { ja: "ロール 3 の表示名" }, type: ApplicationCommandOptionTypes.String, required: false },
+        { name: "role4", description: "Role option 4", descriptionLocalizations: { ja: "ロール 4" }, type: ApplicationCommandOptionTypes.Role, required: false },
+        { name: "label4", description: "Label for role option 4", descriptionLocalizations: { ja: "ロール 4 の表示名" }, type: ApplicationCommandOptionTypes.String, required: false },
+        { name: "role5", description: "Role option 5", descriptionLocalizations: { ja: "ロール 5" }, type: ApplicationCommandOptionTypes.Role, required: false },
+        { name: "label5", description: "Label for role option 5", descriptionLocalizations: { ja: "ロール 5 の表示名" }, type: ApplicationCommandOptionTypes.String, required: false },
       ],
     },
   ],

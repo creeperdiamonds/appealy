@@ -27,24 +27,28 @@ import { defer, finish } from "../utils/interactionResponse.ts";
 export const definition: CreateApplicationCommand = {
   name: "import-appealy",
   description: "Import another server's Appealy setup from an /export file",
+  descriptionLocalizations: { ja: "/export で書き出した他サーバーの Appealy 設定を取り込みます" },
   type: ApplicationCommandTypes.ChatInput,
   defaultMemberPermissions: ["ADMINISTRATOR"],
   options: [
     {
       name: "file",
       description: "The .json file produced by /export in the other server",
+      descriptionLocalizations: { ja: "他サーバーの /export で生成された .json ファイル" },
       type: ApplicationCommandOptionTypes.Attachment,
       required: true,
     },
     {
       name: "fallback_channel",
       description: "Where anything that must have a channel lands until you move it",
+      descriptionLocalizations: { ja: "チャンネル指定が必要な項目の一時的な配置先" },
       type: ApplicationCommandOptionTypes.Channel,
       required: true,
     },
     {
       name: "replace",
       description: "Delete this server's existing Appealy config first (default: no, add alongside)",
+      descriptionLocalizations: { ja: "先にこのサーバーの既存 Appealy 設定を削除します（既定: 削除せず追加）" },
       type: ApplicationCommandOptionTypes.Boolean,
       required: false,
     },

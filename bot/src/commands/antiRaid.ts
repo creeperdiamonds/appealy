@@ -15,6 +15,7 @@ const ADMINISTRATOR = 0x8n;
 export const definition: CreateApplicationCommand = {
   name: "anti-raid",
   description: "Configure join-velocity raid detection",
+  descriptionLocalizations: { ja: "参加速度による荒らし検知を設定します" },
   type: ApplicationCommandTypes.ChatInput,
   // Discordeno takes permission NAMES here, not a bitfield string. The
   // old form type-checked against nothing and would have registered the
@@ -24,13 +25,15 @@ export const definition: CreateApplicationCommand = {
     {
       name: "setup",
       description: "Configure raid detection thresholds and response",
+      descriptionLocalizations: { ja: "荒らし検知のしきい値と対応を設定します" },
       type: ApplicationCommandOptionTypes.SubCommand,
       options: [
-        { name: "join_threshold", description: "Trigger if this many members join within the window", type: ApplicationCommandOptionTypes.Integer, required: true, minValue: 3 },
-        { name: "window_seconds", description: "Time window in seconds", type: ApplicationCommandOptionTypes.Integer, required: true, minValue: 10 },
+        { name: "join_threshold", description: "Trigger if this many members join within the window", descriptionLocalizations: { ja: "この人数が時間枠内に参加したら作動します" }, type: ApplicationCommandOptionTypes.Integer, required: true, minValue: 3 },
+        { name: "window_seconds", description: "Time window in seconds", descriptionLocalizations: { ja: "判定する時間枠（秒）" }, type: ApplicationCommandOptionTypes.Integer, required: true, minValue: 10 },
         {
           name: "action",
           description: "What happens when a raid is detected",
+          descriptionLocalizations: { ja: "荒らしを検知したときの動作" },
           type: ApplicationCommandOptionTypes.String,
           required: true,
           choices: [
@@ -39,17 +42,19 @@ export const definition: CreateApplicationCommand = {
             { name: "Kick new joins during lockdown", value: "kick_new_joins" },
           ],
         },
-        { name: "alert_channel", description: "Channel to post raid alerts in", type: ApplicationCommandOptionTypes.Channel, required: false },
+        { name: "alert_channel", description: "Channel to post raid alerts in", descriptionLocalizations: { ja: "荒らし警告を送信するチャンネル" }, type: ApplicationCommandOptionTypes.Channel, required: false },
       ],
     },
     {
       name: "clear",
       description: "Manually end an active lockdown",
+      descriptionLocalizations: { ja: "進行中のロックダウンを手動で解除します" },
       type: ApplicationCommandOptionTypes.SubCommand,
     },
     {
       name: "status",
       description: "Check whether a lockdown is currently active",
+      descriptionLocalizations: { ja: "ロックダウンが有効かどうかを確認します" },
       type: ApplicationCommandOptionTypes.SubCommand,
     },
   ],

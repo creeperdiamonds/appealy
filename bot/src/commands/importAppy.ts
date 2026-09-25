@@ -26,11 +26,13 @@ import { defer, finish } from "../utils/interactionResponse.ts";
 export const definition: CreateApplicationCommand = {
   name: "import-appy",
   description: "Import Appy application submissions into an Appealy form (owner only)",
+  descriptionLocalizations: { ja: "Appy の応募データを Appealy のフォームに取り込みます（サーバー所有者のみ）" },
   type: ApplicationCommandTypes.ChatInput,
   options: [
     {
       name: "application_name",
       description: "The Appealy form to import submissions into",
+      descriptionLocalizations: { ja: "取り込み先の Appealy フォーム" },
       type: ApplicationCommandOptionTypes.String,
       required: true,
       autocomplete: true,
@@ -38,6 +40,7 @@ export const definition: CreateApplicationCommand = {
     {
       name: "file",
       description: "The Appy submissions export (.json, from Appy's /export_applications)",
+      descriptionLocalizations: { ja: "Appy の /export_applications で書き出した .json ファイル" },
       type: ApplicationCommandOptionTypes.Attachment,
       required: true,
     },

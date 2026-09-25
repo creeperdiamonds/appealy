@@ -13,6 +13,7 @@ const EPHEMERAL = 64;
 export const definition: CreateApplicationCommand = {
   name: "ping",
   description: "Check the bot's latency",
+  descriptionLocalizations: { ja: "ボットの応答速度を確認します" },
   type: ApplicationCommandTypes.ChatInput,
 };
 

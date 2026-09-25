@@ -21,6 +21,7 @@ const ADMINISTRATOR = 0x8n;
 export const definition: CreateApplicationCommand = {
   name: "reset-cooldown",
   description: "Clear a user's cooldown/limit for one application form",
+  descriptionLocalizations: { ja: "指定ユーザーの応募フォームのクールダウンや制限を解除します" },
   type: ApplicationCommandTypes.ChatInput,
   // Discordeno takes permission NAMES here, not a bitfield string. The
   // old form type-checked against nothing and would have registered the
@@ -30,15 +31,17 @@ export const definition: CreateApplicationCommand = {
     {
       name: "application_name",
       description: "The application form",
+      descriptionLocalizations: { ja: "対象の応募フォーム" },
       type: ApplicationCommandOptionTypes.String,
       required: true,
       autocomplete: true,
     },
-    { name: "user", description: "The user to reset", type: ApplicationCommandOptionTypes.User, required: true },
-    { name: "reason", description: "Why this override is being granted", type: ApplicationCommandOptionTypes.String, required: false },
+    { name: "user", description: "The user to reset", descriptionLocalizations: { ja: "解除する対象のユーザー" }, type: ApplicationCommandOptionTypes.User, required: true },
+    { name: "reason", description: "Why this override is being granted", descriptionLocalizations: { ja: "この解除を行う理由" }, type: ApplicationCommandOptionTypes.String, required: false },
     {
       name: "expires_in_hours",
       description: "Override expires after N hours (default: never expires)",
+      descriptionLocalizations: { ja: "N 時間後に解除を失効させます（既定: 失効しない）" },
       type: ApplicationCommandOptionTypes.Integer,
       required: false,
       minValue: 1,

@@ -12,6 +12,7 @@ import { defer, finish } from "../utils/interactionResponse.ts";
 export const definition: CreateApplicationCommand = {
   name: "forms",
   description: "List all application forms configured in this server",
+  descriptionLocalizations: { ja: "このサーバーに設定されている応募フォームを一覧表示します" },
   type: ApplicationCommandTypes.ChatInput,
 };
 

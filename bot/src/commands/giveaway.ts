@@ -15,6 +15,7 @@ const ADMINISTRATOR = 0x8n;
 export const definition: CreateApplicationCommand = {
   name: "giveaway",
   description: "Manage giveaways",
+  descriptionLocalizations: { ja: "ギブアウェイを管理します" },
   type: ApplicationCommandTypes.ChatInput,
   // Discordeno takes permission NAMES here, not a bitfield string. The
   // old form type-checked against nothing and would have registered the
@@ -24,25 +25,28 @@ export const definition: CreateApplicationCommand = {
     {
       name: "create",
       description: "Create and start a giveaway",
+      descriptionLocalizations: { ja: "ギブアウェイを作成して開始します" },
       type: ApplicationCommandOptionTypes.SubCommand,
       options: [
-        { name: "channel", description: "Channel to post the giveaway in", type: ApplicationCommandOptionTypes.Channel, required: true },
-        { name: "prize", description: "What's being given away", type: ApplicationCommandOptionTypes.String, required: true },
-        { name: "duration_minutes", description: "How long the giveaway runs, in minutes", type: ApplicationCommandOptionTypes.Integer, required: true, minValue: 1 },
-        { name: "winners", description: "Number of winners (default 1)", type: ApplicationCommandOptionTypes.Integer, required: false, minValue: 1, maxValue: 20 },
+        { name: "channel", description: "Channel to post the giveaway in", descriptionLocalizations: { ja: "ギブアウェイを投稿するチャンネル" }, type: ApplicationCommandOptionTypes.Channel, required: true },
+        { name: "prize", description: "What's being given away", descriptionLocalizations: { ja: "景品の内容" }, type: ApplicationCommandOptionTypes.String, required: true },
+        { name: "duration_minutes", description: "How long the giveaway runs, in minutes", descriptionLocalizations: { ja: "開催時間（分）" }, type: ApplicationCommandOptionTypes.Integer, required: true, minValue: 1 },
+        { name: "winners", description: "Number of winners (default 1)", descriptionLocalizations: { ja: "当選者数（既定: 1）" }, type: ApplicationCommandOptionTypes.Integer, required: false, minValue: 1, maxValue: 20 },
       ],
     },
     {
       name: "end",
       description: "End a giveaway early",
+      descriptionLocalizations: { ja: "ギブアウェイを予定より早く終了します" },
       type: ApplicationCommandOptionTypes.SubCommand,
-      options: [{ name: "giveaway_id", description: "The giveaway ID", type: ApplicationCommandOptionTypes.String, required: true }],
+      options: [{ name: "giveaway_id", description: "The giveaway ID", descriptionLocalizations: { ja: "ギブアウェイ ID" }, type: ApplicationCommandOptionTypes.String, required: true }],
     },
     {
       name: "reroll",
       description: "Reroll winner(s) for an ended giveaway",
+      descriptionLocalizations: { ja: "終了したギブアウェイの当選者を選び直します" },
       type: ApplicationCommandOptionTypes.SubCommand,
-      options: [{ name: "giveaway_id", description: "The giveaway ID", type: ApplicationCommandOptionTypes.String, required: true }],
+      options: [{ name: "giveaway_id", description: "The giveaway ID", descriptionLocalizations: { ja: "ギブアウェイ ID" }, type: ApplicationCommandOptionTypes.String, required: true }],
     },
   ],
 };

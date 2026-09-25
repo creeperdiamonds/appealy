@@ -29,6 +29,7 @@ const DASHBOARD_BASE_URL = env.DASHBOARD_URL;
 export const definition: CreateApplicationCommand = {
   name: "dashboard",
   description: "Get a link to the Appealy web dashboard for this server",
+  descriptionLocalizations: { ja: "このサーバーの Appealy ダッシュボードへのリンクを取得します" },
   type: ApplicationCommandTypes.ChatInput,
 };
 

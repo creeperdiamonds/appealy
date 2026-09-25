@@ -26,6 +26,7 @@ import { defer, finish } from "../utils/interactionResponse.ts";
 export const definition: CreateApplicationCommand = {
   name: "export",
   description: "Export all of this server's Appealy data as a JSON file (owner only)",
+  descriptionLocalizations: { ja: "このサーバーの Appealy データをすべて JSON ファイルに書き出します（サーバー所有者のみ）" },
   type: ApplicationCommandTypes.ChatInput,
 };
 

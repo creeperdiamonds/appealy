@@ -14,18 +14,19 @@ const ADMINISTRATOR = 0x8n;
 export const definition: CreateApplicationCommand = {
   name: "verify-setup",
   description: "Configure and publish server verification",
+  descriptionLocalizations: { ja: "サーバー認証を設定して公開します" },
   type: ApplicationCommandTypes.ChatInput,
   // Discordeno takes permission NAMES here, not a bitfield string. The
   // old form type-checked against nothing and would have registered the
   // command with a permission value Discord could not parse.
   defaultMemberPermissions: ["ADMINISTRATOR"],
   options: [
-    { name: "verified_role", description: "Role granted upon verification", type: ApplicationCommandOptionTypes.Role, required: true },
-    { name: "method", description: "Verification method", type: ApplicationCommandOptionTypes.String, required: false, choices: [
+    { name: "verified_role", description: "Role granted upon verification", descriptionLocalizations: { ja: "認証後に付与するロール" }, type: ApplicationCommandOptionTypes.Role, required: true },
+    { name: "method", description: "Verification method", descriptionLocalizations: { ja: "認証方法" }, type: ApplicationCommandOptionTypes.String, required: false, choices: [
       { name: "Single button", value: "button" },
       { name: "Retype-code captcha", value: "captcha" },
     ] },
-    { name: "unverified_role", description: "Role applied on join, removed on verify (optional gate role)", type: ApplicationCommandOptionTypes.Role, required: false },
+    { name: "unverified_role", description: "Role applied on join, removed on verify (optional gate role)", descriptionLocalizations: { ja: "参加時に付与し認証で解除するロール（任意のゲートロール）" }, type: ApplicationCommandOptionTypes.Role, required: false },
   ],
 };
 

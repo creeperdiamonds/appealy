@@ -17,6 +17,7 @@ const ADMINISTRATOR = 0x8n;
 export const definition: CreateApplicationCommand = {
   name: "panel",
   description: "Manage application panels",
+  descriptionLocalizations: { ja: "応募パネルを管理します" },
   type: ApplicationCommandTypes.ChatInput,
   // Discordeno takes permission NAMES here, not a bitfield string. The
   // old form type-checked against nothing and would have registered the
@@ -26,11 +27,13 @@ export const definition: CreateApplicationCommand = {
     {
       name: "create",
       description: "Create and publish a panel for a form in this channel",
+      descriptionLocalizations: { ja: "このチャンネルにフォームのパネルを作成して公開します" },
       type: ApplicationCommandOptionTypes.SubCommand,
       options: [
         {
           name: "form",
           description: "The form to attach",
+          descriptionLocalizations: { ja: "紐づけるフォーム" },
           type: ApplicationCommandOptionTypes.String,
           required: true,
           autocomplete: true,
@@ -38,12 +41,14 @@ export const definition: CreateApplicationCommand = {
         {
           name: "title",
           description: "Panel title",
+          descriptionLocalizations: { ja: "パネルのタイトル" },
           type: ApplicationCommandOptionTypes.String,
           required: true,
         },
         {
           name: "description",
           description: "Panel description",
+          descriptionLocalizations: { ja: "パネルの説明" },
           type: ApplicationCommandOptionTypes.String,
           required: false,
         },

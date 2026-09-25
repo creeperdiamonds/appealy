@@ -17,6 +17,7 @@ const ADMINISTRATOR = 0x8n;
 export const definition: CreateApplicationCommand = {
   name: "ticket-panel",
   description: "Manage ticket panels",
+  descriptionLocalizations: { ja: "チケットパネルを管理します" },
   type: ApplicationCommandTypes.ChatInput,
   // Discordeno takes permission NAMES here, not a bitfield string. The
   // old form type-checked against nothing and would have registered the
@@ -26,12 +27,14 @@ export const definition: CreateApplicationCommand = {
     {
       name: "create",
       description: "Create and publish a ticket panel in this channel",
+      descriptionLocalizations: { ja: "このチャンネルにチケットパネルを作成して公開します" },
       type: ApplicationCommandOptionTypes.SubCommand,
       options: [
-        { name: "name", description: "Ticket type name (e.g. Support)", type: ApplicationCommandOptionTypes.String, required: true },
+        { name: "name", description: "Ticket type name (e.g. Support)", descriptionLocalizations: { ja: "チケットの種類名（例: サポート）" }, type: ApplicationCommandOptionTypes.String, required: true },
         {
           name: "channel_type",
           description: "How opened tickets should appear",
+          descriptionLocalizations: { ja: "開かれたチケットの表示方法" },
           type: ApplicationCommandOptionTypes.String,
           required: false,
           choices: [
@@ -40,7 +43,7 @@ export const definition: CreateApplicationCommand = {
             { name: "Public thread", value: "public_thread" },
           ],
         },
-        { name: "support_role", description: "Role that can view/manage tickets", type: ApplicationCommandOptionTypes.Role, required: false },
+        { name: "support_role", description: "Role that can view/manage tickets", descriptionLocalizations: { ja: "チケットを閲覧・管理できるロール" }, type: ApplicationCommandOptionTypes.Role, required: false },
       ],
     },
   ],

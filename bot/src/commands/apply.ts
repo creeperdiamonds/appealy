@@ -21,11 +21,13 @@ const EPHEMERAL = 64;
 export const definition: CreateApplicationCommand = {
   name: "apply",
   description: "Apply for an application form in this server",
+  descriptionLocalizations: { ja: "このサーバーの応募フォームに申し込みます" },
   type: ApplicationCommandTypes.ChatInput,
   options: [
     {
       name: "application_name",
       description: "The name of the application to apply for",
+      descriptionLocalizations: { ja: "申し込むフォームの名前" },
       type: ApplicationCommandOptionTypes.String,
       required: true,
       autocomplete: true,

@@ -20,6 +20,7 @@ const ADMINISTRATOR = 0x8n;
 export const definition: CreateApplicationCommand = {
   name: "export_applications",
   description: "Export submitted applications to a CSV file",
+  descriptionLocalizations: { ja: "提出された応募を CSV ファイルに書き出します" },
   type: ApplicationCommandTypes.ChatInput,
   // Discordeno takes permission NAMES here, not a bitfield string. The
   // old form type-checked against nothing and would have registered the
@@ -29,6 +30,7 @@ export const definition: CreateApplicationCommand = {
     {
       name: "application_name",
       description: "The application to export",
+      descriptionLocalizations: { ja: "書き出すフォーム" },
       type: ApplicationCommandOptionTypes.String,
       required: true,
       autocomplete: true,
@@ -36,6 +38,7 @@ export const definition: CreateApplicationCommand = {
     {
       name: "status",
       description: "Filter by status (default: all)",
+      descriptionLocalizations: { ja: "ステータスで絞り込みます（既定: すべて）" },
       type: ApplicationCommandOptionTypes.String,
       required: false,
       choices: [
