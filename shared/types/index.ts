@@ -46,6 +46,14 @@ export const CUSTOM_ID_NAMESPACES = {
   ROLE_MENU: "rolemenu",
   /** tz:pick:<askedUserId> — "which timezone did you mean?" */
   TIMEZONE: "tz",
+  /**
+   * appeal:start:<guildId>:<formId> — "Appeal this ban", in a DM.
+   *
+   * Carries the guild AND the form because a DM interaction has no guild
+   * context at all: interaction.guildId is undefined, so the handler cannot
+   * look up which server banned them from the interaction alone.
+   */
+  APPEAL: "appeal",
 } as const;
 
 export type CustomIdNamespace =

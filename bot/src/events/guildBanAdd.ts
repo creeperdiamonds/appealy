@@ -11,6 +11,7 @@ import { eq, and } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { logger } from "../utils/logger.ts";
+import { CUSTOM_ID_NAMESPACES, encodeCustomId } from "../../../shared/types/index.ts";
 
 export function onGuildBanAdd(bot: AppealyBot) {
   return async (payload: { guildId: bigint; user: { id: bigint; username?: string } }) => {
@@ -58,15 +59,51 @@ async function sendBanAppealDm(bot: AppealyBot, guildId: bigint, bannedUserId: b
     return;
   }
 
-  const { startDmApplication } = await import("../services/dmApplicationService.ts");
-  // Banned users are, definitionally, not currently a guild member — there
-  // are no roles to evaluate. An appeal form with requiredRoleIds/
-  // blacklistedRoleIds configured would gate out every single appellant,
-  // which is almost certainly not what an admin who set that up intended;
-  // the dashboard's appeal-form editor should warn against setting those
-  // fields on an appeal-kind form, but a functionally-empty array is
-  // passed through here regardless of what the form asks for.
-  await startDmApplication(bot, guildId, form, bannedUserId, [], config.dmOnBanNote ?? undefined);
+  // A notice with a button, NOT the first question.
+  //
+  // This used to call startDmApplication directly, so someone banned at 3am
+  // got "Question 1/5: why should we unban you?" seconds later, before they
+  // had worked out what had even happened. That reads as an interrogation,
+  // and it assumes everyone wants to appeal — most people just want to know
+  // what they were banned from. Appealing is now something they choose.
+  //
+  // The roles argument is gone from this path entirely: nothing is started
+  // here. When the button is clicked, appealStart.ts passes an empty array,
+  // because a banned user is definitionally not a member and an appeal form
+  // with requiredRoleIds set would otherwise gate out every appellant.
+  const guild = await db.query.guilds.findFirst({
+    where: eq(schema.guilds.id, guildId),
+    columns: { name: true },
+  });
 
-  logger.info("Sent (or attempted) ban-appeal DM", { guildId: guildId.toString(), userId: bannedUserId.toString(), formId: form.id });
+  const notice = config.dmOnBanNote?.trim()
+    ? config.dmOnBanNote
+    : `You have been banned from **${guild?.name ?? "a server"}**.`;
+
+  const { dmOrLog } = await import("../services/dmApplicationService.ts");
+  const sent = await dmOrLog(bot, bannedUserId, notice, [
+    {
+      type: 1, // action row
+      components: [
+        {
+          type: 2, // button
+          style: 1, // primary
+          label: "Appeal this ban",
+          customId: encodeCustomId(
+            CUSTOM_ID_NAMESPACES.APPEAL,
+            "start",
+            guildId.toString(),
+            form.id,
+          ),
+        },
+      ],
+    },
+  ]);
+
+  logger.info("Sent (or attempted) ban notice with appeal button", {
+    guildId: guildId.toString(),
+    userId: bannedUserId.toString(),
+    formId: form.id,
+    delivered: sent,
+  });
 }

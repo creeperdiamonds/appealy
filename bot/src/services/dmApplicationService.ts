@@ -281,10 +281,25 @@ async function checkGateForDm(
   });
 }
 
-async function dmOrLog(bot: AppealyBot, userId: bigint, content: string): Promise<boolean> {
+/**
+ * DMs a user, returning false rather than throwing when their DMs are shut.
+ *
+ * `components` is optional and exists for the ban-appeal notice, which is a
+ * message with an "Appeal this ban" button rather than a question. Everything
+ * else here sends plain text.
+ */
+export async function dmOrLog(
+  bot: AppealyBot,
+  userId: bigint,
+  content: string,
+  components?: unknown[],
+): Promise<boolean> {
   try {
     const dmChannel = await bot.helpers.getDmChannel(userId);
-    await bot.helpers.sendMessage(dmChannel.id, { content });
+    await bot.helpers.sendMessage(dmChannel.id, {
+      content,
+      ...(components ? { components: components as never } : {}),
+    });
     return true;
   } catch (err) {
     logger.warn("Failed to DM applicant during DM application flow", { userId: userId.toString(), error: String(err) });

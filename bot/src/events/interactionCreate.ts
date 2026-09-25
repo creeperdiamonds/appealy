@@ -23,6 +23,7 @@ import {
   proceedToQuestions,
   showApplicationModal,
 } from "../interactions/buttons/panelOpen.ts";
+import { handleAppealStartButton } from "../interactions/buttons/appealStart.ts";
 import { handleReviewAccept } from "../interactions/buttons/reviewAccept.ts";
 import { handleReviewDeny } from "../interactions/buttons/reviewDeny.ts";
 import { handleFormModalSubmit } from "../interactions/modals/formSubmit.ts";
@@ -87,6 +88,12 @@ export function onInteractionCreate(bot: AppealyBot) {
               return await handlePanelOpenButton(bot, interaction, chosenFormId);
             }
             return;
+          }
+          // Ban-appeal notice button, clicked in a DM. entityId is the guild
+          // id and extra is the form id — both are needed because a DM
+          // interaction carries no guild context of its own.
+          if (namespace === "appeal" && action === "start") {
+            return await handleAppealStartButton(bot, interaction, entityId, extra ?? "");
           }
           if (namespace === "review" && action === "accept") {
             return await handleReviewAccept(bot, interaction, entityId);

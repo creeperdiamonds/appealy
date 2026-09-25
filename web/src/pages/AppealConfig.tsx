@@ -164,14 +164,19 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
         </label>
 
         <label className="field">
-          <span className="eyebrow">Note sent before the form</span>
+          <span className="eyebrow">What the ban notice says</span>
           <textarea
             rows={4}
             value={config.dmOnBanNote ?? ""}
             maxLength={1000}
             onChange={(e) => patch({ dmOnBanNote: e.target.value || null })}
-            placeholder="Explains why someone who was just banned is getting a DM from this bot."
+            placeholder="Tells them they were banned. An 'Appeal this ban' button is added underneath."
           />
+          <span className="dim">
+            Sent on its own, with a button. Nobody is asked a question until they press it —
+            being banned is not an agreement to fill in a form, and most people only want to
+            know what happened.
+          </span>
         </label>
 
         <label className="row">

@@ -1384,7 +1384,7 @@ export const appealConfigs = pgTable("appeal_configs", {
   // apostrophe is emitted unescaped and breaks the generated migration. Any
   // prose default added here needs the same treatment, or no apostrophe.
   dmOnBanNote: text("dm_on_ban_note").default(
-    sql`'You have been banned and are receiving this message because ban appeals are enabled for this server. If you''d like to appeal, answer the questions below. Sending nothing will not appeal the ban.'`,
+    sql`'You have been banned from this server. If you believe that was a mistake, you can appeal using the button below. You do not have to.'`,
   ),
   // When true (default), accepting an appeal submission calls Discord's
   // unban endpoint automatically (bot/src/interactions/buttons/reviewAccept.ts).

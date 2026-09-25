@@ -1,0 +1,1 @@
+ALTER TABLE "appeal_configs" ALTER COLUMN "dm_on_ban_note" SET DEFAULT 'You have been banned from this server. If you believe that was a mistake, you can appeal using the button below. You do not have to.';
