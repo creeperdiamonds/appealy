@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError, http, type GuildSummary } from "./lib/api";
 import { Banner, Pill, Sheet, ThemeToggle } from "./components/ui";
 import { dismissFeedback, feedbackDismissed } from "./lib/feedback";
+import { basePath, getLocale, switchLocalePath, t as tr } from "./lib/i18n";
 import FeedbackSheet from "./components/FeedbackSheet";
 import Overview from "./pages/Overview";
 import Submissions from "./pages/Submissions";
@@ -226,7 +227,11 @@ const LAST_GUILD_KEY = "appealy:lastGuild";
  * Paths need the server to answer /dashboard/anything with the console's
  * index, which nginx and the dev middleware both now do.
  */
-const BASE_PATH = "/dashboard/";
+// Locale-aware, not a constant: the console is served at /dashboard/ in
+// English and /ja/dashboard/ in Japanese, and viewFromLocation's startsWith
+// check would fail against the prefixed path — every Japanese route would
+// silently fall back to the overview.
+const BASE_PATH = basePath();
 
 function viewFromLocation(): View {
   const { pathname, hash } = window.location;
@@ -421,17 +426,17 @@ export default function App() {
             if (visible.length === 0) return null;
             return (
               <div key={group}>
-                <div className="nav-group eyebrow">{group}</div>
+                <div className="nav-group eyebrow">{tr(group)}</div>
                 {visible.map((item) => (
                   <button
                     key={item.id}
                     className="nav-item"
                     aria-current={view === item.id ? "page" : undefined}
                     onClick={() => setView(item.id)}
-                    title={item.hint}
+                    title={tr(item.hint)}
                   >
                     <NavIcon view={item.id} />
-                    {item.label}
+                    {tr(item.label)}
                   </button>
                 ))}
               </div>
@@ -439,14 +444,14 @@ export default function App() {
           })}
           {isOperator && (
             <>
-              <div className="nav-group eyebrow">Operator</div>
+              <div className="nav-group eyebrow">{tr("Operator")}</div>
               <button
                 className="nav-item"
                 aria-current={view === "ops-appeals" ? "page" : undefined}
                 onClick={() => setView("ops-appeals")}
               >
                 <NavIcon view="ops-appeals" />
-                Appeal queue
+                {tr("Appeal queue")}
               </button>
               <button
                 className="nav-item"
@@ -454,7 +459,7 @@ export default function App() {
                 onClick={() => setView("ops-feedback")}
               >
                 <NavIcon view="ops-feedback" />
-                Feedback
+                {tr("Feedback")}
               </button>
             </>
           )}
@@ -462,11 +467,25 @@ export default function App() {
 
         <div className="rail-foot">
           <ThemeToggle />
+          {/* Same control as the marketing site's, in the same shape: the
+              label is the language you would switch TO, written in that
+              language, so a reader who cannot read the current screen can
+              still recognise the way out. switchLocalePath keeps whichever
+              view you are on rather than dropping you back at the overview —
+              changing language should not also lose your place. */}
+          <a
+            className="nav-item"
+            href={switchLocalePath(getLocale() === "ja" ? "en" : "ja")}
+            hrefLang={getLocale() === "ja" ? "en" : "ja"}
+            lang={getLocale() === "ja" ? "en" : "ja"}
+          >
+            {getLocale() === "ja" ? "English" : "日本語"}
+          </a>
           <button
             className="nav-item"
             onClick={() => api.logout().then(() => window.location.reload())}
           >
-            Sign out
+            {tr("Sign out")}
           </button>
         </div>
       </aside>
@@ -666,7 +685,7 @@ export default function App() {
               onClick={() => setView(id)}
             >
               <NavIcon view={id} />
-              {item.label}
+              {tr(item.label)}
             </button>
           );
         })}
@@ -710,7 +729,7 @@ export default function App() {
               if (visible.length === 0) return null;
               return (
                 <div key={group}>
-                  <div className="nav-group eyebrow">{group}</div>
+                  <div className="nav-group eyebrow">{tr(group)}</div>
                   {visible.map((item) => (
                     <button
                       key={item.id}
@@ -719,7 +738,7 @@ export default function App() {
                       onClick={() => setView(item.id)}
                     >
                       <NavIcon view={item.id} />
-                      {item.label}
+                      {tr(item.label)}
                     </button>
                   ))}
                 </div>
@@ -728,14 +747,14 @@ export default function App() {
 
             {isOperator && (
               <div>
-                <div className="nav-group eyebrow">Operator</div>
+                <div className="nav-group eyebrow">{tr("Operator")}</div>
                 <button
                   className="nav-item"
                   aria-current={view === "ops-appeals" ? "page" : undefined}
                   onClick={() => setView("ops-appeals")}
                 >
                   <NavIcon view="ops-appeals" />
-                  Appeal queue
+                  {tr("Appeal queue")}
                 </button>
                 <button
                   className="nav-item"
@@ -743,7 +762,7 @@ export default function App() {
                   onClick={() => setView("ops-feedback")}
                 >
                   <NavIcon view="ops-feedback" />
-                  Feedback
+                  {tr("Feedback")}
                 </button>
               </div>
             )}
