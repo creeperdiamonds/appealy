@@ -274,6 +274,26 @@ code {
   color: var(--text);
 }
 
+/* Language switcher.
+ *
+ * Bordered rather than another bare nav link, because it is a control that
+ * changes the whole site rather than a sixth destination. It is deliberately
+ * the same object in both directions — the Japanese pages carry this class on
+ * their "English" link — so someone who learns where it is in one language
+ * finds it in the same place in the other.
+ *
+ * The label is always the language you would be switching TO, written in that
+ * language: a reader who cannot read the current page can still recognise it. */
+.lang-switch {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.875rem;
+}
+.lang-switch:hover {
+  border-color: var(--text-dim);
+}
+
 /* ------------------------------------------------------------------ *
  * Buttons
  * ------------------------------------------------------------------ */
