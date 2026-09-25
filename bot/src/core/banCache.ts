@@ -38,7 +38,7 @@
 
 import { and, eq, gt, isNull, or } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
-import { getRedis } from "./redis.ts";
+import { connectOptionsFromUrl, getRedis } from "./redis.ts";
 import { logger } from "../utils/logger.ts";
 import { toPublicBan, type PublicBan } from "../../../shared/schema/platformBans.ts";
 
@@ -115,11 +115,10 @@ export async function startBanCache(): Promise<void> {
       return;
     }
     const url = new URL(env.REDIS_URL);
-    const sub = await connect({
-      hostname: url.hostname,
-      port: Number(url.port || 6379),
-      password: url.password || undefined,
-    });
+    // TLS comes from the scheme — see connectOptionsFromUrl. Passing only
+    // hostname/port/password here is what left this subscriber dead against
+    // a TLS-only provider while reporting it as "failed to start".
+    const sub = await connect(connectOptionsFromUrl(url));
 
     const subscription = await sub.subscribe(BAN_CHANNEL);
     logger.info("Subscribed to ban changes", { channel: BAN_CHANNEL });

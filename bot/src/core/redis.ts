@@ -35,6 +35,35 @@ import { MemoryRedis, useMemoryRedis, MEMORY_REDIS_WARNING } from "../../../shar
 let client: Redis | null = null;
 let connecting: Promise<Redis> | null = null;
 
+/**
+ * Connection options from a Redis URL, TLS included.
+ *
+ * The scheme is the whole point. Every call site here used to pass only
+ * hostname/port/password and throw the scheme away, which works against a
+ * plaintext Redis and fails against every managed provider, all of which are
+ * TLS-only. Switching production from the in-memory shim to a real hosted
+ * Redis (2026-09-25) made the bot speak plaintext at a TLS port: the client
+ * connected, every command failed, and withRedis quietly returned its
+ * fallbacks — which for anti-raid means failing open and not detecting a
+ * raid at all. The API never showed it, because ioredis reads the scheme
+ * itself.
+ *
+ * Derived rather than hardcoded so a self-hoster on plain `redis://` inside
+ * a private network keeps working without a flag to discover.
+ *
+ * Exported because banCache and guildConfigCache each open their own
+ * subscriber connection — pub/sub needs a dedicated one — and three copies
+ * of this logic is how two of them stay broken after the third is fixed.
+ */
+export function connectOptionsFromUrl(url: URL) {
+  return {
+    hostname: url.hostname,
+    port: Number(url.port || 6379),
+    password: url.password || undefined,
+    ...(url.protocol === "rediss:" ? { tls: true } : {}),
+  };
+}
+
 async function openConnection(): Promise<Redis> {
   // POC mode: no Redis container. Everything this bot keeps in Redis is
   // reconstructible, so an in-process substitute is enough to run end to end
@@ -45,12 +74,12 @@ async function openConnection(): Promise<Redis> {
   }
 
   const url = new URL(env.REDIS_URL);
-  const redis = await connect({
-    hostname: url.hostname,
-    port: Number(url.port || 6379),
-    password: url.password || undefined,
+  const redis = await connect(connectOptionsFromUrl(url));
+  logger.info("Redis connected", {
+    host: url.hostname,
+    port: url.port || "6379",
+    tls: url.protocol === "rediss:",
   });
-  logger.info("Redis connected", { host: url.hostname, port: url.port || "6379" });
   return redis;
 }
 

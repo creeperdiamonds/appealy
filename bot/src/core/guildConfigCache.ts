@@ -64,7 +64,7 @@
 
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
-import { getRedis, withRedis } from "./redis.ts";
+import { connectOptionsFromUrl, getRedis, withRedis } from "./redis.ts";
 import { logger } from "../utils/logger.ts";
 
 const L1_TTL_MS = 60_000;
@@ -255,11 +255,8 @@ export async function subscribeToInvalidations(): Promise<void> {
       return;
     }
     const url = new URL(env.REDIS_URL);
-    const sub = await connect({
-      hostname: url.hostname,
-      port: Number(url.port || 6379),
-      password: url.password || undefined,
-    });
+    // TLS comes from the scheme — see connectOptionsFromUrl.
+    const sub = await connect(connectOptionsFromUrl(url));
 
     const subscription = await sub.subscribe(INVALIDATION_CHANNEL);
     logger.info("Subscribed to cache invalidations", { channel: INVALIDATION_CHANNEL });
