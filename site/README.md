@@ -1,6 +1,6 @@
 # Public site
 
-Twelve pages, one stylesheet, one image, and two files for crawlers. No
+Eleven pages, one stylesheet, one image, and two files for crawlers. No
 build step, no framework, no bundler, and no JavaScript at all.
 
 | File | Is |
@@ -10,7 +10,6 @@ build step, no framework, no bundler, and no JavaScript at all.
 | `appy-alternative.html` | The one page targeting a query people type: "Appy alternative". Dated comparison table, migration steps, FAQPage schema |
 | `privacy.html` | What is stored, for how long, who sees it |
 | `terms.html` | Hosted-service terms |
-| `tebex.html` | Front door for a Tebex review — links to what is sold, what it costs, the terms, the privacy policy and refunds rather than restating them |
 | `site.css` | Shared styles |
 | `robots.txt` | Allows everything, names the answer-engine crawlers explicitly, points at the sitemap |
 | `discord-ban-appeal-bot.html` | | 
@@ -110,7 +109,6 @@ state to manage. There is none.
 /pricing.html
 /privacy.html
 /terms.html
-/tebex.html
 /appy-alternative.html
 /discord-ban-appeal-bot.html
 /discord-ticket-bot.html

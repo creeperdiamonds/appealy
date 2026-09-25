@@ -85,8 +85,8 @@ real hostnames. Changing it means rebuilding the image; changing `API_ORIGIN`
 means restarting the container. That asymmetry is why the proxy target is the
 one that is runtime config.
 
-**`/webhooks/` is proxied and `/health` is not**, deliberately. Tebex posts
-payment callbacks to `/webhooks`, and before that location existed the request
+**`/webhooks/` is proxied and `/health` is not**, deliberately. Paddle posts
+payment callbacks to `/webhooks/paddle`, and before that location existed the request
 fell through to the static `try_files` and got a 404 — checkout completed, the
 customer was charged, and the plan never activated, with nothing visible
 failing. `/health` stays off the console because it is Cloud Run's probe

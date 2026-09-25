@@ -2,12 +2,12 @@
 //
 // Platform mode vs self-hosted mode.
 //
-// This codebase does two jobs. It's the thing running at appealy.gg for many
-// guilds under one bot token and one Tebex account, and it's an open-source
+// This codebase does two jobs. It's the thing running at appealy.app for many
+// guilds under one bot token and one Paddle account, and it's an open-source
 // Discord bot someone clones and runs for their own server. The difference
 // isn't cosmetic:
 //
-//   - A self-hoster has no Tebex account. `required("TEBEX_PROJECT_ID")`
+//   - A self-hoster has no Paddle account. `required("PADDLE_API_KEY")`
 //     means a fresh clone doesn't boot — the single biggest barrier to anyone
 //     actually running this.
 //   - Rate limit tiers are a monetization construct. Capping a self-hoster at
@@ -20,20 +20,20 @@
 // How the mode is decided
 // -----------------------
 // 1. An explicit DEPLOYMENT_MODE always wins. Nothing below overrides it.
-// 2. Otherwise it's inferred from whether Tebex is configured.
+// 2. Otherwise it's inferred from whether Paddle is configured.
 //
 // The inference exists because both directions of "forgot to set it" used to
 // fail badly:
 //
 //   - A self-hoster who never heard of DEPLOYMENT_MODE got a crash on a
-//     missing Tebex key, which is a terrible first five minutes with an
+//     missing Paddle key, which is a terrible first five minutes with an
 //     open-source project.
 //   - The hosted deployment that forgot the flag got `self` — billing routes
 //     silently absent, every guild on flat caps, and nothing to notice until
 //     a customer asks why they can't upgrade. A silent downgrade of a
 //     production deployment is the worse of the two.
 //
-// Tebex credentials are the honest signal. Nobody sets TEBEX_PRIVATE_KEY by
+// Paddle credentials are the honest signal. Nobody sets PADDLE_API_KEY by
 // accident, and nobody running this for their own server has one.
 //
 // The inference is always logged, never silent — a deployment mode that
@@ -88,7 +88,7 @@ function bool(raw: string | undefined, fallback: boolean): boolean {
  * (`Deno.env.get`) and the Node API (`(k) => process.env[k]`) without either
  * reaching for a runtime the other doesn't have.
  */
-export interface TebexStatus {
+export interface BillingStatus {
   /** Real, usable-looking credentials. Placeholders don't count. */
   configured: boolean;
   /** Everything billing needs, not just the API credentials. */
@@ -102,19 +102,19 @@ export interface TebexStatus {
 // platform mode and then crashing on an API call at runtime.
 const PLACEHOLDER = /^(your|my|the|insert|replace|change|todo|xxx+|<|\.\.\.|placeholder|example)/i;
 
-// There is deliberately no shape check on Tebex credentials, unlike the
-// sk_live_/whsec_ prefixes this used to match against.
+// There is deliberately no shape check on the Paddle key beyond the
+// placeholder test, even though its prefixes (pdl_live_ / pdl_sdbx_) are
+// documented and paddleService.ts does read them to catch an environment
+// mismatch.
 //
-// Stripe publishes its key formats and they are stable enough to validate a
-// paste against. Tebex does not document one for the Checkout API pair, and a
-// regex invented from a handful of observed keys would reject valid ones from
-// a different account or a later format change — turning a working deployment
-// into a refusal to boot, which is far worse than not catching a typo. What is
-// checked below is what can be checked honestly: presence, and that it isn't a
-// placeholder someone forgot to replace.
+// The difference is consequence. There, a wrong prefix means one misdirected
+// checkout; here, it decides whether the whole deployment boots, and a format
+// change or an account issuing an unfamiliar key would turn a working install
+// into a refusal to start. So this checks only what can be checked honestly:
+// presence, and that it isn't a placeholder someone forgot to replace.
 
 /**
- * What the Tebex config actually looks like, rather than whether a variable
+ * What the Paddle config actually looks like, rather than whether a variable
  * happens to be non-empty.
  *
  * The distinction matters because "the credentials are set" is what decides
@@ -125,20 +125,19 @@ const PLACEHOLDER = /^(your|my|the|insert|replace|change|todo|xxx+|<|\.\.\.|plac
  * the callback that grants it. That failure is invisible until someone's plan
  * doesn't change after they pay.
  */
-export function inspectTebex(get: (key: string) => string | undefined): TebexStatus {
-  const projectId = get("TEBEX_PROJECT_ID")?.trim() ?? "";
-  const privateKey = get("TEBEX_PRIVATE_KEY")?.trim() ?? "";
-  const webhook = get("TEBEX_WEBHOOK_SECRET")?.trim() ?? "";
+export function inspectPaddle(get: (key: string) => string | undefined): BillingStatus {
+  const apiKey = get("PADDLE_API_KEY")?.trim() ?? "";
+  const webhook = get("PADDLE_WEBHOOK_SECRET")?.trim() ?? "";
   const problems: string[] = [];
 
   const usable = (v: string) => v !== "" && !PLACEHOLDER.test(v);
 
-  if (!usable(projectId) || !usable(privateKey)) {
+  if (!usable(apiKey)) {
     // Only worth a message if something was actually there — an unset variable
     // on a self-hosted clone is the expected case, not a problem.
-    if (projectId || privateKey) {
+    if (apiKey) {
       problems.push(
-        "TEBEX_PROJECT_ID / TEBEX_PRIVATE_KEY look like placeholders rather than credentials — treating Tebex as unconfigured. Both come from creator.tebex.io → Developers → API Keys.",
+        "PADDLE_API_KEY looks like a placeholder rather than a credential — treating Paddle as unconfigured. It comes from Paddle > Developer tools > Authentication.",
       );
     }
     return { configured: false, complete: false, problems };
@@ -148,7 +147,7 @@ export function inspectTebex(get: (key: string) => string | undefined): TebexSta
   if (!usable(webhook)) {
     complete = false;
     problems.push(
-      "TEBEX_WEBHOOK_SECRET is missing. Billing will appear to work — checkout completes and the customer is charged — but no plan will ever activate, because nothing can verify the callback that grants it. Get it from the webhook endpoint's settings in the Tebex creator panel.",
+      "PADDLE_WEBHOOK_SECRET is missing. Billing will appear to work — checkout completes and the customer is charged — but no plan will ever activate, because nothing can verify the callback that grants it. It is per notification destination, in Paddle > Developer tools > Notifications, and is NOT the API key.",
     );
   }
 
@@ -161,11 +160,11 @@ export function resolveDeployment(
   note: (message: string) => void = (m) => console.info(m),
 ): DeploymentConfig {
   const explicit = get("DEPLOYMENT_MODE")?.trim().toLowerCase();
-  const tebex = inspectTebex(get);
+  const billing = inspectPaddle(get);
   // Discord subscriptions are the other way to be a paid deployment. If SKUs
-  // are mapped, this is a platform whether or not Tebex is involved.
+  // are mapped, this is a platform whether or not Paddle is involved.
   const discordSkus = !!get("DISCORD_SKU_TIERS")?.trim();
-  const billingConfigured = tebex.configured || discordSkus;
+  const billingConfigured = billing.configured || discordSkus;
 
   let mode: DeploymentMode;
 
@@ -179,7 +178,7 @@ export function resolveDeployment(
 
     // Explicit platform mode with no credentials fails later anyway, inside
     // requiredInPlatformMode — but it fails with "Missing required environment
-    // variable: TEBEX_PROJECT_ID", which doesn't mention the mode that made it
+    // variable: PADDLE_API_KEY", which doesn't mention the mode that made it
     // required. Say so here, while the reason is still obvious.
     // Deliberately platform-only. Test mode is the supported way to run
     // everything-but-money, so a platform deployment with no billing source
@@ -187,9 +186,9 @@ export function resolveDeployment(
     if (mode === "platform" && !billingConfigured) {
       throw new Error(
         [
-          "DEPLOYMENT_MODE=platform requires a billing source: either working Tebex configuration or DISCORD_SKU_TIERS.",
-          ...tebex.problems,
-          'If you are self-hosting, remove DEPLOYMENT_MODE (or set it to "self") and no Tebex account is needed.',
+          "DEPLOYMENT_MODE=platform requires a billing source: either working Paddle configuration or DISCORD_SKU_TIERS.",
+          ...billing.problems,
+          'If you are self-hosting, remove DEPLOYMENT_MODE (or set it to "self") and no Paddle account is needed.',
         ].join(" "),
       );
     }
@@ -204,7 +203,7 @@ export function resolveDeployment(
     }
     if (mode === "self" && billingConfigured) {
       note(
-        "[deployment] DEPLOYMENT_MODE=self — Tebex credentials are set but will be ignored. " +
+        "[deployment] DEPLOYMENT_MODE=self — Paddle credentials are set but will be ignored. " +
           "Remove them unless you meant DEPLOYMENT_MODE=platform.",
       );
     }
@@ -212,8 +211,8 @@ export function resolveDeployment(
     mode = billingConfigured ? "platform" : "self";
     const why = discordSkus
       ? "DISCORD_SKU_TIERS is set"
-      : tebex.configured
-      ? "Tebex credentials are configured"
+      : billing.configured
+      ? "Paddle credentials are configured"
       : "no billing is configured";
     note(
       `[deployment] DEPLOYMENT_MODE not set — inferred "${mode}" because ${why}. ` +
@@ -229,7 +228,7 @@ export function resolveDeployment(
   // Surface every shape problem regardless of how the mode was reached. A
   // placeholder or a pk_ key that quietly demoted the deployment to `self` is
   // exactly the thing someone needs told, not hidden by the demotion working.
-  for (const p of tebex.problems) note(`[deployment] ${p}`);
+  for (const p of billing.problems) note(`[deployment] ${p}`);
 
   if (isPlatform) {
     // A throw, not a warning. Platform mode with working API credentials and
@@ -237,26 +236,29 @@ export function resolveDeployment(
     // they paid for, and nothing in the logs would say so.
     //
     // This used to be conditional on the keys being live ones, so a staging
-    // deployment on test keys could boot without a webhook. Tebex publishes no
-    // way to tell a test credential from a live one, so that exemption cannot
-    // be made safely and is gone: if billing is configured at all, the half
-    // that grants what was bought has to be configured too.
-    if (isPlatform && tebex.configured && !tebex.complete) {
+    // deployment on test keys could boot without a webhook. That exemption is
+    // gone even though Paddle's prefixes (pdl_live_ / pdl_sdbx_) would make it
+    // implementable: a sandbox deployment charges nobody, but it also proves
+    // nothing about the path that does, and the bug being prevented here —
+    // charged, never granted — only ever appears in the configuration that was
+    // exempt. If billing is configured at all, the half that grants what was
+    // bought has to be configured too.
+    if (isPlatform && billing.configured && !billing.complete) {
       throw new Error(
-        "Refusing to start in platform mode with Tebex credentials and no TEBEX_WEBHOOK_SECRET. " +
+        "Refusing to start in platform mode with a Paddle API key and no PADDLE_WEBHOOK_SECRET. " +
           "Checkout would succeed and no plan would ever activate. " +
-          "Set TEBEX_WEBHOOK_SECRET, or unset the Tebex credentials while you sort it out.",
+          "Set PADDLE_WEBHOOK_SECRET, or unset PADDLE_API_KEY while you sort it out.",
       );
     }
   }
 
   return {
     mode,
-    billingIncomplete: tebex.configured && !tebex.complete,
+    billingIncomplete: billing.configured && !billing.complete,
     brandName: get("BRAND_NAME")?.trim() || (isPlatform ? "Appealy" : "This bot"),
     supportUrl: get("SUPPORT_URL")?.trim() ?? "",
     features: {
-      // Never available self-hosted: there is no second Tebex account to point
+      // Never available self-hosted: there is no second Paddle account to point
       // at. Off in test too — that is what makes it test.
       billing: isPlatform,
       // Self-hosters get flat caps from env instead of a price-derived tier.

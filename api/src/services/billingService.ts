@@ -1,7 +1,7 @@
 // api/src/services/billingService.ts
 //
 // The ONLY place a guild's billing columns are written after a paid plan
-// change. Called exclusively from routes/tebexWebhook.ts once Tebex has
+// change. Called exclusively from routes/paddleWebhook.ts once Paddle has
 // confirmed a payment succeeded — never from a route that only has
 // unverified client input. Keeping this here makes it possible to audit every
 // code path that can move money-adjacent state with a single grep.
@@ -19,9 +19,9 @@ export interface ApplyPlanChangeResult {
 export async function applyPlanChange(
   guildId: bigint,
   plan: FullQuoteInput,
-  /** Tebex's handle for the subscription behind this payment, so its later
-   *  lifecycle events can be matched back to this guild. Null for a payment
-   *  with no recurring component. */
+  /** Paddle's subscription id for the payment behind this plan, so its later
+   *  lifecycle events — renewed, cancelled, refunded — can be matched back to
+   *  this guild. Null for a payment with no recurring component. */
   recurringReference: string | null = null,
 ): Promise<ApplyPlanChangeResult> {
   // Re-validate server-side even though this is only called post-payment —
@@ -59,7 +59,7 @@ export async function applyPlanChange(
   // Only ever set, never cleared here: a renewal arriving without one should
   // not wipe the reference the original payment established.
   if (recurringReference) {
-    updateSet.tebexRecurringReference = recurringReference;
+    updateSet.paddleSubscriptionId = recurringReference;
   }
 
   await db.update(schema.guilds).set(updateSet).where(eq(schema.guilds.id, guildId));
@@ -89,7 +89,7 @@ export async function endPaidPlan(
       customBillingRenewsAt: null,
       // Cleared so a later event for the same dead subscription cannot match
       // this guild again.
-      tebexRecurringReference: null,
+      paddleSubscriptionId: null,
       updatedAt: new Date(),
     })
     .where(eq(schema.guilds.id, guildId));

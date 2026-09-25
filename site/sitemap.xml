@@ -20,12 +20,6 @@
   worse than one that makes no claim — Google treats an inaccurate lastmod as
   a reason to trust the whole file less. Omitting it is valid and honest.
 
-  /tebex is deliberately ABSENT. That page carries
-  <meta name="robots" content="noindex"> — it exists for a Tebex reviewer
-  following a link, not for search. Listing a noindex page in a sitemap asks
-  Google to index something the page itself refuses, and a sitemap that
-  contradicts its own pages is treated as less trustworthy as a whole.
-
   Priorities are relative to each other and to nothing else. The comparison
   pages rank highest after the home page because "<product> alternative" is the
   highest-intent query anyone types about software they are already using. The

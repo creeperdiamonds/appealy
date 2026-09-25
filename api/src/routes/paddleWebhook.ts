@@ -1,9 +1,9 @@
 // api/src/routes/paddleWebhook.ts
 //
 // Receives Paddle's notifications and is the ONLY place a paid plan change is
-// applied on the Paddle side (via services/billingService.ts). It is a port of
-// routes/tebexWebhook.ts and keeps its four rules, because none of them were
-// about Tebex specifically:
+// applied (via services/billingService.ts). It keeps the four rules the
+// previous provider's handler established, because none of them were about
+// that provider specifically:
 //
 //   1. VERIFY THE SIGNATURE, OVER THE RAW BYTES. Paddle signs every webhook
 //      with the secret of the notification destination it was sent to. The
@@ -75,7 +75,8 @@ function paddle(): Paddle {
 
 paddleWebhookRouter.post("/paddle", raw({ type: "*/*" }), async (req, res) => {
   if (!env.PADDLE_WEBHOOK_SECRET) {
-    // Paddle is not configured yet (Tebex is still the live integration).
+    // Paddle is the only provider, so an unset secret is a misconfiguration
+    // rather than an expected state.
     // 503 rather than 200: an unconfigured endpoint should not swallow events.
     logger.error("Paddle webhook: PADDLE_WEBHOOK_SECRET is unset, cannot verify");
     return res.status(503).send("Paddle webhooks are not configured");

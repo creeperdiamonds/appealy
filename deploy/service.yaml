@@ -219,15 +219,10 @@ spec:
             - name: OPS_USER_IDS
               valueFrom: { secretKeyRef: { name: appealy-ops-user-ids, key: latest } }
             # Substituted at deploy time from GitHub secrets. See the workflow.
-            - name: TEBEX_PROJECT_ID
-              value: "TEBEX_PROJECT_ID_VALUE"
-            - name: TEBEX_PRIVATE_KEY
-              value: "TEBEX_PRIVATE_KEY_VALUE"
-            - name: TEBEX_WEBHOOK_SECRET
-              value: "TEBEX_WEBHOOK_SECRET_VALUE"
-            # Paddle, which is replacing Tebex. Empty until the account exists —
-            # api/src/env.ts reads an empty PADDLE_API_KEY as "not configured"
-            # and routes/billing.ts keeps selling through Tebex until it is set.
+            # Paddle is the only payment provider. Required in platform mode:
+            # api/src/env.ts refuses to start without it, because there is no
+            # second provider to fall back to and a platform deployment that
+            # cannot sell would show prices nobody can pay.
             # Not on the bot container: nothing under bot/ touches billing.
             - name: PADDLE_API_KEY
               value: "PADDLE_API_KEY_VALUE"
@@ -291,12 +286,15 @@ spec:
               valueFrom: { secretKeyRef: { name: appealy-discord-public-key, key: latest } }
             - name: TOKEN_ENCRYPTION_KEY
               valueFrom: { secretKeyRef: { name: appealy-token-encryption-key, key: latest } }
-            - name: TEBEX_PROJECT_ID
-              value: "TEBEX_PROJECT_ID_VALUE"
-            - name: TEBEX_PRIVATE_KEY
-              value: "TEBEX_PRIVATE_KEY_VALUE"
-            - name: TEBEX_WEBHOOK_SECRET
-              value: "TEBEX_WEBHOOK_SECRET_VALUE"
+            # The bot never sells anything, but it does run resolveDeployment, which
+            # refuses to start in DEPLOYMENT_MODE=platform without a billing source.
+            # The TEBEX_* trio used to satisfy that here for exactly this reason;
+            # these replace them. Removing them without setting DEPLOYMENT_MODE to
+            # something else takes the bot down across every guild.
+            - name: PADDLE_API_KEY
+              value: "PADDLE_API_KEY_VALUE"
+            - name: PADDLE_WEBHOOK_SECRET
+              value: "PADDLE_WEBHOOK_SECRET_VALUE"
           resources:
             limits:
               cpu: "1"

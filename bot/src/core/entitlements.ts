@@ -3,21 +3,22 @@
 // Discord App Subscriptions — tier resolution from entitlements.
 //
 // ---------------------------------------------------------------------------
-// Why this exists alongside Tebex
+// Why this exists alongside the web checkout
 // ---------------------------------------------------------------------------
 // Discord's Monetization Requirements policy says an app offering paid
 // capabilities must also offer them through Premium Apps, at a price no higher
 // than elsewhere. So Discord subscriptions were never really optional next to
-// a web checkout — and they overlap with most of what Tebex is for:
+// a web checkout — and they overlap with most of what Paddle is for:
 //
-//   - Discord is merchant of record, as Tebex is. No payment processor to
+//   - Discord is merchant of record, as Paddle is. No payment processor to
 //     onboard, no PCI surface, no VAT/sales-tax handling of your own.
 //   - Purchase happens inside Discord. No redirect to a checkout page.
 //   - Guild subscriptions map directly onto this codebase's per-guild tiers.
 //
 // What Discord cannot do is the custom-caps tier: its SKUs are a fixed
 // catalogue, and an admin choosing their own numbers produces a price that
-// exists only at request time. That is the case Tebex's inline packages cover,
+// exists only at request time. That is the case Paddle's inline non-catalog
+// prices cover,
 // and the reason both paths exist rather than one.
 //
 // The cost is the platform fee (15% under $1M cumulative, 30% after) and

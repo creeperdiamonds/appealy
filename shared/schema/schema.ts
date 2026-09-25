@@ -187,24 +187,11 @@ export const guilds = pgTable("guilds", {
   customBotRunnerId: text("custom_bot_runner_id"),
   customBotHeartbeatAt: timestamp("custom_bot_heartbeat_at", { withTimezone: true }),
   customBillingRenewsAt: timestamp("custom_billing_renews_at", { withTimezone: true }),
-  // Tebex's reference for the recurring payment behind the current paid plan.
-  //
-  // Needed because the subscription lifecycle events — renewed, ended,
-  // cancellation requested — identify themselves by this reference and do not
-  // necessarily carry back the custom data the original checkout set. Without
-  // somewhere to correlate it, a cancellation is a webhook about a
-  // subscription we cannot match to a guild, and the plan would simply never
-  // end. Null for guilds on the free selection.
-  tebexRecurringReference: text("tebex_recurring_reference"),
   /**
-   * The same idea for Paddle, which is replacing Tebex: the subscription this
+   * Paddle's id for the subscription behind the current paid plan: the one this
    * guild's paid plan hangs off. Paddle's later lifecycle events (cancelled,
    * past due, ended) carry the subscription id and nothing else of ours, so
    * this is how they find their way back to a guild.
-   *
-   * Its own column rather than reusing the Tebex one: both integrations exist
-   * at once during the move, and an id from one provider looked up against the
-   * other would silently match nothing — or, worse, match something.
    */
   paddleSubscriptionId: text("paddle_subscription_id"),
   // Whether the bot is currently in this guild.

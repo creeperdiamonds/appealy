@@ -209,7 +209,7 @@ export default function Support({
         {billingEnabled && (
           <Panel title="Billing and payment">
             <p className="dim">
-              Tebex is the merchant of record, so refunds and payment-method problems go through
+              Paddle is the merchant of record, so refunds and payment-method problems go through
               their support with your order reference. Refunds are available for 14 days after
               purchase, no reason needed. What a plan actually grants is a different question —
               that one is on the billing screen.

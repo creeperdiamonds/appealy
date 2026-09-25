@@ -93,7 +93,7 @@ jobs:
           echo "::add-mask::$DATABASE_URL"
 
           # "self", not "platform". Platform mode requires a billing source and
-          # this task has no Tebex credentials, so asking for it fails at
+          # this task has no Paddle credentials, so asking for it fails at
           # startup — which is how the first attempt broke, chasing a log line
           # that was only noise.
           #

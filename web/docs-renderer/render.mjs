@@ -273,7 +273,6 @@ ${footerDocs}
         <ul>
           <li><a href="${SITE}/privacy">Privacy</a></li>
           <li><a href="${SITE}/terms">Terms of Service</a></li>
-          <li><a href="${SITE}/tebex">Tebex reviewer? Start here</a></li>
         </ul>
       </section>
     </div>

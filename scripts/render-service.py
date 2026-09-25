@@ -6,15 +6,15 @@ generated secrets, and sed would misbehave on any / or & inside one.
 
 Every placeholder must be filled. An unrendered one would deploy a container
 image literally named IMAGE_API, or an env var whose value is the string
-"TEBEX_PRIVATE_KEY_VALUE" — the first fails loudly, the second starts fine and
+"PADDLE_API_KEY_VALUE" — the first fails loudly, the second starts fine and
 then fails to take payments, so this asserts rather than warns.
 
 Reads from the environment, writes the result to stdout:
 
   ARTIFACT_REGISTRY  us-central1-docker.pkg.dev/<project>/appealy-repo
   SHA                commit to tag every image with
-  TEBEX_PROJECT_ID / TEBEX_PRIVATE_KEY / TEBEX_WEBHOOK_SECRET
-  PADDLE_API_KEY / PADDLE_WEBHOOK_SECRET / PADDLE_ENV / PADDLE_CHECKOUT_URL
+  PADDLE_API_KEY / PADDLE_WEBHOOK_SECRET  required: the only payment provider
+  PADDLE_ENV / PADDLE_CHECKOUT_URL
   PADDLE_CLIENT_TOKEN  browser-side token, served to the payment page
                      optional, empty until the Paddle account exists
   RPC_SECRET         guards the bot's control server
@@ -29,9 +29,6 @@ import sys
 REQUIRED = [
     "ARTIFACT_REGISTRY",
     "SHA",
-    "TEBEX_PROJECT_ID",
-    "TEBEX_PRIVATE_KEY",
-    "TEBEX_WEBHOOK_SECRET",
     "RPC_SECRET",
     "CLOUDSQL_CONNECTION_NAME",
     "PUBLIC_ORIGIN",
@@ -51,19 +48,18 @@ sha = os.environ["SHA"]
 for service, placeholder in (("api", "IMAGE_API"), ("web", "IMAGE_WEB"), ("bot", "IMAGE_BOT")):
     spec = spec.replace(placeholder, "%s/appealy-%s:%s" % (registry, service, sha))
 
-for var in ("TEBEX_PROJECT_ID", "TEBEX_PRIVATE_KEY", "TEBEX_WEBHOOK_SECRET"):
+for var in ("PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET"):
     spec = spec.replace(var + "_VALUE", os.environ[var])
 
-# Paddle is replacing Tebex (see api/src/services/paddleService.ts), and its
-# keys do not exist until the account does. So unlike the Tebex values above
-# these are NOT in REQUIRED: an empty string renders to an empty env var, which
-# api/src/env.ts reads as "not configured" and billing falls back to Tebex.
+# Paddle is the only payment provider, so its credentials are required above
+# rather than optional here. The values below stay optional: PADDLE_ENV and
+# PADDLE_CHECKOUT_URL have working defaults, and PADDLE_CLIENT_TOKEN is only
+# needed by the hosted payment page.
 #
 # They are still substituted unconditionally, because the sweep below fails the
 # deploy on any placeholder left in the spec — "optional" has to mean "renders
 # to nothing", not "skipped".
-for var in ("PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET", "PADDLE_ENV", "PADDLE_CHECKOUT_URL",
-            "PADDLE_CLIENT_TOKEN"):
+for var in ("PADDLE_ENV", "PADDLE_CHECKOUT_URL", "PADDLE_CLIENT_TOKEN"):
     spec = spec.replace(var + "_VALUE", os.environ.get(var, ""))
 
 spec = spec.replace("INTERNAL_RPC_SECRET_VALUE", os.environ["RPC_SECRET"])

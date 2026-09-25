@@ -1,7 +1,7 @@
 # Running this yourself
 
 `.env.example` ships with `DEPLOYMENT_MODE=self`. Leave it. Billing is off, no
-Tebex account is needed, and caps come from the `CAP_*` values.
+Paddle account is needed, and caps come from the `CAP_*` values.
 
 ```bash
 cp .env.example .env
@@ -47,13 +47,13 @@ DASHBOARD_BASE_URL=https://appeals.example.com
 All three name the console, and the redirect URI must be HTTPS — Discord
 rejects plain HTTP on anything that is not `localhost`.
 
-No Tebex account needed. That was the blocker — the payment credentials were
+No Paddle account needed. That was the blocker — the payment credentials were
 unconditionally required, so a clone of an open-source project crashed on
 startup asking for a merchant account.
 
 | | `platform` | `self` |
 |---|---|---|
-| Tebex / billing | required | off, credentials unread |
+| Paddle / billing | required | off, credentials unread |
 | Rate limits | tier from `pricing.ts` | flat `CAP_*` |
 | Appeal link in ban notice | dashboard | `SUPPORT_URL`, or omitted |
 | Public status page | on | off |
@@ -62,12 +62,12 @@ startup asking for a merchant account.
 ## Three decisions
 
 **The template pins `self`; the inference is the fallback.** An explicit
-`DEPLOYMENT_MODE` always wins. Blank it and the mode is inferred — Tebex
+`DEPLOYMENT_MODE` always wins. Blank it and the mode is inferred — Paddle
 credentials mean `platform`, none mean `self`.
 
 Pinned rather than left blank because `.env.example` is a file *everybody*
 copies. Inference is right for a deployment someone deliberately configured and
-wrong for a shared template: stray Tebex credentials in a cloned `.env` would
+wrong for a shared template: stray Paddle credentials in a cloned `.env` would
 silently promote a self-hosted instance into platform mode and switch on
 billing routes nobody asked for. An explicit value can't be surprised into
 changing.
@@ -79,7 +79,7 @@ deployment whenever someone forgot the flag: billing routes gone, every guild
 on flat caps, and nothing to notice until a customer asked why they couldn't
 upgrade.
 
-Tebex credentials are the honest signal. Nobody sets them by accident, and
+Paddle credentials are the honest signal. Nobody sets them by accident, and
 nobody running this for their own server has them. The inference is logged
 every startup — a mode nobody chose and nobody can see is how you lose an
 afternoon to the wrong bug.
@@ -90,19 +90,20 @@ proxy for "configured":
 | In `.env` | Result |
 |---|---|
 | blank | `self` |
-| `your_tebex_key_here` | `self`, and says the placeholder was ignored |
-| real credentials, no `TEBEX_WEBHOOK_SECRET` | refuses to start, see below |
-| all three set | `platform` |
+| `your_paddle_key_here` | `self`, and says the placeholder was ignored |
+| real credentials, no `PADDLE_WEBHOOK_SECRET` | refuses to start, see below |
+| both set | `platform` |
 
-There is deliberately no format check on the credentials themselves. The Stripe
-integration this replaced could match `sk_live_…` and `whsec_…` because those
-formats are documented and stable. Tebex does not publish one for the Checkout
-API pair, and a pattern guessed from a few observed keys would eventually
-reject a valid key and refuse to boot — a worse failure than not catching a
-typo.
+There is deliberately no strict format check on the credentials themselves.
+What *is* checked is the environment: a Paddle API key's prefix names the
+environment it belongs to, so a key that disagrees with `PADDLE_ENV` — a
+sandbox key in production, or the reverse — is caught before a checkout is
+attempted rather than discovered when one fails. Beyond that, a pattern
+guessed from a few observed keys would eventually reject a valid key and
+refuse to boot — a worse failure than not catching a typo.
 
 What is still enforced is the pairing: credentials without
-`TEBEX_WEBHOOK_SECRET` refuse to start, because that combination means
+`PADDLE_WEBHOOK_SECRET` refuse to start, because that combination means
 checkout succeeds, the customer is charged, and no plan ever activates.
 | `sk_live_…` without webhook secret | **refuses to start** |
 | `sk_live_…` + `whsec_…` | `platform` |

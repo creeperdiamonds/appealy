@@ -133,17 +133,17 @@ export default defineConfig({
     // hostnames, and developing against the lenient case is how the
     // difference stays invisible until it is in front of users.
     //
-    // Only the API's real prefixes are proxied; /webhooks (Tebex) and
+    // Only the API's real prefixes are proxied; /webhooks (Paddle) and
     // /health are hit on the API directly and have no reason to be reachable
     // through the console.
     proxy: {
       "/auth": { target: "http://localhost:3001" },
       "/api": { target: "http://localhost:3001" },
       // Matches the nginx passthrough. Only reachable locally through a
-      // tunnel, since Tebex has to be able to call it — but when someone does
+      // tunnel, since Paddle has to be able to call it — but when someone does
       // point a tunnel here to test a payment, the alternative is the
       // marketing middleware below answering the callback with a 404 and the
-      // test looking like a Tebex problem.
+      // test looking like a Paddle problem.
       "/webhooks": { target: "http://localhost:3001" },
     },
   },

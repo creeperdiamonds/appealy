@@ -205,54 +205,63 @@ the API (`api/src/routes/billing.ts`), and the bot's enforcement
 (`bot/src/services/rateLimitService.ts`) can never disagree about a price
 or a cap.
 
-### Payment: Tebex, with a strict quote → checkout → webhook separation
+### Payment: Paddle, with a strict quote → checkout → webhook separation
 
-Tebex is the **merchant of record**: it sells to the customer, collects the
+Paddle is the **merchant of record**: it sells to the customer, collects the
 money, and owns sales-tax and VAT registration and remittance in the
 jurisdictions it sells into. Taking cards directly would mean being the
 merchant — which starts with handing a processor a taxpayer identification
 number (an SSN or ITIN for an individual, an EIN for a company) and continues
 with owning tax registration wherever customers are.
 
-`POST /billing/checkout` creates a Tebex checkout for a computed, non-catalog
-annual amount. The Checkout API takes items with an **inline package** carrying
-a `name` and a `price` chosen at request time, which is what makes it workable
-for the custom-caps tier. Earlier revisions of this document claimed the
-opposite — that Tebex could not price anything without pre-created SKUs — and
-that is no longer true; nothing about the pricing model had to change to move,
-because `shared/schema/pricing.ts` still computes the number and the service
-still just hands it over. The chosen plan travels in the basket's `custom`
-object.
+`POST /billing/checkout` creates a Paddle transaction for a computed,
+**non-catalog** annual amount: a name, a unit price in minor units and a
+billing cycle chosen at request time, rather than a pre-created SKU. That is
+what makes the custom-caps tier expressible at all, since
+`shared/schema/pricing.ts` computes a different number for every custom plan.
+Nothing about the pricing model had to change — `pricing.ts` still computes
+the number and `api/src/services/paddleService.ts` still just hands it over.
+The chosen plan travels in the transaction's server-set `custom_data`, which
+Paddle echoes back on every webhook about it and copies onto the subscription
+the transaction creates.
 
-Items are created as annual **subscriptions**, so Tebex emits the recurring
+Items are created as annual **subscriptions**, so Paddle emits the recurring
 lifecycle events. That is how a plan now ends when a customer stops paying —
-the previous integration handled only the first payment, so a plan bought once
+the earliest integration handled only the first payment, so a plan bought once
 never lapsed.
 
 The guild's plan is changed in exactly one place:
 `api/src/services/billingService.ts::applyPlanChange`, called only from
-`api/src/routes/tebexWebhook.ts` after Tebex confirms payment succeeded.
-That webhook handler does three things worth knowing if you're auditing
+`api/src/routes/paddleWebhook.ts` after Paddle confirms payment succeeded.
+That webhook handler does four things worth knowing if you're auditing
 or extending it:
 
 1. **Verifies the signature** against the raw request body (mounted
    before `express.json()` for exactly this reason — a re-serialized body
-   won't match the signature computed over the original bytes — Tebex's own
-   docs call out Express by name for this).
-2. **Re-derives the plan from the session's server-set metadata**, never
-   from anything a client sends to the webhook directly.
-3. **Recalculates what the plan should cost and compares it to what Tebex
+   won't match the signature computed over the original bytes). The
+   `Paddle-Signature` header is HMAC-SHA256 over `<timestamp>:<raw body>`.
+2. **Re-derives the plan from the transaction's server-set `custom_data`**,
+   never from anything a client sends to the webhook directly.
+3. **Recalculates what the plan should cost and compares it to what Paddle
    says was actually paid before applying anything** — currency included,
-   since 60 of the wrong unit is not the price. This is Tebex's own webhook
-   documentation's warning: a signature proves the message came from the
-   payment provider, not that its contents match what you intended to charge
-   for. A mismatch is logged and the plan change is refused rather than
-   applied at the wrong price.
-4. **Ends plans that end.** `recurring-payment.ended` and `payment.refunded`
-   return the guild to the free selection. The subscription is matched back to
-   its guild through `guilds.tebex_recurring_reference`, recorded when the
-   first payment was applied, because the lifecycle events identify themselves
-   by that reference and do not carry the basket's custom data.
+   since 60 of the wrong unit is not the price. The comparison is against the
+   **pre-tax subtotal**, because every price in `pricing.ts` is tax-exclusive
+   and Paddle, as merchant of record, adds VAT or sales tax on top; comparing
+   the tax-inclusive total would refuse every correct payment from a taxed
+   country. A signature proves the message came from the payment provider, not
+   that its contents match what you intended to charge for. A mismatch is
+   logged and the plan change is refused rather than applied at the wrong
+   price.
+4. **Ends plans that end.** `subscription.canceled` returns the guild to the
+   free selection, and so does an approved refund or chargeback adjustment.
+   The subscription is matched back to its guild through
+   `guilds.paddle_subscription_id`, recorded when the first payment was
+   applied, because the lifecycle events identify themselves by that id and do
+   not carry the transaction's custom data.
+
+Paddle treats only a 2xx as delivered and retries anything else, so a failure
+in that handler must **not** answer 2xx — the one status that loses a payment
+forever is a 200 on a request we failed to handle.
 
 Downgrading to the fully-free selection is the one plan change that
 bypasses checkout entirely (`PUT /billing/downgrade-to-free`) since it

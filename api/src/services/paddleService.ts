@@ -1,7 +1,6 @@
 // api/src/services/paddleService.ts
 //
-// Creates Paddle transactions for arbitrary, computed annual amounts — the
-// replacement for services/tebexService.ts.
+// Creates Paddle transactions for arbitrary, computed annual amounts.
 //
 // WHY THIS EXISTS AT ALL
 //

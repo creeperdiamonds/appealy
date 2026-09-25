@@ -89,9 +89,9 @@ variable "app_secrets" {
     "appealy-session-secret",
     "appealy-token-encryption-key",
     "appealy-ops-user-ids",
-    # No TEBEX_* entries on purpose. Those three reach Cloud Run as env_vars
+    # No PADDLE_* entries on purpose. Those reach Cloud Run as env_vars
     # from GitHub secrets instead (see the deploy workflow), so creating
-    # Secret Manager containers here would leave three empty secrets that
+    # Secret Manager containers here would leave empty secrets that
     # nothing ever reads or writes — dead configuration that reads like a
     # working path until someone traces it.
   ]

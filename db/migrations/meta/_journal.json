@@ -99,6 +99,13 @@
       "when": 1790344645299,
       "tag": "0013_aromatic_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790347593895,
+      "tag": "0014_perpetual_blizzard",
+      "breakpoints": true
     }
   ]
 }

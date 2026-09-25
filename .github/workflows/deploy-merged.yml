@@ -56,14 +56,12 @@ jobs:
 
       - name: Fail early if billing credentials are missing
         env:
-          A: ${{ secrets.TEBEX_PROJECT_ID }}
-          B: ${{ secrets.TEBEX_PRIVATE_KEY }}
-          C: ${{ secrets.TEBEX_WEBHOOK_SECRET }}
+          A: ${{ secrets.PADDLE_API_KEY }}
+          B: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
         run: |
           missing=""
-          if [ -z "$A" ]; then missing="$missing TEBEX_PROJECT_ID"; fi
-          if [ -z "$B" ]; then missing="$missing TEBEX_PRIVATE_KEY"; fi
-          if [ -z "$C" ]; then missing="$missing TEBEX_WEBHOOK_SECRET"; fi
+          if [ -z "$A" ]; then missing="$missing PADDLE_API_KEY"; fi
+          if [ -z "$B" ]; then missing="$missing PADDLE_WEBHOOK_SECRET"; fi
           if [ -n "$missing" ]; then
             echo "::error::Missing repository secret(s):$missing"
             echo "DEPLOYMENT_MODE=platform needs a billing source, so the containers"
@@ -175,12 +173,10 @@ jobs:
       - name: Render the service spec
         env:
           SHA: ${{ github.sha }}
-          TEBEX_PROJECT_ID: ${{ secrets.TEBEX_PROJECT_ID }}
-          TEBEX_PRIVATE_KEY: ${{ secrets.TEBEX_PRIVATE_KEY }}
-          TEBEX_WEBHOOK_SECRET: ${{ secrets.TEBEX_WEBHOOK_SECRET }}
-          # Paddle, replacing Tebex. Deliberately absent from the "fail early"
-          # check above: these are empty until the account exists, and an empty
-          # PADDLE_API_KEY means billing keeps using Tebex rather than failing.
+          # Paddle is the only payment provider, so these are checked by the
+          # "fail early" step above rather than being allowed to render empty:
+          # there is nothing left to fall back to, and a platform deployment
+          # without them shows prices nobody can pay.
           # ENV and CHECKOUT_URL are variables, not secrets — neither is one.
           PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
           PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}

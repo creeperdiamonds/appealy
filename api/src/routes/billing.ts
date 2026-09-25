@@ -8,13 +8,13 @@
 //     admin always sees the real price before ever reaching checkout.
 //     Delegates entirely to shared/schema/pricing.ts so this can never
 //     disagree with what the bot enforces or what checkout actually charges.
-//   POST /checkout — creates a Tebex checkout for a chosen plan and returns
+//   POST /checkout — creates a Paddle checkout for a chosen plan and returns
 //     the URL to redirect the admin to. This is the only route that talks to
-//     Tebex directly; the actual plan change is applied by applyPlanChange()
+//     Paddle directly; the actual plan change is applied by applyPlanChange()
 //     (services/billingService.ts) ONLY from the webhook handler in
-//     routes/tebexWebhook.ts once Tebex confirms payment succeeded — never
+//     routes/paddleWebhook.ts once Paddle confirms payment succeeded — never
 //     from this route, and never from client input alone. See
-//     routes/tebexWebhook.ts for why.
+//     routes/paddleWebhook.ts for why.
 //
 // ALL BILLING HERE IS ANNUAL-ONLY. See the comment at the top of
 // shared/schema/pricing.ts for why: standard card-processing fees are
@@ -32,7 +32,6 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
 import { env } from "../env.ts";
-import { createTebexCheckout } from "../services/tebexService.ts";
 import { logger } from "../utils/logger.ts";
 import { createPaddleCheckout, paddleReady } from "../services/paddleService.ts";
 import {
@@ -93,7 +92,7 @@ billingRouter.get("/", async (req, res) => {
 });
 
 // Pure quote — safe to call as often as the UI needs, never persists
-// anything and never talks to Tebex. This is what makes "see the price
+// anything and never talks to Paddle. This is what makes "see the price
 // before checkout" possible: the dashboard calls this on every change to
 // the throughput/hosting selection and renders the response directly.
 billingRouter.post("/quote", async (req, res) => {
@@ -104,12 +103,12 @@ billingRouter.post("/quote", async (req, res) => {
   res.json(quote);
 });
 
-// Creates a Tebex checkout for the requested plan and returns the URL to send
+// Creates a Paddle checkout for the requested plan and returns the URL to send
 // the admin to. Does NOT change the guild's plan — that only happens once
-// Tebex's webhook confirms the payment actually succeeded
-// (routes/tebexWebhook.ts). The requested plan is attached to the basket as
-// custom data so the webhook can recover exactly what was bought without
-// trusting anything its caller sends — see the warning in that file.
+// Paddle's webhook confirms the payment actually succeeded
+// (routes/paddleWebhook.ts). The requested plan travels as custom_data so the
+// webhook can recover exactly what was bought without trusting anything its
+// caller sends — see the warning in that file.
 billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
   const parsed = quoteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
@@ -145,43 +144,49 @@ billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
       plan: data,
       quote,
     };
-    // Paddle is replacing Tebex: Tebex restricts per-request pricing to
-    // registered businesses, and this project is a sole trader (their Headless
-    // API cannot price a plan at all — see services/paddleService.ts).
+    // Paddle is the only provider. There is nothing to fall back to, so the
+    // two failure modes have to be told apart rather than both becoming
+    // "checkout broke":
     //
-    // The switch used to be "is PADDLE_API_KEY set", which broke checkout the
-    // day the key was added: the key exists long before the Paddle account can
-    // sell, because that needs an approved checkout domain and a default
-    // payment link first. Every buyer got an error while Tebex sat working.
+    //   not ready   a configuration problem on our side — a missing or
+    //               mismatched key. The buyer can do nothing about it and
+    //               should be told that plainly, not shown a stack trace.
+    //   threw       Paddle was asked and refused. Loud, because it means
+    //               sales are stopping and nothing else will catch them.
     //
-    // So Paddle has to prove it can sell, twice. paddleReady() rules out a
-    // missing or mismatched key without a request. Everything else — domain
-    // not approved, no payment link, account suspended — only Paddle knows, so
-    // a refusal IS the check: we fall back and the buyer gets a working
-    // checkout instead of a 502.
+    // Both return 503, not 502: the request was fine, the service behind it
+    // is temporarily unable to sell.
+    //
+    // paddleReady() exists because the switch used to be "is PADDLE_API_KEY
+    // set", which broke checkout the day the key was added: a key exists long
+    // before the account behind it can sell, which needs an approved checkout
+    // domain and a verified identity first. It rules out a missing or
+    // mismatched key without spending a request; everything else — domain not
+    // approved, account not verified, suspended — only Paddle knows, and a
+    // refusal from them IS the check.
     const readiness = paddleReady();
-    let checkout: { checkoutUrl: string } | null = null;
-
-    if (readiness.ready) {
-      try {
-        checkout = await createPaddleCheckout(checkoutArgs);
-      } catch (paddleErr) {
-        // Loud, because this is the state we most want to know about: Paddle
-        // is configured, something about it does not work, and sales are only
-        // continuing because Tebex is still there to catch them.
-        logger.error("Paddle checkout failed; falling back to Tebex", {
-          guildId: routeParams(req).guildId,
-          error: String(paddleErr),
-        });
-      }
-    } else {
-      logger.debug("Paddle not ready, using Tebex", { reason: readiness.reason });
+    if (!readiness.ready) {
+      logger.error("Checkout attempted while Paddle is not configured", {
+        guildId: routeParams(req).guildId,
+        reason: readiness.reason,
+      });
+      return res.status(503).json({
+        error: "payments_unavailable",
+        detail: "Payments are temporarily unavailable. Nothing was charged — please try again later.",
+      });
     }
 
-    if (!checkout) checkout = await createTebexCheckout(checkoutArgs);
+    const checkout = await createPaddleCheckout(checkoutArgs);
     res.json({ checkoutUrl: checkout.checkoutUrl });
   } catch (err) {
-    res.status(502).json({ error: "checkout_creation_failed", detail: String(err) });
+    logger.error("Paddle checkout failed", {
+      guildId: routeParams(req).guildId,
+      error: String(err),
+    });
+    res.status(503).json({
+      error: "payments_unavailable",
+      detail: "Payments are temporarily unavailable. Nothing was charged — please try again later.",
+    });
   }
 });
 

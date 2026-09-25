@@ -80,28 +80,22 @@ export const env = {
   DISCORD_BOT_TOKEN: required("DISCORD_BOT_TOKEN"),
   SESSION_SECRET: required("SESSION_SECRET"),
   TOKEN_ENCRYPTION_KEY: required("TOKEN_ENCRYPTION_KEY"), // 32-byte hex key for AES-256-GCM
-  // Tebex is the merchant of record — it sells to the customer, collects the
+  // Paddle is the merchant of record — it sells to the customer, collects the
   // money, and owns sales tax and VAT registration and remittance. That is
   // what removes the need for a taxpayer identification number of our own.
   //
-  // Both halves of the Basic auth pair are configured rather than derived:
-  // Tebex names them differently in different places, and guessing produces a
-  // 401 at request time that says nothing about which half was wrong.
-  TEBEX_PROJECT_ID: requiredInPlatformMode("TEBEX_PROJECT_ID"),
-  TEBEX_PRIVATE_KEY: requiredInPlatformMode("TEBEX_PRIVATE_KEY"),
-  TEBEX_WEBHOOK_SECRET: requiredInPlatformMode("TEBEX_WEBHOOK_SECRET"),
-  // Paddle is the merchant of record we are moving to. Tebex's Checkout API —
-  // the only one of theirs that accepts a price chosen at request time — is
-  // restricted to registered businesses, and this project is a sole trader.
-  // Their Headless API has no price field anywhere, so it cannot express a
-  // plan priced by shared/schema/pricing.ts at all. Paddle takes an inline
-  // "non-catalog" price per transaction, which is the same freedom, and
-  // accepts individuals.
+  // It replaced Tebex outright. Tebex's Checkout API — the only one of theirs
+  // that accepts a price chosen at request time — is restricted to registered
+  // businesses, and this project is a sole trader; their Headless API has no
+  // price field anywhere, so it could not express a plan priced by
+  // shared/schema/pricing.ts at all. Paddle takes an inline "non-catalog"
+  // price per transaction, which is the same freedom, and accepts individuals.
   //
-  // Optional even in platform mode for now: Tebex is still the live
-  // integration, and these are unset until the Paddle account exists.
-  PADDLE_API_KEY: optional("PADDLE_API_KEY", ""),
-  PADDLE_WEBHOOK_SECRET: optional("PADDLE_WEBHOOK_SECRET", ""),
+  // Required in platform mode, because there is no second provider left to
+  // fall back to: a platform deployment without these can show prices nobody
+  // can pay, which is the failure the mode check exists to prevent.
+  PADDLE_API_KEY: requiredInPlatformMode("PADDLE_API_KEY"),
+  PADDLE_WEBHOOK_SECRET: requiredInPlatformMode("PADDLE_WEBHOOK_SECRET"),
   /**
    * The browser-side token, from Paddle > Developer tools > Authentication.
    * Public by design and scoped to checkout only — it is served to anyone who

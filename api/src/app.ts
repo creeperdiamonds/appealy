@@ -29,7 +29,6 @@ import { giveawaysRouter } from "./routes/giveaways.ts";
 import { verificationRouter } from "./routes/verification.ts";
 import { welcomerRouter } from "./routes/welcomer.ts";
 import { billingRouter } from "./routes/billing.ts";
-import { tebexWebhookRouter } from "./routes/tebexWebhook.ts";
 import { paddleWebhookRouter } from "./routes/paddleWebhook.ts";
 import { genericInviteUrl } from "./routes/auth.ts";
 import { roleMenusRouter } from "./routes/roleMenus.ts";
@@ -62,14 +61,9 @@ export function createApp() {
   );
 
   // Mounted BEFORE express.json() and using its own raw() body parser (see
-  // routes/tebexWebhook.ts) — the signature is computed over the exact raw
+  // routes/paddleWebhook.ts) — the signature is computed over the exact raw
   // request bytes, so this route must never see a body that has already been
-  // parsed and would re-serialise differently. Tebex's docs call out Express
-  // by name for exactly this.
-  app.use("/webhooks", tebexWebhookRouter);
-  // Paddle is replacing Tebex (Tebex restricts per-request pricing to registered
-  // businesses). Mounted the same way and for the same reason: its own raw()
-  // parser, before express.json(), or every signature check fails.
+  // parsed and would re-serialise differently.
   app.use("/webhooks", paddleWebhookRouter);
 
   // Nothing this API returns may be cached, ever.

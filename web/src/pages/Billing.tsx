@@ -301,7 +301,7 @@ export default function Billing({ guildId }: { guildId: string }) {
         hostingMode: hosting,
         ...(tier === "custom" ? { customCaps: caps } : {}),
       });
-      // The plan does not change here — the Tebex webhook applies it once the
+      // The plan does not change here — the Paddle webhook applies it once the
       // payment actually clears. Leaving the console is expected.
       window.location.href = res.checkoutUrl;
     } catch (e) {

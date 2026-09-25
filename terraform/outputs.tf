@@ -70,13 +70,12 @@ output "secret_commands" {
     echo -n "SECRET"     | gcloud secrets versions add appealy-discord-client-secret --data-file=-
     echo -n "YOUR_USER_ID" | gcloud secrets versions add appealy-ops-user-ids --data-file=-
 
-    # Billing does NOT go here. TEBEX_PROJECT_ID, TEBEX_PRIVATE_KEY and
-    # TEBEX_WEBHOOK_SECRET are GitHub repository secrets, passed to Cloud Run
-    # as env_vars by the deploy workflow, so they can be set without gcloud.
-    # The first two come from creator.tebex.io -> Developers -> API Keys; the
-    # third from the settings of the webhook endpoint itself, which is a
-    # different screen and easy to miss. Point that endpoint at
-    # https://<your-domain>/webhooks/tebex .
+    # Billing does NOT go here. PADDLE_API_KEY and PADDLE_WEBHOOK_SECRET are
+    # GitHub repository secrets, passed to Cloud Run as env_vars by the deploy
+    # workflow, so they can be set without gcloud. The key comes from Paddle >
+    # Developer tools > Authentication; the webhook secret from the settings of
+    # the notification destination itself, which is a different screen and easy
+    # to miss. Point that destination at https://<your-domain>/webhooks/paddle .
 
     # Only if enable_redis = true:
     # terraform output -raw redis_url | gcloud secrets versions add appealy-redis-url --data-file=-

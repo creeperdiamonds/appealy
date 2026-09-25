@@ -1,0 +1,1 @@
+ALTER TABLE "guilds" DROP COLUMN IF EXISTS "tebex_recurring_reference";
