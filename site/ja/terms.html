@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/terms.html
+
+  Japanese translation of site/terms.html. The English page is the one that
+  binds — see the note under the heading, and keep it there. These are the
+  terms someone actually agrees to, so a translation that drifts from the
+  English is not a nicety, it is a second set of obligations nobody wrote.
+
+  Change this page and site/terms.html together or neither.
+-->
+
+<title>利用規約 — Appealy</title>
+<meta name="description" content="appealy.app のホスティングサービスの利用規約。ソフトウェアのライセンス、プランと支払い、上限、プラットフォーム BAN と異議申し立て、データの扱いについて。">
+<link rel="canonical" href="https://appealy.app/ja/terms">
+<link rel="alternate" hreflang="en" href="https://appealy.app/terms">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/terms">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/terms">
+<meta property="og:title" content="利用規約 — Appealy">
+<meta property="og:description" content="appealy.app のホスティングサービスの利用規約。ソフトウェアのライセンス、プランと支払い、上限、プラットフォーム BAN と異議申し立て、データの扱いについて。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募フォーム、BAN 異議申し立て、チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="利用規約 — Appealy">
+<meta name="twitter:description" content="appealy.app のホスティングサービスの利用規約。ソフトウェアのライセンス、プランと支払い、上限、プラットフォーム BAN と異議申し立て、データの扱いについて。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">本文へスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メインナビゲーション">
+      <a href="/ja/#features">機能</a>
+      <a href="/ja/pricing">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="/ja/#self-hosting">セルフホスト</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/terms" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose">
+
+    <p class="eyebrow">法的事項</p>
+    <h1>利用規約</h1>
+    <p class="updated">最終更新: 2026年8月18日</p>
+
+    <p class="lede">
+      この規約は appealy.app のホスティングサービスを対象とします。ソフトウェア自体は別扱いです。
+      ソフトウェアは GNU Affero General Public License v3.0 のもとで提供されており、このページの内容が
+      そのライセンスに条件を追加したり、取り除いたりすることはありません。
+    </p>
+
+    <p class="note">
+      このページは英語版 <a href="/terms" hreflang="en">Terms of Service</a> の参考訳です。
+      解釈に相違が生じた場合は、英語版が優先します。
+    </p>
+
+    <h2>ソフトウェアについて</h2>
+    <p>
+      Appealy は
+      <a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0</a>
+      のもとで提供される自由ソフトウェアです。同ライセンスの条件に従って、実行、閲覧、改変、再配布が
+      できます &mdash; ネットワークサービスとして最も重要な条件を含みます。すなわち、改変版を運用して
+      他の人がネットワーク越しに利用できるようにした場合、その利用者にソースを提供しなければなりません。
+    </p>
+    <p>
+      別途の商用ライセンスはなく、ライセンスキーもなく、セルフホスト版で使えなくなる機能もありません。
+      セルフホストする場合、このページはあなたが当事者となる契約ではありません &mdash; ライセンスが
+      取り決めのすべてです。
+    </p>
+
+    <h2>ホスティングサービスの利用</h2>
+    <ul>
+      <li>Discord アカウントが必要です。Discord 内で起こることには Discord 自身の規約が適用されます。</li>
+      <li>ボットを追加してよいサーバーにのみ追加してください。</li>
+      <li>サーバーがフォームで何を尋ねるか、そしてスタッフがその回答をどう扱うかは、運営者の責任です。</li>
+      <li>Discord が禁じていることに本サービスを使わないでください。また、サーバーを分割したり制限を自動的に回避したりして、処理量の上限を迂回しようとしないでください。</li>
+    </ul>
+
+    <h2>プランと支払い</h2>
+    <ul>
+      <li>
+        <strong>請求は年単位のみです。月単位の選択肢はどこにもありません。</strong>
+        理由は<a href="/ja/pricing">料金ページ</a>とソースコードに詳しく書いています。サイト上に
+        月額として表示される金額は、比較のために年額から計算したものであり、選べる請求間隔ではありません。
+      </li>
+      <li>
+        <strong>Appealy の販売事業者（merchant of record）は Paddle です。</strong>
+        Paddle がお客様に Appealy を販売し、代金を受け取り、販売先の各国で売上税・VAT を処理します
+        &mdash; そのため本プロジェクト自身が税務登録を持つ必要がありません。支払いに関する問い合わせ、
+        請求書、返金はすべて Paddle を通じて行われ、領収書も Paddle から発行されます。
+      </li>
+      <li>
+        有料プランは年単位のサブスクリプションです。支払いが途絶えたプランのサーバーは無料プランに戻ります。
+        返金された支払いについても同様です。
+      </li>
+      <li>
+        <strong>購入から14日以内であれば返金できます。</strong>支払いを受け取った Paddle に請求してください。
+        返金が処理されるとサーバーは無料プランに戻ります。この期間内は理由を問いません。プランが終了しても
+        何も削除されません &mdash; フォーム、応募、チケットはそのまま残り、変わるのは上限値だけです。
+      </li>
+      <li>
+        14日を過ぎたプランは、購入した年度の終わりまで有効です。当方側の不具合が理由で返金を希望される場合は、
+        期間を過ぎていてもご連絡ください &mdash; この期間は「気が変わったとき」のための決まりであって、
+        当方の落ち度を棚に上げるためのものではありません。詳細は<a href="/ja/refunds">返金ポリシー</a>にあります。
+      </li>
+      <li>
+        プランが適用されるのは、実際に支払われた金額が通貨も含めてそのプランの価格と一致していることを
+        確認したあとだけです。不一致の場合は、誤った価格で適用するのではなく拒否します。
+      </li>
+      <li>
+        完全な無料プランへのダウングレードにチェックアウトは不要です。確認すべき支払いがないからです。
+      </li>
+      <li>
+        年額の合計が 5.00 ドル未満になる選択は、請求せずチェックアウトの時点で拒否します。
+      </li>
+    </ul>
+
+    <h2>上限について</h2>
+    <p>
+      計測対象のすべての上限には、自分で設定するものも含めて、越えられない上限値があります。無制限のプランは
+      存在せず、今後も設けません。上限値を超える要求は、選んでいない数値に黙って丸めるのではなく、
+      高すぎるフィールドを示したうえで拒否します。
+    </p>
+    <p>
+      上限に達しても何かが削除されることはありません。期間がリセットされるか上限が引き上げられるまで、
+      その一線を越える操作が止まるだけです。
+    </p>
+
+    <h2>プラットフォーム BAN と異議申し立て</h2>
+    <p>
+      ユーザーまたはサーバーが、ホスティング版ボットの利用を禁止されることがあります &mdash;
+      サービスの濫用、または Discord が禁じている行為への利用が理由です。これはあなた自身の Discord
+      サーバー内での BAN とはまったく別のもので、関係もありません。サーバーのスタッフがプラットフォーム
+      BAN を見ることはできず、サーバーの異議申し立て機能が扱う対象でもありません。
+    </p>
+    <p>
+      <strong>プラットフォーム BAN には異議を申し立てられます。</strong>
+      ダッシュボードは BAN されたユーザーに理由と異議申し立てフォームを表示します。門戸を開くことを
+      掲げる製品が、自らの BAN だけは最終決定にしてよい道理はありません。
+    </p>
+
+    <h2>可用性</h2>
+    <p>
+      稼働率の保証はありません。<a href="https://status.appealy.app/">稼働状況ページ</a>は
+      サービス本体とは別に Cloudflare 上で動いており、報告対象の障害が起きている最中も動き続けます。
+      外部から毎分ダッシュボードと API を確認し、ボットからの報告が途絶えた場合は、古い「正常」表示の
+      ままにせず停止として表示します。
+    </p>
+    <p>
+      本サービスおよびソフトウェアは、AGPL-3.0 の第15条・第16条に定めるとおり、いかなる保証もなく
+      現状有姿で提供されます。
+    </p>
+
+    <h2>データについて</h2>
+    <p>
+      サーバーが保持しているデータは、いつでも、許可を求めることなくエクスポートできます。何がどれだけの
+      期間保存されるかは<a href="/ja/privacy">プライバシーページ</a>に記載しています。データを販売する
+      ことはありません。
+    </p>
+
+    <h2>規約の変更</h2>
+    <p>
+      この規約は変更されることがあります。このサイトはソフトウェアと同じリポジトリ内の単なるファイルなので、
+      変更はすべて差分と日付を伴うコミットとして残ります &mdash; 履歴を確認できないバージョンは存在しません。
+    </p>
+
+    <h2>Discord との関係</h2>
+    <p>
+      Appealy は独立したプロジェクトです。Discord は Discord Inc. の商標であり、同社は本ソフトウェアに
+      関与しておらず、推奨もしていません。
+    </p>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>製品</h2>
+        <ul>
+          <li><a href="/ja/#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/">稼働状況</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/ja/appy-alternative">Appy の代替</a></li>
+          <li><a href="/ja/appeal-gg-alternative">Appeal.gg の代替</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>用途</h2>
+        <ul>
+          <li><a href="/ja/discord-ban-appeal-bot">BAN 異議申し立て</a></li>
+          <li><a href="/ja/discord-ticket-bot">チケット</a></li>
+          <li><a href="/ja/discord-verification-bot">認証</a></li>
+          <li><a href="/ja/discord-anti-raid-bot">荒らし対策</a></li>
+          <li><a href="/ja/discord-giveaway-bot">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">BAN 異議申し立て</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法的事項</h2>
+        <ul>
+          <li><a href="/ja/privacy">プライバシー</a></li>
+          <li><a href="/ja/terms" aria-current="page">利用規約</a></li>
+          <li><a href="/ja/refunds">返金</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 のもとで公開されている自由ソフトウェアです。
+      Discord Inc. とは無関係であり、Discord は Discord Inc. の商標です。また Appealy は Appy および
+      Appeal.gg とも無関係の、独立したプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

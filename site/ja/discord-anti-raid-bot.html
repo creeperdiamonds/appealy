@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/discord-anti-raid-bot.html
+
+  Japanese translation of site/discord-anti-raid-bot.html.
+
+  The scope paragraph is load-bearing in the English page and is translated
+  here without softening: this is join-velocity detection and nothing else.
+
+  Structure, classes, ids, asset paths and script tags mirror the English page
+  exactly. Only text nodes, alt text, meta descriptions, titles and aria-labels
+  are translated. Numbers and command samples are left as they are.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text,
+  in Japanese, for the same reason they are the same text in English.
+-->
+
+<title>Discord レイド対策ボット — Appealy</title>
+<meta name="description" content="参加速度によるレイド検知。何秒のあいだに何人の参加をレイドとみなすか、そしてそのとき何をするか（通知・認証の強制・新規参加者のキック）を設定できます。">
+<link rel="canonical" href="https://appealy.app/ja/discord-anti-raid-bot">
+<link rel="alternate" hreflang="en" href="https://appealy.app/discord-anti-raid-bot">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/discord-anti-raid-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/discord-anti-raid-bot">
+<meta property="og:title" content="Discord レイド対策ボット — Appealy">
+<meta property="og:description" content="参加速度によるレイド検知。何秒のあいだに何人の参加をレイドとみなすか、そしてそのとき何をするか（通知・認証の強制・新規参加者のキック）を設定できます。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募フォーム、BAN解除申請、チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord レイド対策ボット — Appealy">
+<meta name="twitter:description" content="参加速度によるレイド検知。何秒のあいだに何人の参加をレイドとみなすか、そしてそのとき何をするか（通知・認証の強制・新規参加者のキック）を設定できます。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.app/ja/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "レイド対策ボット",
+          "item": "https://appealy.app/ja/discord-anti-raid-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "何をもってレイドと判断するのですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "参加速度です。ある時間枠のあいだに何アカウントが参加したかを見ます。初期値は 60 秒で 10 人の参加で、どちらの数字も自由に変更できます。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "レイドを検知したとき、何ができますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "3 つのうちのいずれかです。チャンネルに通知してロールにメンションする、そのあいだ認証を強制的にオンにする、ロックダウン中に参加したアカウントをキックする、です。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "ロックダウンは解除するまで続きますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "続きません。初期値では 30 分で自動的に切れますし、コマンドで早く解除することもできます。昼になるまで誰も気づかない自動ロックダウンは、たいていのレイドより大きな被害を出します。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "メッセージのフィルタリングやサブ垢の検知はできますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "できません。見ているのは参加速度だけです。メッセージの内容も、アカウントの作成時期も、ユーザー名やアイコンのパターンも見ません。1 つの問いに答えるだけで、ほかの問いに答えるふりはしません。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "レイド対策は無料ですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "無料です。すべての機能がすべてのプランにあり、ボットは AGPL-3.0 のもとで無料でセルフホストできます。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">コンテンツへスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メイン">
+      <a href="/ja/#features">機能</a>
+      <a href="/ja/pricing">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/discord-anti-raid-bot" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="パンくずリスト">
+        <ol>
+          <li><a href="/ja/">Appealy</a></li>
+          <li aria-current="page">レイド対策ボット</li>
+        </ol>
+      </nav>
+
+      <h1>Discord レイド対策ボット</h1>
+      <p class="lede">何秒のあいだに何人の参加をレイドとみなすか、そしてそのとき何が起きるかを
+        決めるのはあなたです。あとは午前 3 時に、あなた抜きで実行されます。</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Discord に追加</a>
+        <a class="btn" href="/ja/pricing">料金を見る</a>
+      </p>
+
+      <h2>ルールは 1 つ、対応は 3 つ</h2>
+
+      <p>ルールは参加速度です。しきい値と時間枠の組み合わせで、初期値は 60 秒に 10 アカウント。
+        どちらの数字も自由に設定できます。メンバー 200 人のサーバーと 40,000 人のサーバーでは、
+        普通の状態が同じではないからです。</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">対応</th><th scope="col">何が起きるか</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">通知のみ</th>
+              <td>選んだチャンネルに投稿し、指定したロールにメンションします。それ以外は何も変えません。自分のサーバーの普通がどんな形なのかを把握しているあいだは、これが正しい設定です</td>
+            </tr>
+            <tr>
+              <th scope="row">認証を強制</th>
+              <td>そのあいだ<a href="/ja/discord-verification-bot">認証</a>をオンに切り替え、1 分前にはなかった関門にレイドをぶつけます</td>
+            </tr>
+            <tr>
+              <th scope="row">新規参加者をキック</th>
+              <td>ロックダウン中に来たアカウントを退出させます。いちばん重い選択肢ですが、キックは BAN ではありません。巻き込まれた人は戻ってこられます</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>ロックダウンは自動で終わります</h2>
+
+      <p>初期値は 30 分で、早めに解除することもできます。この有効期限は意図的なものです。自動
+        ロックダウンの失敗の仕方は、発動することではなく、全員が寝ているあいだに発動して、誰かが
+        昼に気づくまで続いてしまうことです。9 時間にわたって本物の新規メンバーを黙ってキックし
+        続けたサーバーは、レイドそのものより悪い結果です。</p>
+
+<pre><code>/anti-raid status    設定内容と、ロックダウン中かどうか
+/anti-raid clear     ロックダウンを今すぐ解除</code></pre>
+
+      <div class="callout">
+        <strong>これが検知するのは参加速度だけで、ほかには何も検知しません。</strong>
+        メッセージの内容も、アカウントの作成時期も、アイコンやユーザー名のパターンも、サブ垢の
+        検知もしません。答えるのは 1 つの問い — 短いあいだに大量のアカウントが来たかどうか —
+        だけで、それにはよく答えます。このページでそれ以外のことを読み取ったなら、それは作り話
+        です。そして誤った理解のまま使うレイド対策ツールは、理解していないツールよりたちが悪い
+        ものです。
+      </div>
+
+      <h2>導入</h2>
+
+<pre><code>/anti-raid setup join_threshold: 10 window_seconds: 60 action: Alert staff only alert_channel: #mod-log</code></pre>
+
+      <p>まずは<strong>通知のみ</strong>から始めてください。1 週間ほど様子を見て、何で反応するかを
+        確かめてから、牙を持たせるかどうかを決めます。自分のサーバーの平常値を知る前に新規参加者の
+        キックをオンにすると、人気の投稿が攻撃として扱われることになります。</p>
+
+      <h2>料金</h2>
+
+      <p><strong>無料です。</strong>有料プランで上がるのはスループット上限だけで、すべての機能が
+        すべてのプランにあります。AGPL-3.0 のもとで無料で
+        <a href="https://docs.appealy.app/self-hosting/">セルフホスト</a>もできます。</p>
+
+      <h2>レイド対策だけのボットではありません</h2>
+
+      <p><a href="/ja/">スタッフ募集</a>、
+        <a href="/ja/discord-ban-appeal-bot">BAN解除申請</a>、
+        <a href="/ja/discord-ticket-bot">チケット</a>、
+        <a href="/ja/discord-verification-bot">認証</a>、
+        <a href="/ja/discord-giveaway-bot">ギブアウェイ</a>にも対応します。</p>
+
+      <h2 id="faq">よくある質問</h2>
+      <h3>何をもってレイドと判断するのですか？</h3>
+      <p>参加速度です。ある時間枠のあいだに何アカウントが参加したかを見ます。初期値は 60 秒で 10 人の参加で、どちらの数字も自由に変更できます。</p>
+
+      <h3>レイドを検知したとき、何ができますか？</h3>
+      <p>3 つのうちのいずれかです。チャンネルに通知してロールにメンションする、そのあいだ認証を強制的にオンにする、ロックダウン中に参加したアカウントをキックする、です。</p>
+
+      <h3>ロックダウンは解除するまで続きますか？</h3>
+      <p>続きません。初期値では 30 分で自動的に切れますし、コマンドで早く解除することもできます。昼になるまで誰も気づかない自動ロックダウンは、たいていのレイドより大きな被害を出します。</p>
+
+      <h3>メッセージのフィルタリングやサブ垢の検知はできますか？</h3>
+      <p>できません。見ているのは参加速度だけです。メッセージの内容も、アカウントの作成時期も、ユーザー名やアイコンのパターンも見ません。1 つの問いに答えるだけで、ほかの問いに答えるふりはしません。</p>
+
+      <h3>レイド対策は無料ですか？</h3>
+      <p>無料です。すべての機能がすべてのプランにあり、ボットは AGPL-3.0 のもとで無料でセルフホストできます。</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>プロダクト</h2>
+        <ul>
+          <li><a href="/ja/#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/">稼働状況</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>用途</h2>
+        <ul>
+          <li><a href="/ja/discord-ban-appeal-bot">BAN解除申請</a></li>
+          <li><a href="/ja/discord-ticket-bot">チケット</a></li>
+          <li><a href="/ja/discord-verification-bot">認証</a></li>
+          <li><a href="/ja/discord-anti-raid-bot">レイド対策</a></li>
+          <li><a href="/ja/discord-giveaway-bot">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">BAN解除申請</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/ja/appy-alternative">Appy の代替</a></li>
+          <li><a href="/ja/appeal-gg-alternative">Appeal.gg の代替</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法的事項</h2>
+        <ul>
+          <li><a href="/ja/privacy">プライバシー</a></li>
+          <li><a href="/ja/terms">利用規約</a></li>
+          <li><a href="/ja/refunds">返金</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 のもとで公開されているフリーソフトウェアです。
+      Discord Inc. とは提携していません。Discord は Discord Inc. の商標です。Appealy は Appy および
+      Appeal.gg とも提携しておらず、別個のプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

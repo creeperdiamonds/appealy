@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>creeperdiamonds</title>
+<meta name="description" content="creeperdiamonds のパーソナルサイト。応募・BAN 異議申し立て・チケットに対応するオープンソースの Discord ボット Appealy を作っています。">
+
+<link rel="canonical" href="https://www.creeperdiamonds.xyz/ja/">
+<link rel="alternate" hreflang="en" href="https://www.creeperdiamonds.xyz/">
+<link rel="alternate" hreflang="ja" href="https://www.creeperdiamonds.xyz/ja/">
+<meta name="theme-color" content="#0e1420">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="creeperdiamonds">
+<meta property="og:description" content="パーソナルサイト。応募・BAN 異議申し立て・チケットに対応するオープンソースの Discord ボット Appealy を作っています。">
+<meta property="og:url" content="https://www.creeperdiamonds.xyz/ja/">
+<meta name="twitter:card" content="summary">
+
+<!--
+  home/ja/index.html — Japanese translation of home/index.html, the apex page
+  for creeperdiamonds.xyz.
+
+  The absolute URLs here are creeperdiamonds.xyz, NOT appealy.app: this page is
+  served from the apex (web/nginx.conf, the server block with
+  server_name creeperdiamonds.xyz), not from the Appealy deployment. An
+  appealy.app hreflang on this file would point at a URL this page does not
+  live at.
+
+  Everything is still inline: the styles, the mark, the icon. This page is
+  served from a different host than the app, so it cannot reference
+  site/site.css or /brand/icon.svg — those paths resolve inside the Appealy
+  deployment and nowhere else. A relative reference here would 404.
+
+  Two additions over the English file, both required by the translation:
+  the .lang rule and the language link under the handle. The .handle-sub
+  bottom margin drops to .75rem so the pair keeps the original spacing.
+
+  The colours are the console palette from web/src/index.css, copied rather
+  than imported for the same reason.
+-->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='114' fill='%235865F2'/%3E%3Cpath fill='%23fff' opacity='.35' d='M300 104h84a16 16 0 0 1 16 16v272a16 16 0 0 1-16 16h-84v-40h60V144h-60Z'/%3E%3Cpath fill='%23fff' d='M296 76 148 118a20 20 0 0 0-15 19v238a20 20 0 0 0 15 19l148 42a12 12 0 0 0 15-12V88a12 12 0 0 0-15-12Z'/%3E%3Ccircle cx='188' cy='256' r='17' fill='%235865F2'/%3E%3C/svg%3E">
+
+<style>
+  :root {
+    --ink: #0e1420;
+    --surface: #161d2c;
+    --line: #2a3547;
+    --text: #e8ecf3;
+    --text-dim: #a3b0c4;
+    --text-muted: #7987a0;
+    --accent: #5865f2;
+    --accent-line: #5865f259;
+    /* --accent on --ink is 4.09:1, under AA for body text. Links get the
+       lifted tone; the button keeps the true accent, where white on it
+       clears 4.5:1. Same split as site.css. */
+    --accent-lift: #8b94f7;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 3rem 1.25rem 4rem;
+    background: var(--ink);
+    color: var(--text);
+    font: 16px/1.7 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+          "Yu Gothic", Meiryo, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  main { width: 100%; max-width: 34rem; margin: 0 auto; }
+
+  .mark { display: block; width: 56px; height: 56px; margin-bottom: 1.5rem; }
+
+  h1 { font-size: clamp(1.75rem, 6vw, 2.25rem); line-height: 1.15; margin: 0 0 .375rem; letter-spacing: -.02em; }
+  .handle-sub { margin: 0 0 .75rem; color: var(--text-muted); font-size: .9375rem; }
+  .lang { margin: 0 0 2.5rem; font-size: .875rem; }
+
+  section { margin-bottom: 2.75rem; }
+  section:last-of-type { margin-bottom: 0; }
+
+  h2 {
+    font-size: .8125rem; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 1rem; font-weight: 600;
+  }
+
+  p { margin: 0 0 1rem; color: var(--text-dim); }
+  p:last-child { margin-bottom: 0; }
+  a { color: var(--accent-lift); }
+  a:hover { color: var(--text); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: .625rem; margin-top: 1.25rem; }
+  .btn {
+    display: inline-block; padding: .625rem 1.125rem; border-radius: 3px;
+    border: 1px solid var(--line); color: var(--text);
+    text-decoration: none; font-size: .875rem;
+  }
+  .btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4752e0; border-color: #4752e0; color: #fff; }
+  .btn:focus-visible { outline: 2px solid var(--accent-lift); outline-offset: 2px; }
+
+  .card {
+    padding: 1.25rem 1.375rem; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 3px;
+  }
+  .card > :first-child { margin-top: 0; }
+  .card > :last-child { margin-bottom: 0; }
+
+  .contact-list { list-style: none; margin: 0; padding: 0; }
+  .contact-list li { margin-bottom: .5rem; }
+  .contact-list li:last-child { margin-bottom: 0; }
+
+  hr.rule { border: none; border-top: 1px solid var(--line); margin: 2.75rem 0; }
+
+  /* Addressed to roughly one reader a year, so it is set apart rather than
+     given any prominence — a payment reviewer will find a bordered block on
+     a one-screen page, and everyone else can see at a glance it is not for
+     them. Carried over from landing/index.html's .review block. */
+  .review {
+    padding: 1.125rem 1.25rem;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+    font-size: .875rem;
+  }
+  .review h2 { margin: 0 0 .5rem; font-size: .9375rem; color: var(--text); text-transform: none; letter-spacing: 0; }
+  .review p { margin: 0; color: var(--text-dim); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    main { animation: rise .4s ease-out; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Appealy">
+    <title>Appealy</title>
+    <rect width="512" height="512" rx="114" fill="#5865F2"/>
+    <path fill="#fff" opacity=".35" d="M300 104h84a16 16 0 0 1 16 16v272a16 16 0 0 1-16 16h-84v-40h60V144h-60Z"/>
+    <path fill="#fff" d="M296 76 148 118a20 20 0 0 0-15 19v238a20 20 0 0 0 15 19l148 42a12 12 0 0 0 15-12V88a12 12 0 0 0-15-12Z"/>
+    <circle cx="188" cy="256" r="17" fill="#5865F2"/>
+  </svg>
+
+  <h1>creeperdiamonds</h1>
+  <p class="handle-sub">応募と BAN 異議申し立てのための Discord ボット、Appealy を作っています。</p>
+  <p class="lang"><a href="/" hreflang="en">English</a></p>
+
+  <section id="what-this-is">
+    <h2>このサイトについて</h2>
+    <p>
+      creeperdiamonds のパーソナルサイトです。履歴書もブログもなく &mdash; 作っている
+      ソフトウェアへの案内と、それについての連絡先だけがあります。
+    </p>
+  </section>
+
+  <section id="appealy">
+    <h2>Appealy</h2>
+    <div class="card">
+      <p>
+        応募、チケット、BAN 異議申し立てのためのオープンソースの Discord ボットです
+        &mdash;「this decision is final and cannot be appealed（この決定は最終であり、異議を
+        申し立てることはできません）」という一文が BAN に付いて回るべきではない、という考えから
+        作りました。DM と雰囲気で処理するのではなく、構造化された、あとから確認できる手続きを
+        求めるサーバースタッフのためのものです。
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://appealy.app/ja/">Appealy を開く</a>
+        <a class="btn" href="https://appealy.app/dashboard/">ダッシュボード</a>
+        <a class="btn" href="https://github.com/creeperdiamonds/appealy" hreflang="en">GitHub のソース</a>
+        <a class="btn" href="https://discord.gg/UwBMug9JyX">サポート Discord</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="about">
+    <h2>自己紹介</h2>
+    <!-- The author's own words, translated rather than rewritten. This
+         section exists to say who runs the domain; anything beyond what she
+         wrote would be a claim about a real person that nobody verified. -->
+    <p>
+      はじめまして、creeperdiamonds です。日本の女の子で、いつも Minecraft とコーディングに
+      夢中です！
+    </p>
+  </section>
+
+  <section id="contact">
+    <h2>連絡先</h2>
+    <ul class="contact-list">
+      <li><a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a></li>
+      <li><a href="https://github.com/creeperdiamonds">github.com/creeperdiamonds</a></li>
+    </ul>
+  </section>
+
+</main>
+
+</body>
+</html>

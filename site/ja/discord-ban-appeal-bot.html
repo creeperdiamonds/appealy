@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/discord-ban-appeal-bot.html
+
+  Japanese translation of site/discord-ban-appeal-bot.html.
+
+  Structure, classes, ids, asset paths and script tags mirror the English page
+  exactly. Only text nodes, alt text, meta descriptions, titles and aria-labels
+  are translated. Numbers and product names are left as they are.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text,
+  in Japanese, for the same reason they are the same text in English.
+-->
+
+<title>Discord BAN解除申請ボット — Appealy</title>
+<meta name="description" content="誰かを BAN すると Appealy が解除申請フォームを DM します。申請を承認すれば BAN が解除されます。無料・オープンソース・セルフホスト可能で、有料プランの裏に隠れた機能はありません。">
+<link rel="canonical" href="https://appealy.app/ja/discord-ban-appeal-bot">
+<link rel="alternate" hreflang="en" href="https://appealy.app/discord-ban-appeal-bot">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/discord-ban-appeal-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/discord-ban-appeal-bot">
+<meta property="og:title" content="Discord BAN解除申請ボット — Appealy">
+<meta property="og:description" content="誰かを BAN すると Appealy が解除申請フォームを DM します。申請を承認すれば BAN が解除されます。無料・オープンソース・セルフホスト可能で、有料プランの裏に隠れた機能はありません。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募フォーム、BAN解除申請、チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord BAN解除申請ボット — Appealy">
+<meta name="twitter:description" content="誰かを BAN すると Appealy が解除申請フォームを DM します。申請を承認すれば BAN が解除されます。無料・オープンソース・セルフホスト可能で、有料プランの裏に隠れた機能はありません。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.app/ja/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "BAN解除申請ボット",
+          "item": "https://appealy.app/ja/discord-ban-appeal-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "申請を承認すると自動で BAN が解除されますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "解除されます。承認という操作そのものが BAN の解除であって、あとで誰かにやってもらうためのリマインダーではありません。却下した場合は、スタッフが書いた理由が送られます。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "BAN しても何も起きないのはなぜですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ほとんどの場合、Discord Developer Portal で Server Moderation インテントがオフになっています。これを有効にするまで Discord は BAN イベントを送らず、そのことを知らせるエラーもどこにも出ません。解除申請システムはただ沈黙します。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "解除申請フォームを DM ではなくチャンネルのボタンにできますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "できません。Appealy はその組み合わせの保存を拒否します。BAN されたメンバーはサーバーのどのチャンネルも見られないので、チャンネル内のボタンの先にある申請フォームは、まさにそれを必要としている人たちに届きません。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "BAN解除申請の機能は無料ですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "無料です。すべての機能がすべてのプランにあり、有料プランで上がるのはスループット上限だけです。ボット全体を AGPL-3.0 のもとで無料でセルフホストすることもできます。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "ミュートやタイムアウトの異議申し立てにも使えますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "使えません。Discord にはタイムアウトや警告に異議を申し立てるための API がないため、Appealy が扱うのは BAN だけです。対応していると謳うボットは、それらの処分を Discord ではなく自前のデータベースで管理しています。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">コンテンツへスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メイン">
+      <a href="/ja/#features">機能</a>
+      <a href="/ja/pricing">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/discord-ban-appeal-bot" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="パンくずリスト">
+        <ol>
+          <li><a href="/ja/">Appealy</a></li>
+          <li aria-current="page">BAN解除申請ボット</li>
+        </ol>
+      </nav>
+
+      <h1>Discord BAN解除申請ボット</h1>
+      <p class="lede">誰かを BAN すると、Appealy がその人に解除申請フォームを送ります。スタッフが
+        承認すれば BAN は解除されます。承認が<em>そのまま</em>解除であって、誰かに手作業でやって
+        おいてと頼むメモではありません。</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Discord に追加</a>
+        <a class="btn" href="/ja/pricing">料金を見る</a>
+      </p>
+
+      <h2>申請は実際にどう進むのか</h2>
+
+      <ol>
+        <li><strong>誰かが BAN されます。</strong>Appealy が Discord の BAN イベントを受け取り、
+          自分で申請を開始します。誰かがリンクを送るのを覚えておく必要はありません。</li>
+        <li><strong>本人に DM が届きます。</strong>理由と申請フォームが送られ、入力欄の壁として
+          ではなく 1 問ずつ尋ねられます。</li>
+        <li><strong>いつもの審査キューに入ります。</strong>応募と同じ場所なので、確認すべき場所が
+          増えません。</li>
+        <li><strong>承認すれば BAN が解除されます。</strong>却下すれば、書いた理由が送られます。</li>
+      </ol>
+
+      <div class="callout is-accent">
+        <strong>解除申請フォームは DM で届ける必要があり</strong>、Appealy は覚えているかどうかに
+        任せずそれを強制します。BAN されたメンバーにはチャンネルが見えないので、チャンネル内の
+        ボタンから開くよう設定された申請フォームは、誰も辿り着けないフォームです。このチェックは
+        作成時<em>と</em>編集時の両方で、変更した項目だけでなくフォーム全体に対して実行されます。
+        片方ずつなら通ってしまい、組み合わせだけが壊れているからです。
+      </div>
+
+      <h2>申請については、意図的に意見を持っています</h2>
+
+      <p>Appealy が存在するのは、あるボットが誰かに、この決定は最終であり異議は申し立てられないと
+        告げたことがあるからです。ルールはそうならない形に作られており、ポリシーのページで約束
+        されるのではなく、コードで強制されています。</p>
+
+      <ul>
+        <li><strong>回数を使い切っても申請は一時停止するだけで、終わりにはなりません。</strong>
+          カウンターはリセットされ、いつリセットされるかもメッセージに書かれます。</li>
+        <li><strong>却下にはきちんとした文章が必要です。</strong>最低 20 文字で、API が強制します。
+          BAN の理由を 20 文字で説明できないなら、却下を送る前に気づいておく価値があります。</li>
+        <li><strong>自動の BAN には、人が審査した BAN より多くの回数が与えられます。</strong>
+          5 回に対して 3 回です。誰も目を通していない BAN こそ、間違っている可能性がいちばん
+          高いからです。</li>
+      </ul>
+
+      <p>これらは私たちが発行するプラットフォーム側の BAN に適用されます。サーバーごとの方針は
+        あなたが決めるもので、Appealy はそれを縛りません。<a href="https://docs.appealy.app/getting-started/ban-appeals">詳しい考え方は
+        ドキュメントにあります。</a></p>
+
+      <h2>導入</h2>
+
+      <p>3 つあります。そして最初の 1 つが、いちばん見落とされます。</p>
+
+      <ol>
+        <li><strong>Discord Developer Portal で Server Moderation インテントをオンにします。</strong>
+          ポータル側が許可するまで Discord は BAN イベントを送らず、コード側はどちらでも完成して
+          います。つまりこれをしないと、設定済みで、有効で、それでいて完全に沈黙している解除申請
+          システムができあがります。</li>
+        <li><strong>ダッシュボードで解除申請フォームを作り</strong>、ダイレクトメッセージで届ける
+          設定にします。</li>
+        <li><strong>サーバーで解除申請をオンにし</strong>、そのフォームを選びます。</li>
+      </ol>
+
+      <p>ダッシュボードは、何も起きない 2 つの状態について警告します。フォームを選ばずに解除申請を
+        有効にしている場合と、フォームは選んだのに BAN 時の DM をオフにしている場合です。どちらも
+        エラーにはならず、どちらも誰も申請できないことを意味します。そうでなければ数か月後、誰も
+        申請していないことに気づいて初めて分かることになります。</p>
+
+      <h2>料金</h2>
+
+      <p><strong>無料です。</strong>BAN解除申請は有料機能ではありません。そもそも有料機能が 1 つも
+        ないからです。有料プランで上がるのはスループット上限だけで、ほかには何もありません。
+        AGPL-3.0 のもとで<a href="https://docs.appealy.app/self-hosting/">すべてを自分のハードウェアで動かし</a>、
+        何も支払わないこともできます。</p>
+
+      <p>ここではその最後の部分がいちばん重要な論点です。ホスティング型のボットによる誤った BAN は、
+        自分で動かしているソフトウェアによる誤った BAN とは違って、異議の申し立てようがありません。
+        トークンを持っているのは向こうであって、あなたではないからです。</p>
+
+      <h2>解除申請だけのボットではありません</h2>
+
+      <p>同じ審査キューが<a href="/ja/">スタッフ募集</a>も動かし、同じボットが
+        <a href="/ja/discord-ticket-bot">チケット</a>、
+        <a href="/ja/discord-verification-bot">認証</a>、
+        <a href="/ja/discord-anti-raid-bot">レイド対策</a>、
+        <a href="/ja/discord-giveaway-bot">ギブアウェイ</a>にも対応します。複数のボットをまとめて
+        置き換えようとしているなら、それが狙いです。</p>
+
+      <h2 id="faq">よくある質問</h2>
+      <h3>申請を承認すると自動で BAN が解除されますか？</h3>
+      <p>解除されます。承認という操作そのものが BAN の解除であって、あとで誰かにやってもらうためのリマインダーではありません。却下した場合は、スタッフが書いた理由が送られます。</p>
+
+      <h3>BAN しても何も起きないのはなぜですか？</h3>
+      <p>ほとんどの場合、Discord Developer Portal で Server Moderation インテントがオフになっています。これを有効にするまで Discord は BAN イベントを送らず、そのことを知らせるエラーもどこにも出ません。解除申請システムはただ沈黙します。</p>
+
+      <h3>解除申請フォームを DM ではなくチャンネルのボタンにできますか？</h3>
+      <p>できません。Appealy はその組み合わせの保存を拒否します。BAN されたメンバーはサーバーのどのチャンネルも見られないので、チャンネル内のボタンの先にある申請フォームは、まさにそれを必要としている人たちに届きません。</p>
+
+      <h3>BAN解除申請の機能は無料ですか？</h3>
+      <p>無料です。すべての機能がすべてのプランにあり、有料プランで上がるのはスループット上限だけです。ボット全体を AGPL-3.0 のもとで無料でセルフホストすることもできます。</p>
+
+      <h3>ミュートやタイムアウトの異議申し立てにも使えますか？</h3>
+      <p>使えません。Discord にはタイムアウトや警告に異議を申し立てるための API がないため、Appealy が扱うのは BAN だけです。対応していると謳うボットは、それらの処分を Discord ではなく自前のデータベースで管理しています。</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>プロダクト</h2>
+        <ul>
+          <li><a href="/ja/#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/">稼働状況</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>用途</h2>
+        <ul>
+          <li><a href="/ja/discord-ban-appeal-bot">BAN解除申請</a></li>
+          <li><a href="/ja/discord-ticket-bot">チケット</a></li>
+          <li><a href="/ja/discord-verification-bot">認証</a></li>
+          <li><a href="/ja/discord-anti-raid-bot">レイド対策</a></li>
+          <li><a href="/ja/discord-giveaway-bot">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">BAN解除申請</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/ja/appy-alternative">Appy の代替</a></li>
+          <li><a href="/ja/appeal-gg-alternative">Appeal.gg の代替</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法的事項</h2>
+        <ul>
+          <li><a href="/ja/privacy">プライバシー</a></li>
+          <li><a href="/ja/terms">利用規約</a></li>
+          <li><a href="/ja/refunds">返金</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 のもとで公開されているフリーソフトウェアです。
+      Discord Inc. とは提携していません。Discord は Discord Inc. の商標です。Appealy は Appy および
+      Appeal.gg とも提携しておらず、別個のプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/discord-ticket-bot.html
+
+  Japanese translation of site/discord-ticket-bot.html.
+
+  Structure, classes, ids, asset paths and script tags mirror the English page
+  exactly. Only text nodes, alt text, meta descriptions, titles and aria-labels
+  are translated. Numbers, product names and command samples are left as they
+  are.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text,
+  in Japanese, for the same reason they are the same text in English.
+-->
+
+<title>Discord チケットボット — Appealy</title>
+<meta name="description" content="プライベートチャンネルまたはスレッドとして動くサポートチケット。担当者の確保、評価、定型返信、クローズ時のトランスクリプトに対応。無料・オープンソース・セルフホスト可能。">
+<link rel="canonical" href="https://appealy.app/ja/discord-ticket-bot">
+<link rel="alternate" hreflang="en" href="https://appealy.app/discord-ticket-bot">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/discord-ticket-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/discord-ticket-bot">
+<meta property="og:title" content="Discord チケットボット — Appealy">
+<meta property="og:description" content="プライベートチャンネルまたはスレッドとして動くサポートチケット。担当者の確保、評価、定型返信、クローズ時のトランスクリプトに対応。無料・オープンソース・セルフホスト可能。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募フォーム、BAN解除申請、チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord チケットボット — Appealy">
+<meta name="twitter:description" content="プライベートチャンネルまたはスレッドとして動くサポートチケット。担当者の確保、評価、定型返信、クローズ時のトランスクリプトに対応。無料・オープンソース・セルフホスト可能。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.app/ja/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "チケットボット",
+          "item": "https://appealy.app/ja/discord-ticket-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "チャンネルとスレッドのどちらを使いますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "どちらも使えます。パネルごとに選びます。指定したカテゴリ内のプライベートチャンネル、プライベートスレッド、パブリックスレッドのいずれかです。同じサーバー内でも、チケットの種類ごとに別々の方式を使えます。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "チケットを閉じたときにトランスクリプトは残りますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "残ります。クローズ時のトランスクリプトをオンにしてチャンネルを選んでおけば、チケットが終わったときにそこへ会話が投稿されます。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "2 人が同時に返信しないよう、スタッフがチケットを担当として確保できますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "できます。担当者の確保はパネルごとの設定で、確保した人はチケットに記録されます。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "1 人が 20 件もチケットを開くのを止められますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "止められます。パネルごとに、1 人のユーザーが同時に開いておけるチケット数の上限があります。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "チケット機能は無料ですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "無料です。すべての機能がすべてのプランにあります。有料プランで上がるのはスループット上限だけで、ボット全体を AGPL-3.0 のもとで無料でセルフホストできます。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">コンテンツへスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メイン">
+      <a href="/ja/#features">機能</a>
+      <a href="/ja/pricing">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/discord-ticket-bot" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="パンくずリスト">
+        <ol>
+          <li><a href="/ja/">Appealy</a></li>
+          <li aria-current="page">チケットボット</li>
+        </ol>
+      </nav>
+
+      <h1>Discord チケットボット</h1>
+      <p class="lede">ボタンが 1 つ付いたパネルを置くだけ。押した人にはプライベートチャンネルか
+        スレッドが用意され、サポートロールにメンションが飛び、閉じるときにはトランスクリプトが残ります。</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Discord に追加</a>
+        <a class="btn" href="/ja/pricing">料金を見る</a>
+      </p>
+
+      <h2>チャンネルかスレッドか — パネルごとに選べます</h2>
+
+      <p>パネルを作るときに選ぶ 3 つの選択肢があります。指定したカテゴリ内の
+        <strong>プライベートチャンネル</strong>、<strong>プライベートスレッド</strong>、
+        <strong>パブリックスレッド</strong>です。スレッドは忙しいサーバーのチャンネル一覧を
+        短く保ちます。チャンネルはより長く残り、引き継ぎも簡単です。チケットの種類ごとに
+        別々の方式を使えます。この選択はサーバーではなくパネルのものだからです。</p>
+
+      <h2>凝った設定をしなくても手に入るもの</h2>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">設定</th><th scope="col">効果</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">サポートロール</th><td>このパネルから作られたチケットを見て対応できる人</td></tr>
+            <tr><th scope="row">メンションするロール</th><td>チケットが開いたときに通知される人。見られる人とは別に指定します</td></tr>
+            <tr><th scope="row">担当者の確保</th><td>スタッフがチケットを引き受け、2 人が同時に答えてしまうのを防ぎます</td></tr>
+            <tr><th scope="row">評価</th><td>閉じるときに、開いた本人がスコアとコメントを残します</td></tr>
+            <tr><th scope="row">クローズ時のトランスクリプト</th><td>選んだチャンネルに投稿され、チケットが消えても会話が残ります</td></tr>
+            <tr><th scope="row">1 人あたりの同時オープン上限</th><td>1 人が 15 件開くのを止めます</td></tr>
+            <tr><th scope="row">チケット名の書式</th><td>付き合わされる命名規則ではなく、自分で決める名前に</td></tr>
+            <tr><th scope="row">ウェルカムメッセージ</th><td>チケット内に送られるので、最初の返信が「ご用件は？」にならずに済みます</td></tr>
+            <tr><th scope="row">作成者によるクローズ</th><td>オンかオフか。必要なチームもあれば、絶対に避けたいチームもあります</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>ほとんどのチケットは同じチケットなので、定型返信を</h2>
+
+      <p>定型返信はサーバーごとに保存され、カテゴリにまとめられます。「異議申し立てはどうすれば」
+        への答えは、モデレーターが 40 回打ち直して 40 回目に少し間違えるものではなく、
+        ひとつ選ぶだけのものになります。</p>
+
+      <h2>導入</h2>
+
+<pre><code>/ticket-panel create name: Support channel_type: Private thread support_role: @Staff</code></pre>
+
+      <p>これを実行したチャンネルにパネルが投稿されます。ウェルカムメッセージ、担当者の確保、評価、
+        トランスクリプト、同時オープン上限など、そのほかはすべて後からダッシュボードで設定でき、
+        チケットを動かすだけならどれも必須ではありません。</p>
+
+      <h2>料金</h2>
+
+      <p><strong>無料です。</strong>チケットは有料機能ではありません。そもそも有料機能が 1 つも
+        ないからです。有料プランで上がるのはスループット上限だけで、ほかには何もありません。
+        あるいは AGPL-3.0 のもとで<a href="https://docs.appealy.app/self-hosting/">自分で運用</a>すれば、
+        上限はハードウェアが許すところまでになります。</p>
+
+      <h2>チケットだけのボットではありません</h2>
+
+      <p>同じボットが<a href="/ja/">スタッフ募集</a>、
+        <a href="/ja/discord-ban-appeal-bot">BAN解除申請</a>、
+        <a href="/ja/discord-verification-bot">認証</a>、
+        <a href="/ja/discord-anti-raid-bot">レイド対策</a>、
+        <a href="/ja/discord-giveaway-bot">ギブアウェイ</a>も動かします。招待するボットは 1 つ、
+        ダッシュボードも 1 つ、そして離れるときのエクスポートも 1 つです。</p>
+
+      <h2 id="faq">よくある質問</h2>
+      <h3>チャンネルとスレッドのどちらを使いますか？</h3>
+      <p>どちらも使えます。パネルごとに選びます。指定したカテゴリ内のプライベートチャンネル、プライベートスレッド、パブリックスレッドのいずれかです。同じサーバー内でも、チケットの種類ごとに別々の方式を使えます。</p>
+
+      <h3>チケットを閉じたときにトランスクリプトは残りますか？</h3>
+      <p>残ります。クローズ時のトランスクリプトをオンにしてチャンネルを選んでおけば、チケットが終わったときにそこへ会話が投稿されます。</p>
+
+      <h3>2 人が同時に返信しないよう、スタッフがチケットを担当として確保できますか？</h3>
+      <p>できます。担当者の確保はパネルごとの設定で、確保した人はチケットに記録されます。</p>
+
+      <h3>1 人が 20 件もチケットを開くのを止められますか？</h3>
+      <p>止められます。パネルごとに、1 人のユーザーが同時に開いておけるチケット数の上限があります。</p>
+
+      <h3>チケット機能は無料ですか？</h3>
+      <p>無料です。すべての機能がすべてのプランにあります。有料プランで上がるのはスループット上限だけで、ボット全体を AGPL-3.0 のもとで無料でセルフホストできます。</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>プロダクト</h2>
+        <ul>
+          <li><a href="/ja/#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/">稼働状況</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>用途</h2>
+        <ul>
+          <li><a href="/ja/discord-ban-appeal-bot">BAN解除申請</a></li>
+          <li><a href="/ja/discord-ticket-bot">チケット</a></li>
+          <li><a href="/ja/discord-verification-bot">認証</a></li>
+          <li><a href="/ja/discord-anti-raid-bot">レイド対策</a></li>
+          <li><a href="/ja/discord-giveaway-bot">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">BAN解除申請</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/ja/appy-alternative">Appy の代替</a></li>
+          <li><a href="/ja/appeal-gg-alternative">Appeal.gg の代替</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法的事項</h2>
+        <ul>
+          <li><a href="/ja/privacy">プライバシー</a></li>
+          <li><a href="/ja/terms">利用規約</a></li>
+          <li><a href="/ja/refunds">返金</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 のもとで公開されているフリーソフトウェアです。
+      Discord Inc. とは提携していません。Discord は Discord Inc. の商標です。Appealy は Appy および
+      Appeal.gg とも提携しておらず、別個のプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

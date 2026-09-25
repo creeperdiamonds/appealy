@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/pricing.html — Japanese translation of site/pricing.html.
+
+  Every number on this page comes from site/pricing.html, which in turn mirrors
+  shared/schema/pricing.ts. Prices, currency symbols and figures are NOT
+  localised: no conversion, no rounding, no reformatting. If a price changes,
+  change it in pricing.ts first, then in site/pricing.html, then here.
+
+  site.css is referenced as /site.css because this file sits one directory
+  deeper than the English page; the relative form would 404 at /ja/site.css.
+-->
+
+<title>料金 &mdash; Appealy</title>
+<meta name="description" content="ずっと無料、または年額 $60・$180 で処理量を拡張。全機能がすべてのティアで使え、有料プランが上げるのは 9 つの上限だけです。請求は年額のみ。">
+<link rel="canonical" href="https://appealy.app/ja/pricing">
+<link rel="alternate" hreflang="en" href="https://appealy.app/pricing">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/pricing">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/pricing">
+<meta property="og:title" content="料金 — Appealy">
+<meta property="og:description" content="ずっと無料、または年額 $60・$180 で処理量を拡張。全機能がすべてのティアで使え、有料プランが上げるのは 9 つの上限だけです。請求は年額のみ。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募・BAN 異議申し立て・チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="料金 — Appealy">
+<meta name="twitter:description" content="ずっと無料、年額 $60・$180 の処理量ティア、または上限を自分で設定。全機能がすべてのティアで使えます。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Appealy",
+  "url": "https://appealy.app/ja/",
+  "applicationCategory": "CommunicationApplication",
+  "operatingSystem": "Discord, web browser",
+  "inLanguage": "ja",
+  "description": "応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、認証、ウェルカム、ロールメニュー、アンチレイドに対応するオープンソースの Discord ボット。",
+  "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+  "isAccessibleForFree": true,
+  "codeRepository": "https://github.com/creeperdiamonds/appealy",
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "無料",
+      "price": "0",
+      "priceCurrency": "USD",
+      "url": "https://appealy.app/ja/pricing",
+      "description": "全機能を、基準となる処理上限で利用できます。"
+    },
+    {
+      "@type": "Offer",
+      "name": "処理量ティア1",
+      "price": "60.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.app/ja/pricing",
+      "description": "年額。9 つの処理上限をすべて引き上げます。"
+    },
+    {
+      "@type": "Offer",
+      "name": "処理量ティア2",
+      "price": "180.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.app/ja/pricing",
+      "description": "年額。9 つの処理上限をさらに引き上げます。"
+    },
+    {
+      "@type": "Offer",
+      "name": "専用ホスティングインスタンス",
+      "price": "30.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.app/ja/pricing",
+      "description": "年額。自分のボットトークンで動く専用インスタンス。処理量ティアとは独立しています。"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">本文へスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メイン">
+      <a href="/ja/#features">機能</a>
+      <a href="/ja/pricing" aria-current="page">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="/ja/#self-hosting">セルフホスト</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/pricing" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose wide">
+
+    <p class="eyebrow">料金</p>
+    <h1>支払うのは処理量か、ホスティングか。機能に対してではありません。</h1>
+    <p class="lede">
+      このサイトで説明している機能は、すべて無料ティアで使えます。有料の軸が変えるのは 9 つの
+      数値と、それとは別に、あなただけのハードウェアでボットを動かすことだけです。
+    </p>
+
+    <div class="callout is-accent">
+      <p>
+        <strong>セルフホストは無料で、これからも無料です。</strong> リポジトリをクローンして
+        動かせば、このページの内容はどれもあなたには関係ありません。課金は無効、決済情報は一切
+        読み込まれず、上限は自分の <code>.env</code> で設定した値になります。ライセンスキーも
+        機能制限もありません。
+      </p>
+    </div>
+
+    <h2>軸 A &mdash; 処理量</h2>
+    <p>
+      9 つの上限を、省略せずに掲載します。2 つのプリセットティアは、固定の年額でそのすべてを
+      引き上げます。カスタムでは 1 つずつ自分で設定でき、チェックアウトに進む前にダッシュボードが
+      その場で価格を計算します。
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption><code>shared/schema/pricing.ts</code> にある 9 つの従量上限すべて。右端の列は、自分で値を決めるときのハードリミットです。</caption>
+        <thead>
+          <tr>
+            <th scope="col">上限</th>
+            <th scope="col" class="num">無料</th>
+            <th scope="col" class="num">ティア1</th>
+            <th scope="col" class="num">ティア2</th>
+            <th scope="col" class="num">カスタムの上限値</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">1 日あたりの応募数</th>
+            <td class="num">150</td><td class="num">750</td><td class="num">3,000</td><td class="num">15,000</td>
+          </tr>
+          <tr>
+            <th scope="row">1 日あたりのチケット数</th>
+            <td class="num">75</td><td class="num">375</td><td class="num">1,500</td><td class="num">7,500</td>
+          </tr>
+          <tr>
+            <th scope="row">1 日あたりのギブアウェイ参加数</th>
+            <td class="num">750</td><td class="num">3,750</td><td class="num">15,000</td><td class="num">75,000</td>
+          </tr>
+          <tr>
+            <th scope="row">ダッシュボード API の 1 分あたりリクエスト数</th>
+            <td class="num">60</td><td class="num">180</td><td class="num">600</td><td class="num">2,000</td>
+          </tr>
+          <tr>
+            <th scope="row">サーバーあたりのフォーム数</th>
+            <td class="num">10</td><td class="num">40</td><td class="num">100</td><td class="num">300</td>
+          </tr>
+          <tr>
+            <th scope="row">サーバーあたりのパネル数</th>
+            <td class="num">10</td><td class="num">40</td><td class="num">100</td><td class="num">300</td>
+          </tr>
+          <tr>
+            <th scope="row">ルール種別あたりのロール数</th>
+            <td class="num">5</td><td class="num">15</td><td class="num">40</td><td class="num">100</td>
+          </tr>
+          <tr>
+            <th scope="row">フォームあたりの質問数</th>
+            <td class="num">25</td><td class="num">60</td><td class="num">150</td><td class="num">200</td>
+          </tr>
+          <tr>
+            <th scope="row">履歴の保持期間（日）</th>
+            <td class="num">60</td><td class="num">365</td><td class="num">1,095</td><td class="num">1,825</td>
+          </tr>
+          <tr>
+            <th scope="row">価格</th>
+            <td class="num">$0</td>
+            <td class="num">$60/年</td>
+            <td class="num">$180/年</td>
+            <td class="num">最大 $1,068.93/年</td>
+          </tr>
+          <tr>
+            <th scope="row">月額換算</th>
+            <td class="num">&mdash;</td>
+            <td class="num">$5.00</td>
+            <td class="num">$15.00</td>
+            <td class="num">最大 $89.07</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted">
+      履歴の保持期間は、課金対象であるだけでなく実際に適用されます。定期的な削除処理が、保持期間を
+      過ぎた審査済みの応募を消します。未処理の応募が消されることはありません &mdash; それは誰かの
+      審査キューにある進行中の作業で、期限切れとして落とせば、応募者がまだ待っている応募を黙って
+      捨てることになります。
+    </p>
+
+    <p class="muted">
+      <strong>フォームあたりの質問数には、私たちが売り物にできない第 2 の制限があります。</strong>
+      Discord のモーダルは 5 つのコンポーネントしか持てず、Appealy はサーバー内の応募をモーダル
+      5 枚までページ送りします。そのため<em>サーバー内</em>のフォームは、どのティアであっても
+      テキスト質問を最大 25 問しか置けません。支払いを増やしても上がらないのは、この制限が
+      Discord のものだからです。<em>DM</em> のフォームにこの制限はなく &mdash; 1 問ずつ尋ねる
+      ためです &mdash; 上の表の数値がそのまま効きます。選択式の質問はモーダルの前に尋ねるので、
+      25 問には数えません。どちらかの制限を超えるフォームを保存しようとすると、どちらに
+      引っかかったかを示して拒否されます。受け付けてから黙って切り詰めることはしません。
+    </p>
+
+    <h3>上限を自分で決める</h3>
+    <p>
+      それぞれの上限は、無料の基準値を超えた分について 1 単位あたりの年額で課金されます。これらの
+      単価は <code>pricing.ts</code> の定数なので、ダッシュボードの見積もり、実際の請求、そして
+      この表は、すべて同じ計算から出ています。
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption>無料の基準値を超えた 1 単位あたりの年額。</caption>
+        <thead>
+          <tr>
+            <th scope="col">上限</th>
+            <th scope="col">無料の基準値</th>
+            <th scope="col" class="num">超過 1 単位あたりの年額</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">1 日あたりの応募数</th><td>150</td><td class="num">$0.03</td></tr>
+          <tr><th scope="row">1 日あたりのチケット数</th><td>75</td><td class="num">$0.03</td></tr>
+          <tr><th scope="row">1 日あたりのギブアウェイ参加数</th><td>750</td><td class="num">100 件ごとに $0.15</td></tr>
+          <tr><th scope="row">ダッシュボード API の 1 分あたりリクエスト数</th><td>60</td><td class="num">$0.05</td></tr>
+          <tr><th scope="row">サーバーあたりのフォーム数</th><td>10</td><td class="num">$0.21</td></tr>
+          <tr><th scope="row">サーバーあたりのパネル数</th><td>10</td><td class="num">$0.21</td></tr>
+          <tr><th scope="row">ルール種別あたりのロール数</th><td>5</td><td class="num">$0.26</td></tr>
+          <tr><th scope="row">フォームあたりの質問数</th><td>25</td><td class="num">$0.06</td></tr>
+          <tr><th scope="row">履歴の保持期間（日）</th><td>60</td><td class="num">$0.02</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      単価の表は、誰かが掛け算をするまで価格になりません。そこで実際に計算しておきます。1 日
+      1,000 件の応募が必要で、ほかは変えないサーバーなら、基準の 150 件を 850 単位超えるので、
+      1 単位 $0.03 で<strong>年 $25.50</strong>。さらに無料の 60 日に 90 日の保持期間を足すと、
+      90 単位 × 2 セントで<strong>$1.80</strong>、合計 $27.30 です。ティア1 は 1 日 750 件で
+      頭打ちなのでこのサーバーには足りず、唯一足りるティア2 は $180 です。効いている上限だけを
+      上げるほうが大幅に安く、ビルダーが存在する理由はまさにそこにあります。
+    </p>
+    <p>
+      逆方向についても明記しておきます。プリセットと<em>まったく同じ</em>上限をビルダーで買うと、
+      必ずプリセット以上の金額になります。プリセットはセット割引だからです。ティア1 の上限を
+      単価で積み上げると $60.90（プリセットは $60）、ティア2 は $251.73（同 $180）になります。
+      1 つか 2 つの上限だけが効いていて、ほかは余っているならビルダーを。ほとんどが一緒に動くなら
+      プリセットを選んでください。ダッシュボードは両方の金額を並べて表示するので、自分で計算する
+      必要はありません。
+    </p>
+
+    <div class="callout">
+      <p>
+        <strong>無制限ティアはどこにもなく、今後も作りません。</strong> すべての上限に上限値が
+        あり、カスタムの値も例外ではありません &mdash; 最初の表の右端の列がそれです。上限のない
+        設定は最悪ケースのコストを見積もる術を奪い、悪用のコストをゼロにします。上限値を超える
+        リクエストは、頼んでもいない値に黙って丸められるのではなく、どの項目かを示して拒否されます。
+      </p>
+    </div>
+
+    <p class="muted">
+      合計が年 <strong>$5.00</strong> に満たない構成は、請求せずにチェックアウトの時点で断ります。
+      決済手数料を数に入れると、それだけの金額を単独で請求する意味がないためです。
+    </p>
+
+    <h2>軸 B &mdash; ホスティング</h2>
+    <p>
+      セルフホストは無料です。ホスティングに支払う場合は、同じボットの専用インスタンスを、
+      あなた自身のボットトークンで、こちらが運用します &mdash; 価格は原価に近い水準です。
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption>ホスティング。上の処理量ティアとは独立しています。</caption>
+        <thead>
+          <tr>
+            <th scope="col">選択肢</th>
+            <th scope="col">内容</th>
+            <th scope="col" class="num">価格</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">セルフホスト</th>
+            <td>自分で動かします。自分のハードウェア、自分の上限、決済アカウントは一切不要です。</td>
+            <td class="num">$0</td>
+          </tr>
+          <tr>
+            <th scope="row">共有</th>
+            <td>ほかのみんなが使っている、マルチテナントのボットです。</td>
+            <td class="num">$0</td>
+          </tr>
+          <tr>
+            <th scope="row">専用</th>
+            <td>あなた自身のボットトークンで動く専用インスタンスを、こちらで運用します。</td>
+            <td class="num">$30/年</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      2 つの軸は厳密に加算されます。無料の処理量で専用インスタンスを使うことも、共有ボットで
+      ティア2 を使うこともでき、組み合わせは自由です。セット割引はなく、その予定もありません
+      &mdash; それぞれの軸が独立して価格付けされ、独立して請求されます。
+    </p>
+
+    <p>
+      月あたり $2.50 で、自分のトークン・名前・アイコンで動くボットを、自分で運用せずに使えます。
+      自分で動かすために借りる一番安い VPS でも年 $60 ほどかかり、しかもその後は自分で運用する
+      ことになります。
+    </p>
+
+    <h2>年額請求にしている理由</h2>
+    <p>
+      <strong>月額の選択肢はどこにもありません。</strong> これは好みではなく、手数料の下で
+      生き残るための条件です。カード決済の手数料はおおよそ 2.9% + 1 件あたり $0.30 で、この
+      金額帯で効いてくるのは固定の 30 セントのほうです。少額の請求を 12 回に分ければ、年 1 回の
+      請求なら 1 度で済む固定分を、同じ売上に対して 12 回払うことになります。
+    </p>
+    <p>
+      具体的には、月額 $5 のティアを毎月請求すると、年間の売上の約 9% が手数料に消えます。同じ
+      ティアを $60 の 1 回払いにすれば約 3% です。金額が小さいほど悪化します。年 $30 の
+      ホスティング料金を月 $2.50 の形で請求すると、その約 15% が手数料に消え、そのほとんどが
+      固定の 30 セントです。決してその形で請求しないのは、まさにこのためです。
+    </p>
+    <p>
+      このサイトの月額表示はすべて年額から計算し、セント未満を切り捨てたものです。ほかで月額
+      表示されている料金と比べられるようにあるだけで、選べる請求サイクルではありません。
+    </p>
+
+    <h2>支払いの仕組み</h2>
+    <p>
+      記録上の販売者（Merchant of Record）は Paddle です。Paddle が顧客に販売し、代金を回収し、
+      販売先の国・地域における売上税や VAT の登録と納付を担います。有料プランは年間の
+      サブスクリプションとして作成されるため、支払いが止まったプランは無期限に続くのではなく
+      終了します。返金した場合、そのサーバーは無料の構成に戻ります。
+    </p>
+    <p>
+      <strong>返金は購入から 14 日以内であれば、理由を問わず受け付けます。</strong> 支払いを
+      受け取ったのは Paddle なので、Paddle を通して申請してください。プランを終了しても変わるのは
+      上限だけで、それ以外は何も変わりません &mdash; フォーム、応募、チケット、設定はそのまま
+      残るので、返金で失うのは余裕分だけで、積み上げた作業は失われません。詳しい条件は
+      <a href="/terms" hreflang="en">利用規約</a>のページ（英語）にあります。
+    </p>
+    <p>
+      完全に無料の構成へのダウングレードは、唯一チェックアウトを通らないプラン変更です。確認す
+      べき支払いがないためです。
+    </p>
+
+    <h2>従量課金の対象でないもの</h2>
+    <p>
+      機能です。そのすべてが対象外です。ドロップダウン形式のパネル、カスタムの承認結果、
+      マネージャーへの権限委任、BAN 異議申し立て、チケットのトランスクリプト、チケットの評価、
+      ギブアウェイの追加エントリー、アンチレイド、認証、ロールメニュー、固定メッセージ、
+      クイックレスポンス、完全なデータエクスポート、2 種類のインポーター &mdash; いずれも無料
+      ティアで使えますし、これまでずっとそうでした。
+    </p>
+
+    <div class="btn-row">
+      <a class="btn btn-primary" href="/api/invite">Discord に追加</a>
+      <a class="btn" href="/dashboard/">ダッシュボードを開く</a>
+      <a class="btn" href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts" hreflang="en">pricing.ts を読む</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>製品</h2>
+        <ul>
+          <li><a href="/ja/#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/" hreflang="en">ステータス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/appy-alternative" hreflang="en">Appy の代替として</a></li>
+          <li><a href="/appeal-gg-alternative" hreflang="en">Appeal.gg の代替として</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy" hreflang="en">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE" hreflang="en">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>使いみち</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot" hreflang="en">BAN 異議申し立て</a></li>
+          <li><a href="/discord-ticket-bot" hreflang="en">チケット</a></li>
+          <li><a href="/discord-verification-bot" hreflang="en">認証</a></li>
+          <li><a href="/discord-anti-raid-bot" hreflang="en">アンチレイド</a></li>
+          <li><a href="/discord-giveaway-bot" hreflang="en">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/" hreflang="en">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals" hreflang="en">BAN 異議申し立て</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes" hreflang="en">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/" hreflang="en">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法務</h2>
+        <ul>
+          <li><a href="/privacy" hreflang="en">プライバシー</a></li>
+          <li><a href="/terms" hreflang="en">利用規約</a></li>
+          <li><a href="/refunds" hreflang="en">返金について</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 に基づくフリーソフトウェアです。Discord
+      Inc. とは関係がありません。Discord は Discord Inc. の商標です。また Appealy は、Appy および
+      Appeal.gg とも関係のない別のプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

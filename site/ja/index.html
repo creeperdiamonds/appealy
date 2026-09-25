@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/index.html — Japanese translation of site/index.html.
+
+  Structure, classes, ids and asset paths mirror the English page. Only text
+  nodes, alt text, aria-labels and metadata are translated. If the English
+  landing page changes, change this file with it — nothing generates it.
+
+  Two deliberate differences from the English file:
+    * site.css is referenced as /site.css, not site.css. This file sits one
+      directory deeper, so the relative form would resolve to /ja/site.css
+      and 404.
+    * Internal links point at /ja/ only where a Japanese page exists. The
+      feature pages, the comparison pages, the legal pages, the dashboard
+      and the docs are English-only and are linked as such on purpose.
+-->
+
+<title>スタッフ募集に使える Discord 応募ボット &mdash; Appealy</title>
+<meta name="description" content="スタッフ募集、BAN 異議申し立て、チケットに対応するオープンソースの Discord ボット。セルフホストは無料、全機能をすべてのティアで利用でき、やめるときは全データをエクスポートできます。">
+<link rel="canonical" href="https://appealy.app/ja/">
+<link rel="alternate" hreflang="en" href="https://appealy.app/">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/">
+<meta property="og:title" content="スタッフ募集に使える Discord 応募ボット — Appealy">
+<meta property="og:description" content="スタッフ募集、BAN 異議申し立て、チケットに対応するオープンソースの Discord ボット。セルフホストは無料、全機能をすべてのティアで利用でき、やめるときは全データをエクスポートできます。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募・BAN 異議申し立て・チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="スタッフ募集に使える Discord 応募ボット — Appealy">
+<meta name="twitter:description" content="応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、アンチレイドに対応するオープンソースの Discord ボット。セルフホストは無料。全機能をすべてのティアで。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Appealy",
+  "url": "https://appealy.app/ja/",
+  "applicationCategory": "CommunicationApplication",
+  "applicationSubCategory": "Discord bot",
+  "operatingSystem": "Discord, web browser",
+  "inLanguage": "ja",
+  "description": "応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、認証、ウェルカム、ロールメニュー、アンチレイドに対応するオープンソースの Discord ボット。Web ダッシュボード付き。セルフホストは無料で、有料ティアが上げるのは処理上限だけです。",
+  "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+  "isAccessibleForFree": true,
+  "codeRepository": "https://github.com/creeperdiamonds/appealy",
+  "sameAs": [
+    "https://github.com/creeperdiamonds/appealy",
+    "https://github.com/creeperdiamonds",
+    "https://discord.gg/UwBMug9JyX"
+  ],
+  "author": {
+    "@type": "Person",
+    "name": "creeperdiamonds",
+    "url": "https://www.creeperdiamonds.xyz/",
+    "sameAs": ["https://github.com/creeperdiamonds"]
+  },
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "無料",
+      "price": "0",
+      "priceCurrency": "USD",
+      "url": "https://appealy.app/ja/pricing"
+    },
+    {
+      "@type": "Offer",
+      "name": "処理量ティア1",
+      "price": "60.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.app/ja/pricing"
+    },
+    {
+      "@type": "Offer",
+      "name": "処理量ティア2",
+      "price": "180.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.app/ja/pricing"
+    },
+    {
+      "@type": "Offer",
+      "name": "専用ホスティングインスタンス",
+      "price": "30.00",
+      "priceCurrency": "USD",
+      "url": "https://appealy.app/ja/pricing"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">本文へスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/" aria-current="page">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メイン">
+      <a href="#features">機能</a>
+      <a href="/ja/pricing">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="#self-hosting">セルフホスト</a>
+      <a href="#support">サポート</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-body">
+        <p class="eyebrow">オープンソース · AGPL-3.0</p>
+        <h1>あなたの Discord サーバーに、応募・BAN 異議申し立て・チケットを。</h1>
+        <p class="lede">
+          <strong>Appealy</strong> は、スタッフ募集の応募、BAN 異議申し立て、チケットに対応する
+          オープンソースの Discord ボットです。Web ダッシュボードが付属します。メンバーはパネルの
+          ボタンか <code>/apply</code> からフォームに回答します。スタッフはキューに並んだ応募を
+          審査し、結果を選ぶだけ。ロールの付与も、DM も、BAN 解除も、そのワンクリックで実行されます。
+        </p>
+
+        <div class="btn-row">
+          <a class="btn btn-primary" href="/api/invite">Discord に追加</a>
+          <a class="btn" href="/dashboard/">ダッシュボードを開く</a>
+        </div>
+
+        <blockquote class="door">
+          <p>
+            Appy の BAN メッセージにはこう書かれています &mdash;
+            「this decision is final and cannot be appealed（この決定は最終であり、異議を申し立てることはできません）」。
+            上のマークが開いた扉なのは、それがこの一文の正反対を一つの形にしたものだからです。
+          </p>
+          <!--
+            The screenshot rather than only the sentence, because the sentence
+            is the entire argument for this product and a paraphrase invites
+            the reader to assume it was sharpened. The quoted English is left
+            verbatim: it is what the screenshot actually says, and a
+            translation of it would be exactly the paraphrase this block
+            exists to avoid. Width and height are set so the hero does not
+            reflow while it loads; loading="lazy" is deliberately NOT used
+            here, since this sits above the fold.
+          -->
+          <figure class="door-evidence">
+            <img
+              src="/img/appy-ban.jpg"
+              width="720"
+              height="351"
+              alt="Discord の認証済みアプリ Appy がスラッシュコマンドに返信している画面。英語で「You are banned from using the bot for reason: Breach of appy terms of service. This decision is final and cannot be appealed.」と表示されている。"
+            >
+            <figcaption>Appy 自身の返信です。言い換えではなく、そのままの引用です。<a href="/appy-alternative" hreflang="en">Appy からの移行をお考えですか？</a></figcaption>
+          </figure>
+          <footer>そう判断した理由は、採用に至らなかった 3 つの案とあわせて <code>brand/README.md</code> に書いてあります。</footer>
+        </blockquote>
+      </div>
+
+      <figure class="hero-figure">
+        <img src="/brand/icon.svg" alt="" width="512" height="512">
+      </figure>
+    </div>
+  </section>
+
+  <section id="why">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">ここが違います</p>
+        <h2>このカテゴリの Discord ボットの多くがやっていない、5 つのこと。</h2>
+        <p class="dim">
+          これらを先に挙げるのは、聞こえがいいからではなく、本当に違う点だからです。どれも
+          リポジトリで確認できます。
+        </p>
+      </div>
+
+      <ul class="cards cols-3">
+        <li class="card">
+          <h3>完全にオープンソース</h3>
+          <p>
+            ゲートウェイボット、API、ダッシュボード、Terraform、そして請求額を決める料金計算まで。
+            ライセンスは AGPL-3.0 です。あなたの上限を適用しているコードそのものを読めます。
+          </p>
+        </li>
+        <li class="card">
+          <h3>無料でセルフホストできます</h3>
+          <p>
+            ライセンスキーも機能制限もありません。<code>.env.example</code> には
+            <code>DEPLOYMENT_MODE=self</code> が入っています。課金は無効、決済情報は一切
+            読み込まれず、上限はあなたのハードウェア上の <code>CAP_*</code> の値で決まります。
+          </p>
+        </li>
+        <li class="card">
+          <h3>全機能をすべてのティアで</h3>
+          <p>
+            有料プランが上げるのは 9 つの処理上限です。違いはそれだけ。ドロップダウン形式のパネル、
+            カスタム審査結果、マネージャーへの権限委任、BAN 異議申し立て、トランスクリプト
+            &mdash; すべて無料ティアでも使えます。
+          </p>
+        </li>
+        <li class="card">
+          <h3>完全なエクスポート、囲い込みなし</h3>
+          <p>
+            <code>/export</code> は、そのサーバーのフォーム、質問、パネル、応募、チケット、
+            ギブアウェイ、設定、委任をすべて含む JSON ファイルを 1 つ書き出します。セルフホスト
+            環境にインポートして、そのまま離れられます。
+          </p>
+        </li>
+        <li class="card">
+          <h3>無制限ティアはどこにもありません</h3>
+          <p>
+            自分で設定するものも含め、すべての上限にハードリミットがあります。上限のない設定は
+            最悪ケースのコストを見積もる術を奪い、悪用のコストをゼロにします。だから設計として
+            用意していません。
+          </p>
+        </li>
+        <li class="card">
+          <h3>テレメトリなし</h3>
+          <p>
+            文章で約束するのではなく、<code>shared/config/deployment.ts</code> に
+            <code>TELEMETRY_ENABLED = false</code> として書いてあります。変更すれば diff に
+            現れます。
+          </p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">機能の全体像</p>
+        <h2>応募フォームだけのボットではありません。</h2>
+        <p class="dim">
+          17 個のスラッシュコマンドと、その挙動を設定するダッシュボード。以下のサブシステムは
+          すべて無料ティアで使えます。
+        </p>
+      </div>
+
+      <ul class="cards cols-3">
+        <li class="card group">
+          <h3>応募とフォーム</h3>
+          <ul>
+            <li>最大 5 つのフォームボタンを置けるパネル、または最大 25 項目のドロップダウン</li>
+            <li><code>/apply</code> はパネルのボタンとまったく同じ処理を通るため、制限の挙動がずれません</li>
+            <li>テキスト質問と選択式質問。Discord のモーダルはテキスト入力しか扱えないため、選択式は 2 段階で尋ねます</li>
+            <li>質問が 5 問を超えるフォームは複数のモーダルに分割されます。5 つというのは Discord の上限ですが、6 問目を捨てるのはその制限への受け入れられる対処ではありません</li>
+            <li>質問ごとの任意の正規表現チェックと、最小・最大文字数の指定</li>
+            <li>ロール制限、クールダウン、ユーザーごとの提出回数制限</li>
+            <li>まだチャンネルが見えない人のための DM 応募</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>スタッフ審査</h3>
+          <ul>
+            <li>回答、応募者、メンション先に指定したロールをまとめた審査メッセージ</li>
+            <li><strong>カスタム審査結果</strong> &mdash;「研修スタッフとして承認」「モデレーターとして承認」など、それぞれに固有のロール、メッセージ、ログチャンネルを設定できます</li>
+            <li>結果ごとの最低スタッフレベル。審査者は自分の最上位ロールと同等以上のロールを付与できません</li>
+            <li>却下理由。却下時のロール付与と剥奪は、承認時の処理とは別に設定します</li>
+            <li>審査前に応募者がサーバーを抜けた場合の自動却下。すでにいない人でキューが埋まりません</li>
+            <li>マネージャーへの委任：管理者権限を渡さずに、審査と管理だけを任せられます</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>BAN 異議申し立て</h3>
+          <ul>
+            <li>BAN された瞬間にフォームを DM で送信</li>
+            <li>異議を承認すると、自動で BAN を解除できます</li>
+            <li>異議申し立てフォームは必ず DM で配信されます。BAN されたメンバーはパネルにも <code>/apply</code> にも届かないためです</li>
+            <li>設定ページには、有効にしても何も起きなくなる 3 つのパターンを明記しています</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>チケット</h3>
+          <ul>
+            <li>プライベートチャンネル、プライベートスレッド、公開スレッド &mdash; サーバー単位ではなく、チケット種別ごとに選べます</li>
+            <li>担当ボタンとクローズボタン。クローズ時にトランスクリプトをチャンネルへ投稿することもできます</li>
+            <li>クローズ後、開設者に 1〜5 段階の評価を DM で尋ねる任意機能</li>
+            <li>開設者が退出したときの挙動を設定可能：何もしない、クローズする、通知する</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>ギブアウェイ</h3>
+          <ul>
+            <li>リアクションではなく、ボタンで参加</li>
+            <li>フォームと同じ形のロール制限に加えて、ロールごとの追加エントリー（任意）</li>
+            <li>終了時刻の予約</li>
+            <li>当選済みの人を除外した再抽選</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>投票</h3>
+          <ul>
+            <li><code>/poll</code> は作成してそのまま投稿します。既定では Discord 標準の投票機能を使うため、埋め込みで似せたものではなく、本物の投票ボタン、リアルタイムのカウントダウン、結果表示が使えます</li>
+            <li>締め切りを尋ねられたら、チャンネルでそのまま答えます：<code>1h 20m</code>、<code>10 hours 50 minutes</code>、<code>july 10 3pm</code></li>
+            <li>タイムゾーンは普段の言い方のままで構いません &mdash; <code>3pm EST</code>、<code>3pm UTC+5:30</code>、<code>3pm india</code>、<code>3pm tokyo</code>、<code>3pm Asia/Kolkata</code> &mdash; サマータイムは今日ではなく、その投票が実際に締め切られる日付で判定されます</li>
+            <li>2 か所を指しうる表記は、推測せずに拒否します。<code>IST</code> はインド、アイルランド、イスラエルのいずれでもありえますし、4 時間早く締め切られる投票は質問されるより厄介です。タイムゾーンを書かなければ UTC として読み、いずれの場合も投稿前にあなたのタイムゾーンで読み上げて確認します</li>
+            <li>Discord の投票は 1 時間単位でしか動かないため、<code>engine: Legacy embed</code> を選べば従来の埋め込みのまま、正確な時刻に締め切れます。SQL で集計できる結果が必要なときも同様です（Discord の投票は結果を取り出せません）</li>
+            <li>ダッシュボードから、投稿と締め切りを後の時刻に予約できます</li>
+            <li>選択肢は最大 9 個。複数選択も任意で有効にできます</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>認証とウェルカム</h3>
+          <ul>
+            <li>ボタン 1 つの認証、またはコードを入力させるチャレンジ</li>
+            <li>参加時に付与して認証時に外す「未認証ロール」（任意）。最後まで進まないメンバーを自動キックするタイマーも設定できます</li>
+            <li>ウェルカム機能：参加メッセージ、参加時の DM、自動ロール付与、退出メッセージ</li>
+            <li>自分で付け外しできるロールのためのロールメニュー</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>アンチレイド</h3>
+          <ul>
+            <li>自分で決めたしきい値と時間枠による、参加速度の検知</li>
+            <li>スタッフへの通知、またはロックダウン中の参加制限</li>
+            <li><strong>さかのぼっての処理も、一斉 BAN も行いません。</strong> 公開招待が急に広まっただけの誤検知は、本物のレイドに対して控えめすぎた場合よりも大きな被害を生みます</li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>スタッフ用ユーティリティ</h3>
+          <ul>
+            <li>クイックレスポンス：カテゴリ分けして保存できる定型返信</li>
+            <li>固定メッセージ：流れの速いチャンネルの一番下に、1 つのメッセージを保ち続けます</li>
+            <li><code>/reset-cooldown</code>、<code>/forms</code>、<code>/botstats</code></li>
+          </ul>
+        </li>
+
+        <li class="card group">
+          <h3>データの持ち出し</h3>
+          <ul>
+            <li><code>/export</code> &mdash; 完全な JSON ダンプ。委任された管理者が実行できないよう、意図的にオーナー限定にしています</li>
+            <li><code>/import-appealy</code> &mdash; 同じ設定を別のサーバーに立ち上げます。チャンネルとロールの参照はすべて振り直され、解決できなかったものはレポートで返ります</li>
+            <li><code>/import-appy</code> &mdash; Appy から応募履歴を引き継ぎます</li>
+            <li><code>/export_applications</code> &mdash; 条件に一致した応募の CSV を、Discord の添付ファイルとして出力します</li>
+          </ul>
+        </li>
+      </ul>
+
+      <div class="callout is-accent">
+        <p>
+          <strong>これだけは単独で書いておきます。</strong> インポート時にロール制限が失われた
+          フォームは、無効の状態でインポートされます。新しいサーバーでは意味をなさないロールを
+          参照していたスタッフ募集フォームは、そのままでは「壊れている」のではなく
+          <em>誰でも応募できる</em>状態で届いてしまうからです。開いたままのスタッフ募集は、
+          フォームが無いことよりも悪い結果です。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">使い始める</p>
+        <h2>3 ステップです。</h2>
+      </div>
+
+      <ol class="steps">
+        <li>
+          <h3>ボットを追加する</h3>
+          <p>
+            招待は 1 回、権限は 9 つ、どれも必要なものです。審査結果でロールを付与するための
+            ロール権限、チケットのためのチャンネル権限、異議申し立てによる BAN 解除と認証の
+            タイムアウトのための BAN・キック権限。1 つでも欠けた招待は、何も言わずに動かない
+            機能を生みます。
+          </p>
+        </li>
+        <li>
+          <h3>フォームを作り、パネルを公開する</h3>
+          <p>
+            ダッシュボードから、またはサーバー内の <code>/panel create</code> から。質問、
+            制限、結果ごとに付与するロール、スタッフが審査するチャンネルを設定します。
+          </p>
+        </li>
+        <li>
+          <h3>審査する</h3>
+          <p>
+            応募は審査チャンネルと、ダッシュボードのキューに届きます。結果を選べば、ロール、
+            DM、ログ、BAN 解除がそれに従って実行されます。
+          </p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">料金</p>
+        <h2>支払うのは処理量か、ホスティングか。機能に対してではありません。</h2>
+        <p class="dim">
+          独立した 2 つの軸があり、それぞれが加算されます。無料の処理量のまま専用インスタンスを
+          使うことも、共有ボットのまま有料の処理量ティアを使うこともでき、組み合わせは自由です。
+          セット割引はなく、その予定もありません。
+        </p>
+      </div>
+
+      <ul class="cards cols-4">
+        <li class="card price">
+          <span class="badge is-ok">無料</span>
+          <p class="amount">$0</p>
+          <p class="per">試用期間ではなく、ずっと無料</p>
+          <ul>
+            <li>1 日 100 件の応募</li>
+            <li>1 日 50 件のチケット</li>
+            <li>1 日 500 件のギブアウェイ参加</li>
+            <li>フォーム 5 個、パネル 5 個</li>
+            <li>履歴 30 日</li>
+          </ul>
+        </li>
+        <li class="card price">
+          <span class="badge">ティア1</span>
+          <p class="amount">$60<span class="unit"> /年</span></p>
+          <p class="per">月あたり $5.00 相当、年 1 回の請求</p>
+          <ul>
+            <li>1 日 500 件の応募</li>
+            <li>1 日 250 件のチケット</li>
+            <li>1 日 2,500 件のギブアウェイ参加</li>
+            <li>フォーム 50 個、パネル 50 個</li>
+            <li>履歴 365 日</li>
+          </ul>
+        </li>
+        <li class="card price">
+          <span class="badge">ティア2</span>
+          <p class="amount">$180<span class="unit"> /年</span></p>
+          <p class="per">月あたり $15.00 相当、年 1 回の請求</p>
+          <ul>
+            <li>1 日 2,000 件の応募</li>
+            <li>1 日 1,000 件のチケット</li>
+            <li>1 日 10,000 件のギブアウェイ参加</li>
+            <li>フォーム 100 個、パネル 100 個</li>
+            <li>履歴 730 日</li>
+          </ul>
+        </li>
+        <li class="card price">
+          <span class="badge is-watch">カスタム</span>
+          <p class="amount">従量制</p>
+          <p class="per">チェックアウト前にその場で価格表示</p>
+          <ul>
+            <li>9 つの上限を自分で設定できます</li>
+            <li>数値を変えるたびに、ダッシュボードが再計算します</li>
+            <li>「お問い合わせください」の手順はありません</li>
+            <li>どの項目にも上限値があります</li>
+          </ul>
+        </li>
+      </ul>
+
+      <div class="callout">
+        <p>
+          <strong>請求は年額のみです。月額の選択肢は、どこにも、意図的に用意していません。</strong>
+          カード決済の手数料はおおよそ 2.9% + 1 件あたり $0.30 で、この金額帯では固定の 30 セントが
+          重くのしかかります。月額 $5 のティアを毎月請求すると、年間の売上の約 9% が手数料に
+          消えます。同じティアを $60 の 1 回払いにすれば約 3% です。このサイトの月額表示は比較の
+          ために年額から計算したもので、選べる請求サイクルではありません。
+        </p>
+      </div>
+
+      <p><a href="/ja/pricing">すべての上限、上限値、カスタムの単価はこちら &rarr;</a></p>
+    </div>
+  </section>
+
+  <section id="self-hosting">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">セルフホスト</p>
+        <h2>自分で動かせば、費用はかかりません。</h2>
+      </div>
+
+      <div class="cards cols-3">
+        <div class="card">
+          <h3>出し惜しみはありません</h3>
+          <p>
+            セルフホストしたインスタンスは、同じ機能を備えた同じボットです。課金は無効、決済情報は
+            読み込まれず、上限はあなたの <code>CAP_*</code> の値で決まります。上げるのも自由です
+            &mdash; あなたのハードウェアなのですから。
+          </p>
+        </div>
+        <div class="card">
+          <h3>決済アカウントなしで起動します</h3>
+          <p>
+            以前はそこが詰まりどころでした。決済情報が無条件に必須だったため、オープンソースの
+            プロジェクトをクローンしても、決済アカウントを求めて起動時に落ちていたのです。今は
+            違います。
+          </p>
+        </div>
+        <div class="card">
+          <h3>Docker が動く場所ならどこでも</h3>
+          <p>
+            VPS でも、Raspberry Pi でも、ノート PC でも。<code>./setup.sh</code> が必要な
+            ツールを確認し、手で入力すべきでない秘密鍵を生成し、Discord のポータルでの手順を
+            案内してコンテナを起動します。何度実行しても安全です。
+          </p>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <a class="btn" href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md" hreflang="en">セルフホストガイド</a>
+        <a class="btn" href="https://github.com/creeperdiamonds/appealy" hreflang="en">GitHub のソース</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">よくある質問</p>
+        <h2>実際に届く質問。</h2>
+        <p class="dim">
+          答えが「できません」になる場合も含めて、率直に書いています。製品の得意なことしか並んで
+          いない FAQ は、疑問符を付けた広告です。
+        </p>
+      </div>
+
+      <ul class="cards cols-2">
+        <li class="card">
+          <h3>上限に達したらどうなりますか？</h3>
+          <p>
+            その操作は拒否され、操作した人にはどの上限に達したのか、いつリセットされるのかが
+            伝えられます。何も削除されず、黙って捨てられることもありません &mdash; 1 日の上限を
+            超える応募は、いったん受け付けてから破棄するのではなく、最初から受け付けません。
+            応募できたと思っているのに実は届いていない人は、断られた人よりも不利益を被るからです。
+          </p>
+        </li>
+        <li class="card">
+          <h3>ボットにはどの権限が必要ですか？</h3>
+          <p>
+            付与するロールのための「ロールの管理」、チケットのための「チャンネルの管理」、BAN
+            異議申し立てを使う場合のみ「メンバーをBAN」、それに通常の閲覧と送信です。Discord
+            自身のロール階層はそのまま適用されます。ボットは自分より上位のロールを付与できない
+            ため、ダッシュボードはそれに当たるロールをすべての選択欄で示します。実際に必要に
+            なった瞬間に失敗させることはしません。
+          </p>
+        </li>
+        <li class="card">
+          <h3>支払いをやめるとデータは失われますか？</h3>
+          <p>
+            いいえ。無料ティアに下がると上限は下がりますが、フォーム、応募、チケットが削除される
+            ことはありません。何かを削除する上限は履歴の保持期間だけで、それも保持期間を過ぎた
+            審査済みの応募に限られます。未処理の応募が消されることは決してありません
+            &mdash; それは誰かのキューにある、進行中の作業だからです。
+          </p>
+        </li>
+        <li class="card">
+          <h3>別のサーバーへ、あるいは他のサービスへ移せますか？</h3>
+          <p>
+            どちらもできます。<code>/export</code> がすべてを含む JSON ファイルを 1 つ書き出し、
+            インポーターが別の場所で再構築します &mdash; チャンネルとロールを振り直し、解決
+            できなかったものは報告します。安全に引き継げない設定は慎重な側に倒して失敗し、その旨を
+            伝えます。設定済みに見えて実は違う、という状態でインポートすることはありません。
+          </p>
+        </li>
+        <li class="card">
+          <h3>応募データは何かの学習に使われますか？</h3>
+          <p>
+            いいえ。テレメトリも分析パイプラインもありません。この主張はここの文章ではなく
+            <code>shared/config/deployment.ts</code> の定数として存在するため、変更すれば diff に
+            現れます。それでも信用しきれない場合、セルフホストモードは私たちと一切通信しません。
+          </p>
+        </li>
+        <li class="card">
+          <h3>まだ無いものは何ですか？</h3>
+          <p>
+            はっきり書いておきます。モバイルアプリはなく、ボットとダッシュボードは英語のみで
+            他言語へのローカライズはまだなく、ホスティングサービスに SLA もありません。セルフ
+            ホストにサポート契約もありません &mdash; あるのはソースコード、セットアップガイド、
+            そして issue トラッカーです。
+          </p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="support">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">サポート</p>
+        <h2>どこで聞けるのか、何を期待してよいのか。</h2>
+        <p class="dim">
+          これはサポート窓口を持つ企業ではなく、小さなプロジェクトです。誰も待機していない応答
+          時間をほのめかすより、そう書いておくほうが誠実です。
+        </p>
+      </div>
+
+      <ul class="cards cols-3">
+        <li class="card">
+          <h3>Discord で聞く</h3>
+          <p>
+            <a href="https://discord.gg/UwBMug9JyX">コミュニティサーバー</a>が、たいていの質問には
+            一番早い窓口です。目の前の現象がバグなのか設定なのか分からないときにも適しています。
+            同じボットを運用している人たちもいます。
+          </p>
+        </li>
+        <li class="card">
+          <h3>動かなくなった</h3>
+          <p>
+            <a href="https://github.com/creeperdiamonds/appealy/issues" hreflang="en">issue トラッカー</a>に
+            issue を立ててください。何をして、何が起きたか、特定のサーバーでだけ起きるならその
+            サーバー ID を書いてください &mdash; この 3 つがあるかどうかが、修正になるか会話で
+            終わるかの分かれ目です。
+          </p>
+        </li>
+        <li class="card">
+          <h3>こちらの問題か、障害か</h3>
+          <p>
+            <a href="https://status.appealy.app/" hreflang="en">ステータスページ</a>はアプリ自身の
+            サーバーとは別に Cloudflare 上でホストされているため、アプリが落ちていても応答します。
+            まずそこを見てください。Discord サーバーの中からでは、障害と設定ミスは見分けがつきません。
+          </p>
+        </li>
+        <li class="card">
+          <h3>自分でセットアップする</h3>
+          <p>
+            <a href="https://github.com/creeperdiamonds/appealy/blob/main/SETUP.md" hreflang="en">SETUP.md</a>
+            がホスティング版の手順を、
+            <a href="https://github.com/creeperdiamonds/appealy/blob/main/SELF_HOSTING.md" hreflang="en">SELF_HOSTING.md</a>
+            がスタンドアロンの手順を、どちらのモードになるかを決める環境変数も含めて説明しています。
+            セットアップに関する質問のほとんどは、この 2 つのファイルのどちらかに答えがあります。
+          </p>
+        </li>
+        <li class="card">
+          <h3>セキュリティの問題</h3>
+          <p>
+            悪用できる問題については、公開の issue を立てないでください。代わりに GitHub の
+            <a href="https://github.com/creeperdiamonds/appealy/security/advisories/new" hreflang="en">非公開の脆弱性報告</a>を
+            使ってください。詳細を公開せずに、メンテナーに届きます。
+          </p>
+        </li>
+        <li class="card">
+          <h3>請求と支払い</h3>
+          <p>
+            決済は、記録上の販売者である Paddle が処理します。そのため返金や支払い方法の問題は、
+            注文番号を添えて Paddle のサポートへお願いします。プランで何ができるようになるかは
+            別の話で &mdash; そちらは issue トラッカー、あるいは <code>pricing.ts</code> を
+            直接読めば分かります。
+          </p>
+        </li>
+        <li class="card">
+          <h3>プラットフォームから BAN された</h3>
+          <p>
+            それには専用の窓口があり、issue トラッカーは通りません。サインインすると、BAN 画面に
+            理由とフォームが表示されます &mdash; これは人間が読みます。試行回数を使い切っても
+            閉じるのではなく一時停止し、「最終決定」と書かれることは決してありません。
+          </p>
+        </li>
+      </ul>
+
+      <p class="muted">
+        有料のサポートティアはなく、作る予定もありません。処理上限を上げても回答が早くなることは
+        ありません。サービスの中身がリポジトリで読める数値の集合である以上、それを売るのは奇妙な
+        話です。
+      </p>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>サーバーに追加する。</h2>
+        <p class="dim">
+          無料ティアはカウントダウンではなく、上限の集合です。期限切れはなく、動かす前にカードを
+          求めることもありません。
+        </p>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Discord に追加</a>
+        <a class="btn" href="/dashboard/">ダッシュボードを開く</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>製品</h2>
+        <ul>
+          <li><a href="#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/" hreflang="en">ステータス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>サポート</h2>
+        <ul>
+          <li><a href="https://discord.gg/UwBMug9JyX">Discord サーバー</a></li>
+          <li><a href="#support">困ったときは</a></li>
+          <li><a href="#faq">よくある質問</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/issues" hreflang="en">問題を報告する</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/security/advisories/new" hreflang="en">脆弱性を報告する</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/appy-alternative" hreflang="en">Appy の代替として</a></li>
+          <li><a href="/appeal-gg-alternative" hreflang="en">Appeal.gg の代替として</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy" hreflang="en">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE" hreflang="en">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>使いみち</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot" hreflang="en">BAN 異議申し立て</a></li>
+          <li><a href="/discord-ticket-bot" hreflang="en">チケット</a></li>
+          <li><a href="/discord-verification-bot" hreflang="en">認証</a></li>
+          <li><a href="/discord-anti-raid-bot" hreflang="en">アンチレイド</a></li>
+          <li><a href="/discord-giveaway-bot" hreflang="en">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/" hreflang="en">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals" hreflang="en">BAN 異議申し立て</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes" hreflang="en">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/" hreflang="en">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法務</h2>
+        <ul>
+          <li><a href="/privacy" hreflang="en">プライバシー</a></li>
+          <li><a href="/terms" hreflang="en">利用規約</a></li>
+          <li><a href="/refunds" hreflang="en">返金について</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 に基づくフリーソフトウェアです。Discord
+      Inc. とは関係がありません。Discord は Discord Inc. の商標です。また Appealy は、Appy および
+      Appeal.gg とも関係のない別のプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/privacy.html
+
+  Japanese translation of site/privacy.html. The English page is the one that
+  binds — see the note under the heading, and keep it there.
+
+  This page makes factual claims about what is and is not stored, including
+  the callout admitting that automatic deletion is not switched on yet. That
+  admission must survive translation intact: a privacy page that is more
+  flattering in one language than the other is worse than no translation.
+
+  Change this page and site/privacy.html together or neither.
+-->
+
+<title>プライバシー — Appealy</title>
+<meta name="description" content="appealy.app のホスティング版で何が保存され、何が収集されないか。保存期間、閲覧できる人の範囲、データの持ち出し、削除の依頼方法について。">
+<link rel="canonical" href="https://appealy.app/ja/privacy">
+<link rel="alternate" hreflang="en" href="https://appealy.app/privacy">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/privacy">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/privacy">
+<meta property="og:title" content="プライバシー — Appealy">
+<meta property="og:description" content="appealy.app のホスティング版で何が保存され、何が収集されないか。保存期間、閲覧できる人の範囲、データの持ち出し、削除の依頼方法について。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募フォーム、BAN 異議申し立て、チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="プライバシー — Appealy">
+<meta name="twitter:description" content="appealy.app のホスティング版で何が保存され、何が収集されないか。保存期間、閲覧できる人の範囲、データの持ち出し、削除の依頼方法について。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">本文へスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メインナビゲーション">
+      <a href="/ja/#features">機能</a>
+      <a href="/ja/pricing">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="/ja/#self-hosting">セルフホスト</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/privacy" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose">
+
+    <p class="eyebrow">法的事項</p>
+    <h1>プライバシー</h1>
+    <p class="updated">最終更新: 2026年8月18日</p>
+
+    <p class="lede">
+      このページは appealy.app のホスティング版について説明します。セルフホストの場合、ここに書かれた
+      内容は一切当てはまりません。あなたのインスタンスは Discord と、あなた自身のデータベースとだけ
+      やり取りし、データを保持しているのはそのインスタンスの運営者です。
+    </p>
+
+    <p class="note">
+      このページは英語版 <a href="/privacy" hreflang="en">Privacy</a> の参考訳です。
+      解釈に相違が生じた場合は、英語版が優先します。
+    </p>
+
+    <h2>保存されるもの</h2>
+    <p>
+      Appealy は Discord サーバーの応募、異議申し立て、チケットを扱うボットです。保存するもののほとんどは、
+      Discord の識別子か、フォームに誰かが入力した内容のどちらかです。
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption>データベースに書き込まれる内容と、その理由。</caption>
+        <thead>
+          <tr>
+            <th scope="col">データ</th>
+            <th scope="col">理由</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Discord ID</th>
+            <td>ユーザー、サーバー、チャンネル、ロール、メッセージの ID。ボットの動作はすべてこれらで指定されます。</td>
+          </tr>
+          <tr>
+            <th scope="row">サーバー名とアイコンのハッシュ</th>
+            <td>ダッシュボードでどのサーバーを見ているかを表示するため。</td>
+          </tr>
+          <tr>
+            <th scope="row">応募と回答</th>
+            <td>応募者が書いた内容、対象のフォーム、結果、審査担当者、却下理由がある場合はその理由。</td>
+          </tr>
+          <tr>
+            <th scope="row">BAN 異議申し立て</th>
+            <td>応募と同じ構造です。サーバーで異議申し立てが有効なときに、誰かが BAN されると作成されます。</td>
+          </tr>
+          <tr>
+            <th scope="row">チケット</th>
+            <td>誰が開いたか、誰が担当したか、いつ閉じたか、評価機能が有効なら評価、書き起こしが有効ならそのリンク。</td>
+          </tr>
+          <tr>
+            <th scope="row">ギブアウェイの参加、投票</th>
+            <td>どのユーザーが参加・投票したか。同じ人が二重に参加できないようにするため。</td>
+          </tr>
+          <tr>
+            <th scope="row">サーバー設定</th>
+            <td>フォーム、質問、パネル、DM テンプレート、チケットの種類、認証、ウェルカム、ロールメニュー、荒らし対策、定型応答、固定メッセージ、スタッフ権限の委任。</td>
+          </tr>
+          <tr>
+            <th scope="row">セッション</th>
+            <td><code>appealy_session</code> クッキーから参照されるセッションの行。</td>
+          </tr>
+          <tr>
+            <th scope="row">Discord OAuth トークン</th>
+            <td>サインイン時に Discord が発行するアクセストークンとリフレッシュトークン。ダッシュボードが管理対象サーバーを一覧表示するために使います。<strong>保存時に暗号化されます。</strong></td>
+          </tr>
+          <tr>
+            <th scope="row">請求状態</th>
+            <td>サーバーがどのプランかと、決済事業者側のサブスクリプション参照 ID。カード情報は一切保存しません &mdash; 下記を参照してください。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>収集しないもの</h2>
+    <ul>
+      <li>
+        <strong>テレメトリはありません。</strong>これは文章での約束ではなく
+        <code>shared/config/deployment.ts</code> の定数として表明されているので、変われば差分に現れます。
+      </li>
+      <li>
+        <strong>メッセージの保存はしません。</strong>ボットは Message Content インテントを、固定メッセージを
+        再投稿すべきほどチャンネルが動いたかを判断するためだけに使います。メッセージ本文をデータベースに
+        書き込むことはありません。チャンネルの履歴を読む唯一の機能はチケットの書き起こしで、これはチケットを
+        閉じたときに生成され、設定したチャンネル &mdash; 当方ではなくあなたのサーバー &mdash; にプレーンテキスト
+        ファイルとして投稿されます。保存されるのはその URL だけで、書き起こしを有効にした場合にのみ作成されます。
+      </li>
+      <li>
+        <strong>カード情報は扱いません。</strong>本サービスに届くことはありません。販売事業者が
+        merchant of record として、自社のページで決済を受け取ります。
+      </li>
+      <li>
+        <strong>このウェブサイトに解析ツールはありません。</strong>いま読んでいるページには JavaScript が
+        一切含まれていません。このドメインの外へ要求するのは、2 種類の書体（Google Fonts）だけです。
+      </li>
+      <li>
+        <strong>稼働状況ページでサーバー ID の問い合わせは発生しません。</strong>シャードの計算は単なる算術なので、
+        ブラウザ内で完結します。何も送信されない以上、記録も、キャッシュも、漏洩も起こりようがありません。
+      </li>
+    </ul>
+
+    <h2>クッキー</h2>
+    <p>
+      1 つだけです: <code>appealy_session</code>。<code>httpOnly</code>（JavaScript から読めません）、
+      <code>SameSite=Lax</code>、本番環境では <code>Secure</code> が付きます。保持するのはセッション識別子
+      のみで、それ以外は何もありません &mdash; トークンもユーザーデータも含みません。サインアウトすると削除されます。
+    </p>
+    <p>
+      解析用クッキーもサードパーティークッキーもありません。ダッシュボードを API と同じオリジンから配信して
+      いるのは、まさにこのためです。設定を緩めてブラウザにサードパーティー扱いさせるのではなく、構造として
+      セッションクッキーをファーストパーティーに保っています。
+    </p>
+
+    <h2>保存期間</h2>
+    <p>
+      サーバーごとに履歴の保存期間があり、これも計測対象の上限の 1 つです。無料プランで 30 日、最大で 5 年です。
+      審査済みの応募 &mdash; 承認、却下、取り下げ &mdash; は期間を過ぎると削除対象になり、回答も所属する応募と
+      ともに削除されます。
+    </p>
+    <div class="callout">
+      <strong>自動削除はまだ有効になっていません。このページでそれを偽るつもりはありません。</strong>
+      保存期間は参照されるすべての箇所で適用されており、期限切れの応募を削除するジョブも実装済みで動いています
+      &mdash; ただし現在は報告モードで、削除する代わりに「削除するはずだったもの」を記録しています。
+      そのため、期間を過ぎた審査済みの応募は今も保存されています。
+      <br><br>
+      これは見落としではありません。この削除処理は一度も実行されていないため、初回の実行では、
+      <em>実行されてこなかったがゆえに</em>溜まった期限切れの応募すべてを、全サーバーにわたって一度に、
+      取り消せない形で削除することになります。それは数字を見たうえで下すべき判断であって、既定で有効にしておいて
+      あとから気づくようなものではありません。有効にした際にはこの段落を削除し、上の一文だけが残ります。
+      <br><br>
+      それより前にサーバーの履歴を消したい場合は、<code>/export</code> で控えを取ったうえで、下記の宛先に
+      削除を依頼してください。手作業で対応します。
+    </div>
+    <p>
+      <strong>審査待ちの応募は、どのプランでも削除されません。</strong>それは審査待ち行列にある進行中の案件であり、
+      期限切れを理由に消せば、まだ結果を待っている人の応募を黙って捨てることになるからです。
+    </p>
+    <p>
+      サーバーからボットを外しても、そのサーバーの設定は削除されません。再度招待したときに、作り直すのではなく
+      元の状態に戻せるようにするためです。休止ではなく完全に消したい場合は、エクスポートしてから削除を依頼してください。
+    </p>
+
+    <h2>誰が何を見られるか</h2>
+    <ul>
+      <li>
+        <strong>応募者</strong>は、ボットから届く DM を通じて自分の応募を見られます。
+      </li>
+      <li>
+        <strong>審査担当者</strong>は、アクセスを与えられたフォームの応募を見られます。アクセス権は
+        Discord の管理者権限を与えることなく、個人単位で委任できます。
+      </li>
+      <li>
+        <strong>審査チャンネルを見られる人</strong>は、審査用の埋め込みに表示される内容をすべて見られます。
+        フォームごとに、埋め込みから回答を完全に省く設定ができます &mdash; 審査担当者は Discord 上では応募の
+        統計だけを見て、回答はダッシュボードで読む形になります。個人的なことを尋ねるフォームでは有効にする価値が
+        あります。Discord のチャンネルはメッセージ履歴を無期限に保持するからです。
+      </li>
+      <li>
+        <strong>サーバー所有者のみ</strong>が、完全なデータエクスポートと一括インポートを実行できます。これは
+        本製品の他のどの権限よりも意図的に厳しくしています。応募者が書いた内容すべての完全な写しを、日常の管理を
+        任せた管理者が引き出せないという保証を求める所有者がいるためです。
+      </li>
+    </ul>
+
+    <h2>データの持ち出し</h2>
+    <p>
+      サーバー内で <code>/export</code> を実行すると、そのサーバーのフォーム、質問、パネル、応募、回答、
+      DM テンプレート、チケット、ギブアウェイ、認証とウェルカムの設定、ロールメニュー、荒らし対策の設定、
+      定型応答、固定メッセージ、スタッフ権限の委任をすべて含む JSON ファイルが 1 つ生成されます。請求情報と
+      セッション情報は意図的に除外しています &mdash; それらはアカウントに属するもので、持ち運べるサーバー設定
+      ではありません。
+    </p>
+    <p>
+      目的は、共有ボットでは手狭になったサーバーが、自前のセルフホストインスタンスへ移り、すべてを持って
+      いけるようにすることです。囲い込みの手続きも、エクスポート料金もありません。
+    </p>
+
+    <h2>関わる第三者</h2>
+    <div class="table-scroll">
+      <table>
+        <caption>ホスティング版に関わる第三者。</caption>
+        <thead>
+          <tr>
+            <th scope="col">相手</th>
+            <th scope="col">渡るもの</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Discord</th>
+            <td>ボットが送受信するすべて。本サービスが動作している基盤です。</td>
+          </tr>
+          <tr>
+            <th scope="row">Paddle</th>
+            <td>有料プランの販売事業者（merchant of record）。決済を処理し、販売先での売上税・VAT の登録を担います。カード情報は当方ではなく Paddle に渡ります。</td>
+          </tr>
+          <tr>
+            <th scope="row">Google Cloud</th>
+            <td>ホスティング版の稼働場所: Cloud Run、Cloud SQL、Memorystore、Secret Manager。</td>
+          </tr>
+          <tr>
+            <th scope="row">Google Fonts</th>
+            <td>このウェブサイトとダッシュボードで使う 2 種類の書体を配信します。ブラウザが直接要求します。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>データを販売することはなく、この表にない相手と共有することもありません。</p>
+
+    <h2>削除の依頼</h2>
+    <p>
+      サーバー所有者は、すべてをエクスポートしたうえで、そのサーバーのデータの削除を依頼できます。個々の応募者は、
+      まず応募先サーバーのスタッフに相談してください &mdash; 応募を保持しているのはそのサーバーであり、スタッフが
+      直接対応できます。
+    </p>
+    <p>
+      <a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a> までメールしてください。
+      公開の Issue ではなくメールをお使いください。削除の依頼では、対象となるサーバー名や、場合によっては個人名を
+      挙げる必要があり、Issue トラッカーではそれがリポジトリを読めるすべての人に公開されてしまいます。
+      不具合の報告先としては
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub リポジトリ</a>が引き続き適切です。
+    </p>
+
+    <h2>セルフホストの場合</h2>
+    <p>
+      セルフホストのインスタンスは、当方へ何も送信しません &mdash; テレメトリも、ライセンス確認も、外部への
+      通信もありません。そのインスタンスのデータベースにあるデータに責任を負うのは運営者であり、このページは
+      その内容を一切説明するものではありません。
+    </p>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>製品</h2>
+        <ul>
+          <li><a href="/ja/#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/">稼働状況</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/ja/appy-alternative">Appy の代替</a></li>
+          <li><a href="/ja/appeal-gg-alternative">Appeal.gg の代替</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>用途</h2>
+        <ul>
+          <li><a href="/ja/discord-ban-appeal-bot">BAN 異議申し立て</a></li>
+          <li><a href="/ja/discord-ticket-bot">チケット</a></li>
+          <li><a href="/ja/discord-verification-bot">認証</a></li>
+          <li><a href="/ja/discord-anti-raid-bot">荒らし対策</a></li>
+          <li><a href="/ja/discord-giveaway-bot">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">BAN 異議申し立て</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法的事項</h2>
+        <ul>
+          <li><a href="/ja/privacy" aria-current="page">プライバシー</a></li>
+          <li><a href="/ja/terms">利用規約</a></li>
+          <li><a href="/ja/refunds">返金</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 のもとで公開されている自由ソフトウェアです。
+      Discord Inc. とは無関係であり、Discord は Discord Inc. の商標です。また Appealy は Appy および
+      Appeal.gg とも無関係の、独立したプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

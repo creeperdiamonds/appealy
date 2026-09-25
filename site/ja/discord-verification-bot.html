@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/discord-verification-bot.html
+
+  Japanese translation of site/discord-verification-bot.html.
+
+  THE CAPTCHA PARAGRAPH IS NOT OPTIONAL, and it is not softened in translation:
+  this is a retype-the-code challenge and not an image CAPTCHA.
+
+  Structure, classes, ids, asset paths and script tags mirror the English page
+  exactly. Only text nodes, alt text, meta descriptions, titles and aria-labels
+  are translated. Command samples are left as they are.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text,
+  in Japanese, for the same reason they are the same text in English.
+-->
+
+<title>Discord 認証ボット — Appealy</title>
+<meta name="description" content="新規メンバーをボタンまたは短いコードで認証。参加時に付くゲートロールと、認証しない人の自動キックはどちらも任意です。無料・オープンソース。">
+<link rel="canonical" href="https://appealy.app/ja/discord-verification-bot">
+<link rel="alternate" hreflang="en" href="https://appealy.app/discord-verification-bot">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/discord-verification-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/discord-verification-bot">
+<meta property="og:title" content="Discord 認証ボット — Appealy">
+<meta property="og:description" content="新規メンバーをボタンまたは短いコードで認証。参加時に付くゲートロールと、認証しない人の自動キックはどちらも任意です。無料・オープンソース。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募フォーム、BAN解除申請、チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord 認証ボット — Appealy">
+<meta name="twitter:description" content="新規メンバーをボタンまたは短いコードで認証。参加時に付くゲートロールと、認証しない人の自動キックはどちらも任意です。無料・オープンソース。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.app/ja/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "認証ボット",
+          "item": "https://appealy.app/ja/discord-verification-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "これは本物の CAPTCHA ですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "違います。本人にだけ表示される短いランダムなコードを、入力欄に打ち直してもらう仕組みです。本物の画像 CAPTCHA には外部のレンダリングサービスが必要で、Appealy はそれを使っていません。無人で自動参加するボットは弾けますが、人間や、注意を払っている攻撃者は止められません。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "未認証のメンバーをサーバーから締め出せますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "できます。任意のゲートロールが参加時に付与され、認証時に外れます。そのロールからチャンネルへのアクセスを拒否しておけば、未認証のアカウントには何も見えません。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "いつまでも認証しない人をキックできますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "できます。任意のタイマーで行います。初期状態ではオフです。気を取られていただけの実在の人を退出させるほうが、休眠アカウントが少し残るよりたいてい悪い結果になるからです。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "認証はレイドのときに役立ちますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "役立ちます。レイド対策は参加の急増を検知したときに認証を自動で強制オンにできるので、レイドは 1 分前にはなかった関門にぶつかります。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "無料ですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "無料です。すべての機能がすべてのプランにあり、ボット全体を AGPL-3.0 のもとで無料でセルフホストできます。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">コンテンツへスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メイン">
+      <a href="/ja/#features">機能</a>
+      <a href="/ja/pricing">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/discord-verification-bot" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="パンくずリスト">
+        <ol>
+          <li><a href="/ja/">Appealy</a></li>
+          <li aria-current="page">認証ボット</li>
+        </ol>
+      </nav>
+
+      <h1>Discord 認証ボット</h1>
+      <p class="lede">押すだけのボタン、または打ち直す短いコード。参加時に付いて認証時に外れる
+        ゲートロールと、いつまでも認証しない人を退出させるタイマーは、どちらも任意です。</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Discord に追加</a>
+        <a class="btn" href="/ja/pricing">料金を見る</a>
+      </p>
+
+      <h2>2 つの方式</h2>
+
+      <ul>
+        <li><strong>ボタン。</strong>1 回押せばロールが付きます。ほとんどのサーバーにはこれで十分で、
+          新規メンバーの負担もゼロです。</li>
+        <li><strong>コードチャレンジ。</strong>短いランダムなコードが本人にだけ表示され、それを
+          入力欄に打ち直してもらいます。単純な自動参加ボットは ephemeral メッセージを読まず、
+          モーダルにも入力しないので、これで弾けます。</li>
+      </ul>
+
+      <div class="callout">
+        <strong>このコードチャレンジは画像 CAPTCHA ではありませんし、このページでそう呼ぶつもりも
+        ありません。</strong>本物の画像 CAPTCHA には外部のレンダリングサービスが必要で、Appealy は
+        それを使っていません。これが止めるのは、無人で参加してスパムを流す自動化です。止められない
+        のは、人間と、画面を見ている人が付いているボットです。本気の攻撃者を退けたいのであれば、
+        これはその道具ではありませんし、そうだと言うボット紹介はあなたに正直ではありません。
+      </div>
+
+      <h2>実際に効いているのはゲートロールの部分です</h2>
+
+      <p>参加した瞬間に付与され、認証したときに外れる任意のロールです。そのロールからすべての
+        アクセスを拒否しておけば、未認証のアカウントには動いているサーバーではなく空のサーバーが
+        見えます。これが、実際に通さない認証と、丁寧にお願いするだけの認証の違いです。</p>
+
+      <p>いつまでも認証しないアカウントを自動でキックするタイマーも設定できます。初期状態では
+        オフです。気を取られていただけの実在の人を退出させるほうが、休眠アカウントが少し残るより
+        悪い結果になるからで、そこはデフォルトで決めることではなく、サーバーごとの判断だからです。</p>
+
+      <h2>レイド時のブレーキも兼ねます</h2>
+
+      <p><a href="/ja/discord-anti-raid-bot">レイド対策</a>は参加の急増を検知したときに認証を
+        強制的にオンにできるので、レイドは 1 分前にはなかった関門にぶつかります。この組み合わせ
+        こそ、両方の機能が 1 つのボットに入っている理由です。</p>
+
+      <h2>導入</h2>
+
+<pre><code>/verify-setup</code></pre>
+
+      <p>方式、付与するロール、必要ならゲートロールとタイマーを選びます。パネルのタイトルと本文は
+        自由に書けます。新規メンバーがあなたのサーバーで最初に読む文章だからです。</p>
+
+      <h2>料金</h2>
+
+      <p><strong>無料です。</strong>プランの向こう側に置かれている機能はありません。有料プランで
+        上がるのはスループット上限だけです。
+        <a href="https://docs.appealy.app/self-hosting/">セルフホスト</a>は AGPL-3.0 のもとで無料です。</p>
+
+      <h2>認証だけのボットではありません</h2>
+
+      <p><a href="/ja/">スタッフ募集</a>、
+        <a href="/ja/discord-ban-appeal-bot">BAN解除申請</a>、
+        <a href="/ja/discord-ticket-bot">チケット</a>、
+        <a href="/ja/discord-anti-raid-bot">レイド対策</a>、
+        <a href="/ja/discord-giveaway-bot">ギブアウェイ</a>にも対応します。</p>
+
+      <h2 id="faq">よくある質問</h2>
+      <h3>これは本物の CAPTCHA ですか？</h3>
+      <p>違います。本人にだけ表示される短いランダムなコードを、入力欄に打ち直してもらう仕組みです。本物の画像 CAPTCHA には外部のレンダリングサービスが必要で、Appealy はそれを使っていません。無人で自動参加するボットは弾けますが、人間や、注意を払っている攻撃者は止められません。</p>
+
+      <h3>未認証のメンバーをサーバーから締め出せますか？</h3>
+      <p>できます。任意のゲートロールが参加時に付与され、認証時に外れます。そのロールからチャンネルへのアクセスを拒否しておけば、未認証のアカウントには何も見えません。</p>
+
+      <h3>いつまでも認証しない人をキックできますか？</h3>
+      <p>できます。任意のタイマーで行います。初期状態ではオフです。気を取られていただけの実在の人を退出させるほうが、休眠アカウントが少し残るよりたいてい悪い結果になるからです。</p>
+
+      <h3>認証はレイドのときに役立ちますか？</h3>
+      <p>役立ちます。レイド対策は参加の急増を検知したときに認証を自動で強制オンにできるので、レイドは 1 分前にはなかった関門にぶつかります。</p>
+
+      <h3>無料ですか？</h3>
+      <p>無料です。すべての機能がすべてのプランにあり、ボット全体を AGPL-3.0 のもとで無料でセルフホストできます。</p>
+
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>プロダクト</h2>
+        <ul>
+          <li><a href="/ja/#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/">稼働状況</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>用途</h2>
+        <ul>
+          <li><a href="/ja/discord-ban-appeal-bot">BAN解除申請</a></li>
+          <li><a href="/ja/discord-ticket-bot">チケット</a></li>
+          <li><a href="/ja/discord-verification-bot">認証</a></li>
+          <li><a href="/ja/discord-anti-raid-bot">レイド対策</a></li>
+          <li><a href="/ja/discord-giveaway-bot">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">BAN解除申請</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/ja/appy-alternative">Appy の代替</a></li>
+          <li><a href="/ja/appeal-gg-alternative">Appeal.gg の代替</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法的事項</h2>
+        <ul>
+          <li><a href="/ja/privacy">プライバシー</a></li>
+          <li><a href="/ja/terms">利用規約</a></li>
+          <li><a href="/ja/refunds">返金</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 のもとで公開されているフリーソフトウェアです。
+      Discord Inc. とは提携していません。Discord は Discord Inc. の商標です。Appealy は Appy および
+      Appeal.gg とも提携しておらず、別個のプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ja/appy-alternative.html — Japanese translation of site/appy-alternative.html.
+
+  THE RULES OF THE ENGLISH PAGE APPLY HERE UNCHANGED.
+
+  1. Every Appy figure is from appy.bot/premium, checked on the date stated on
+     the page, and the date is shown to the reader in Japanese too.
+  2. No adjectives about Appy. Nothing was strengthened or softened in
+     translation, and nothing was added.
+  3. Every Appealy figure traces to shared/schema/pricing.ts.
+  4. The migration section still says what does NOT carry across, first.
+
+  The stylesheet link is the one structural change: the English page uses a
+  relative "site.css", which would resolve to /ja/site.css from this directory,
+  so it is written absolute here. Same file, same asset.
+-->
+
+<title>Discord 向け Appy の代替 — Appealy</title>
+<meta name="description" content="Discord の応募・チケット・BAN解除申請のための、オープンソースな Appy の代替。すべての機能がすべてのプランに、セルフホストは無料、Appy の履歴もインポートできます。">
+<link rel="canonical" href="https://appealy.app/ja/appy-alternative">
+<link rel="alternate" hreflang="en" href="https://appealy.app/appy-alternative">
+<link rel="alternate" hreflang="ja" href="https://appealy.app/ja/appy-alternative">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/ja/appy-alternative">
+<meta property="og:title" content="Discord 向け Appy の代替 — Appealy">
+<meta property="og:description" content="Discord の応募・チケット・BAN解除申請のための、オープンソースな Appy の代替。すべての機能がすべてのプランに、セルフホストは無料、Appy の履歴もインポートできます。">
+<meta property="og:image" content="https://appealy.app/og.png">
+<meta property="og:image:alt" content="Appealy — Discord サーバーのための応募フォーム、BAN解除申請、チケット。">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord 向け Appy の代替 — Appealy">
+<meta name="twitter:description" content="Discord の応募・チケット・BAN解除申請のための、オープンソースな Appy の代替。すべての機能がすべてのプランに、セルフホストは無料。">
+<meta name="twitter:image" content="https://appealy.app/og.png">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<!--
+  FAQPage, not SoftwareApplication. The other pages already carry the software
+  markup; what this page adds is question-shaped answers, which is the form
+  that both Google's rich results and answer engines actually lift.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Discord で Appy の良い代替はありますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Appealy は、スタッフ募集、BAN解除申請、チケットのためのオープンソースの Discord ボットです。ライセンスは AGPL-3.0 で、ライセンスキーも機能制限もなく無料でセルフホストでき、有料プランで上がるのはスループット上限だけです。すべての機能が無料プランで使えます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Appealy は無料ですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "無料です。セルフホストは機能制限なしで無料です。ホスティング版では無料プランにすべての機能が含まれ、有料プランで上がるのは 9 つのスループット上限だけです。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Appy の提出データを Appealy にインポートできますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "できます。Appy から応募をエクスポートし、Appealy で対応するフォームを作ってから、そこへ履歴をインポートします。質問は完全一致のテキストで対応づけられ、一致しなかったものは推測されず報告されます。インポートのやり直しも安全です。各行が Appy の ID を持っているので、すでに取り込まれた行は重複させずに飛ばされます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Appealy は Discord の BAN解除申請に対応していますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "対応しています。BAN された瞬間にそのメンバーへ解除申請フォームを DM でき、申請を承認すれば自動で BAN を解除できます。解除申請フォームは DM 配信に強制されます。BAN されたメンバーには、ボタンを押すためのチャンネルが見えないからです。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Appealy は Appeal.gg と同じものですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "違います。別の人たちによる別のプロジェクトです。Appeal.gg は Discord の処分に対する異議申し立てを Web ポータルで標準化するもので、招待リンクの discord.gg を appeal.gg に置き換える形で、BAN、ミュート、警告を扱います。Appealy はスタッフ募集とチケットのためのオープンソースの Discord ボットで、BAN解除申請も動かし、AGPL-3.0 のもとでセルフホストできます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Appealy をやめるときにデータを持ち出せますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "持ち出せます。/export コマンドが、サーバーのフォーム、質問、パネル、提出、チケット、ギブアウェイ、設定、権限委譲をすべて 1 つの JSON ファイルに書き出します。それをセルフホストのインスタンスにインポートして出ていけます。セルフホストにはライセンスキーも機能制限もありません。"
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">コンテンツへスキップ</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/ja/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="メイン">
+      <a href="/ja/#features">機能</a>
+      <a href="/ja/pricing">料金</a>
+      <a href="https://docs.appealy.app/">ドキュメント</a>
+      <a href="/ja/#self-hosting">セルフホスト</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">ダッシュボード</a>
+      <a href="/appy-alternative" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose wide">
+
+    <p class="eyebrow">代替候補</p>
+    <h1>Appy のオープンソースな代替</h1>
+
+    <p class="lede">
+      <strong>Appealy</strong> は、スタッフ募集、BAN解除申請、チケットのためのオープンソースの
+      Discord ボットで、Appy の直接の代替になります。ライセンスは AGPL-3.0、ライセンスキーも機能
+      制限もなく無料でセルフホストでき、有料プランで上がるのはスループット上限だけです &mdash;
+      すべての機能が無料プランにあります。すでに Appy を使っているなら、提出履歴も一緒に持って
+      こられます。
+    </p>
+
+    <div class="callout is-accent">
+      <p>
+        <strong>違いを一行でいえば、</strong>Appy は機能を売り、Appealy はスループットを売ります。
+        正規表現による検証、クールダウン、提出履歴、Discord 内認証は Appy では Premium の機能です。
+        Appealy ではそれらが無料プランにあり、お金を払って買うのは、そこをどれだけ通せるかです。
+      </p>
+    </div>
+
+    <h2>並べて比較</h2>
+    <p>
+      Appy の数値は <a href="https://appy.bot/premium">appy.bot/premium</a> から取ったもので、
+      <strong>2026 年 9 月 2 日</strong>に確認しています。その後変わっている可能性があるので、
+      頼りにする前に出典を確認してください。Appealy の数値は
+      <a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts"><code>pricing.ts</code></a>
+      から取っています。これは課金の計算そのものが読んでいるファイルです。
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption>まず無料プラン同士、次に有料プラン同士。価格は各プロジェクトの表示どおりです。</caption>
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            <th scope="col" class="num">Appy 無料</th>
+            <th scope="col" class="num">Appealy 無料</th>
+            <th scope="col" class="num">Appy Premium</th>
+            <th scope="col" class="num">Appealy Tier&nbsp;1</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">価格</th>
+            <td class="num">&pound;0</td><td class="num">$0</td>
+            <td class="num">&pound;4.99/mo<br>サーバーごと</td><td class="num">$60/yr<br>サーバーごと</td>
+          </tr>
+          <tr>
+            <th scope="row">応募フォーム</th>
+            <td class="num">2</td><td class="num">5</td><td class="num">200</td><td class="num">20</td>
+          </tr>
+          <tr>
+            <th scope="row">1 フォームあたりの質問数</th>
+            <td class="num">10</td><td class="num">15</td><td class="num">100</td><td class="num">50</td>
+          </tr>
+          <tr>
+            <th scope="row">応募パネル</th>
+            <td class="num">1</td><td class="num">5</td><td class="num">50</td><td class="num">20</td>
+          </tr>
+          <tr>
+            <th scope="row">正規表現による回答の検証</th>
+            <td class="num">&mdash;</td><td class="num">あり</td><td class="num">あり</td><td class="num">あり</td>
+          </tr>
+          <tr>
+            <th scope="row">応募のクールダウン</th>
+            <td class="num">&mdash;</td><td class="num">あり</td><td class="num">あり</td><td class="num">あり</td>
+          </tr>
+          <tr>
+            <th scope="row">提出履歴</th>
+            <td class="num">&mdash;</td><td class="num">30 日</td><td class="num">あり</td><td class="num">180 日</td>
+          </tr>
+          <tr>
+            <th scope="row">Discord 内での認証</th>
+            <td class="num">&mdash;</td><td class="num">あり</td><td class="num">あり</td><td class="num">あり</td>
+          </tr>
+          <tr>
+            <th scope="row">BAN解除申請</th>
+            <td class="num">&mdash;</td><td class="num">あり</td><td class="num">&mdash;</td><td class="num">あり</td>
+          </tr>
+          <tr>
+            <th scope="row">オープンソース</th>
+            <td class="num">&mdash;</td><td class="num">AGPL-3.0</td><td class="num">&mdash;</td><td class="num">AGPL-3.0</td>
+          </tr>
+          <tr>
+            <th scope="row">セルフホストが無料</th>
+            <td class="num">&mdash;</td><td class="num">あり</td><td class="num">&mdash;</td><td class="num">あり</td>
+          </tr>
+          <tr>
+            <th scope="row">回答のエクスポート</th>
+            <td class="num">CSV</td><td class="num">あり</td><td class="num">CSV</td><td class="num">あり</td>
+          </tr>
+          <tr>
+            <th scope="row">サーバー設定全体のエクスポート</th>
+            <td class="num">&mdash;</td><td class="num">あり</td><td class="num">&mdash;</td><td class="num">あり</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted">
+      <strong>エクスポートはどちらもできます &mdash; 違うのは範囲です。</strong>Appy は回答を CSV で
+      エクスポートします。まさにそのおかげで、Appealy はあなたの履歴をインポートできます。
+      エクスポートされないのはサーバーの設定です。フォーム、質問、パネル、チケットの種類、ロールの
+      自動付与などです。Appealy の <code>/export</code> はそれらすべてを 1 つのファイルに書き出します。
+      だからこそ、セルフホストの環境へ移ることが作り直しではなくコマンド 1 つで済みます。
+    </p>
+
+    <p class="muted">
+      <strong>Appy が優っている点も率直に書きます。</strong>その Premium プランは Appealy の
+      Tier&nbsp;1 よりはるかに多くのフォームとパネルを許可します &mdash; 200 対 20、50 対 20 です。
+      とにかく多数の別々のフォームが必要なら、ほぼ同じ金額で Appy Premium のほうが多く用意できます。
+      Appealy の有料プランは、サーバーがいくつ設定するかではなく、どれだけ<em>動かす</em>かを基準に
+      組まれており、それを隠すような表なら読む価値がありません。
+    </p>
+
+    <h2>応募を移行する</h2>
+    <p>
+      2 ステップで、1 つ目は意図的に手作業です。
+    </p>
+    <ol>
+      <li>
+        <strong>先に Appealy でフォームを作ります。</strong>Appy のエクスポートには質問の
+        メタデータが含まれていません &mdash; 型も、必須かどうかも、検証もなく &mdash; 誰かが回答した
+        時点の質問文だけです。つまりフォームを復元する材料がなく、推測すれば、見た目は正しいのに
+        挙動の違うフォームができあがります。
+      </li>
+      <li>
+        <strong>その フォームに履歴をインポートします。</strong>過去の質問は、フォーム上の実際の
+        質問と完全一致のテキストで対応づけられます。一致しなかったものは、いちばん近そうな質問に
+        結び付けられるのではなく<em>報告</em>されます &mdash; 誤った対応づけは、誰かの回答を本人が
+        答えてもいない質問の下に黙って綴じ込んでしまうからです。
+      </li>
+    </ol>
+
+    <p>
+      <strong>インポートのやり直しは安全です。</strong>取り込まれた行はすべて Appy 側の提出 ID を
+      保持するので、2 回目の実行はすでに取り込んだものを認識して飛ばします。インポートが途中で
+      失敗しても、同じファイルを上げ直せば、重複ではなく続きが完了します。
+    </p>
+
+    <h3>引き継がれないもの</h3>
+    <ul>
+      <li><strong>誰がどの応募を審査したか、そしてその理由。</strong>Appy のエクスポートには審査者
+        や理由のデータがありません。これらの項目は捏造せず空のままにします。</li>
+      <li><strong>質問の設定。</strong>型、必須フラグ、検証はエクスポートに含まれません。だから
+        先にフォームを作ります。</li>
+      <li><strong>Appy の無料プランにあったもの。</strong>提出履歴は向こうでは Premium の機能なので、
+        無料の Appy サーバーにはそもそもエクスポートできる履歴がありません。</li>
+    </ul>
+
+    <h2>よくある質問</h2>
+
+    <h3>Appealy は無料ですか？</h3>
+    <p>
+      無料です。セルフホストはライセンスキーも機能制限もなく無料です。ホスティング版では無料プランに
+      すべての機能があり、有料プランで上がるのは 9 つのスループット上限だけです。
+      <a href="/ja/pricing">料金ページ</a>に、9 つすべてが具体的な数値とともに載っています。
+    </p>
+
+    <h3>BAN解除申請に対応していますか？</h3>
+    <p>
+      対応していますし、それがこのプロジェクトの存在理由です。BAN されたメンバーには、BAN された
+      瞬間に解除申請フォームを DM でき、申請を承認すれば自動で BAN を解除できます。解除申請フォームは
+      DM 配信に強制されます。BAN されたメンバーには、ボタンを押すためのチャンネルが見えないからです。
+    </p>
+
+    <h3>あとでまた出ていけますか？</h3>
+    <p>
+      出ていけますし、これは上の表のどの機能よりも重要です。<code>/export</code> は、サーバーの
+      フォーム、質問、パネル、提出、チケット、ギブアウェイ、設定、権限委譲をすべて 1 つの JSON
+      ファイルに書き出します。それをセルフホストのインスタンスにインポートして出ていけます。
+      出ていけることは、ここでは約束ではなく、今日実行できるコマンドです。
+    </p>
+
+    <h3>Appealy は Appeal.gg と同じものですか？</h3>
+    <p>
+      違います &mdash; 別の人たちによる別のプロジェクトで、やっていることも違います。
+      <a href="https://appeal.gg/">Appeal.gg</a> は Discord の処分に対する異議申し立てを Web ポータルで
+      標準化します。招待リンクの <code>discord.gg</code> を <code>appeal.gg</code> に置き換えると、
+      BAN されたメンバーはそこで申請します。BAN、ミュート、警告を扱い、無料で、フォームを
+      カスタマイズするための有料プランがあります。
+    </p>
+    <p>
+      Appealy は<em>スタッフ募集とチケット</em>のための Discord ボットで、BAN解除申請も動かします。
+      AGPL-3.0 のオープンソースなので、自分でホストできます。標準的な申請ポータルだけが必要なら、
+      Appeal.gg はまさにそのために作られていて、よくこなします。応募とチケットを運用していて、
+      解除申請も同じ場所に置きたいなら、こちらです。
+    </p>
+
+    <h3>上限が書いてあるとおりだと、どうすれば分かりますか？</h3>
+    <p>
+      読んでください。<a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts"><code>shared/schema/pricing.ts</code></a>
+      は課金の計算が使っているのと同じファイルで、すべての上限を強制しているコードも同じリポジトリに
+      あります。オープンソースであることの実務上の違いはそこです &mdash; 思想の話ではなく、課金の
+      基準になる数字を自分で確認できる、というだけのことです。
+    </p>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="/api/invite">Discord に追加</a>
+      <a class="btn" href="/ja/pricing">料金を見る</a>
+      <a class="btn" href="https://github.com/creeperdiamonds/appealy">ソースを読む</a>
+    </div>
+
+    <p class="muted">
+      Appealy は Appy と提携していません。Appy はその作者たちによる別の製品で、ここに引用した数値は、
+      記載の日付時点の公開料金ページから引いたものです。
+    </p>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>プロダクト</h2>
+        <ul>
+          <li><a href="/ja/#features">機能</a></li>
+          <li><a href="/ja/pricing">料金</a></li>
+          <li><a href="/dashboard/">ダッシュボード</a></li>
+          <li><a href="https://status.appealy.app/">稼働状況</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>比較</h2>
+        <ul>
+          <li><a href="/ja/appy-alternative">Appy の代替</a></li>
+          <li><a href="/ja/appeal-gg-alternative">Appeal.gg の代替</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub リポジトリ</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 ライセンス</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>用途</h2>
+        <ul>
+          <li><a href="/ja/discord-ban-appeal-bot">BAN解除申請</a></li>
+          <li><a href="/ja/discord-ticket-bot">チケット</a></li>
+          <li><a href="/ja/discord-verification-bot">認証</a></li>
+          <li><a href="/ja/discord-anti-raid-bot">レイド対策</a></li>
+          <li><a href="/ja/discord-giveaway-bot">ギブアウェイ</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>ドキュメント</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">はじめに</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">BAN解除申請</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">審査結果</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">セルフホスト</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>法的事項</h2>
+        <ul>
+          <li><a href="/ja/privacy">プライバシー</a></li>
+          <li><a href="/ja/terms">利用規約</a></li>
+          <li><a href="/ja/refunds">返金</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy は GNU Affero General Public License v3.0 のもとで公開されているフリーソフトウェアです。
+      Discord Inc. とは提携していません。Discord は Discord Inc. の商標です。Appealy は Appy および
+      Appeal.gg とも提携しておらず、別個のプロジェクトです。
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
