@@ -6,6 +6,7 @@ import { getGuild } from "../../core/guildLookup.ts";
 
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
+import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
 import { logger } from "../../utils/logger.ts";
@@ -68,6 +69,16 @@ export async function handleDenyReasonModalSubmit(
       reviewedAt: new Date(),
     })
     .where(eq(schema.submissions.id, submissionId));
+
+  // The reason is snapshotted here as well as on the row, because the row's
+  // copy is replaced if the submission is ever reopened and decided again.
+  await recordSubmissionEvent({
+    guildId,
+    submissionId: submission.id,
+    actorId: reviewer.id,
+    action: "denied",
+    detail: reason ? { reason } : undefined,
+  });
 
   if (submission.logMessageId) {
     try {

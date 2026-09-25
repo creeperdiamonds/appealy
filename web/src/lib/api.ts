@@ -389,7 +389,24 @@ export interface Submission {
   reviewerId: string | null;
   reviewReason: string | null;
   reviewedAt: string | null;
+  /** Snapshot of the chosen outcome — "Accepted as Moderator", not just
+   *  "accepted". Null for denials and single-accept forms. */
+  outcomeLabel: string | null;
   completionSeconds: number | null;
+  createdAt: string;
+}
+
+/** One thing that happened to an application, for the history view.
+ *
+ *  actorId is null when the system acted — the applicant left and the form
+ *  was set to auto-deny, so nobody pressed anything. Names and avatars are
+ *  resolved at read time rather than stored; see the table comment in
+ *  shared/schema/schema.ts. */
+export interface SubmissionEvent {
+  id: string;
+  action: "created" | "accepted" | "denied" | "withdrawn" | "auto_denied";
+  actorId: string | null;
+  detail: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -509,6 +526,18 @@ export const api = {
   opsAppeals: () => request<{ appeals: OpsAppeal[] }>("/api/ops/appeals"),
 
   opsFeedback: () => request<{ feedback: OpsFeedback[] }>("/api/ops/feedback"),
+
+  /** Everything that has happened to one application, oldest first.
+   *
+   *  `actors` is a lookup rather than an inline field: the same reviewer
+   *  usually appears on several events, and repeating their name and avatar
+   *  on each one would send the same strings over and over. An id missing
+   *  from it could not be resolved — render the id. */
+  submissionEvents: (guildId: string, submissionId: string) =>
+    request<{
+      events: SubmissionEvent[];
+      actors: Record<string, { username: string; avatarUrl: string }>;
+    }>(`/api/guilds/${guildId}/submissions/${submissionId}/events`),
 
   decideAppeal: (id: string, decision: "accept" | "deny", note: string) =>
     request<void>(`/api/ops/appeals/${id}/${decision}`, {

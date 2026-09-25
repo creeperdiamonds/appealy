@@ -8,6 +8,7 @@ import { getGuild } from "../../core/guildLookup.ts";
 
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
+import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
 import { canReviewForm, findUnmanageableRoles, staffLevelFor } from "../../services/permissionService.ts";
 import {
   buildOutcomeMenu, shouldConfirm, visibleOutcomes, outcomeExceedsReviewer,
@@ -271,6 +272,16 @@ export async function handleReviewAccept(
       outcomeLabel: outcome?.label ?? null,
     })
     .where(eq(schema.submissions.id, submissionId));
+
+  // The row now says "accepted"; this says who did it and as what. The row is
+  // overwritten by the next change, so without this the history is gone.
+  await recordSubmissionEvent({
+    guildId,
+    submissionId: submission.id,
+    actorId: reviewer.id,
+    action: "accepted",
+    detail: outcome?.label ? { outcomeLabel: outcome.label } : undefined,
+  });
 
   // Update the original (pending-channel) review message: disable
   // buttons, note the decision.

@@ -106,6 +106,13 @@
       "when": 1790347593895,
       "tag": "0014_perpetual_blizzard",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790376848551,
+      "tag": "0015_moaning_vampiro",
+      "breakpoints": true
     }
   ]
 }

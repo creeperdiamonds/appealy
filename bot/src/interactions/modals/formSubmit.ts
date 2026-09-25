@@ -16,6 +16,7 @@ import { getGuild } from "../../core/guildLookup.ts";
 
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
+import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
 import {
   encodeCustomId,
   interpolateTemplate,
@@ -189,6 +190,22 @@ export async function handleFormModalSubmit(
     }
 
     return created;
+  });
+
+  // Outside the transaction, deliberately. recordSubmissionEvent writes with
+  // `db`, not `tx`, so calling it inside took a second pool connection while
+  // the first still held an uncommitted submissions row — and the event's
+  // foreign key points at exactly that row. The FK check then waits on a
+  // transaction that cannot commit until this insert finishes: a deadlock on
+  // every submission. It also swallows its own errors, so the non-deadlock
+  // case would have been a silent hole in the history instead.
+  //
+  // An event describing a submission belongs after that submission exists.
+  await recordSubmissionEvent({
+    guildId,
+    submissionId: submission.id,
+    actorId: applicant.id,
+    action: "created",
   });
 
   await clearPendingAnswers(applicant.id, formId);

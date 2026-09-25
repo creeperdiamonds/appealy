@@ -211,6 +211,13 @@ export interface SubmissionDTO {
   reviewerId: Snowflake | null;
   reviewReason: string | null;
   reviewedAt: string | null;
+  /**
+   * Snapshot of the outcome chosen, e.g. "Accepted as Moderator" rather than
+   * just "accepted". Null for denials and for forms using the single-accept
+   * path. A snapshot and not a join on purpose — see shared/schema/outcomes.ts:
+   * it has to stay true after the outcome is renamed or deleted.
+   */
+  outcomeLabel: string | null;
   createdAt: string;
   answers: { questionId: string; label: string; value: string }[];
 }

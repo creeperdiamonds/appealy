@@ -23,6 +23,7 @@ import { publishVerificationPanel } from "../services/verificationPanelService.t
 import { publishRoleMenu } from "../services/roleMenuService.ts";
 import { cacheStats, invalidateGuild } from "./guildConfigCache.ts";
 import { applyBanChange } from "./banCache.ts";
+import { resolveUsers } from "../services/userResolve.ts";
 import { describeDiscordError, type DiscordErrorInfo } from "../utils/discordError.ts";
 
 /**
@@ -209,6 +210,15 @@ export function startControlServer(bot: AppealyBot) {
         const msg = await req.json();
         applyBanChange(msg);
         return Response.json({ status: "applied" });
+      }
+
+      // Names and faces for the dashboard's history view. The API has no bot
+      // token, so resolution has to happen here; userResolve caches hard for
+      // the rate-limit reason explained in that file.
+      if (url.pathname === "/internal/users/resolve" && req.method === "POST") {
+        const { ids } = await req.json();
+        const users = await resolveUsers(bot, Array.isArray(ids) ? ids.map(String) : []);
+        return Response.json({ users });
       }
 
       return new Response("not found", { status: 404 });

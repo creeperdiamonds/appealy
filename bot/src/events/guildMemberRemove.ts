@@ -13,6 +13,7 @@ import { eq, and } from "drizzle-orm";
 import { getGuild } from "../core/guildLookup.ts";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
+import { recordSubmissionEvent } from "../services/submissionEvents.ts";
 import { closeTicket } from "../services/ticketService.ts";
 import { interpolateTemplate } from "../../../shared/types/index.ts";
 import { logger } from "../utils/logger.ts";
@@ -75,6 +76,17 @@ async function handleApplicationLeaveActions(
           reviewedAt: new Date(),
         })
         .where(eq(schema.submissions.id, submission.id));
+
+      // actorId is null, and that is the point: nobody pressed anything. A
+      // NOT NULL actor here would mean inventing one, and an audit log that
+      // attributes a system action to a person is worse than no log.
+      await recordSubmissionEvent({
+        guildId: payload.guildId,
+        submissionId: submission.id,
+        actorId: null,
+        action: "auto_denied",
+        detail: { reason: "Applicant left the server before a decision was made." },
+      });
 
       if (submission.logMessageId) {
         try {

@@ -12,6 +12,7 @@
 // config) and is additionally protected by a shared secret header.
 
 import type { PublicBan } from "../../../shared/schema/platformBans.ts";
+import { logger } from "../utils/logger.ts";
 
 const BOT_INTERNAL_URL = process.env.BOT_INTERNAL_URL ?? "http://bot:9090";
 const INTERNAL_SECRET = process.env.INTERNAL_RPC_SECRET ?? "";
@@ -80,16 +81,6 @@ async function callBot(path: string, body: unknown, timeoutMs: number = BOT_CALL
 }
 
 /**
- * Clear an anti-raid lockdown through the bot.
- *
- * Goes through the bot rather than being done here because the lockdown's
- * "is it active" answer is cached in the bot's process, and the bot's own
- * clearLockdown() evicts that cache as well as writing the row. Doing only the
- * write here left the cache saying "still locked" for up to its TTL — during
- * which members joining were still kicked, after an admin had been told the
- * lockdown was cleared.
- */
-/**
  * The 502 body for a bot call that failed, told apart by whose fault it was.
  *
  * "bot_unreachable" used to be reported for both cases. It is only true when
@@ -107,6 +98,16 @@ export function botCallFailure(err: unknown): { error: string; detail: string } 
   return { error: botStatus ? "discord_refused" : "bot_unreachable", detail };
 }
 
+/**
+ * Clear an anti-raid lockdown through the bot.
+ *
+ * Goes through the bot rather than being done here because the lockdown's
+ * "is it active" answer is cached in the bot's process, and the bot's own
+ * clearLockdown() evicts that cache as well as writing the row. Doing only the
+ * write here left the cache saying "still locked" for up to its TTL — during
+ * which members joining were still kicked, after an admin had been told the
+ * lockdown was cleared.
+ */
 export function requestLockdownClear(guildId: string, clearedBy: string) {
   return callBot("/internal/anti-raid/clear-lockdown", { guildId, clearedBy }) as Promise<{
     cleared: boolean;
@@ -151,6 +152,35 @@ export function requestRoleMenuPublish(menuId: string) {
 
 export function requestStickyMessagePublish(stickyId: string) {
   return callBot("/internal/sticky-messages/publish", { stickyId });
+}
+
+/**
+ * Names and faces for a set of Discord user ids.
+ *
+ * The API has no bot token, so this goes through the bot. Results are cached
+ * on the bot side for an hour — see bot/src/services/userResolve.ts for why
+ * that is long rather than short.
+ *
+ * Failure is not fatal to the caller: an id that cannot be resolved is simply
+ * absent from the result, and the dashboard shows the raw id. A history that
+ * renders ids is far better than one that fails to load.
+ */
+export async function resolveUsers(
+  ids: string[],
+): Promise<{ id: string; username: string; avatarUrl: string }[]> {
+  if (ids.length === 0) return [];
+  try {
+    const res = (await callBot("/internal/users/resolve", { ids })) as {
+      users?: { id: string; username: string; avatarUrl: string }[];
+    };
+    return res.users ?? [];
+  } catch (err) {
+    logger.warn("Could not resolve usernames; the dashboard will show ids", {
+      count: ids.length,
+      error: String(err),
+    });
+    return [];
+  }
 }
 
 /**

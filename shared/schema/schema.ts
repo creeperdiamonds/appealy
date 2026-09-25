@@ -629,6 +629,71 @@ export const answers = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Submission events — every action taken on an application, in order.
+//
+// The submissions row holds the CURRENT state: who reviewed it, when, which
+// outcome. That is the answer to "where does this stand", and it is
+// overwritten each time something happens. This table is the answer to "what
+// happened to it", which the row cannot give because each change erases the
+// last one.
+//
+// IDS ONLY, NO PROFILE DATA.
+//
+// Deliberately no username or avatar column, even though both are in hand at
+// write time and snapshotting them would be easier to render. Storing them
+// would mean keeping Discord profile data for every action indefinitely, and
+// site/privacy.html's "what is stored" table says identifiers and answers —
+// not names and faces. Names are resolved when the page is read instead, so
+// this table cannot quietly outgrow what that page promises.
+//
+// The cost, stated plainly: someone who has left the server renders as a raw
+// id, and a rename rewrites how past actions read. That is the trade this
+// choice makes.
+// ---------------------------------------------------------------------------
+
+export const submissionEvents = pgTable(
+  "submission_events",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    // Denormalised from the submission so a guild's whole history can be read
+    // without joining, which is what the owner-facing view asks for.
+    guildId: bigint("guild_id", { mode: "bigint" }).notNull(),
+    submissionId: text("submission_id")
+      .notNull()
+      .references(() => submissions.id, { onDelete: "cascade" }),
+    /**
+     * Who did it. NULL means the system did, and that is a real case rather
+     * than missing data: guildMemberRemove auto-denies an application when the
+     * applicant leaves, and no person pressed anything. A NOT NULL column here
+     * would force inventing an actor, which is how an audit log starts lying.
+     */
+    actorId: bigint("actor_id", { mode: "bigint" }),
+    /**
+     * What happened. Free text rather than an enum because this list will grow
+     * — claimed, reopened, note added — and each addition would otherwise be a
+     * migration before the feature it describes can ship.
+     *
+     * Known values: created, accepted, denied, withdrawn, auto_denied.
+     */
+    action: varchar("action", { length: 40 }).notNull(),
+    /**
+     * Anything the action needs to be readable later: the outcome label for an
+     * accept, the reason for a denial, why the system acted. Kept as a
+     * snapshot for the same reason submissions.outcomeLabel is one — "Accepted
+     * as Moderator" has to stay true after that outcome is renamed or deleted.
+     */
+    detail: jsonb("detail").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // The two reads this table exists for: one submission's history, and a
+    // guild's recent activity.
+    submissionIdx: index("submission_event_submission_idx").on(t.submissionId, t.createdAt),
+    guildIdx: index("submission_event_guild_created_idx").on(t.guildId, t.createdAt),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Polls
 // ---------------------------------------------------------------------------
 
@@ -1155,6 +1220,14 @@ export const questionsRelations = relations(questions, ({ one }) => ({
 export const submissionsRelations = relations(submissions, ({ one, many }) => ({
   form: one(forms, { fields: [submissions.formId], references: [forms.id] }),
   answers: many(answers),
+  events: many(submissionEvents),
+}));
+
+export const submissionEventsRelations = relations(submissionEvents, ({ one }) => ({
+  submission: one(submissions, {
+    fields: [submissionEvents.submissionId],
+    references: [submissions.id],
+  }),
 }));
 
 export const answersRelations = relations(answers, ({ one }) => ({

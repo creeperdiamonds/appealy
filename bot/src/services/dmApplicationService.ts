@@ -16,6 +16,7 @@
 import { eq, and, desc } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
+import { recordSubmissionEvent } from "./submissionEvents.ts";
 import { countRows } from "../db/count.ts";
 import { evaluateGate, gateReasonToMessage } from "../../../shared/schema/gating.ts";
 import { validateAnswerAgainstPattern } from "../../../shared/schema/regexValidation.ts";
@@ -204,6 +205,17 @@ async function finalizeDmApplication(
       await tx.insert(schema.answers).values(answerRows);
     }
     return created;
+  });
+
+  // After the commit, not inside it — see the same note in
+  // interactions/modals/formSubmit.ts. This writes with `db` while the
+  // transaction holds its own connection, and the event's foreign key points
+  // at a submissions row that transaction has not committed yet.
+  await recordSubmissionEvent({
+    guildId: progress.guildId,
+    submissionId: submission.id,
+    actorId: progress.applicantId,
+    action: "created",
   });
 
   await db.delete(schema.dmApplicationProgress).where(eq(schema.dmApplicationProgress.id, progress.id));
