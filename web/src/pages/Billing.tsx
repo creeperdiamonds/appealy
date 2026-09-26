@@ -104,6 +104,8 @@ interface DeploymentInfo {
   mode: "platform" | "self" | "test";
   brandName: string;
   features: { billing: boolean };
+  /** Whether paid plans can be bought right now; absent on an older API. */
+  payments?: { open: boolean; reason?: "awaiting_approval" | "not_configured" } | null;
 }
 
 const CAP_ORDER: (keyof Caps)[] = [
@@ -289,6 +291,12 @@ export default function Billing({ guildId }: { guildId: string }) {
   const alreadyFree =
     current.current.throughput.tier === "free" && current.current.hosting.mode === "shared";
 
+  // Undefined on an older API that predates the field. The checkout route
+  // still refuses there, so treating it as open only costs a clearer message.
+  const payments = deployment?.payments ?? null;
+  const salesClosed = payments !== null && !payments.open;
+  const awaitingApproval = salesClosed && payments?.reason === "awaiting_approval";
+
   function setCap(key: keyof Caps, raw: string) {
     const n = Number.parseInt(raw, 10);
     setCaps((prev) => (prev ? { ...prev, [key]: Number.isFinite(n) ? Math.max(0, n) : 0 } : prev));
@@ -398,6 +406,17 @@ export default function Billing({ guildId }: { guildId: string }) {
         <Banner level="watch" title="Test deployment">
           Tiers and limits behave exactly as on the hosted platform, but checkout may
           not complete — no real payment provider is attached.
+        </Banner>
+      )}
+
+      {salesClosed && (
+        <Banner
+          level="watch"
+          title={awaitingApproval ? "Paid plans aren't on sale yet" : "Checkout is switched off"}
+        >
+          {awaitingApproval
+            ? "Appealy's payment account is still waiting for approval from our payment provider. Until it's approved, checkout stays off and nobody can be charged. Every feature already works on the free plan — paid plans only raise limits."
+            : "Payments are switched off on this deployment right now, so nothing can be charged. Your current plan isn't affected."}
         </Banner>
       )}
 
@@ -610,16 +629,20 @@ export default function Billing({ guildId }: { guildId: string }) {
                 // purpose: the API's refusal names the exact figure and the
                 // way out, and that is a better sentence than any disabled
                 // button can show.
-                disabled={busy || quoting || isFreeSelection || !quote.valid}
+                disabled={busy || quoting || isFreeSelection || !quote.valid || salesClosed}
               >
                 {busy ? "Opening checkout…" : "Continue to checkout"}
               </button>
               <span className="dim" style={{ fontSize: 12 }}>
-                {isFreeSelection
-                  ? "This selection is free — there's nothing to check out."
-                  : changed
-                    ? "You'll be sent to the payment page. Your plan changes only once the payment clears."
-                    : "This is your current plan. Checking out renews it."}
+                {salesClosed
+                  ? awaitingApproval
+                    ? "Checkout opens once the payment account is approved."
+                    : "Checkout is switched off right now."
+                  : isFreeSelection
+                    ? "This selection is free — there's nothing to check out."
+                    : changed
+                      ? "You'll be sent to the payment page. Your plan changes only once the payment clears."
+                      : "This is your current plan. Checking out renews it."}
               </span>
             </div>
           </>

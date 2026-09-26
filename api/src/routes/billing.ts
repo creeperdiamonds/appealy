@@ -37,6 +37,7 @@ import {
   cancelPaddleSubscription,
   createPaddleCheckout,
   paddleReady,
+  paymentsOpen,
   repointPaddleSubscription,
 } from "../services/paddleService.ts";
 import { billingWindow } from "../../../shared/schema/billingWindow.ts";
@@ -170,11 +171,26 @@ billingRouter.post("/checkout", requireAdminAccess, async (req, res) => {
     // mismatched key without spending a request; everything else — domain not
     // approved, account not verified, suspended — only Paddle knows, and a
     // refusal from them IS the check.
-    const readiness = paddleReady();
-    if (!readiness.ready) {
+    //
+    // paymentsOpen() adds what a buyer needs beyond a valid key: on the hosted
+    // platform, sandbox means the account isn't approved yet, and /pay can't
+    // open a checkout without a matching client token.
+    const payments = paymentsOpen();
+    if (!payments.open) {
+      // Waiting for approval is the expected state before launch, not an
+      // incident: the dashboard says so and disables the button, so this only
+      // answers a request that went around it. Not logged as an error.
+      if (payments.reason === "awaiting_approval") {
+        return res.status(503).json({
+          error: "payments_not_open",
+          detail:
+            "Paid plans aren't on sale yet — Appealy's payment account is still waiting for approval. " +
+            "Nothing was charged, and every feature already works on the free plan.",
+        });
+      }
       logger.error("Checkout attempted while Paddle is not configured", {
         guildId: routeParams(req).guildId,
-        reason: readiness.reason,
+        reason: paddleReady().reason ?? "PADDLE_CLIENT_TOKEN is missing or disagrees with PADDLE_ENV",
       });
       return res.status(503).json({
         error: "payments_unavailable",

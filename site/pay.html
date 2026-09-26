@@ -178,6 +178,16 @@
       if (!res.ok) throw new Error("config " + res.status);
       var cfg = await res.json();
 
+      if (cfg.payments && cfg.payments.reason === "awaiting_approval") {
+        // The hosted platform before the payment account is approved. The
+        // dashboard disables checkout then, so this is a direct visit.
+        status.textContent = "Paid plans aren't on sale yet.";
+        detail.innerHTML =
+          "Appealy's payment account is still waiting for approval, so checkout is switched off and nothing " +
+          'has been charged. Every feature already works on the free plan &mdash; <a href="/dashboard/">back to your dashboard</a>.';
+        return;
+      }
+
       if (!cfg.configured) {
         // The account exists but this deployment has no token yet. Say so
         // plainly rather than leaving a spinner that never resolves.

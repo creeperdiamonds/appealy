@@ -187,6 +187,16 @@
       if (!res.ok) throw new Error("config " + res.status);
       var cfg = await res.json();
 
+      if (cfg.payments && cfg.payments.reason === "awaiting_approval") {
+        // The hosted platform before the payment account is approved. The
+        // dashboard disables checkout then, so this is a direct visit.
+        status.textContent = "有料プランはまだ販売していません。";
+        detail.innerHTML =
+          "Appealy の決済アカウントは現在承認待ちのため、お支払い機能は停止しており、請求は行われていません。" +
+          'すべての機能は無料プランでそのままご利用いただけます。<a href="/dashboard/">ダッシュボードに戻る</a>';
+        return;
+      }
+
       if (!cfg.configured) {
         // The account exists but this deployment has no token yet. Say so
         // plainly rather than leaving a spinner that never resolves.

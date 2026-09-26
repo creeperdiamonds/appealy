@@ -29,7 +29,7 @@
 
 import { Environment, LogLevel, Paddle } from "@paddle/paddle-node-sdk";
 
-import { env } from "../env.ts";
+import { env, deployment } from "../env.ts";
 import type { FullQuote, FullQuoteInput } from "../../../shared/schema/pricing.ts";
 
 /**
@@ -99,6 +99,34 @@ export function paddleReady(): { ready: boolean; reason?: string } {
     return { ready: false, reason: "PADDLE_ENV is sandbox but the API key is not a sandbox key" };
   }
   return { ready: true };
+}
+
+/**
+ * Whether this deployment is selling right now — the one answer the
+ * dashboard, the checkout route and /pay all share, so the button, the API
+ * and the payment page can never disagree about it.
+ *
+ * On the hosted platform, sandbox means the payment account has not been
+ * approved yet. A sandbox checkout there would open, take a real card and
+ * decline it, which is worse than saying up front that paid plans aren't on
+ * sale. A test deployment is the one place sandbox is the intended state.
+ *
+ * The client token matters as much as the API key: /pay cannot open any
+ * checkout without one, so a transaction created without it is a dead end the
+ * buyer only finds after choosing a plan.
+ */
+export type PaymentsState =
+  | { open: true }
+  | { open: false; reason: "awaiting_approval" | "not_configured" };
+
+export function paymentsOpen(): PaymentsState {
+  const production = env.PADDLE_ENV === "production";
+  if (!production && deployment.mode === "platform") return { open: false, reason: "awaiting_approval" };
+  if (!paddleReady().ready) return { open: false, reason: "not_configured" };
+  const token = env.PADDLE_CLIENT_TOKEN;
+  const tokenAgrees = token !== "" && token.startsWith("test_") === !production;
+  if (!tokenAgrees) return { open: false, reason: "not_configured" };
+  return { open: true };
 }
 
 let client: Paddle | null = null;

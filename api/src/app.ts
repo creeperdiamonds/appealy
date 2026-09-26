@@ -29,6 +29,7 @@ import { giveawaysRouter } from "./routes/giveaways.ts";
 import { verificationRouter } from "./routes/verification.ts";
 import { welcomerRouter } from "./routes/welcomer.ts";
 import { billingRouter } from "./routes/billing.ts";
+import { paymentsOpen } from "./services/paddleService.ts";
 import { paddleWebhookRouter } from "./routes/paddleWebhook.ts";
 import { genericInviteUrl } from "./routes/auth.ts";
 import { roleMenusRouter } from "./routes/roleMenus.ts";
@@ -138,6 +139,9 @@ export function createApp() {
       brandName: deployment.brandName,
       supportUrl: deployment.supportUrl,
       features: deployment.features,
+      // Whether paid plans can be bought right now. Null where there is no
+      // billing at all, so "closed" is never confused with "doesn't exist".
+      payments: deployment.features.billing ? paymentsOpen() : null,
     });
   });
 
@@ -168,6 +172,7 @@ export function createApp() {
       configured: agrees,
       token: agrees ? token : null,
       environment,
+      payments: paymentsOpen(),
     });
   });
 
