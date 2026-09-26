@@ -1,6 +1,8 @@
 // bot/src/interactions/buttons/appealStart.ts
 //
-// "Appeal this ban" — the button on the ban notice.
+// "Appeal this ban" — the button on the ban notice. Also "Appeal this timeout"
+// and "Appeal this restriction" (events/guildMemberUpdate.ts), which run the
+// same flow for members who are still in the server.
 //
 // WHY A BUTTON AND NOT QUESTIONS
 //
@@ -25,53 +27,79 @@ import { eq, and } from "drizzle-orm";
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { logger } from "../../utils/logger.ts";
+import type { AppealContext } from "../../services/dmApplicationService.ts";
 
 /** Ephemeral, so the acknowledgement does not clutter the DM. */
 const EPHEMERAL = 64;
+
+/** What the pressed notice was about. Ban notices predate the other two and
+ * their buttons carry no kind, so "ban" is the default. */
+export type AppealTarget = { kind: "ban" } | { kind: "timeout" } | { kind: "restriction"; roleId: string };
 
 export async function handleAppealStartButton(
   bot: AppealyBot,
   interaction: { id: bigint; token: string; user?: { id: bigint }; member?: { user?: { id: bigint } } },
   guildIdRaw: string,
   formId: string,
+  target: AppealTarget = { kind: "ban" },
 ) {
   const applicantId = interaction.user?.id ?? interaction.member?.user?.id;
   if (!applicantId || !guildIdRaw || !formId) return;
-
   const guildId = BigInt(guildIdRaw);
 
   const form = await db.query.forms.findFirst({
     where: and(eq(schema.forms.id, formId), eq(schema.forms.guildId, guildId)),
     with: { questions: { orderBy: (q, { asc }) => [asc(q.sortOrder)] } },
   });
+  const open = !!form && form.active;
+
+  // A banned member has no roles to gate on and nothing to check. A timed-out
+  // or restricted member is still in the server, and their appeal is only
+  // worth starting while the punishment is: a timeout that already ran out,
+  // or a role a moderator already took back, leaves nothing to lift. This
+  // also settles what accepting will undo. One REST call — well inside the
+  // three seconds a button has to be answered.
+  let memberRoleIds: bigint[] = [];
+  let appeal: AppealContext = { kind: "ban", roleIds: [], timeoutUntil: null };
+  let refusal: string | null = null;
+  if (open && target.kind !== "ban") {
+    const member = await bot.helpers.getMember(guildId, applicantId).catch(() => null);
+    if (!member) {
+      refusal = "You're not in that server any more, so there's nothing to lift.";
+    } else if (target.kind === "timeout") {
+      const until = member.communicationDisabledUntil ?? 0;
+      if (until <= Date.now()) refusal = "Your timeout has already ended, so there's nothing to appeal.";
+      else appeal = { kind: "timeout", roleIds: [], timeoutUntil: new Date(until) };
+    } else if (!(member.roles ?? []).some((r) => r.toString() === target.roleId)) {
+      refusal = "You don't have that role any more, so there's nothing to appeal.";
+    } else {
+      appeal = { kind: "restriction", roleIds: [target.roleId], timeoutUntil: null };
+    }
+    memberRoleIds = member?.roles ?? [];
+  }
 
   // Answered before anything slow happens. A button has three seconds to be
   // acknowledged, and startDmApplication writes a row and sends two DMs.
   await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
     type: 4,
     data: {
-      content: form && form.active
-        ? "Starting your appeal — the first question is on its way."
-        : "Appeals are no longer open for that server.",
+      content:
+        refusal ??
+        (open ? "Starting your appeal — the first question is on its way." : "Appeals are no longer open for that server."),
       flags: EPHEMERAL,
     },
   });
-
-  if (!form || !form.active) return;
+  if (refusal || !form || !form.active) return;
 
   const { startDmApplication } = await import("../../services/dmApplicationService.ts");
-
-  // No roles: a banned user is definitionally not a member, so there are no
-  // roles to gate on. Same reasoning as the ban handler that sent the notice.
-  //
-  // No intro note either — the notice they just clicked WAS the explanation.
+  // No intro note — the notice they just clicked WAS the explanation.
   // Repeating it here would tell someone who has already decided to appeal
   // why they are being messaged.
-  await startDmApplication(bot, guildId, form, applicantId, []);
-
-  logger.info("Ban appeal started from the notice button", {
+  await startDmApplication(bot, guildId, form, applicantId, memberRoleIds, undefined, appeal);
+  logger.info("Appeal started from a notice button", {
     guildId: guildId.toString(),
     userId: applicantId.toString(),
     formId,
+    kind: appeal.kind,
   });
 }

@@ -590,6 +590,16 @@ export interface AppealConfigDTO {
   dmOnBanEnabled: boolean;
   dmOnBanNote: string | null;
   autoUnbanOnAccept: boolean;
+  timeoutEnabled: boolean;
+  timeoutFormId: string | null;
+  timeoutMinSeconds: number;
+  dmOnTimeoutNote: string | null;
+  liftTimeoutOnAccept: boolean;
+  restrictionEnabled: boolean;
+  restrictionRoleIds: string[];
+  restrictionFormId: string | null;
+  dmOnRestrictionNote: string | null;
+  liftRestrictionOnAccept: boolean;
   updatedAt: string;
 }
 

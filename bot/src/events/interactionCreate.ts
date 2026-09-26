@@ -95,6 +95,16 @@ export function onInteractionCreate(bot: AppealyBot) {
           if (namespace === "appeal" && action === "start") {
             return await handleAppealStartButton(bot, interaction, entityId, extra ?? "");
           }
+          // Timeout and restriction notices (events/guildMemberUpdate.ts). A
+          // restriction button carries "form.role" in extra, because
+          // decodeCustomId only splits four parts.
+          if (namespace === "appeal" && action === "timeout") {
+            return await handleAppealStartButton(bot, interaction, entityId, extra ?? "", { kind: "timeout" });
+          }
+          if (namespace === "appeal" && action === "role") {
+            const [formId = "", roleId = ""] = (extra ?? "").split(".");
+            return await handleAppealStartButton(bot, interaction, entityId, formId, { kind: "restriction", roleId });
+          }
           if (namespace === "review" && action === "accept") {
             return await handleReviewAccept(bot, interaction, entityId);
           }

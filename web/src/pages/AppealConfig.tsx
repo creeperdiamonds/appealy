@@ -1,7 +1,9 @@
 // web/src/pages/AppealConfig.tsx
 //
-// Settings for the guild's own ban-appeal flow: when someone is banned from
-// this server, DM them a form, and unban them if staff accept it.
+// Settings for the guild's own appeal flows. When someone is banned, timed out,
+// or given one of the server's restriction roles, DM them a button to appeal;
+// if staff accept it, undo the punishment — unban, lift the timeout, or remove
+// the role.
 //
 // Nothing here touches platform bans (see APPEALS.md). Guild staff can't see
 // those and shouldn't be given a control that looks like they can.
@@ -20,6 +22,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, type AppealConfigDTO, type FormSummary } from "../lib/api";
 import { Panel, Banner, Loading, Empty } from "../components/ui";
+import { RolePicker } from "../components/RolePicker";
+
+// Discord caps a timeout at 28 days. Shorter than the threshold and no notice
+// is sent: a ten-minute timeout is over before anyone could read an appeal.
+const TIMEOUT_THRESHOLDS: [number, string][] = [
+  [0, "Any length"],
+  [600, "10 minutes"],
+  [3600, "1 hour"],
+  [21600, "6 hours"],
+  [86400, "1 day"],
+  [604800, "1 week"],
+];
 
 export default function AppealConfig({ guildId }: { guildId: string }) {
   const [config, setConfig] = useState<AppealConfigDTO | null>(null);
@@ -67,6 +81,16 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
         dmOnBanEnabled: config.dmOnBanEnabled,
         dmOnBanNote: config.dmOnBanNote,
         autoUnbanOnAccept: config.autoUnbanOnAccept,
+        timeoutEnabled: config.timeoutEnabled,
+        timeoutFormId: config.timeoutFormId,
+        timeoutMinSeconds: config.timeoutMinSeconds,
+        dmOnTimeoutNote: config.dmOnTimeoutNote,
+        liftTimeoutOnAccept: config.liftTimeoutOnAccept,
+        restrictionEnabled: config.restrictionEnabled,
+        restrictionRoleIds: config.restrictionRoleIds,
+        restrictionFormId: config.restrictionFormId,
+        dmOnRestrictionNote: config.dmOnRestrictionNote,
+        liftRestrictionOnAccept: config.liftRestrictionOnAccept,
       });
       setConfig(updated);
       setSaved(true);
@@ -80,22 +104,34 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
   // The two silently-broken states.
   const missingForm = config.enabled && !config.formId;
   const noEntryPoint = config.enabled && !!config.formId && !config.dmOnBanEnabled;
+  // The same trap for the other two: switched on, and nothing will ever send.
+  const timeoutMissingForm = config.timeoutEnabled && !config.timeoutFormId;
+  const restrictionIncomplete =
+    config.restrictionEnabled && (!config.restrictionFormId || config.restrictionRoleIds.length === 0);
+  const thresholds = TIMEOUT_THRESHOLDS.some(([s]) => s === config.timeoutMinSeconds)
+    ? TIMEOUT_THRESHOLDS
+    : [...TIMEOUT_THRESHOLDS, [config.timeoutMinSeconds, `${config.timeoutMinSeconds} seconds`] as [number, string]];
+  const formOptions = appealForms.map((f) => (
+    <option key={f.id} value={f.id}>
+      {f.name}
+    </option>
+  ));
 
   return (
     <div className="stack">
       <header className="page-head">
-        <h1>Ban appeals</h1>
+        <h1>Appeals</h1>
         <p className="dim">
-          When someone is banned from this server, send them a form. Accepting their
-          appeal can unban them automatically.
+          When someone is banned, timed out, or given a restriction role, send them a way to
+          appeal. Accepting it can undo the punishment automatically.
         </p>
       </header>
 
       {appealForms.length === 0 && (
         <Banner level="watch" title="No appeal form yet">
           Create a form with kind "Appeal" and delivery "Direct
-          message" first — a banned member can’t reach a panel or
-          /apply.
+          message" first — a banned or timed-out member can’t reach a
+          panel or /apply.
         </Banner>
       )}
 
@@ -114,7 +150,21 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
         </Banner>
       )}
 
-      <Panel title="Settings">
+      {timeoutMissingForm && (
+        <Banner level="act" title="Timeout appeals are on, but no form is selected">
+          Nobody who is timed out will hear from Appealy until you choose one.
+        </Banner>
+      )}
+
+      {restrictionIncomplete && (
+        <Banner level="act" title="Restriction appeals aren't fully set up">
+          {!config.restrictionFormId
+            ? "Choose an appeal form — nothing is sent without one."
+            : "Pick at least one restriction role — nothing is sent until one is given out."}
+        </Banner>
+      )}
+
+      <Panel title="Ban appeals">
         <label className="row">
           <input
             type="checkbox"
@@ -190,6 +240,140 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
             <span className="dim block">
               Off means staff accept the appeal and then unban by hand. Requires the bot to
               have Ban Members either way.
+            </span>
+          </span>
+        </label>
+      </Panel>
+
+      <Panel title="Timeout appeals">
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={config.timeoutEnabled}
+            onChange={(e) => patch({ timeoutEnabled: e.target.checked })}
+          />
+          <span>
+            <strong>Enable timeout appeals</strong>
+            <span className="dim block">
+              DMs a member a button to appeal when they're timed out. They're still in the
+              server, so it reaches them unless they've closed their DMs.
+            </span>
+          </span>
+        </label>
+
+        <label className="field">
+          <span className="eyebrow">Appeal form</span>
+          <select
+            value={config.timeoutFormId ?? ""}
+            disabled={appealForms.length === 0}
+            onChange={(e) => patch({ timeoutFormId: e.target.value || null })}
+          >
+            <option value="">— none —</option>
+            {formOptions}
+          </select>
+        </label>
+
+        <label className="field">
+          <span className="eyebrow">Only for timeouts of at least</span>
+          <select
+            value={config.timeoutMinSeconds}
+            onChange={(e) => patch({ timeoutMinSeconds: Number(e.target.value) })}
+          >
+            {thresholds.map(([seconds, label]) => (
+              <option key={seconds} value={seconds}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <span className="dim">Shorter timeouts are over before anyone could read an appeal.</span>
+        </label>
+
+        <label className="field">
+          <span className="eyebrow">What the timeout notice says</span>
+          <textarea
+            rows={3}
+            value={config.dmOnTimeoutNote ?? ""}
+            maxLength={1000}
+            onChange={(e) => patch({ dmOnTimeoutNote: e.target.value || null })}
+            placeholder="Tells them they were timed out, and until when. An 'Appeal this timeout' button is added underneath."
+          />
+        </label>
+
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={config.liftTimeoutOnAccept}
+            onChange={(e) => patch({ liftTimeoutOnAccept: e.target.checked })}
+          />
+          <span>
+            <strong>Lift the timeout automatically when an appeal is accepted</strong>
+            <span className="dim block">
+              Needs the Timeout Members permission. A server that added Appealy before timeout
+              appeals existed may have to grant it; the review post says so if it's missing.
+            </span>
+          </span>
+        </label>
+      </Panel>
+
+      <Panel title="Restriction appeals">
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={config.restrictionEnabled}
+            onChange={(e) => patch({ restrictionEnabled: e.target.checked })}
+          />
+          <span>
+            <strong>Enable restriction appeals</strong>
+            <span className="dim block">
+              For punishments that restrict instead of ban. DMs a member a button to appeal when
+              they're given one of the roles below.
+            </span>
+          </span>
+        </label>
+
+        <RolePicker
+          guildId={guildId}
+          value={config.restrictionRoleIds}
+          onChange={(ids) => patch({ restrictionRoleIds: ids })}
+          label="Restriction roles"
+          hint="The roles your punishment ladder hands out — no media, no pings, lost channels, a full lockout."
+        />
+
+        <label className="field">
+          <span className="eyebrow">Appeal form</span>
+          <select
+            value={config.restrictionFormId ?? ""}
+            disabled={appealForms.length === 0}
+            onChange={(e) => patch({ restrictionFormId: e.target.value || null })}
+          >
+            <option value="">— none —</option>
+            {formOptions}
+          </select>
+        </label>
+
+        <label className="field">
+          <span className="eyebrow">What the restriction notice says</span>
+          <textarea
+            rows={3}
+            value={config.dmOnRestrictionNote ?? ""}
+            maxLength={1000}
+            onChange={(e) => patch({ dmOnRestrictionNote: e.target.value || null })}
+            placeholder="Tells them which role they were given. An 'Appeal this restriction' button is added underneath."
+          />
+        </label>
+
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={config.liftRestrictionOnAccept}
+            onChange={(e) => patch({ liftRestrictionOnAccept: e.target.checked })}
+          />
+          <span>
+            <strong>Remove the restriction role automatically when an appeal is accepted</strong>
+            <span className="dim block">
+              Needs Manage Roles, with Appealy's role above the restriction roles. To step
+              someone down a tier instead, give the form an accept outcome that grants the
+              lower tier's role.
             </span>
           </span>
         </label>

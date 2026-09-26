@@ -1,7 +1,8 @@
 // api/src/routes/appealConfig.ts
 //
-// CRUD for a guild's single ban-appeal config row (shared/schema/schema.ts's
-// appealConfigs — see that comment for the full design). Mounted at
+// CRUD for a guild's single appeal config row (shared/schema/schema.ts's
+// appealConfigs — see that comment for the full design): ban appeals, plus
+// timeout and restriction appeals, each with its own form. Mounted at
 // /api/guilds/:guildId/appeal-config. Unlike forms.ts there's no list/create
 // of multiple resources — this is a singleton-per-guild upsert, same
 // pattern as welcomer.ts / antiRaid.ts / verification.ts.
@@ -16,12 +17,28 @@ import type { AppealConfigDTO } from "../../../shared/types/index.ts";
 
 export const appealConfigRouter = Router({ mergeParams: true });
 
+// The timeout and restriction fields are optional rather than defaulted. A
+// dashboard tab opened before they existed still saves the ban settings it
+// knows about, and a defaulted field would silently switch the others off.
 const appealConfigSchema = z.object({
   enabled: z.boolean().default(false),
   formId: z.string().nullable().default(null),
   dmOnBanEnabled: z.boolean().default(true),
   dmOnBanNote: z.string().max(1000).nullable().default(null),
   autoUnbanOnAccept: z.boolean().default(true),
+
+  timeoutEnabled: z.boolean().optional(),
+  timeoutFormId: z.string().nullable().optional(),
+  // Discord caps a timeout at 28 days, so a longer threshold would never fire.
+  timeoutMinSeconds: z.number().int().min(0).max(28 * 24 * 3600).optional(),
+  dmOnTimeoutNote: z.string().max(1000).nullable().optional(),
+  liftTimeoutOnAccept: z.boolean().optional(),
+
+  restrictionEnabled: z.boolean().optional(),
+  restrictionRoleIds: z.array(z.string().regex(/^\d{17,20}$/)).max(25).optional(),
+  restrictionFormId: z.string().nullable().optional(),
+  dmOnRestrictionNote: z.string().max(1000).nullable().optional(),
+  liftRestrictionOnAccept: z.boolean().optional(),
 });
 
 appealConfigRouter.use(requireGuildAccess);
@@ -39,46 +56,64 @@ appealConfigRouter.put("/", requireAdminAccess, async (req, res) => {
   const guildId = BigInt(routeParams(req).guildId);
   const data = parsed.data;
 
-  // A designated appeal form, if any, must actually exist in this guild
-  // and actually be kind = "appeal" — otherwise dmOnBanEnabled would
-  // silently do nothing (or worse, point at a normal application form
-  // and DM a banned user something that makes no sense for their
-  // situation).
-  if (data.formId) {
+  // Every designated form must actually exist in this guild and actually be
+  // kind = "appeal" — otherwise the notice would silently do nothing, or
+  // worse, DM a punished member an ordinary application that makes no sense
+  // for their situation.
+  for (const [field, id] of [
+    ["formId", data.formId],
+    ["timeoutFormId", data.timeoutFormId],
+    ["restrictionFormId", data.restrictionFormId],
+  ] as const) {
+    if (!id) continue;
     const form = await db.query.forms.findFirst({
-      where: and(eq(schema.forms.id, data.formId), eq(schema.forms.guildId, guildId)),
+      where: and(eq(schema.forms.id, id), eq(schema.forms.guildId, guildId)),
     });
     if (!form) {
-      return res.status(400).json({ error: "invalid_body", detail: { formErrors: ["formId does not reference a form in this guild."] } });
+      return res.status(400).json({ error: "invalid_body", detail: { formErrors: [`${field} does not reference a form in this guild.`] } });
     }
     if (form.kind !== "appeal") {
       return res.status(400).json({
         error: "invalid_body",
-        detail: { formErrors: ['formId must reference a form with kind "appeal".'] },
+        detail: { formErrors: [`${field} must reference a form with kind "appeal".`] },
       });
     }
   }
 
+  // Only the fields actually sent — see the schema comment above.
+  const optional = Object.fromEntries(
+    (
+      [
+        "timeoutEnabled",
+        "timeoutFormId",
+        "timeoutMinSeconds",
+        "dmOnTimeoutNote",
+        "liftTimeoutOnAccept",
+        "restrictionEnabled",
+        "restrictionRoleIds",
+        "restrictionFormId",
+        "dmOnRestrictionNote",
+        "liftRestrictionOnAccept",
+      ] as const
+    )
+      .filter((k) => data[k] !== undefined)
+      .map((k) => [k, data[k]]),
+  );
+  const values = {
+    enabled: data.enabled,
+    formId: data.formId,
+    dmOnBanEnabled: data.dmOnBanEnabled,
+    dmOnBanNote: data.dmOnBanNote,
+    autoUnbanOnAccept: data.autoUnbanOnAccept,
+    ...optional,
+  };
+
   const [config] = await db
     .insert(schema.appealConfigs)
-    .values({
-      guildId,
-      enabled: data.enabled,
-      formId: data.formId,
-      dmOnBanEnabled: data.dmOnBanEnabled,
-      dmOnBanNote: data.dmOnBanNote,
-      autoUnbanOnAccept: data.autoUnbanOnAccept,
-    })
+    .values({ guildId, ...values })
     .onConflictDoUpdate({
       target: schema.appealConfigs.guildId,
-      set: {
-        enabled: data.enabled,
-        formId: data.formId,
-        dmOnBanEnabled: data.dmOnBanEnabled,
-        dmOnBanNote: data.dmOnBanNote,
-        autoUnbanOnAccept: data.autoUnbanOnAccept,
-        updatedAt: new Date(),
-      },
+      set: { ...values, updatedAt: new Date() },
     })
     .returning();
 
@@ -97,6 +132,16 @@ function toDTO(guildId: bigint, config: typeof schema.appealConfigs.$inferSelect
       dmOnBanEnabled: true,
       dmOnBanNote: null,
       autoUnbanOnAccept: true,
+      timeoutEnabled: false,
+      timeoutFormId: null,
+      timeoutMinSeconds: 3600,
+      dmOnTimeoutNote: null,
+      liftTimeoutOnAccept: true,
+      restrictionEnabled: false,
+      restrictionRoleIds: [],
+      restrictionFormId: null,
+      dmOnRestrictionNote: null,
+      liftRestrictionOnAccept: true,
       updatedAt: new Date(0).toISOString(),
     };
   }
@@ -107,6 +152,16 @@ function toDTO(guildId: bigint, config: typeof schema.appealConfigs.$inferSelect
     dmOnBanEnabled: config.dmOnBanEnabled,
     dmOnBanNote: config.dmOnBanNote,
     autoUnbanOnAccept: config.autoUnbanOnAccept,
+    timeoutEnabled: config.timeoutEnabled,
+    timeoutFormId: config.timeoutFormId,
+    timeoutMinSeconds: config.timeoutMinSeconds,
+    dmOnTimeoutNote: config.dmOnTimeoutNote,
+    liftTimeoutOnAccept: config.liftTimeoutOnAccept,
+    restrictionEnabled: config.restrictionEnabled,
+    restrictionRoleIds: config.restrictionRoleIds,
+    restrictionFormId: config.restrictionFormId,
+    dmOnRestrictionNote: config.dmOnRestrictionNote,
+    liftRestrictionOnAccept: config.liftRestrictionOnAccept,
     updatedAt: config.updatedAt.toISOString(),
   };
 }

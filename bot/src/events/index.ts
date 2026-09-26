@@ -13,6 +13,7 @@ import { refreshPresence } from "../core/presence.ts";
 import { onInteractionCreate } from "./interactionCreate.ts";
 import { onGuildMemberRemove } from "./guildMemberRemove.ts";
 import { onGuildMemberAdd } from "./guildMemberAdd.ts";
+import { onGuildMemberUpdate } from "./guildMemberUpdate.ts";
 import { onMessageCreate } from "./messageCreate.ts";
 
 /**
@@ -34,6 +35,7 @@ export function registerEventHandlers(bot: AppealyBot) {
   const banAdd = onGuildBanAdd(bot);
   const memberRemove = onGuildMemberRemove(bot);
   const memberAdd = onGuildMemberAdd(bot);
+  const memberUpdate = onGuildMemberUpdate(bot);
   const guildDelete = onGuildDelete(bot);
 
   bot.events.ready = (payload) => onReady(bot, payload);
@@ -62,5 +64,8 @@ export function registerEventHandlers(bot: AppealyBot) {
   // carries guildId.
   bot.events.guildMemberAdd = (member, user) =>
     memberAdd({ guildId: member.guildId, user });
+  // Timeout and restriction appeal notices. The member carries guildId, its
+  // roles and the timeout's end, which is all the handler reads.
+  bot.events.guildMemberUpdate = (member) => memberUpdate(member);
   bot.events.messageCreate = onMessageCreate(bot);
 }

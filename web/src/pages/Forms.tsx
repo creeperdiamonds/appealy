@@ -600,12 +600,13 @@ function FormEditor({
             }}
           >
             <option value="application">Application — panels, /apply</option>
-            <option value="appeal">Ban appeal — DM'd to banned members</option>
+            <option value="appeal">Appeal — DM'd to banned, timed-out or restricted members</option>
           </select>
           {draft.kind === "appeal" && (
             <span className="dim">
-              Appeal forms are reachable only through the ban-time DM, so delivery is fixed to
-              direct message. Select it under Ban appeals to actually use it.
+              Appeal forms are reachable only through the DM Appealy sends when someone is
+              punished, so delivery is fixed to direct message. Select it under Appeals to
+              actually use it.
             </span>
           )}
         </label>

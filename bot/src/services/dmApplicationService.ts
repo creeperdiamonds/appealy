@@ -23,6 +23,14 @@ import { validateAnswerAgainstPattern } from "../../../shared/schema/regexValida
 import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
 
+/** What an appeal is for. Carried on the progress row to the submission, so
+ * accepting it knows whether to unban, lift a timeout, or remove a role. */
+export interface AppealContext {
+  kind: "ban" | "timeout" | "restriction";
+  roleIds: string[];
+  timeoutUntil: Date | null;
+}
+
 type FormWithQuestions = typeof schema.forms.$inferSelect & {
   questions: (typeof schema.questions.$inferSelect)[];
 };
@@ -37,6 +45,7 @@ export async function startDmApplication(
   // ban-appeal flow to explain why someone just banned is getting an
   // unsolicited DM. Ordinary DM applications never need this.
   introNote?: string,
+  appeal?: AppealContext,
 ) {
   const gate = await checkGateForDm(form, guildId, applicantId, memberRoleIds);
   if (!gate.allowed) {
@@ -59,6 +68,9 @@ export async function startDmApplication(
     currentQuestionIndex: 0,
     answers: {},
     expiresAt,
+    appealKind: appeal?.kind ?? null,
+    appealRoleIds: appeal?.roleIds ?? [],
+    appealTimeoutUntil: appeal?.timeoutUntil ?? null,
   });
 
   if (introNote) {
@@ -194,6 +206,9 @@ async function finalizeDmApplication(
         applicantId: progress.applicantId,
         status: "pending",
         completionSeconds,
+        appealKind: progress.appealKind,
+        appealRoleIds: progress.appealRoleIds,
+        appealTimeoutUntil: progress.appealTimeoutUntil,
       })
       .returning();
 

@@ -324,14 +324,40 @@ export async function postReviewEmbedForSubmission(
       ).map((a) => [a.questionId, a.value]),
     );
 
+  // What a timeout or restriction appeal is about, first, because it changes
+  // how every answer below reads. Ban appeals keep their layout: the form
+  // name in the title already says what they are.
+  const appealField =
+    submission.appealKind === "timeout"
+      ? [
+          {
+            name: "Appealing",
+            value: submission.appealTimeoutUntil
+              ? `Timeout, ends <t:${Math.floor(submission.appealTimeoutUntil.getTime() / 1000)}:R>`
+              : "Timeout",
+            inline: false,
+          },
+        ]
+      : submission.appealKind === "restriction"
+        ? [
+            {
+              name: "Appealing",
+              value: `Restriction — ${submission.appealRoleIds.map((r) => `<@&${r}>`).join(" ") || "a restriction role"}`,
+              inline: false,
+            },
+          ]
+        : [];
+
   const fields = form.hideAnswersInEmbed
     ? [
+        ...appealField,
         { name: "Answers", value: "Hidden — view on the dashboard.", inline: false },
         ...(completionSeconds !== null && completionSeconds !== undefined
           ? [{ name: "Completion time", value: formatDuration(completionSeconds), inline: true }]
           : []),
       ]
     : [
+        ...appealField,
         ...form.questions
           .filter((q) => resolvedAnswers[q.id])
           .map((q) => ({

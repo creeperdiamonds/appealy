@@ -90,6 +90,10 @@ const INVITE_PERMISSIONS = [
   ["READ_MESSAGE_HISTORY", 1n << 16n],
   ["KICK_MEMBERS", 1n << 1n],
   ["BAN_MEMBERS", 1n << 2n],
+  // "Timeout Members" in Discord's UI. Lifting a timeout when its appeal is
+  // accepted; a server that invited the bot before this was added gets a
+  // warning on the review post instead of a silent failure.
+  ["MODERATE_MEMBERS", 1n << 40n],
 ] as const;
 
 const INVITE_PERMISSION_BITS = INVITE_PERMISSIONS.reduce((acc, [, bit]) => acc | bit, 0n);

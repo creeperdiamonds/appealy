@@ -538,6 +538,8 @@ export async function importGuildData(
   if (payload.appealConfig) {
     const cfg = payload.appealConfig as Row;
     const targetFormId = cfg.formId ? formIdMap.get(String(cfg.formId)) : undefined;
+    const targetTimeoutFormId = cfg.timeoutFormId ? formIdMap.get(String(cfg.timeoutFormId)) : undefined;
+    const targetRestrictionFormId = cfg.restrictionFormId ? formIdMap.get(String(cfg.restrictionFormId)) : undefined;
     await db
       .insert(schema.appealConfigs)
       .values({
@@ -549,6 +551,17 @@ export async function importGuildData(
         dmOnBanEnabled: Boolean(cfg.dmOnBanEnabled ?? true),
         dmOnBanNote: str(cfg.dmOnBanNote),
         autoUnbanOnAccept: Boolean(cfg.autoUnbanOnAccept ?? true),
+        // Same rule for the other two: no form, not enabled.
+        timeoutFormId: targetTimeoutFormId ?? null,
+        timeoutEnabled: targetTimeoutFormId ? Boolean(cfg.timeoutEnabled ?? false) : false,
+        timeoutMinSeconds: Number(cfg.timeoutMinSeconds ?? 3600),
+        dmOnTimeoutNote: str(cfg.dmOnTimeoutNote),
+        liftTimeoutOnAccept: Boolean(cfg.liftTimeoutOnAccept ?? true),
+        restrictionFormId: targetRestrictionFormId ?? null,
+        restrictionEnabled: targetRestrictionFormId ? Boolean(cfg.restrictionEnabled ?? false) : false,
+        restrictionRoleIds: Array.isArray(cfg.restrictionRoleIds) ? cfg.restrictionRoleIds.map(String) : [],
+        dmOnRestrictionNote: str(cfg.dmOnRestrictionNote),
+        liftRestrictionOnAccept: Boolean(cfg.liftRestrictionOnAccept ?? true),
       })
       .onConflictDoNothing();
     count("appealConfig");

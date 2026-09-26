@@ -291,12 +291,12 @@
         </li>
 
         <li class="card group">
-          <h3>Ban appeals</h3>
+          <h3>Appeals</h3>
           <ul>
-            <li>DM a form the moment someone is banned</li>
-            <li>Accepting the appeal can unban them automatically</li>
-            <li>Appeal forms are forced to DM delivery, because a banned member cannot reach a panel or <code>/apply</code></li>
-            <li>The settings page names the three ways to switch this on and still have it do nothing</li>
+            <li>DM an appeal button the moment someone is banned, timed out, or given a restriction role</li>
+            <li>Accepting the appeal can undo it automatically: unban, lift the timeout, or remove the role</li>
+            <li>Appeal forms are forced to DM delivery, because a banned or timed-out member cannot reach a panel or <code>/apply</code></li>
+            <li>The settings page names every way to switch this on and still have it do nothing</li>
           </ul>
         </li>
 
@@ -394,8 +394,9 @@
         <li>
           <h3>Add the bot</h3>
           <p>
-            One invite, nine permissions, every one of them load-bearing: roles for outcome grants,
-            channels for tickets, ban and kick for appeal unbans and verification timeouts. An
+            One invite, ten permissions, every one of them load-bearing: roles for outcome grants,
+            channels for tickets, ban and kick for appeal unbans and verification timeouts, and
+            Timeout Members to lift a timeout whose appeal was accepted. An
             invite missing one produces a feature that silently does nothing.
           </p>
         </li>
@@ -559,8 +560,9 @@
         <li class="card">
           <h3>What permissions does the bot need?</h3>
           <p>
-            Manage Roles for the roles it grants, Manage Channels for tickets, Ban Members only if
-            you use ban appeals, plus the usual read and send. Discord&rsquo;s own role hierarchy
+            Manage Roles for the roles it grants (and removes, for restriction appeals), Manage
+            Channels for tickets, Ban Members only if you use ban appeals, Timeout Members only if
+            you use timeout appeals, plus the usual read and send. Discord&rsquo;s own role hierarchy
             still applies: the bot cannot grant a role positioned above its own, and the dashboard
             marks those roles in every picker rather than failing at the moment it matters.
           </p>

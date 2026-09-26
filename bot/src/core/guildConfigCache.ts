@@ -77,6 +77,8 @@ export interface GuildConfigBundle {
   antiRaid: typeof schema.antiRaidConfigs.$inferSelect | null;
   verification: typeof schema.verificationConfigs.$inferSelect | null;
   welcomer: typeof schema.welcomerConfigs.$inferSelect | null;
+  /** Ban, timeout and restriction appeal settings — read on every guildMemberUpdate. */
+  appeal: typeof schema.appealConfigs.$inferSelect | null;
   /** Channel IDs (as strings) in this guild that have an ACTIVE sticky
    * message. Almost always empty, which is exactly why caching it is so
    * effective — see stickyMessageService.ts. */
@@ -133,13 +135,14 @@ async function loadFromDatabase(guildId: bigint): Promise<GuildConfigBundle> {
   // One round-trip's worth of parallel queries rather than four sequential
   // awaits. postgres.js pipelines these over the same connection, so the
   // wall-clock cost is roughly one query, not four.
-  const [guild, antiRaid, verification, welcomer, stickies] = await Promise.all([
+  const [guild, antiRaid, verification, welcomer, appeal, stickies] = await Promise.all([
     db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) }),
     db.query.antiRaidConfigs.findFirst({ where: eq(schema.antiRaidConfigs.guildId, guildId) }),
     db.query.verificationConfigs.findFirst({
       where: eq(schema.verificationConfigs.guildId, guildId),
     }),
     db.query.welcomerConfigs.findFirst({ where: eq(schema.welcomerConfigs.guildId, guildId) }),
+    db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) }),
     db
       .select({ channelId: schema.stickyMessages.channelId })
       .from(schema.stickyMessages)
@@ -151,6 +154,7 @@ async function loadFromDatabase(guildId: bigint): Promise<GuildConfigBundle> {
     antiRaid: antiRaid ?? null,
     verification: verification ?? null,
     welcomer: welcomer ?? null,
+    appeal: appeal ?? null,
     stickyChannelIds: stickies.map((s) => s.channelId.toString()),
     cachedAt: Date.now(),
   };

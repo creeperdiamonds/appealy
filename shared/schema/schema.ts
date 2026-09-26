@@ -306,6 +306,10 @@ export const applicationTypeEnum = pgEnum("application_type", ["in_server", "dir
 
 export const formKindEnum = pgEnum("form_kind", ["application", "appeal"]);
 
+// What an appeal-kind submission is appealing. Null on submissions from before
+// timeout and restriction appeals existed — every one of those was a ban.
+export const appealKindEnum = pgEnum("appeal_kind", ["ban", "timeout", "restriction"]);
+
 export const forms = pgTable(
   "forms",
   {
@@ -534,6 +538,13 @@ export const submissions = pgTable(
     // obvious recovery silently duplicated every row that had succeeded,
     // attributed to real applicants, with no way to tell the copies apart.
     importSourceId: text("import_source_id"),
+    // What an appeal was for, and so what accepting it reverses: the
+    // restriction role(s) to remove, or the timeout that was running. Taken
+    // from the notice button the member pressed rather than worked out at
+    // review time, because by then they may be under a different punishment.
+    appealKind: appealKindEnum("appeal_kind"),
+    appealRoleIds: jsonb("appeal_role_ids").$type<string[]>().notNull().default([]),
+    appealTimeoutUntil: timestamp("appeal_timeout_until", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
@@ -578,6 +589,10 @@ export const dmApplicationProgress = pgTable(
     answers: jsonb("answers").$type<Record<string, string>>().notNull().default({}),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }), // null = form has no timeLimitSeconds
+    // Carried from the appeal notice's button to the submission this becomes.
+    appealKind: appealKindEnum("appeal_kind"),
+    appealRoleIds: jsonb("appeal_role_ids").$type<string[]>().notNull().default([]),
+    appealTimeoutUntil: timestamp("appeal_timeout_until", { withTimezone: true }),
   },
   (t) => ({
     // one in-progress DM application per (form, applicant) at a time
@@ -1452,8 +1467,51 @@ export const appealConfigs = pgTable("appeal_configs", {
   // normal submission, but must unban manually — useful for guilds that
   // want a human to double-check before anyone is let back in.
   autoUnbanOnAccept: boolean("auto_unban_on_accept").notNull().default(true),
+
+  // Timeout appeals. A timed-out member is still in the server, so the DM
+  // always has somewhere to land; what they lack is a way in, since a timeout
+  // strips them of slash commands. timeoutMinSeconds keeps short timeouts
+  // quiet — a ten-minute timeout is over before anyone could read an appeal.
+  timeoutEnabled: boolean("timeout_enabled").notNull().default(false),
+  timeoutFormId: text("timeout_form_id").references(() => forms.id, { onDelete: "set null" }),
+  timeoutMinSeconds: integer("timeout_min_seconds").notNull().default(3600),
+  dmOnTimeoutNote: text("dm_on_timeout_note"),
+  // Needs the bot to hold Moderate Members ("Timeout Members" in Discord's UI).
+  liftTimeoutOnAccept: boolean("lift_timeout_on_accept").notNull().default(true),
+
+  // Restriction appeals: the roles a server's punishment ladder hands out
+  // instead of a ban — no media, no pings, lost channels, a full lockout.
+  // Being given one sends the same kind of notice a ban does.
+  restrictionEnabled: boolean("restriction_enabled").notNull().default(false),
+  restrictionRoleIds: jsonb("restriction_role_ids").$type<string[]>().notNull().default([]),
+  restrictionFormId: text("restriction_form_id").references(() => forms.id, { onDelete: "set null" }),
+  dmOnRestrictionNote: text("dm_on_restriction_note"),
+  liftRestrictionOnAccept: boolean("lift_restriction_on_accept").notNull().default(true),
+
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// One row per appeal notice already sent for a timeout or a restriction, so a
+// member gets one DM per punishment rather than one per gateway event —
+// guildMemberUpdate also fires for nicknames, avatars and every other role
+// change. key is the restriction role's id, or the timeout's end as epoch
+// milliseconds (a new timeout is a new punishment). Restriction rows are
+// deleted when the role goes away, so being given it again sends a new notice.
+export const appealNotices = pgTable(
+  "appeal_notices",
+  {
+    guildId: bigint("guild_id", { mode: "bigint" })
+      .notNull()
+      .references(() => guilds.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "bigint" }).notNull(),
+    kind: appealKindEnum("kind").notNull(),
+    key: text("key").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.guildId, t.userId, t.kind, t.key] }),
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // Platform-level bans live in their own file but are re-exported here, because

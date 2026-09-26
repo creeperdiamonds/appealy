@@ -175,7 +175,7 @@ const NAV_GROUPS: {
     items: [
       { id: "forms", label: "Forms", hint: "Questions, gating, and the roles a decision applies" },
       { id: "panels", label: "Panels", hint: "The message people apply from" },
-      { id: "appeals", label: "Ban appeals", hint: "DM banned members a form" },
+      { id: "appeals", label: "Appeals", hint: "Bans, timeouts and restrictions" },
     ],
   },
   {

@@ -10,7 +10,7 @@ Confusing them is the main hazard in this area.
 | Who may file | The banned member | That account only | Owner, or `MANAGE_GUILD` |
 | Appeals to | That guild's staff | Us | Us |
 | Tables | `appeal_configs`, `forms.kind='appeal'` | `platform_bans`, `platform_ban_appeals` | same |
-| Entry point | `guildBanAdd` → DM with a form | `banGate.ts`, on the next interaction | same |
+| Entry point | `guildBanAdd` → DM with a form (timeouts and restriction roles: `guildMemberUpdate`, see below) | `banGate.ts`, on the next interaction | same |
 | Reviewed in | The guild's submission queue | `/api/ops`, behind `OPS_USER_IDS` | same |
 
 Guild staff can never see `platform_bans`. The prefix exists so nobody wires
@@ -73,6 +73,63 @@ its `if (!sent) delete progress` branch. With DMs closed that left an orphan
 `dmApplicationProgress` row, so the applicant hit "You already have an
 application in progress" permanently. Both the confirmation and the new
 `introNote` path now clean up.
+
+## Guild timeout and restriction appeals
+
+A server's punishment ladder is mostly not bans: a Discord timeout, or roles
+that take something away (no media, no pings, lost channels, a full lockout).
+These are appealable the same way a ban is, and share its whole pipeline — the
+same appeal-kind forms, the same DM question flow, the same review post.
+
+**The trigger is `guildMemberUpdate`** (`events/guildMemberUpdate.ts`), which
+Discord sends for nicknames, avatars and every role change too. So:
+
+- Settings come from the cached config bundle (`appeal` in
+  `guildConfigCache.ts`); a guild with neither feature on costs nothing.
+- **`appeal_notices` makes each punishment notice once.** A row per
+  (guild, user, kind, key), where key is the restriction role's id or the
+  timeout's end in epoch ms. The insert is the lock: two racing updates for
+  the same punishment both try it and only the one that inserted sends. A
+  restriction row is deleted when the role goes away, so the role being given
+  again later is a new punishment with a new notice. An extended timeout has a
+  new end time, so it is one too.
+- `shared/services/appealTriggers.ts` holds those decisions as pure functions,
+  tested in `shared/services/__tests__/appealTriggers.test.ts`. Timeouts
+  shorter than `timeoutMinSeconds` (default an hour) send nothing: they're
+  over before anyone could read an appeal.
+
+**The buttons carry what the appeal is for.** `appeal:start:<guild>:<form>` is
+the ban notice, unchanged, so buttons already sitting in DMs keep working.
+`appeal:timeout:<guild>:<form>` and `appeal:role:<guild>:<form>.<role>` are the
+new ones — the role rides in `extra` because `decodeCustomId` splits four
+parts. `appealStart.ts` checks the punishment is still in place before
+starting (a timeout that ran out, or a role already taken back, leaves nothing
+to lift), and records it as an `AppealContext` on the progress row, which the
+submission inherits as `appeal_kind`, `appeal_role_ids` and
+`appeal_timeout_until`.
+
+**Accepting reverses exactly that** (`reviewAccept.ts`). `appeal_kind` is
+null only on submissions from before this existed, all of them bans, so null
+reads as `ban`.
+
+| `appeal_kind` | On accept | Needs | If it can't |
+|---|---|---|---|
+| `ban` | Unban | Ban Members | Warning on the review post (existing) |
+| `timeout` | `communicationDisabledUntil: null` | Moderate Members | Warning on the review post |
+| `restriction` | Remove the appealed role, through the normal role-removal path | Manage Roles, bot role above it | Warning on the review post |
+
+The unban used to run for any appeal-kind form. It now runs only for `ban` —
+otherwise accepting a timeout appeal would try to unban someone who was never
+banned and show the reviewer a false "automatic unban failed".
+
+**Moderate Members joined `INVITE_PERMISSIONS`** for the timeout lift. Servers
+invited before it lack it until they grant it; the review post says so rather
+than failing silently.
+
+Each kind has its own switch, form and notice text in `appeal_configs`. A
+reviewer who wants to *step someone down a tier* rather than lift the
+restriction entirely uses accept outcomes, which already grant and remove
+roles per outcome — no appeal-specific mechanism needed.
 
 ## Before it runs
 

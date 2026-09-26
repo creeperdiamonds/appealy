@@ -196,12 +196,23 @@ export async function handleReviewAccept(
     }
   }
 
+  // What an appeal-kind submission is appealing. Null only on submissions
+  // from before timeout and restriction appeals existed, all of them bans.
+  const appealKind = form.kind === "appeal" ? (submission.appealKind ?? "ban") : null;
+  const appealConfig = appealKind
+    ? await db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) })
+    : null;
+  // Accepting a restriction appeal lifts the role it was about through the
+  // same removal path — and the same hierarchy check — as every other role.
+  const liftedRoleIds =
+    appealKind === "restriction" && (appealConfig?.liftRestrictionOnAccept ?? true) ? submission.appealRoleIds : [];
+
   // The outcome's roles replace the form's; the form's removeRoleIds and
   // pendingRoleIds still apply on top, since those clear regardless of which
   // outcome was chosen.
   const rolesToGrant = outcome ? outcome.grantRoleIds : form.grantRoleIds;
   const rolesToRemove = [
-    ...new Set([...(outcome?.removeRoleIds ?? []), ...form.removeRoleIds, ...form.pendingRoleIds]),
+    ...new Set([...(outcome?.removeRoleIds ?? []), ...form.removeRoleIds, ...form.pendingRoleIds, ...liftedRoleIds]),
   ]; // pending roles always clear on decision
   const allTargetRoles = [...rolesToGrant, ...rolesToRemove];
 
@@ -236,9 +247,8 @@ export async function handleReviewAccept(
   // did (a ban), not just grant/remove roles — the applicant isn't a
   // guild member to grant roles to in the first place. See
   // shared/schema/schema.ts's appealConfigs comment for the full design.
-  let unbanWarning: string | null = null;
-  if (form.kind === "appeal") {
-    const appealConfig = await db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) });
+  let liftWarning: string | null = null;
+  if (appealKind === "ban") {
     // Default to unbanning even with no config row (or autoUnbanOnAccept
     // unset) — a missing config shouldn't silently leave an accepted
     // appeal banned, since "accepted" has an unambiguous real-world
@@ -254,10 +264,31 @@ export async function handleReviewAccept(
         // reviewer rather than only logging it, since "accepted" without
         // an actual unban is a state a moderator needs to know about.
         logger.warn("Unban failed after appeal acceptance", { submissionId, error: String(err) });
-        unbanWarning =
+        liftWarning =
           "Note: the automatic unban failed — the user may already be unbanned, or I'm missing the Ban Members permission. Please verify manually.";
       }
     }
+  }
+
+  // Timeout appeals: reversing the timeout needs Moderate Members, which a
+  // server that invited the bot before this existed may not have granted.
+  if (appealKind === "timeout" && (appealConfig?.liftTimeoutOnAccept ?? true)) {
+    try {
+      await bot.helpers.editMember(
+        guildId,
+        submission.applicantId,
+        { communicationDisabledUntil: null },
+        "Timeout appeal accepted",
+      );
+    } catch (err) {
+      logger.warn("Lifting the timeout failed after appeal acceptance", { submissionId, error: String(err) });
+      liftWarning =
+        "Note: lifting the timeout failed — it may already have ended, or I'm missing the Timeout Members permission. Please check manually.";
+    }
+  }
+  if (liftedRoleIds.some((r) => unmanageable.includes(r))) {
+    liftWarning =
+      "Note: I couldn't remove the restriction role — it sits above my highest role. Remove it by hand, or move my role above it.";
   }
 
   await db
@@ -362,7 +393,7 @@ export async function handleReviewAccept(
   ];
   // A failed unban must reach the reviewer, not just the log. "Accepted" on an
   // appeal that left the user banned is the whole outcome they just approved.
-  if (unbanWarning) messages.push(unbanWarning);
+  if (liftWarning) messages.push(liftWarning);
 
   await respond(bot, interaction, messages.join(" "));
 }

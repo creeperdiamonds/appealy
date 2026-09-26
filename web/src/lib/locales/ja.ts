@@ -28,6 +28,7 @@ export const ja: Record<string, string> = {
   "Forms": "フォーム",
   "Panels": "パネル",
   "Ban appeals": "BAN 異議申し立て",
+  "Appeals": "異議申し立て",
   "Support": "サポート",
   "Tickets": "チケット",
   "Quick responses": "定型応答",
