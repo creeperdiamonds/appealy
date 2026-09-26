@@ -48,6 +48,8 @@
    * in the same family as the surfaces behind it. */
   --bg: #0d1016;
   --surface: #151a22;
+  /* Top of the sidebar, a hair off --surface: see .rail. */
+  --rail-top: #131a28;
   --raised: #1e242e;
   --line: #2a323e;
   --line-soft: #1f2530;
@@ -105,6 +107,7 @@
 
     --bg: #f5f6f8;
     --surface: #ffffff;
+    --rail-top: #eef1f6;
     --raised: #eceef2;
     --line: #d8dbe2;
     --line-soft: #e4e7ec;
@@ -132,6 +135,7 @@
 
   --bg: #f5f6f8;
   --surface: #ffffff;
+  --rail-top: #eef1f6;
   --raised: #eceef2;
   --line: #d8dbe2;
   --line-soft: #e4e7ec;
@@ -251,8 +255,10 @@ button {
 .rail {
   /* A hair darker than --surface at the top, settling into it further down.
    * The rail and the content area were the same weight, so the eye had only
-   * a 1px line telling it where navigation stopped and the page began. */
-  background: linear-gradient(180deg, #131a28 0%, var(--surface) 220px);
+   * a 1px line telling it where navigation stopped and the page began.
+   * A token, not a colour: the dark navy this used to be hard-coded as sat
+   * behind dark text in the light theme and hid the brand and first heading. */
+  background: linear-gradient(180deg, var(--rail-top) 0%, var(--surface) 220px);
   border-right: 1px solid var(--line-soft);
   padding: 20px 12px 12px;
   display: flex;
