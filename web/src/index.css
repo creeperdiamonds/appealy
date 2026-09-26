@@ -1287,6 +1287,14 @@ input.input {
 
 @media (prefers-reduced-motion: reduce) { .sheet, .sheet-backdrop { animation: none !important; } }
 
+/* A page can keep the right-hand side of the screen clear of popups: the
+ * AutoMod page does, for the regex generator that stays usable beside them.
+ * It sets --sheet-reserve-right to the width it needs, and every popup centres
+ * itself in what's left. Wide screens only; nothing sets it below 1280px. */
+@media (min-width: 1280px) {
+  .sheet-backdrop { padding-right: max(1rem, var(--sheet-reserve-right, 1rem)); }
+}
+
 /* ------------------------------------------------------------------ *
  * Application history (Submissions -> sheet timeline)
  * ------------------------------------------------------------------ */
@@ -1456,6 +1464,50 @@ input.input {
  * AutoMod (pages/AutoMod.tsx). Built for a phone first: the page exists
  * because Discord's own app can't edit AutoMod there.
  * ------------------------------------------------------------------ */
+/* One column on phones and narrow windows, with the regex generator straight
+ * after the word lists it feeds. From 1280px it gets a column of its own on
+ * the right, in the space the page's usual max-width would leave empty, so a
+ * pattern can be built next to the lists it goes into.
+ *
+ * Margins rather than a row gap: "Other rules" is usually absent, and an empty
+ * grid row still gets a gap. */
+.automod-layout {
+  display: grid; align-items: start; margin-bottom: -1rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "lists" "gen" "filters" "other" "note";
+}
+.automod-layout > * { margin: 0 0 1rem; }
+/* Shown only beside the side-column generator, in the wide query below. */
+.automod-side-hint { display: none; margin: 0; font-size: .8125rem; }
+.automod-area-lists { grid-area: lists; }
+.automod-area-gen { grid-area: gen; }
+.automod-area-filters { grid-area: filters; }
+.automod-area-other { grid-area: other; }
+.automod-area-note { grid-area: note; }
+@media (min-width: 1280px) {
+  .content:has(.automod-layout) { max-width: 1720px; }
+  .automod-layout {
+    column-gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(24rem, 30rem);
+    /* The last row takes the generator's extra height, so the left column's
+     * panels keep their spacing instead of being pulled apart to match it. */
+    grid-template-rows: auto auto auto auto 1fr;
+    grid-template-areas: "lists gen" "filters gen" "other gen" "note gen" ". gen";
+  }
+  /* Two by two in the side column; auto-fit left "Spam tricks" alone on a row. */
+  .automod-area-gen .regex-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Pinned beside the lists instead of scrolling away with them, scrolling
+   * inside itself when it's taller than the screen. And above popups (over
+   * .sheet-backdrop's 40), so a pattern can be built while a rule is open. */
+  .automod-area-gen {
+    position: sticky; top: calc(var(--bar-h) + 1rem); z-index: 41;
+    max-height: calc(100vh - var(--bar-h) - 2rem); overflow-y: auto;
+    border-radius: var(--r-lg);
+  }
+  /* The editor's own generator is for phones; here the page's sits beside it. */
+  .automod-inline-gen { display: none; }
+  .automod-side-hint { display: block; }
+}
 .automod-rules { display: grid; }
 /* A whole row is one button, so a thumb can open a rule from anywhere on it. */
 .automod-rule {
@@ -1471,6 +1523,9 @@ input.input {
 /* A checkbox's text shrinks beside it instead of wrapping underneath it on a phone. */
 .automod-editor .row > span { flex: 1; min-width: 0; }
 .automod-foot { margin: .75rem 0 0; font-size: .8125rem; }
+/* Scrolled to from "What's new": clear of the sticky top bar, with room to breathe. */
+.automod-anchor { scroll-margin-top: calc(var(--bar-h) + 1rem); }
+.automod-lead { margin: 0 0 .75rem; font-size: .875rem; }
 /* Two buttons beside the text leave it a sliver on a phone, so they drop below it there. */
 .automod-grant .banner { flex-wrap: wrap; }
 .automod-grant .banner-body { flex: 1 1 15rem; }

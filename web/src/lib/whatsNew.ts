@@ -22,6 +22,8 @@ export interface ReleaseItem {
   body: Text;
   /** A dashboard screen to open from the item, by its path segment. */
   view?: string;
+  /** An element id on that screen to scroll to. */
+  section?: string;
   action?: Text;
 }
 
@@ -52,11 +54,12 @@ export const RELEASES: Release[] = [
           ja: "正規表現を書かずに、ごまかした言葉も検出",
         },
         body: {
-          en: "The pattern builder catches “fr33 n1tr0”, “$cam” and “s.c.a.m”, as well as invite links, phone numbers and zalgo. Try any message to see what gets caught before you save.",
-          ja: "パターンビルダーは「fr33 n1tr0」「$cam」「s.c.a.m」のような言い換えや、招待リンク、電話番号、Zalgo テキストを検出します。保存する前に、どんなメッセージが引っかかるか試せます。",
+          en: "The regex generator catches “fr33 n1tr0”, “$cam” and “s.c.a.m”, as well as invite links, phone numbers and zalgo. Try any message to see what gets caught, then add a pattern to a word list or copy it.",
+          ja: "正規表現ジェネレーターは「fr33 n1tr0」「$cam」「s.c.a.m」のような言い換えや、招待リンク、電話番号、Zalgo テキストを検出します。どんなメッセージが引っかかるか試してから、ワードリストに追加したり、コピーしたりできます。",
         },
         view: "automod",
-        action: { en: "Try the pattern builder", ja: "パターンビルダーを試す" },
+        section: "regex-generator",
+        action: { en: "Try the regex generator", ja: "正規表現ジェネレーターを試す" },
       },
       {
         title: { en: "Fixed: appeals for 1-hour timeouts", ja: "修正：1 時間のタイムアウトの異議申し立て" },

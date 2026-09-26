@@ -347,10 +347,14 @@ export function Sheet({
   title,
   onClose,
   children,
+  modal = true,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  /** False when something beside the sheet stays usable while it's open, as
+   *  the AutoMod page's regex generator does on a wide screen. */
+  modal?: boolean;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const headingId = useId();
@@ -381,7 +385,7 @@ export function Sheet({
       <div
         className="sheet"
         role="dialog"
-        aria-modal="true"
+        aria-modal={modal}
         aria-labelledby={headingId}
         // Without this a click on the sheet bubbles to the backdrop and closes
         // the thing the user was reaching for.

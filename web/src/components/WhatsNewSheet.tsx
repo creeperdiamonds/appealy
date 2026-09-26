@@ -13,7 +13,7 @@ export default function WhatsNewSheet({
   onOpenView,
 }: {
   onClose: () => void;
-  onOpenView: (view: string) => void;
+  onOpenView: (view: string, section?: string) => void;
 }) {
   const [newest, ...earlier] = RELEASES;
   return (
@@ -44,7 +44,7 @@ function ReleaseNotes({
   featured = false,
 }: {
   release: Release;
-  onOpenView: (view: string) => void;
+  onOpenView: (view: string, section?: string) => void;
   featured?: boolean;
 }) {
   return (
@@ -59,7 +59,7 @@ function ReleaseNotes({
             <strong>{local(item.title)}</strong>
             <p className="dim">{local(item.body)}</p>
             {item.view && item.action && (
-              <button className="btn btn-sm" onClick={() => onOpenView(item.view!)}>
+              <button className="btn btn-sm" onClick={() => onOpenView(item.view!, item.section)}>
                 {local(item.action)} →
               </button>
             )}

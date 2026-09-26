@@ -347,6 +347,9 @@ export default function App() {
   );
   // Drives the dot beside "What's new" in the menu.
   const [unseenRelease, setUnseenRelease] = useState(hasUnseenRelease);
+  // A section of the next screen to scroll to, when "What's new" links into one.
+  const [focus, setFocus] = useState<string | null>(null);
+  const clearFocus = useCallback(() => setFocus(null), []);
 
   // Closing it any way at all counts as having seen it: the button, the X,
   // Escape, or following one of its links.
@@ -669,7 +672,9 @@ export default function App() {
               {guildId && view === "quick-responses" && <QuickResponses guildId={guildId} />}
               {guildId && view === "verification" && <Verification guildId={guildId} />}
               {guildId && view === "anti-raid" && <AntiRaid guildId={guildId} />}
-              {guildId && view === "automod" && <AutoMod guildId={guildId} />}
+              {guildId && view === "automod" && (
+                <AutoMod guildId={guildId} focus={focus} onFocused={clearFocus} />
+              )}
               {guildId && view === "welcomer" && <Welcomer guildId={guildId} />}
               {guildId && view === "role-menus" && <RoleMenus guildId={guildId} />}
               {guildId && view === "sticky" && <StickyMessages guildId={guildId} />}
@@ -717,9 +722,10 @@ export default function App() {
       {whatsNewOpen && (
         <WhatsNewSheet
           onClose={closeWhatsNew}
-          onOpenView={(next) => {
+          onOpenView={(next, section) => {
             closeWhatsNew();
             setView(next as View);
+            setFocus(section ?? null);
           }}
         />
       )}

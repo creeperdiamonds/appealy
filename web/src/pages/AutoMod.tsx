@@ -16,7 +16,7 @@
 // the same code the API checks with, so a counter here and a refusal there
 // can't disagree.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
   ApiError,
@@ -171,18 +171,59 @@ function summarise(rule: AutomodRule, channelName: (id: string) => string): stri
   return parts.join(" · ");
 }
 
+/** Where the regex generator gets a column of its own (.automod-layout in index.css). */
+const WIDE = "(min-width: 1280px)";
+
+function useWideLayout(): boolean {
+  const [wide, setWide] = useState(() => window.matchMedia(WIDE).matches);
+  useEffect(() => {
+    const query = window.matchMedia(WIDE);
+    const update = () => setWide(query.matches);
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return wide;
+}
+
 interface Editing {
   type: TriggerType;
   /** Null when creating. */
   rule: AutomodRule | null;
   defaultName: string;
+  /** Patterns from the regex generator, put in the editor for saving. */
+  addPatterns?: string[];
 }
 
-export default function AutoMod({ guildId }: { guildId: string }) {
+/**
+ * `focus` names a section to scroll to once the page loads, for links from
+ * "What's new" to the regex generator.
+ */
+export default function AutoMod({
+  guildId,
+  focus,
+  onFocused,
+}: {
+  guildId: string;
+  focus?: string | null;
+  onFocused?: () => void;
+}) {
   const [state, setState] = useState<AutomodState | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [checking, setChecking] = useState(false);
+  // The page-level regex generator: what it's offering, for the tester, and
+  // the patterns waiting for a word list to be chosen.
+  const [generated, setGenerated] = useState<Offered[]>([]);
+  const [adding, setAdding] = useState<string[] | null>(null);
+  // The open editor's patterns, and a way to add to them, so that on a wide
+  // screen the generator beside the editor adds straight into it.
+  const [editorPatterns, setEditorPatterns] = useState<string[]>([]);
+  const editorAdd = useRef<((patterns: string[]) => void) | null>(null);
+  const registerEditorAdd = useCallback((add: ((patterns: string[]) => void) | null) => {
+    editorAdd.current = add;
+  }, []);
+  const wide = useWideLayout();
+  const genRef = useRef<HTMLDivElement>(null);
   const { channels } = useGuildChannels(guildId);
 
   const load = useCallback(async () => {
@@ -201,6 +242,36 @@ export default function AutoMod({ guildId }: { guildId: string }) {
   }, [load]);
 
   const closeEditor = useCallback(() => setEditing(null), []);
+  const closeAdding = useCallback(() => setAdding(null), []);
+
+  useEffect(() => {
+    if (!focus || !state) return;
+    document.getElementById(focus)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    onFocused?.();
+  }, [focus, state, onFocused]);
+
+  useEffect(() => {
+    if (!editing) setEditorPatterns([]);
+  }, [editing]);
+
+  // Popups centre in the space left of the generator column instead of under
+  // it (.sheet-backdrop in index.css). Measured rather than worked out, because
+  // the column's width and where the page sits both depend on the window.
+  const loaded = state !== null;
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => {
+      const left = genRef.current?.getBoundingClientRect().left;
+      if (!wide || left === undefined) root.style.removeProperty("--sheet-reserve-right");
+      else root.style.setProperty("--sheet-reserve-right", `${Math.round(window.innerWidth - left + 16)}px`);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      root.style.removeProperty("--sheet-reserve-right");
+    };
+  }, [wide, loaded]);
 
   if (error && !state) {
     if (error.code === "admin_access_required") {
@@ -261,6 +332,49 @@ export default function AutoMod({ guildId }: { guildId: string }) {
     setChecking(false);
   }
 
+  // Rules that take regex: the word lists, and the one for names.
+  const regexRules = state.rules.filter(
+    (r) => r.triggerType === TRIGGER.KEYWORD || r.triggerType === TRIGGER.MEMBER_PROFILE,
+  );
+
+  // On the page itself, not only inside a rule, so it can be found, and so it
+  // works before Appealy has permission: Copy puts a pattern into Discord's own
+  // settings on a computer.
+  // With a word list's editor open, the generator adds straight into it. The
+  // other editors take no regex, so while one of them is open there's only Copy.
+  const editorTakesRegex =
+    editing !== null && (editing.type === TRIGGER.KEYWORD || editing.type === TRIGGER.MEMBER_PROFILE);
+  const addFromGenerator = state.missingPermission
+    ? undefined
+    : editorTakesRegex
+    ? (patterns: string[]) => editorAdd.current?.(patterns)
+    : editing
+    ? undefined
+    : setAdding;
+
+  const generator = (
+    <div id="regex-generator" ref={genRef} className="automod-anchor automod-area-gen">
+      <Panel title="Regex generator">
+        <p className="dim automod-lead">
+          Catch disguised words, invite links, personal info and spam tricks without writing regex,
+          and try any message to see what gets caught.{" "}
+          {state.missingPermission
+            ? "Copy a pattern into Discord's own AutoMod settings, or give Appealy permission " +
+              "above to add it to a word list here."
+            : "Then add a pattern to a word list, or copy it."}
+        </p>
+        <PatternBuilder
+          current={editorTakesRegex ? editorPatterns : undefined}
+          room={editorTakesRegex ? LIMITS.regexPatterns - editorPatterns.length : undefined}
+          onCandidates={setGenerated}
+          onAdd={addFromGenerator}
+          addLabel={editorTakesRegex ? "Add to this rule" : "Add to a word list"}
+        />
+        <PatternTester patterns={[]} candidates={generated} candidateNote="" />
+      </Panel>
+    </div>
+  );
+
   return (
     <div className="stack">
       <header className="page-head">
@@ -278,127 +392,191 @@ export default function AutoMod({ guildId }: { guildId: string }) {
         </Banner>
       )}
 
-      {state.missingPermission ? (
-        <div className="automod-grant">
-          <Banner
-            level="act"
-            title="Appealy needs Manage Server for this"
-            action={
-              <div className="actions">
-                <a className="btn btn-primary" href={state.grantUrl} target="_blank" rel="noreferrer">
-                  Give permission
-                </a>
-                <button className="btn" onClick={() => void checkAgain()} disabled={checking}>
-                  {checking ? "Checking…" : "Check again"}
-                </button>
-              </div>
-            }
-          >
-            Discord only lets apps with Manage Server see or change AutoMod. The button opens Discord
-            to add it to Appealy's role. You can also switch it on for that role yourself, under
-            Server Settings → Roles.
-          </Banner>
-        </div>
-      ) : (
-        <>
-          <Panel
-            title="Word lists"
-            action={
-              <button
-                className="btn btn-sm"
-                disabled={lists.length >= maxLists}
-                onClick={() =>
-                  setEditing({ type: TRIGGER.KEYWORD, rule: null, defaultName: nextListName() })
-                }
-              >
-                New list
-              </button>
-            }
-          >
-            {lists.length === 0 ? (
-              <Empty
-                title="No word lists yet"
-                hint="Block words and phrases, like scam links or spoilers."
-              />
-            ) : (
-              <div className="automod-rules">
-                {lists.map((rule) => (
-                  <RuleRow
-                    key={rule.id}
-                    title={rule.name}
-                    summary={summarise(rule, channelName)}
-                    enabled={rule.enabled}
-                    onOpen={() => setEditing({ type: TRIGGER.KEYWORD, rule, defaultName: rule.name })}
-                  />
-                ))}
-              </div>
-            )}
-            <p className="dim automod-foot">
-              {lists.length} of {maxLists} lists. Discord allows {maxLists} per server, each with up
-              to {LIMITS.keywords.toLocaleString()} words.
-            </p>
-          </Panel>
-
-          <Panel title="Discord's other filters">
-            <div className="automod-rules">
-              {SINGLE_RULES.map(({ type, title, blurb }) => {
-                const rule = state.rules.find((r) => r.triggerType === type) ?? null;
-                return rule ? (
-                  <RuleRow
-                    key={type}
-                    title={title}
-                    summary={summarise(rule, channelName)}
-                    enabled={rule.enabled}
-                    onOpen={() => setEditing({ type, rule, defaultName: rule.name })}
-                  />
-                ) : (
-                  <button
-                    key={type}
-                    type="button"
-                    className="automod-rule"
-                    onClick={() => setEditing({ type, rule: null, defaultName: title })}
-                  >
-                    <span className="automod-rule-text">
-                      <strong>{title}</strong>
-                      <span className="dim">{blurb}</span>
-                    </span>
-                    <span className="btn btn-sm">Set up</span>
+      {/* Grid areas rather than DOM order decide where things go: see
+          .automod-layout in index.css for the one- and two-column arrangements. */}
+      <div className="automod-layout">
+        {state.missingPermission ? (
+          <div className="automod-grant automod-area-lists">
+            <Banner
+              level="act"
+              title="Appealy needs Manage Server for this"
+              action={
+                <div className="actions">
+                  <a className="btn btn-primary" href={state.grantUrl} target="_blank" rel="noreferrer">
+                    Give permission
+                  </a>
+                  <button className="btn" onClick={() => void checkAgain()} disabled={checking}>
+                    {checking ? "Checking…" : "Check again"}
                   </button>
-                );
-              })}
-            </div>
-          </Panel>
-
-          {unknown.length > 0 && (
-            <Panel title="Other rules">
-              <p className="dim">
-                These use a kind of AutoMod Appealy doesn't know yet. They still work; change them
-                in Discord's own settings.
+                </div>
+              }
+            >
+              Discord only lets apps with Manage Server see or change AutoMod. The button opens Discord
+              to add it to Appealy's role. You can also switch it on for that role yourself, under
+              Server Settings → Roles.
+            </Banner>
+          </div>
+        ) : (
+          <>
+            <Panel
+              className="automod-area-lists"
+              title="Word lists"
+              action={
+                <button
+                  className="btn btn-sm"
+                  disabled={lists.length >= maxLists}
+                  onClick={() =>
+                    setEditing({ type: TRIGGER.KEYWORD, rule: null, defaultName: nextListName() })
+                  }
+                >
+                  New list
+                </button>
+              }
+            >
+              {lists.length === 0 ? (
+                <Empty
+                  title="No word lists yet"
+                  hint="Block words and phrases, like scam links or spoilers."
+                />
+              ) : (
+                <div className="automod-rules">
+                  {lists.map((rule) => (
+                    <RuleRow
+                      key={rule.id}
+                      title={rule.name}
+                      summary={summarise(rule, channelName)}
+                      enabled={rule.enabled}
+                      onOpen={() => setEditing({ type: TRIGGER.KEYWORD, rule, defaultName: rule.name })}
+                    />
+                  ))}
+                </div>
+              )}
+              <p className="dim automod-foot">
+                {lists.length} of {maxLists} lists. Discord allows {maxLists} per server, each with up
+                to {LIMITS.keywords.toLocaleString()} words.
               </p>
+            </Panel>
+
+            <Panel className="automod-area-filters" title="Discord's other filters">
               <div className="automod-rules">
-                {unknown.map((rule) => (
-                  <div key={rule.id} className="automod-rule">
-                    <span className="automod-rule-text">
-                      <strong>{rule.name}</strong>
-                    </span>
-                    <Pill level={rule.enabled ? "ok" : undefined}>{rule.enabled ? "On" : "Off"}</Pill>
-                  </div>
-                ))}
+                {SINGLE_RULES.map(({ type, title, blurb }) => {
+                  const rule = state.rules.find((r) => r.triggerType === type) ?? null;
+                  return rule ? (
+                    <RuleRow
+                      key={type}
+                      title={title}
+                      summary={summarise(rule, channelName)}
+                      enabled={rule.enabled}
+                      onOpen={() => setEditing({ type, rule, defaultName: rule.name })}
+                    />
+                  ) : (
+                    <button
+                      key={type}
+                      type="button"
+                      className="automod-rule"
+                      onClick={() => setEditing({ type, rule: null, defaultName: title })}
+                    >
+                      <span className="automod-rule-text">
+                        <strong>{title}</strong>
+                        <span className="dim">{blurb}</span>
+                      </span>
+                      <span className="btn btn-sm">Set up</span>
+                    </button>
+                  );
+                })}
               </div>
             </Panel>
-          )}
 
-          <p className="dim">
-            AutoMod never applies to members with Administrator or Manage Server, including you. Test
-            a rule from an account without them.
-          </p>
-        </>
+            {unknown.length > 0 && (
+              <Panel className="automod-area-other" title="Other rules">
+                <p className="dim">
+                  These use a kind of AutoMod Appealy doesn't know yet. They still work; change them
+                  in Discord's own settings.
+                </p>
+                <div className="automod-rules">
+                  {unknown.map((rule) => (
+                    <div key={rule.id} className="automod-rule">
+                      <span className="automod-rule-text">
+                        <strong>{rule.name}</strong>
+                      </span>
+                      <Pill level={rule.enabled ? "ok" : undefined}>{rule.enabled ? "On" : "Off"}</Pill>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
+
+            <p className="dim automod-area-note">
+              AutoMod never applies to members with Administrator or Manage Server, including you. Test
+              a rule from an account without them.
+            </p>
+          </>
+        )}
+        {generator}
+      </div>
+
+      {adding && (
+        <Sheet title="Add to which word list?" onClose={closeAdding} modal={!wide}>
+          <div className="automod-rules">
+            {regexRules.map((rule) => (
+              <button
+                key={rule.id}
+                type="button"
+                className="automod-rule"
+                onClick={() => {
+                  setAdding(null);
+                  setEditing({
+                    type: rule.triggerType as TriggerType,
+                    rule,
+                    defaultName: rule.name,
+                    addPatterns: adding,
+                  });
+                }}
+              >
+                <span className="automod-rule-text">
+                  <strong>
+                    {rule.name}
+                    {rule.triggerType === TRIGGER.MEMBER_PROFILE ? " (names)" : ""}
+                  </strong>
+                  <span className="dim">
+                    {rule.regexPatterns.length} of {LIMITS.regexPatterns} patterns used
+                  </span>
+                </span>
+                <Pill level={rule.enabled ? "ok" : undefined}>{rule.enabled ? "On" : "Off"}</Pill>
+              </button>
+            ))}
+            {lists.length < maxLists && (
+              <button
+                type="button"
+                className="automod-rule"
+                onClick={() => {
+                  setAdding(null);
+                  setEditing({
+                    type: TRIGGER.KEYWORD,
+                    rule: null,
+                    defaultName: nextListName(),
+                    addPatterns: adding,
+                  });
+                }}
+              >
+                <span className="automod-rule-text">
+                  <strong>New word list</strong>
+                  <span className="dim">
+                    Start one with just {adding.length === 1 ? "this pattern" : "these patterns"}.
+                  </span>
+                </span>
+                <span className="btn btn-sm">Create</span>
+              </button>
+            )}
+          </div>
+        </Sheet>
       )}
 
       {editing && (
         <Sheet
           title={editing.rule ? editing.rule.name : `New: ${titleFor(editing.type)}`}
           onClose={closeEditor}
+          modal={!wide}
         >
           <RuleEditor
             guildId={guildId}
@@ -407,6 +585,8 @@ export default function AutoMod({ guildId }: { guildId: string }) {
             onSaved={onSaved}
             onDeleted={onDeleted}
             onCancel={closeEditor}
+            registerAdd={registerEditorAdd}
+            onPatternsChange={setEditorPatterns}
           />
         </Sheet>
       )}
@@ -463,6 +643,8 @@ function RuleEditor({
   onSaved,
   onDeleted,
   onCancel,
+  registerAdd,
+  onPatternsChange,
 }: {
   guildId: string;
   editing: Editing;
@@ -470,6 +652,10 @@ function RuleEditor({
   onSaved: (rule: AutomodRule) => void;
   onDeleted: (id: string) => void;
   onCancel: () => void;
+  /** Hands the page a way to add patterns here, from the generator beside this. */
+  registerAdd?: (add: ((patterns: string[]) => void) | null) => void;
+  /** Tells the page this rule's patterns, so that generator can say what's added. */
+  onPatternsChange?: (patterns: string[]) => void;
 }) {
   const { type, rule } = editing;
   const [draft, setDraft] = useState<AutomodRuleInput>(() =>
@@ -480,8 +666,12 @@ function RuleEditor({
   // every keystroke would eat a comma the moment it was typed.
   const [wordsText, setWordsText] = useState(() => (rule?.keywords ?? []).join("\n"));
   const [allowText, setAllowText] = useState(() => (rule?.allowList ?? []).join("\n"));
-  const [patternsText, setPatternsText] = useState(() => (rule?.regexPatterns ?? []).join("\n"));
-  const [showPatterns, setShowPatterns] = useState(() => (rule?.regexPatterns.length ?? 0) > 0);
+  const [patternsText, setPatternsText] = useState(() =>
+    [...new Set([...(rule?.regexPatterns ?? []), ...(editing.addPatterns ?? [])])].join("\n"),
+  );
+  const [showPatterns, setShowPatterns] = useState(
+    () => (rule?.regexPatterns.length ?? 0) > 0 || (editing.addPatterns?.length ?? 0) > 0,
+  );
   const [builderOpen, setBuilderOpen] = useState(false);
   // What the builder is offering, so the tester can try it before it's added.
   const [candidates, setCandidates] = useState<Offered[]>([]);
@@ -522,10 +712,25 @@ function RuleEditor({
 
   const patch = (next: Partial<AutomodRuleInput>) => setDraft((d) => ({ ...d, ...next }));
 
-  const addPatterns = (list: string[]) => {
-    const existing = cleanPatterns(patternsText.split("\n"));
-    setPatternsText([...existing, ...list.filter((p) => !existing.includes(p))].join("\n"));
-  };
+  // From the state setter's own argument rather than the render's patternsText,
+  // because the page keeps hold of this to add from the generator beside it.
+  const addPatterns = useCallback((list: string[]) => {
+    setPatternsText((text) => {
+      const existing = cleanPatterns(text.split("\n"));
+      return [...existing, ...list.filter((p) => !existing.includes(p))].join("\n");
+    });
+    setShowPatterns(true);
+  }, []);
+
+  useEffect(() => {
+    registerAdd?.(addPatterns);
+    return () => registerAdd?.(null);
+  }, [registerAdd, addPatterns]);
+
+  const patternsKey = input.regexPatterns.join("\n");
+  useEffect(() => {
+    onPatternsChange?.(patternsKey ? patternsKey.split("\n") : []);
+  }, [patternsKey, onPatternsChange]);
 
   async function save() {
     setSaving(true);
@@ -565,8 +770,19 @@ function RuleEditor({
       : `Shorter than the ${timeoutLabel(timeoutAppeals.minSeconds)} your Appeals page asks for, ` +
         "so there's no appeal button.";
 
+  const incoming = editing.addPatterns?.length ?? 0;
+
   return (
     <div className="automod-editor">
+      {incoming > 0 && (
+        <Banner
+          level="watch"
+          title={incoming === 1 ? "Pattern added below" : `${incoming} patterns added below`}
+        >
+          {rule ? "Save" : "Create the rule"} to keep {incoming === 1 ? "it" : "them"}.
+        </Banner>
+      )}
+
       <label className="field">
         <span className="eyebrow">Name</span>
         <input value={draft.name} onChange={(e) => patch({ name: e.target.value })} />
@@ -627,20 +843,28 @@ function RuleEditor({
                 <Problem message={problem("regexPatterns")} />
                 <span className="dim">
                   For what a word list can't express. Discord uses Rust-style regex, up to{" "}
-                  {LIMITS.regexLength} characters each. The builder writes them for you.
+                  {LIMITS.regexLength} characters each. The regex generator writes them for you.
                 </span>
               </label>
-              <div className="actions">
+              {/* On a wide screen the page's generator is beside this, so the
+                  editor's own is for phones (index.css). */}
+              <p className="dim automod-side-hint">
+                The regex generator beside this adds patterns straight into this rule.
+              </p>
+              <div className="actions automod-inline-gen">
                 <button type="button" className="btn btn-sm" onClick={() => setBuilderOpen(!builderOpen)}>
-                  {builderOpen ? "Close the pattern builder" : "Pattern builder"}
+                  {builderOpen ? "Close the regex generator" : "Regex generator"}
                 </button>
               </div>
               {builderOpen && (
-                <PatternBuilder
-                  current={input.regexPatterns}
-                  onAdd={addPatterns}
-                  onCandidates={setCandidates}
-                />
+                <div className="automod-inline-gen">
+                  <PatternBuilder
+                    current={input.regexPatterns}
+                    room={LIMITS.regexPatterns - input.regexPatterns.length}
+                    onAdd={addPatterns}
+                    onCandidates={setCandidates}
+                  />
+                </div>
               )}
               <PatternTester patterns={input.regexPatterns} candidates={builderOpen ? candidates : []} />
             </>
@@ -648,17 +872,20 @@ function RuleEditor({
             <div className="actions">
               <button
                 type="button"
-                className="btn btn-sm"
+                className="btn btn-sm automod-inline-gen"
                 onClick={() => {
                   setShowPatterns(true);
                   setBuilderOpen(true);
                 }}
               >
-                Build a pattern
+                Regex generator
               </button>
               <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowPatterns(true)}>
                 Write regex
               </button>
+              <span className="dim automod-side-hint">
+                Or add patterns from the regex generator beside this.
+              </span>
             </div>
           )}
         </>

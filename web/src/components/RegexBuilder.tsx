@@ -93,17 +93,25 @@ function fromPreset(p: Preset): Candidate {
 /**
  * Builds patterns from plain choices.
  *
- * `current` is what the rule already has, so a pattern that's been added says
- * so. `onCandidates` hands what's on offer to the tester, so a pattern can be
- * tried before it's added.
+ * Used in two places. Inside a rule's editor, `current` is what the rule
+ * already has, so a pattern that's been added says so, and `room` is how many
+ * more the rule can take. On its own on the AutoMod page there's no rule yet:
+ * `onAdd` asks which word list to put a pattern in, or is left out when
+ * Appealy can't edit AutoMod, and Copy is the way to use a pattern in
+ * Discord's own settings. `onCandidates` hands what's on offer to the tester,
+ * so a pattern can be tried before it goes anywhere.
  */
 export function PatternBuilder({
-  current,
+  current = [],
+  room,
   onAdd,
+  addLabel = "Add to rule",
   onCandidates,
 }: {
-  current: string[];
-  onAdd: (patterns: string[]) => void;
+  current?: string[];
+  room?: number;
+  onAdd?: (patterns: string[]) => void;
+  addLabel?: string;
   onCandidates: (offered: Offered[]) => void;
 }) {
   const [mode, setMode] = useState<Mode>("words");
@@ -222,8 +230,8 @@ export function PatternBuilder({
     onCandidates(JSON.parse(offered) as Offered[]);
   }, [offered, onCandidates]);
 
-  const room = LIMITS.regexPatterns - current.length;
   const fresh = candidates.filter((c) => !current.includes(c.pattern) && c.pattern.length <= LIMITS.regexLength);
+  const full = room !== undefined && room <= 0;
 
   return (
     <div className="regex-builder">
@@ -384,32 +392,35 @@ export function PatternBuilder({
                 <code className="regex-code">{c.pattern}</code>
                 {c.detail && <span className="dim">{c.detail}</span>}
                 {c.caution && <span className="regex-caution">{c.caution}</span>}
-                <div>
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    disabled={added || tooLong || room <= 0}
-                    onClick={() => onAdd([c.pattern])}
-                  >
-                    {added ? "Added" : "Add to rule"}
-                  </button>
+                <div className="actions">
+                  {onAdd && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      disabled={added || tooLong || full}
+                      onClick={() => onAdd([c.pattern])}
+                    >
+                      {added ? "Added" : addLabel}
+                    </button>
+                  )}
+                  <CopyButton text={c.pattern} />
                 </div>
               </div>
             );
           })}
-          {fresh.length > 1 && (
+          {onAdd && fresh.length > 1 && (
             <div className="actions">
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                disabled={fresh.length > room}
+                disabled={room !== undefined && fresh.length > room}
                 onClick={() => onAdd(fresh.map((c) => c.pattern))}
               >
                 Add all {fresh.length}
               </button>
             </div>
           )}
-          {fresh.length > 0 && fresh.length > room && (
+          {onAdd && room !== undefined && fresh.length > 0 && fresh.length > room && (
             <span className="automod-problem">
               {room <= 0
                 ? `This rule already has Discord's ${LIMITS.regexPatterns} patterns. Remove one, or use another word list.`
@@ -419,6 +430,34 @@ export function PatternBuilder({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Copies a pattern, for pasting into Discord's own AutoMod settings. The code
+ * block above it is selectable in one tap too, for when the clipboard isn't
+ * available (an embedded browser, or permission refused).
+ */
+function CopyButton({ text }: { text: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+  useEffect(() => {
+    if (state === "idle") return;
+    const t = setTimeout(() => setState("idle"), 2000);
+    return () => clearTimeout(t);
+  }, [state]);
+  return (
+    <button
+      type="button"
+      className="btn btn-sm btn-secondary"
+      onClick={() =>
+        // navigator.clipboard is missing outright on pages that aren't secure.
+        (navigator.clipboard?.writeText(text) ?? Promise.reject())
+          .then(() => setState("copied"))
+          .catch(() => setState("failed"))
+      }
+    >
+      {state === "copied" ? "Copied" : state === "failed" ? "Select it to copy" : "Copy"}
+    </button>
   );
 }
 
@@ -487,7 +526,16 @@ function CountedCheck({
  * `candidates` are the builder's patterns not added yet, tried alongside the
  * rule's own so the effect of adding one is visible first.
  */
-export function PatternTester({ patterns, candidates }: { patterns: string[]; candidates: Offered[] }) {
+export function PatternTester({
+  patterns,
+  candidates,
+  candidateNote = "(not added)",
+}: {
+  patterns: string[];
+  candidates: Offered[];
+  /** After a candidate's name, to tell it apart from the rule's own patterns. */
+  candidateNote?: string;
+}) {
   const [text, setText] = useState("");
 
   const compiled = useMemo(
@@ -496,7 +544,7 @@ export function PatternTester({ patterns, candidates }: { patterns: string[]; ca
         ...patterns.map((pattern, i) => ({ label: `Pattern ${i + 1}`, pattern })),
         ...candidates
           .filter((c) => !patterns.includes(c.pattern))
-          .map((c) => ({ label: `${c.label} (not added)`, pattern: c.pattern })),
+          .map((c) => ({ label: `${c.label} ${candidateNote}`.trim(), pattern: c.pattern })),
       ].map((p) => ({ ...p, regex: toBrowserRegex(p.pattern) })),
     [patterns, candidates],
   );
@@ -554,7 +602,7 @@ export function PatternTester({ patterns, candidates }: { patterns: string[]; ca
             ))}
           </ul>
           <span className="dim">
-            Tried in your browser, which behaves like Discord for everything the builder makes.
+            Tried in your browser, which behaves like Discord for everything the generator makes.
           </span>
         </>
       )}
