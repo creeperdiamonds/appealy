@@ -1493,3 +1493,38 @@ input.input {
   .automod-footer { padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); }
 }
 
+/* --- Pattern builder and tester (components/RegexBuilder.tsx) --- */
+.regex-builder {
+  display: grid; gap: .5rem; padding: .75rem; margin: .25rem 0 .5rem;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg);
+}
+.regex-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: .375rem; }
+.regex-options .row { padding: .375rem 0; }
+.regex-builder .row > span { flex: 1; min-width: 0; }
+.regex-count input {
+  width: 4.5rem; margin-top: .25rem; padding: .25rem .375rem; border-radius: 2px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text); font: inherit;
+}
+.regex-out { display: grid; }
+.regex-item { display: grid; gap: .375rem; padding: .75rem 0; border-top: 1px solid var(--line); }
+.regex-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.regex-item-head strong { min-width: 0; overflow-wrap: anywhere; }
+/* Selectable in one tap, for copying into Discord's own settings. */
+.regex-code {
+  display: block; padding: .375rem .5rem; border: 1px solid var(--line); border-radius: 2px;
+  background: var(--surface); font-family: var(--mono); font-size: .75rem; line-height: 1.5;
+  overflow-wrap: anywhere; word-break: break-all; user-select: all;
+}
+.regex-caution { font-size: .8125rem; color: var(--watch); }
+.regex-note { font-size: .8125rem; }
+.regex-input { font-family: var(--mono); font-size: .8125rem; }
+.regex-verdict.is-caught { color: var(--act); }
+.regex-verdict.is-clear { color: var(--ok); }
+.regex-highlight {
+  margin: 0; padding: .5rem .625rem; border: 1px solid var(--line); border-radius: 2px;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.regex-highlight mark { background: var(--act-soft); color: inherit; box-shadow: inset 0 -2px 0 var(--act); }
+.regex-results { margin: 0; padding-left: 1.125rem; display: grid; gap: .25rem; font-size: .875rem; }
+.regex-results li { overflow-wrap: anywhere; }
+

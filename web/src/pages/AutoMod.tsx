@@ -26,6 +26,7 @@ import {
 } from "../lib/api";
 import { Banner, Empty, Loading, Panel, Pill, Sheet } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
+import { PatternBuilder, PatternTester, type Offered } from "../components/RegexBuilder";
 import {
   ChannelMultiPicker,
   OptionalChannelPicker,
@@ -481,6 +482,9 @@ function RuleEditor({
   const [allowText, setAllowText] = useState(() => (rule?.allowList ?? []).join("\n"));
   const [patternsText, setPatternsText] = useState(() => (rule?.regexPatterns ?? []).join("\n"));
   const [showPatterns, setShowPatterns] = useState(() => (rule?.regexPatterns.length ?? 0) > 0);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  // What the builder is offering, so the tester can try it before it's added.
+  const [candidates, setCandidates] = useState<Offered[]>([]);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
@@ -517,6 +521,11 @@ function RuleEditor({
     : null;
 
   const patch = (next: Partial<AutomodRuleInput>) => setDraft((d) => ({ ...d, ...next }));
+
+  const addPatterns = (list: string[]) => {
+    const existing = cleanPatterns(patternsText.split("\n"));
+    setPatternsText([...existing, ...list.filter((p) => !existing.includes(p))].join("\n"));
+  };
 
   async function save() {
     setSaving(true);
@@ -601,28 +610,56 @@ function RuleEditor({
           </label>
 
           {showPatterns ? (
-            <label className="field">
-              <span className="eyebrow automod-label">
-                Patterns (regex)
-                <Count n={input.regexPatterns.length} max={LIMITS.regexPatterns} />
-              </span>
-              <textarea
-                rows={3}
-                value={patternsText}
-                onChange={(e) => setPatternsText(e.target.value)}
-                placeholder="One per line"
-                {...RAW_TEXT}
-              />
-              <Problem message={problem("regexPatterns")} />
-              <span className="dim">
-                For filters words can't express. Discord uses Rust-style regex, up to{" "}
-                {LIMITS.regexLength} characters each.
-              </span>
-            </label>
+            <>
+              <label className="field">
+                <span className="eyebrow automod-label">
+                  Patterns (regex)
+                  <Count n={input.regexPatterns.length} max={LIMITS.regexPatterns} />
+                </span>
+                <textarea
+                  className="regex-input"
+                  rows={4}
+                  value={patternsText}
+                  onChange={(e) => setPatternsText(e.target.value)}
+                  placeholder="One per line"
+                  {...RAW_TEXT}
+                />
+                <Problem message={problem("regexPatterns")} />
+                <span className="dim">
+                  For what a word list can't express. Discord uses Rust-style regex, up to{" "}
+                  {LIMITS.regexLength} characters each. The builder writes them for you.
+                </span>
+              </label>
+              <div className="actions">
+                <button type="button" className="btn btn-sm" onClick={() => setBuilderOpen(!builderOpen)}>
+                  {builderOpen ? "Close the pattern builder" : "Pattern builder"}
+                </button>
+              </div>
+              {builderOpen && (
+                <PatternBuilder
+                  current={input.regexPatterns}
+                  onAdd={addPatterns}
+                  onCandidates={setCandidates}
+                />
+              )}
+              <PatternTester patterns={input.regexPatterns} candidates={builderOpen ? candidates : []} />
+            </>
           ) : (
-            <button type="button" className="btn btn-sm" onClick={() => setShowPatterns(true)}>
-              Add patterns (regex)
-            </button>
+            <div className="actions">
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => {
+                  setShowPatterns(true);
+                  setBuilderOpen(true);
+                }}
+              >
+                Build a pattern
+              </button>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowPatterns(true)}>
+                Write regex
+              </button>
+            </div>
           )}
         </>
       )}
