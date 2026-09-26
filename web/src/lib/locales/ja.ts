@@ -48,6 +48,10 @@ export const ja: Record<string, string> = {
   "More": "その他",
   "Engagement": "エンゲージメント",
   "Administration": "管理",
+  "What's new": "最新情報",
+  "Earlier": "以前の更新",
+  "Got it": "OK",
+  "New": "新着",
 
   // Nav hints — the one-line explanations under each entry.
   "Capacity, activity, and health": "処理量、稼働状況、健全性",

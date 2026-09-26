@@ -1480,17 +1480,23 @@ input.input {
 .automod-duration { display: flex; gap: .5rem; }
 .automod-duration input { flex: 1; min-width: 0; }
 .automod-duration select { width: auto; }
-/* Save stays in reach at the bottom of a long rule instead of scrolling away. */
+/* Save stays in reach at the bottom of a long rule instead of scrolling away.
+ * The negative offset and matching padding reach over the sheet's own bottom
+ * padding, which would otherwise show the form scrolling past underneath. */
 .automod-footer {
-  position: sticky; bottom: 0; z-index: 1;
+  position: sticky; bottom: -1.25rem; z-index: 1;
   display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
-  margin-top: 1rem; padding: .75rem 0;
+  margin: 1rem 0 -1.25rem; padding: .75rem 0 1.25rem;
   background: var(--surface); border-top: 1px solid var(--line);
 }
 .automod-delete { margin-left: auto; }
 .automod-why { flex-basis: 100%; font-size: .8125rem; }
 @media (max-width: 30rem) {
-  .automod-footer { padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); }
+  .automod-footer {
+    bottom: calc(-1.25rem - env(safe-area-inset-bottom, 0px));
+    margin-bottom: calc(-1.25rem - env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* --- Pattern builder and tester (components/RegexBuilder.tsx) --- */
@@ -1527,4 +1533,37 @@ input.input {
 .regex-highlight mark { background: var(--act-soft); color: inherit; box-shadow: inset 0 -2px 0 var(--act); }
 .regex-results { margin: 0; padding-left: 1.125rem; display: grid; gap: .25rem; font-size: .875rem; }
 .regex-results li { overflow-wrap: anywhere; }
+
+/* --- What's new (components/WhatsNewSheet.tsx) --- */
+.whats-new { display: grid; gap: 1rem; }
+.whats-new-release header { display: grid; gap: .125rem; margin-bottom: .625rem; }
+.whats-new-release h3 { margin: 0; font-size: 1rem; letter-spacing: -.01em; }
+.whats-new-date { font-size: .75rem; }
+/* The newest release is the reason the sheet opened, so it stands apart. */
+.whats-new-release.is-featured {
+  padding: .875rem; border: 1px solid var(--accent-line); border-radius: var(--r-md);
+  background: var(--accent-soft);
+}
+.whats-new-release:not(.is-featured) + .whats-new-release { padding-top: 1rem; border-top: 1px solid var(--line); }
+.whats-new-earlier { margin: .5rem 0 0; }
+.whats-new-items { list-style: none; margin: 0; padding: 0; display: grid; gap: .875rem; }
+.whats-new-items li { display: grid; gap: .25rem; justify-items: start; }
+.whats-new-items p { margin: 0; font-size: .875rem; line-height: 1.55; }
+/* Same reach over the sheet's bottom padding as .automod-footer. */
+.whats-new-foot {
+  position: sticky; bottom: -1.25rem; display: flex; justify-content: flex-end;
+  margin-bottom: -1.25rem; padding: .75rem 0 1.25rem;
+  background: var(--surface); border-top: 1px solid var(--line);
+}
+@media (max-width: 30rem) {
+  .whats-new-foot {
+    bottom: calc(-1.25rem - env(safe-area-inset-bottom, 0px));
+    margin-bottom: calc(-1.25rem - env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+.nav-dot {
+  display: inline-block; width: .4375rem; height: .4375rem; margin-left: .4375rem;
+  border-radius: 50%; background: var(--accent); vertical-align: middle; flex: none;
+}
 

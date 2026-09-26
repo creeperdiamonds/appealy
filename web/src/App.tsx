@@ -14,12 +14,14 @@ import AppealConfig from "./pages/AppealConfig";
 import OpsAppeals from "./pages/OpsAppeals";
 import OpsFeedback from "./pages/OpsFeedback";
 import { BannedError } from "./lib/api";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, http, type GuildSummary } from "./lib/api";
 import { Banner, Pill, Sheet, ThemeToggle } from "./components/ui";
 import { dismissFeedback, feedbackDismissed } from "./lib/feedback";
 import { basePath, getLocale, switchLocalePath, t as tr } from "./lib/i18n";
 import FeedbackSheet from "./components/FeedbackSheet";
+import WhatsNewSheet from "./components/WhatsNewSheet";
+import { hasUnseenRelease, markWhatsNewSeen, shouldOpenWhatsNew } from "./lib/whatsNew";
 import Overview from "./pages/Overview";
 import Submissions from "./pages/Submissions";
 import Operations from "./pages/Operations";
@@ -54,6 +56,16 @@ import AutoMod from "./pages/AutoMod";
  * read it as a screen name and render an empty page.
  */
 const FEEDBACK_HASH = "feedback";
+
+/**
+ * /dashboard/#whats-new opens the "What's new" sheet, the same way. It also
+ * opens by itself for 48 hours after a release (lib/whatsNew.ts); this is how
+ * to get back to it after that, or link someone to it.
+ */
+const WHATS_NEW_HASH = "whats-new";
+
+/** Hashes that open a sheet rather than naming a screen. */
+const SHEET_HASHES = [FEEDBACK_HASH, WHATS_NEW_HASH];
 
 type View =
   | "overview"
@@ -243,10 +255,10 @@ function viewFromLocation(): View {
   // Anything already bookmarked as /dashboard#tickets still lands correctly.
   // Cheap to honour, and the alternative is silently dropping someone on the
   // overview with no idea why.
-  // #feedback opens a sheet rather than naming a screen, so it must not be
-  // read as one: view would become "feedback", match no branch below, and
-  // leave the person on a blank page wondering what they broke.
-  if (hash.length > 1 && hash.slice(1) !== FEEDBACK_HASH) return hash.slice(1) as View;
+  // #feedback and #whats-new open a sheet rather than naming a screen, so they
+  // must not be read as one: view would become "feedback", match no branch
+  // below, and leave the person on a blank page wondering what they broke.
+  if (hash.length > 1 && !SHEET_HASHES.includes(hash.slice(1))) return hash.slice(1) as View;
 
   const rest = pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) : "";
   return ((rest.split("/")[0] || "overview") as View);
@@ -330,6 +342,19 @@ export default function App() {
   );
   const [fatal, setFatal] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(
+    () => window.location.hash.slice(1) === WHATS_NEW_HASH,
+  );
+  // Drives the dot beside "What's new" in the menu.
+  const [unseenRelease, setUnseenRelease] = useState(hasUnseenRelease);
+
+  // Closing it any way at all counts as having seen it: the button, the X,
+  // Escape, or following one of its links.
+  const closeWhatsNew = useCallback(() => {
+    markWhatsNewSeen();
+    setUnseenRelease(false);
+    setWhatsNewOpen(false);
+  }, []);
 
   useEffect(() => {
     api
@@ -384,6 +409,7 @@ export default function App() {
       // Pasting /dashboard/#feedback into an already-open tab fires popstate
       // without a reload, so the sheet has to be opened here too.
       if (window.location.hash.slice(1) === FEEDBACK_HASH) setFeedbackOpen(true);
+      if (window.location.hash.slice(1) === WHATS_NEW_HASH) setWhatsNewOpen(true);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -392,6 +418,14 @@ export default function App() {
   useEffect(() => {
     if (guildId) localStorage.setItem(LAST_GUILD_KEY, guildId);
   }, [guildId]);
+
+  // Opens once the servers have loaded, so it lands on the console rather than
+  // on a sign-in, and never on top of the feedback sheet. Once per page load:
+  // closing the feedback sheet afterwards doesn't bring it up.
+  const loaded = guilds !== null;
+  useEffect(() => {
+    if (loaded && !feedbackOpen && shouldOpenWhatsNew()) setWhatsNewOpen(true);
+  }, [loaded]);
 
   const active = guilds?.find((g) => g.id === guildId) ?? null;
 
@@ -470,6 +504,10 @@ export default function App() {
         </nav>
 
         <div className="rail-foot">
+          <button className="nav-item" onClick={() => setWhatsNewOpen(true)}>
+            {tr("What's new")}
+            {unseenRelease && <span className="nav-dot" aria-label={tr("New")} />}
+          </button>
           <ThemeToggle />
           {/* Same control as the marketing site's, in the same shape: the
               label is the language you would switch TO, written in that
@@ -676,6 +714,16 @@ export default function App() {
         />
       )}
 
+      {whatsNewOpen && (
+        <WhatsNewSheet
+          onClose={closeWhatsNew}
+          onOpenView={(next) => {
+            closeWhatsNew();
+            setView(next as View);
+          }}
+        />
+      )}
+
       {/* Phone navigation. Hidden above 760px by index.css, so the sidebar and
           the bar are never both on screen and neither has to know about the
           other. */}
@@ -771,6 +819,20 @@ export default function App() {
                 </button>
               </div>
             )}
+
+            <div>
+              <div className="nav-group eyebrow">Appealy</div>
+              <button
+                className="nav-item"
+                onClick={() => {
+                  setMoreOpen(false);
+                  setWhatsNewOpen(true);
+                }}
+              >
+                {tr("What's new")}
+                {unseenRelease && <span className="nav-dot" aria-label={tr("New")} />}
+              </button>
+            </div>
 
             <div>
               <div className="nav-group eyebrow">This device</div>
