@@ -23,6 +23,8 @@
 //   from 403, because "you can't do this" and "we couldn't check" need
 //   different words in the UI and the old code conflated them.
 
+import type { AutomodRule, AutomodRuleInput } from "../../../shared/services/automodRules";
+
 // Empty by default, and empty is the right answer for every normal
 // deployment: the API is reached through this same origin (the Vite dev
 // server proxies /auth and /api in development, nginx does it in the built
@@ -579,7 +581,46 @@ export const api = {
     request<{ id: string; name: string; color: number; position: number }[]>(
       `/api/guilds/${guildId}/resources/roles`,
     ),
+
+  /** Every kind of channel, categories and voice included — for choosing
+   *  channels a rule ignores, not somewhere to post. */
+  allChannels: (guildId: string) =>
+    request<{ id: string; name: string; type: number; position: number }[]>(
+      `/api/guilds/${guildId}/resources/channels?all=1`,
+    ),
+
+  // --- Discord AutoMod (the rules live in Discord; see api/src/routes/automod.ts) ---
+  automod: (guildId: string) => request<AutomodState>(`/api/guilds/${guildId}/automod`),
+
+  createAutomodRule: (guildId: string, triggerType: number, rule: AutomodRuleInput) =>
+    request<AutomodRule>(`/api/guilds/${guildId}/automod/rules`, {
+      method: "POST",
+      body: JSON.stringify({ triggerType, rule }),
+    }),
+
+  saveAutomodRule: (guildId: string, ruleId: string, triggerType: number, rule: AutomodRuleInput) =>
+    request<AutomodRule>(`/api/guilds/${guildId}/automod/rules/${ruleId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ triggerType, rule }),
+    }),
+
+  deleteAutomodRule: (guildId: string, ruleId: string) =>
+    request<{ deleted: boolean }>(`/api/guilds/${guildId}/automod/rules/${ruleId}`, {
+      method: "DELETE",
+    }),
 };
+
+export type { AutomodRule, AutomodRuleInput };
+
+export interface AutomodState {
+  /** True until Appealy has Manage Server, which Discord needs for any of this. */
+  missingPermission: boolean;
+  rules: AutomodRule[];
+  /** Re-invites Appealy with Manage Server added. */
+  grantUrl: string;
+  /** Set when timed-out members get an appeal button (the Appeals page). */
+  timeoutAppeals: { minSeconds: number } | null;
+}
 
 // --- Types for the two appeal surfaces ---
 

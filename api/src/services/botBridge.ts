@@ -12,6 +12,7 @@
 // config) and is additionally protected by a shared secret header.
 
 import type { PublicBan } from "../../../shared/schema/platformBans.ts";
+import type { AutomodRule, AutomodRuleInput } from "../../../shared/services/automodRules.ts";
 import { logger } from "../utils/logger.ts";
 
 const BOT_INTERNAL_URL = process.env.BOT_INTERNAL_URL ?? "http://bot:9090";
@@ -213,4 +214,31 @@ export function requestCacheInvalidate(guildId: string) {
  */
 export function requestBanChange(op: "add" | "remove", ban: PublicBan) {
   return callBot("/internal/cache/ban", { op, ban }, BOT_CALL_TIMEOUT_MS_FAST);
+}
+
+// --- Discord AutoMod, for the dashboard's AutoMod page ---
+//
+// The rules live in Discord, not in our database, so every read and write goes
+// through the bot. See bot/src/services/automodService.ts.
+
+export function automodList(guildId: string) {
+  return callBot("/internal/automod/list", { guildId }) as Promise<
+    { rules: AutomodRule[] } | { missingPermission: true }
+  >;
+}
+
+export function automodCreate(guildId: string, triggerType: number, rule: AutomodRuleInput, actorId: string) {
+  return callBot("/internal/automod/create", { guildId, triggerType, rule, actorId }) as Promise<{
+    rule: AutomodRule;
+  }>;
+}
+
+export function automodEdit(guildId: string, ruleId: string, rule: AutomodRuleInput, actorId: string) {
+  return callBot("/internal/automod/edit", { guildId, ruleId, rule, actorId }) as Promise<{
+    rule: AutomodRule;
+  }>;
+}
+
+export function automodDelete(guildId: string, ruleId: string, actorId: string) {
+  return callBot("/internal/automod/delete", { guildId, ruleId, actorId }) as Promise<{ deleted: true }>;
 }

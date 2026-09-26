@@ -39,6 +39,7 @@ import { stickyMessagesRouter } from "./routes/stickyMessages.ts";
 import { feedbackRouter } from "./routes/feedback.ts";
 import { migrationRouter } from "./routes/migration.ts";
 import { appealConfigRouter } from "./routes/appealConfig.ts";
+import { automodRouter } from "./routes/automod.ts";
 import { outcomesRouter } from "./routes/outcomes.ts";
 import { opsRouter } from "./routes/ops.ts";
 import { platformAppealsRouter } from "./routes/platformAppeals.ts";
@@ -230,6 +231,7 @@ export function createApp() {
   app.use("/api/guilds/:guildId/giveaways", giveawaysRouter);
   app.use("/api/guilds/:guildId/verification", verificationRouter);
   app.use("/api/guilds/:guildId/appeal-config", appealConfigRouter);
+  app.use("/api/guilds/:guildId/automod", automodRouter);
   app.use("/api/guilds/:guildId/forms/:formId/outcomes", outcomesRouter);
   app.use("/api/guilds/:guildId/welcomer", welcomerRouter);
   app.use("/api/guilds/:guildId/billing", billingRouter);

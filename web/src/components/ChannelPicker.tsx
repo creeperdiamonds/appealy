@@ -244,3 +244,145 @@ function Picker({
     </label>
   );
 }
+
+/** What a channel is, for lists that offer every kind. Text channels go unlabelled. */
+const CHANNEL_KIND: Record<number, string> = {
+  2: "voice",
+  4: "category",
+  5: "announcement",
+  13: "stage",
+  15: "forum",
+  16: "media",
+};
+
+function channelLabel(c: GuildChannel): string {
+  const kind = CHANNEL_KIND[c.type];
+  return c.type === 4 ? c.name.toUpperCase() : kind ? `${c.name} (${kind})` : `#${c.name}`;
+}
+
+/**
+ * Several channels, of any kind: the channels an AutoMod rule ignores, which
+ * Discord lets be categories, voice and forum channels as well as text ones.
+ *
+ * Fetches its own list, the way RolePicker does, because it wants every
+ * channel and the page's shared list is only the ones a message can go to.
+ */
+export function ChannelMultiPicker({
+  guildId,
+  value,
+  onChange,
+  label,
+  hint,
+}: {
+  guildId: string;
+  value: string[];
+  onChange: (ids: string[]) => void;
+  label: string;
+  hint?: ReactNode;
+}) {
+  const [channels, setChannels] = useState<GuildChannel[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    setChannels(null);
+    setFailed(false);
+    api
+      .allChannels(guildId)
+      .then((list) => {
+        if (live) setChannels([...list].sort((a, b) => a.position - b.position));
+      })
+      .catch(() => {
+        if (live) setFailed(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, [guildId]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = channels ?? [];
+    return q ? list.filter((c) => c.name.toLowerCase().includes(q)) : list;
+  }, [channels, query]);
+
+  const toggle = (id: string) =>
+    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+
+  // Same fallback as RolePicker: an unreachable bot costs the list, not the edit.
+  if (failed) {
+    return (
+      <label className="field">
+        <span className="eyebrow">{label}</span>
+        <input
+          value={value.join(", ")}
+          placeholder="Channel IDs, comma separated"
+          onChange={(e) => onChange(e.target.value.split(",").map((x) => x.trim()).filter(Boolean))}
+        />
+        <span className="dim">
+          Couldn't load the channel list, so this takes channel IDs for now. Reloading the page
+          tries the list again.
+        </span>
+      </label>
+    );
+  }
+
+  return (
+    <div className="field">
+      <span className="eyebrow">{label}</span>
+
+      <div className="role-chips">
+        {value.length === 0 && <span className="dim">None</span>}
+        {value.map((id) => {
+          const c = channels?.find((x) => x.id === id);
+          const name = c ? channelLabel(c) : channels ? `Unknown channel (${id})` : id;
+          return (
+            <button
+              key={id}
+              type="button"
+              className="role-chip"
+              onClick={() => toggle(id)}
+              aria-label={`Remove ${name}`}
+            >
+              {name}
+              <span className="role-chip-x">×</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button type="button" className="btn-secondary role-add" onClick={() => setOpen(!open)}>
+        {open ? "Done" : "Choose channels"}
+      </button>
+
+      {open && (
+        <div className="role-list">
+          <input
+            className="role-search"
+            placeholder="Search channels…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+          />
+          {!channels && <span className="dim">Loading channels…</span>}
+          {channels && filtered.length === 0 && <span className="dim">No channels match “{query}”.</span>}
+          {filtered.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`role-option${value.includes(c.id) ? " is-selected" : ""}`}
+              onClick={() => toggle(c.id)}
+            >
+              <span className="role-name">{channelLabel(c)}</span>
+              {value.includes(c.id) && <span className="role-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {hint && <span className="dim">{hint}</span>}
+    </div>
+  );
+}

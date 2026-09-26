@@ -141,11 +141,17 @@ export function genericInviteUrl(): string {
   return url.toString();
 }
 
-function inviteUrlFor(guildId: string): string {
+/**
+ * `extra` asks for permissions beyond the normal invite, for a feature a server
+ * turns on later. Re-authorising a bot that's already in the server updates
+ * its role to the new set rather than adding it twice, so this doubles as the
+ * "give Appealy permission" link.
+ */
+export function inviteUrlFor(guildId: string, extra = 0n): string {
   const url = new URL("https://discord.com/oauth2/authorize");
   url.searchParams.set("client_id", env.DISCORD_CLIENT_ID);
   url.searchParams.set("scope", "bot applications.commands");
-  url.searchParams.set("permissions", INVITE_PERMISSION_BITS.toString());
+  url.searchParams.set("permissions", (INVITE_PERMISSION_BITS | extra).toString());
   url.searchParams.set("guild_id", guildId);
   url.searchParams.set("disable_guild_select", "true");
   return url.toString();

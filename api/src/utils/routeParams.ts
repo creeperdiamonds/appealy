@@ -38,6 +38,7 @@ export interface GuildRouteParams {
   categoryId: string;
   delegationId: string;
   banId: string;
+  ruleId: string;
   jobId: string;
   type: string;
   id: string;

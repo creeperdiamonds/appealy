@@ -43,8 +43,12 @@ async function proxyToBot(path: string) {
 }
 
 guildResourcesRouter.get("/channels", async (req, res) => {
+  // ?all=1 adds voice, forum and category channels, for the AutoMod page's
+  // "channels this rule ignores". Every other picker is choosing somewhere to
+  // post, so it keeps the text-only list.
+  const all = req.query.all === "1" ? "?all=1" : "";
   try {
-    const r = await proxyToBot(`/internal/guilds/${routeParams(req).guildId}/channels`);
+    const r = await proxyToBot(`/internal/guilds/${routeParams(req).guildId}/channels${all}`);
     if (!r.ok) return res.status(502).json({ error: "bot_unreachable" });
     res.json(await r.json());
   } catch (err) {

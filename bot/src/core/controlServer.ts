@@ -25,6 +25,7 @@ import { cacheStats, invalidateGuild } from "./guildConfigCache.ts";
 import { applyBanChange } from "./banCache.ts";
 import { resolveUsers } from "../services/userResolve.ts";
 import { describeDiscordError, type DiscordErrorInfo } from "../utils/discordError.ts";
+import { AutomodRefusal, createRule, deleteRule, editRule, listRules } from "../services/automodService.ts";
 
 /**
  * What to actually do about it, in the words of someone setting the bot up.
@@ -121,7 +122,8 @@ export function startControlServer(bot: AppealyBot) {
 
       const channelsMatch = url.pathname.match(/^\/internal\/guilds\/(\d+)\/channels$/);
       if (channelsMatch && req.method === "GET") {
-        return Response.json(await getChannelsCached(bot, channelsMatch[1]));
+        const all = url.searchParams.get("all") === "1";
+        return Response.json(await getChannelsCached(bot, channelsMatch[1], all));
       }
 
       const rolesMatch = url.pathname.match(/^\/internal\/guilds\/(\d+)\/roles$/);
@@ -212,6 +214,32 @@ export function startControlServer(bot: AppealyBot) {
         return Response.json({ status: "applied" });
       }
 
+      // Discord's AutoMod rules, for the dashboard's AutoMod page. The API
+      // checks the caller is a server admin and the rule is inside Discord's
+      // limits before it gets here; see services/automodService.ts.
+      if (url.pathname === "/internal/automod/list" && req.method === "POST") {
+        const { guildId } = await req.json();
+        return Response.json(await listRules(bot, String(guildId)));
+      }
+
+      if (url.pathname === "/internal/automod/create" && req.method === "POST") {
+        const { guildId, triggerType, rule, actorId } = await req.json();
+        const created = await createRule(bot, String(guildId), Number(triggerType), rule, String(actorId));
+        return Response.json({ rule: created });
+      }
+
+      if (url.pathname === "/internal/automod/edit" && req.method === "POST") {
+        const { guildId, ruleId, rule, actorId } = await req.json();
+        const updated = await editRule(bot, String(guildId), String(ruleId), rule, String(actorId));
+        return Response.json({ rule: updated });
+      }
+
+      if (url.pathname === "/internal/automod/delete" && req.method === "POST") {
+        const { guildId, ruleId, actorId } = await req.json();
+        await deleteRule(bot, String(guildId), String(ruleId), String(actorId));
+        return Response.json({ deleted: true });
+      }
+
       // Names and faces for the dashboard's history view. The API has no bot
       // token, so resolution has to happen here; userResolve caches hard for
       // the rate-limit reason explained in that file.
@@ -223,6 +251,12 @@ export function startControlServer(bot: AppealyBot) {
 
       return new Response("not found", { status: 404 });
     } catch (err) {
+      // Already worded for the person reading it, by automodService — the
+      // generic hints below are about posting messages and would mislead.
+      if (err instanceof AutomodRefusal) {
+        logger.warn("AutoMod change refused", { path: url.pathname, error: err.message });
+        return Response.json({ error: err.message, hint: err.hint }, { status: 422 });
+      }
       // Discordeno rejects with the same sentence for every REST failure, so
       // String(err) here produced "Failed to send request to discord." for a
       // missing permission, a deleted channel and a DNS blip alike. That
@@ -368,14 +402,20 @@ function buildPanelMessage(
 
 const PICKER_CACHE_SECONDS = 60;
 
-async function getChannelsCached(bot: AppealyBot, guildId: string) {
-  const key = `appealy:picker:channels:${guildId}`;
+/**
+ * `all` lists every kind of channel — voice, forum, categories — for the one
+ * picker that isn't choosing somewhere to post: the channels an AutoMod rule
+ * ignores, which Discord lets be any of them. Everything else gets text and
+ * announcement channels only, and a separate cache entry keeps the two apart.
+ */
+async function getChannelsCached(bot: AppealyBot, guildId: string, all = false) {
+  const key = `appealy:picker:channels:${all ? "all:" : ""}${guildId}`;
   const cached = await withRedis<string | null>((r) => r.get(key), null);
   if (cached) return JSON.parse(cached);
 
   const channels = await bot.helpers.getChannels(BigInt(guildId));
   const payload = channels
-    .filter((c) => c.type === 0 || c.type === 5) // text + announcement only
+    .filter((c) => all || c.type === 0 || c.type === 5) // text + announcement, unless `all`
     .map((c) => ({
       id: c.id.toString(),
       name: c.name,

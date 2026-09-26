@@ -1445,3 +1445,51 @@ input.input {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ------------------------------------------------------------------ *
+ * AutoMod (pages/AutoMod.tsx). Built for a phone first: the page exists
+ * because Discord's own app can't edit AutoMod there.
+ * ------------------------------------------------------------------ */
+.automod-rules { display: grid; }
+/* A whole row is one button, so a thumb can open a rule from anywhere on it. */
+.automod-rule {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  width: 100%; padding: .75rem 0; margin: 0;
+  background: none; border: 0; border-top: 1px solid var(--line);
+  color: inherit; font: inherit; text-align: left;
+}
+.automod-rule:first-child { border-top: 0; }
+.automod-rule-text { display: grid; gap: .1875rem; min-width: 0; }
+.automod-rule-text .dim { font-size: .8125rem; overflow-wrap: anywhere; }
+.automod-rule > .btn, .automod-rule > .pill { flex: none; white-space: nowrap; }
+/* A checkbox's text shrinks beside it instead of wrapping underneath it on a phone. */
+.automod-editor .row > span { flex: 1; min-width: 0; }
+.automod-foot { margin: .75rem 0 0; font-size: .8125rem; }
+/* Two buttons beside the text leave it a sliver on a phone, so they drop below it there. */
+.automod-grant .banner { flex-wrap: wrap; }
+.automod-grant .banner-body { flex: 1 1 15rem; }
+.automod-section { margin: 1.25rem 0 0; padding-top: 1rem; border-top: 1px solid var(--line); }
+.automod-label { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.automod-count { font-variant-numeric: tabular-nums; }
+.automod-count.is-over, .automod-problem { color: var(--act); }
+.automod-problem { font-size: .8125rem; }
+.field input[type="number"] {
+  width: 100%; padding: .5rem .625rem; border-radius: 2px;
+  background: var(--bg); border: 1px solid var(--line); color: inherit; font: inherit;
+}
+.automod-duration { display: flex; gap: .5rem; }
+.automod-duration input { flex: 1; min-width: 0; }
+.automod-duration select { width: auto; }
+/* Save stays in reach at the bottom of a long rule instead of scrolling away. */
+.automod-footer {
+  position: sticky; bottom: 0; z-index: 1;
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+  margin-top: 1rem; padding: .75rem 0;
+  background: var(--surface); border-top: 1px solid var(--line);
+}
+.automod-delete { margin-left: auto; }
+.automod-why { flex-basis: 100%; font-size: .8125rem; }
+@media (max-width: 30rem) {
+  .automod-footer { padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); }
+}
+
