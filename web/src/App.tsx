@@ -258,10 +258,31 @@ function viewFromLocation(): View {
   // #feedback and #whats-new open a sheet rather than naming a screen, so they
   // must not be read as one: view would become "feedback", match no branch
   // below, and leave the person on a blank page wondering what they broke.
-  if (hash.length > 1 && !SHEET_HASHES.includes(hash.slice(1))) return hash.slice(1) as View;
+  if (hash.length > 1 && !SHEET_HASHES.includes(hash.slice(1))) return knownView(hash.slice(1));
 
   const rest = pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) : "";
-  return ((rest.split("/")[0] || "overview") as View);
+  return knownView(rest.split("/")[0] || "overview");
+}
+
+/**
+ * A screen name, or the overview for anything that isn't one: a mistyped or
+ * outdated link, or a server link (guilds/<id>, below). Unknown names used to
+ * be passed through, match no screen, and leave a blank page. ICONS has an
+ * entry for every screen, so it doubles as the list.
+ */
+function knownView(name: string): View {
+  return Object.hasOwn(ICONS, name) ? (name as View) : "overview";
+}
+
+/**
+ * The server in a /dashboard/guilds/<id> link, the one the bot hands out from
+ * /dashboard and /help. It opens that server's overview. Read as a screen
+ * name it matched nothing: a blank page, on whichever server was open last.
+ */
+function guildFromLocation(): string | null {
+  const { pathname } = window.location;
+  const rest = pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) : "";
+  return /^guilds\/(\d{17,20})\/?$/.exec(rest)?.[1] ?? null;
 }
 
 /** Overview is the root, so it reads /dashboard/ rather than /dashboard/overview. */
@@ -334,6 +355,8 @@ export default function App() {
   const [guildId, setGuildId] = useState<string | null>(null);
   const [discordReachable, setDiscordReachable] = useState(true);
   const [view, setView] = useState<View>(viewFromLocation);
+  // Read before the URL is tidied to /dashboard/ below.
+  const [linkedGuild] = useState(guildFromLocation);
   const [askFeedback, setAskFeedback] = useState(() => !feedbackDismissed());
   // Opens straight away when the URL asks for it, so /dashboard/#feedback
   // works on first paint rather than only after a navigation.
@@ -372,8 +395,10 @@ export default function App() {
         // Prefer a server the bot is actually in. Opening on one it has never
         // joined means the first thing anyone sees is a wall telling them to
         // invite it, even when they have three working servers underneath.
+        // A server named in the link comes first: that's the one they asked for.
         const remembered = localStorage.getItem(LAST_GUILD_KEY);
         const initial =
+          (linkedGuild && guilds.find((g) => g.id === linkedGuild)?.id) ??
           (remembered && guilds.find((g) => g.id === remembered)?.id) ??
           guilds.find((g) => g.installed)?.id ??
           guilds[0]?.id ??
@@ -397,10 +422,10 @@ export default function App() {
   useEffect(() => {
     const path = pathForView(view);
     if (window.location.pathname === path && !window.location.hash) return;
-    // replaceState for the first paint when a legacy #hash was migrated, so
-    // Back does not return to the same screen under its old URL; pushState
-    // afterwards so Back means what it says.
-    const migrating = Boolean(window.location.hash);
+    // replaceState for the first paint when a legacy #hash or a server link was
+    // migrated, so Back does not return to the same screen under its old URL;
+    // pushState afterwards so Back means what it says.
+    const migrating = Boolean(window.location.hash) || guildFromLocation() !== null;
     window.history[migrating ? "replaceState" : "pushState"]({}, "", path);
   }, [view]);
 
