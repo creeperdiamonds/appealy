@@ -388,7 +388,7 @@ export async function handleReviewAccept(
     : "Application accepted";
   const messages = [
     unmanageable.length > 0
-      ? `${outcomeVerb}. Note: ${unmanageable.length} role(s) could not be assigned because they are positioned above my highest role — move my role above them in Server Settings.`
+      ? `${outcomeVerb}. Note: ${unmanageable.length} role(s) could not be assigned. Appealy needs the Manage Roles permission, with its role above them (Server Settings → Roles).`
       : `${outcomeVerb}.`,
   ];
   // A failed unban must reach the reviewer, not just the log. "Accepted" on an

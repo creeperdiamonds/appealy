@@ -29,6 +29,9 @@ export async function handleTicketOpenButton(
         ? "You already have an open ticket for this. Please use your existing ticket."
         : result.reason === "config_inactive"
         ? "This ticket type is not currently accepting new tickets."
+        : result.reason === "missing_permission"
+        ? "I'm not allowed to open tickets here. Please tell the server's staff: Appealy needs " +
+          "Manage Channels for ticket channels, or Create Private Threads for thread tickets."
         : result.reason === "guild_rate_limited"
         ? "This server has reached its daily ticket limit. Please try again tomorrow, or ask staff about raising the limit."
         : "Something went wrong creating your ticket. Please contact staff directly.";

@@ -6,7 +6,7 @@ import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
-import { grantVerifiedRole } from "../buttons/verify.ts";
+import { grantVerifiedRole, VERIFIED_WITHOUT_ROLE } from "../buttons/verify.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleVerifyCaptchaModalSubmit(
@@ -39,7 +39,7 @@ export async function handleVerifyCaptchaModalSubmit(
     return respond(bot, interaction, "Verification is not currently enabled on this server.");
   }
 
-  await grantVerifiedRole(bot, guildId, user.id, config);
+  const granted = await grantVerifiedRole(bot, guildId, user.id, config);
 
   const lastAttempt = await db.query.verificationAttempts.findFirst({
     where: and(eq(schema.verificationAttempts.guildId, guildId), eq(schema.verificationAttempts.userId, user.id)),
@@ -49,7 +49,7 @@ export async function handleVerifyCaptchaModalSubmit(
     await db.update(schema.verificationAttempts).set({ verified: true }).where(eq(schema.verificationAttempts.id, lastAttempt.id));
   }
 
-  await respond(bot, interaction, "You're verified! Welcome to the server.");
+  await respond(bot, interaction, granted ? "You're verified! Welcome to the server." : VERIFIED_WITHOUT_ROLE);
 }
 
 // Kept as a one-line wrapper rather than rewriting every call site: the

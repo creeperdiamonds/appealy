@@ -15,6 +15,7 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq, and, like } from "drizzle-orm";
 import { runApplicationFlow } from "../interactions/buttons/panelOpen.ts";
+import { env } from "../core/env.ts";
 
 const EPHEMERAL = 64;
 
@@ -52,10 +53,20 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   });
 
   if (!form) {
+    // With no applications at all, "start typing to see available
+    // applications" sends people looking through an empty list. It's also the
+    // first thing someone trying Appealy out sees, top.gg's reviewers included,
+    // before a form exists, so it says where forms are made.
+    const anyForm = await db.query.forms.findFirst({
+      where: and(eq(schema.forms.guildId, guildId), eq(schema.forms.active, true)),
+      columns: { id: true },
+    });
     return respond(
       bot,
       interaction,
-      `No active application found named **${formName}**. Use \`/apply\` and start typing to see available applications.`,
+      anyForm
+        ? `No active application found named **${formName}**. Use \`/apply\` and start typing to see available applications.`
+        : `This server has no applications open yet. A server admin can create one in the dashboard: ${env.DASHBOARD_URL}/guilds/${guildId}`,
     );
   }
 

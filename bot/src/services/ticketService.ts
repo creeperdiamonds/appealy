@@ -26,7 +26,7 @@ const ChannelTypes = {
 
 export interface OpenTicketResult {
   ok: boolean;
-  reason?: "max_open_reached" | "config_inactive" | "creation_failed" | "guild_rate_limited";
+  reason?: "max_open_reached" | "config_inactive" | "creation_failed" | "missing_permission" | "guild_rate_limited";
   ticketId?: string;
   channelId?: bigint;
 }
@@ -67,7 +67,11 @@ export async function openTicket(
     channelId = await createTicketChannel(bot, guildId, config, ticketName, openerId);
   } catch (err) {
     logger.error("Failed to create ticket channel/thread", { configId, error: String(err) });
-    return { ok: false, reason: "creation_failed" };
+    // Told apart because it's the one staff can fix, and the one a server
+    // that invited Appealy without Manage Channels always hits.
+    const { code } = describeDiscordError(err);
+    const refused = code === 50013 || code === 50001; // Missing Permissions, Missing Access
+    return { ok: false, reason: refused ? "missing_permission" : "creation_failed" };
   }
 
   const [ticket] = await db

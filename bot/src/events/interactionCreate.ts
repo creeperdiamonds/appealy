@@ -288,7 +288,14 @@ export function onInteractionCreate(bot: AppealyBot) {
       // round trip. The wasted round trip then lands on the deferred case,
       // which Discord rejects immediately with 40060 and which has fifteen
       // minutes to spare anyway.
-      const content = "Something went wrong processing that. Please try again.";
+      // A missing permission is the failure a server can fix, and the one a
+      // server that trimmed Appealy's permissions (or top.gg's test server,
+      // which grants almost none) runs into. "Try again" would only repeat it.
+      const refused = info.code === 50013 || info.code === 50001; // Missing Permissions, Missing Access
+      const content = refused
+        ? "I don't have a permission this needs in this server. An admin can check what my role " +
+          "is allowed to do under Server Settings → Roles."
+        : "Something went wrong processing that. Please try again.";
       try {
         await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
           type: 4,

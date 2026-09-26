@@ -54,10 +54,15 @@ export async function handleRoleMenuSelect(bot: AppealyBot, interaction: Interac
     return respond(bot, interaction, "Something went wrong updating your roles. Please try again.");
   }
 
+  const applied = manageableGrant.length + manageableRemove.length;
+  const staffNote =
+    "Please tell the server's staff: Appealy needs the Manage Roles permission, with its role above the menu's roles.";
   const message =
-    unmanageable.length > 0
-      ? "Your roles were updated, but one or more selections couldn't be applied — please contact staff."
-      : "Your roles have been updated.";
+    unmanageable.length === 0
+      ? "Your roles have been updated."
+      : applied === 0
+      ? `I couldn't change your roles. ${staffNote}`
+      : `Some of your roles were updated, but not all. ${staffNote}`;
   await respond(bot, interaction, message);
 }
 

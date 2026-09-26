@@ -41,6 +41,15 @@ import { logger } from "../../utils/logger.ts";
 
 const EPHEMERAL = 64;
 
+/**
+ * Said instead of "You're verified!" when the role didn't change. The person
+ * is recorded as verified either way, but "Welcome" with no access left them
+ * stuck with nobody told why.
+ */
+export const VERIFIED_WITHOUT_ROLE =
+  "You're verified, but I couldn't give you the verified role. Please tell the server's staff: " +
+  "Appealy needs the Manage Roles permission, with its role above the verified role.";
+
 function generateChallengeCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars (I/O/0/1)
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
@@ -60,9 +69,9 @@ export async function handleVerifyButton(bot: AppealyBot, interaction: Interacti
     // No modal on this path, so the four REST calls and the insert below get
     // the fifteen-minute window instead of what is left of three seconds.
     await defer(bot, interaction, { ephemeral: true });
-    await grantVerifiedRole(bot, guildId, user.id, config);
+    const granted = await grantVerifiedRole(bot, guildId, user.id, config);
     await db.insert(schema.verificationAttempts).values({ guildId, userId: user.id, verified: true });
-    return finish(bot, interaction, "You're verified! Welcome to the server.");
+    return finish(bot, interaction, granted ? "You're verified! Welcome to the server." : VERIFIED_WITHOUT_ROLE);
   }
 
   // captcha method
@@ -94,12 +103,13 @@ export async function handleVerifyButton(bot: AppealyBot, interaction: Interacti
   });
 }
 
+/** True when every role change went through. */
 async function grantVerifiedRole(
   bot: AppealyBot,
   guildId: bigint,
   userId: bigint,
   config: typeof schema.verificationConfigs.$inferSelect,
-) {
+): Promise<boolean> {
   const targetRoles = [config.verifiedRoleId, config.unverifiedRoleId].filter(Boolean) as bigint[];
   const unmanageable = await findUnmanageableRoles(bot, guildId, targetRoles.map(String));
 
@@ -112,7 +122,9 @@ async function grantVerifiedRole(
     }
   } catch (err) {
     logger.error("Role update failed during verification", { guildId: guildId.toString(), userId: userId.toString(), error: String(err) });
+    return false;
   }
+  return unmanageable.length === 0;
 }
 
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {

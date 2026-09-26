@@ -203,6 +203,19 @@ export async function findUnmanageableRoles(
   const botRoles = guild.roles.filter((r) => botMember.roles.includes(r.id));
   const botHighestPosition = Math.max(0, ...botRoles.map((r) => r.position));
 
+  // Order alone isn't enough: without Manage Roles every role is out of reach,
+  // and the call for it fails with a bare "Missing Permissions". That's the
+  // state top.gg reviews bots in: added with no role and no extra permissions.
+  // The @everyone role shares the guild's id and counts too.
+  const everyone = guild.roles.find((r) => r.id === guildId);
+  // botRoles is a Collection: spread as-is it gives [id, role] pairs.
+  const canManageRoles = [everyone, ...botRoles.values()].some(
+    (r) => r?.permissions?.has("ADMINISTRATOR") || r?.permissions?.has("MANAGE_ROLES"),
+  );
+  if (!canManageRoles) {
+    return roleIds.filter((id) => guild.roles.some((r) => r.id === BigInt(id)));
+  }
+
   const unmanageable: string[] = [];
   for (const roleId of roleIds) {
     const role = guild.roles.find((r) => r.id === BigInt(roleId));
