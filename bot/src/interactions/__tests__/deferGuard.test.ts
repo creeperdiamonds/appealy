@@ -42,6 +42,8 @@ const MUST_DEFER = [
   // Fix round 1: two candidates the original Task 7 pass missed entirely
   // (both did REST work via isGuildOwner() before responding, unguarded).
   "bot/src/commands/importAppealy.ts",
+  // Fetches the command ids for its clickable mentions before answering.
+  "bot/src/commands/help.ts",
 ];
 
 /**
