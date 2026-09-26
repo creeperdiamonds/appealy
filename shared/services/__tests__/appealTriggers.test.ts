@@ -67,6 +67,17 @@ Deno.test("a timeout shorter than the threshold gets no notice", () => {
   assertEquals(timeoutNoticeKey(NOW + 10 * 60_000, NOW, HOUR), null);
 });
 
+Deno.test("a timeout exactly as long as the threshold gets a notice, though measured late", () => {
+  // Discord's "1 hour" preset under the default 1-hour threshold: by the time
+  // the event arrives, a little less than an hour is left.
+  const until = NOW + HOUR * 1000;
+  assertEquals(timeoutNoticeKey(until, NOW + 800, HOUR), String(until));
+});
+
+Deno.test("the slack is a minute, not a rounding of the threshold", () => {
+  assertEquals(timeoutNoticeKey(NOW + 58 * 60_000, NOW, HOUR), null);
+});
+
 Deno.test("a long enough timeout is keyed by its end time", () => {
   const until = NOW + 7 * 24 * HOUR * 1000;
   assertEquals(timeoutNoticeKey(until, NOW, HOUR), String(until));
