@@ -7,7 +7,7 @@
 // commands don't have a clean way to collect 2-9 options plus a datetime
 // without exceeding the 25-option command-option limit awkwardly.
 
-import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discordeno/bot";
+import { ApplicationCommandTypes, ApplicationCommandOptionTypes, ChannelTypes } from "@discordeno/bot";
 import type { AppealyInteraction as Interaction } from "../core/client.ts";
 import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
@@ -35,7 +35,8 @@ export const definition: CreateApplicationCommand = {
   descriptionLocalizations: { ja: "投票を作成して公開します" },
   type: ApplicationCommandTypes.ChatInput,
   options: [
-    { name: "channel", description: "Channel to post the poll in", descriptionLocalizations: { ja: "投票を投稿するチャンネル" }, type: ApplicationCommandOptionTypes.Channel, required: true },
+    // Text and announcement channels only: anywhere else, publishing fails.
+    { name: "channel", description: "Channel to post the poll in", descriptionLocalizations: { ja: "投票を投稿するチャンネル" }, type: ApplicationCommandOptionTypes.Channel, required: true, channelTypes: [ChannelTypes.GuildText, ChannelTypes.GuildAnnouncement] },
     { name: "question", description: "The poll question", descriptionLocalizations: { ja: "投票の質問" }, type: ApplicationCommandOptionTypes.String, required: true },
     { name: "option1", description: "Answer option 1", descriptionLocalizations: { ja: "選択肢 1" }, type: ApplicationCommandOptionTypes.String, required: true },
     { name: "option2", description: "Answer option 2", descriptionLocalizations: { ja: "選択肢 2" }, type: ApplicationCommandOptionTypes.String, required: true },
@@ -95,6 +96,23 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
   if (options.length < 2) {
     return respond(bot, interaction, "A poll needs at least 2 options.");
+  }
+
+  // Appealy does the posting, so without this anyone could have it post where
+  // they can't themselves: announcements, a staff channel. Checked against the
+  // asker's own permissions in that channel, which Discord works out (roles and
+  // the channel's overwrites included) and sends with the channel option. Create
+  // Polls applies to the embed style too: a server that switched polls off
+  // shouldn't find them back on through a bot.
+  const perms = askerPermissionsIn(interaction, channelId);
+  if (!perms) {
+    return respond(bot, interaction, `I couldn't check your permissions in <#${channelId}>, so I won't post there.`);
+  }
+  if (!perms.has("VIEW_CHANNEL") || !perms.has("SEND_MESSAGES")) {
+    return respond(bot, interaction, `You can't post in <#${channelId}>, so I won't post a poll there for you.`);
+  }
+  if (!perms.has("SEND_POLLS")) {
+    return respond(bot, interaction, `You don't have permission to create polls in <#${channelId}>.`);
   }
 
   // Asked for rather than taken as an option. A slash-command option can hold
@@ -236,6 +254,27 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     interaction,
     `Poll posted in <#${channelId}>, closing <t:${unix(closesAt)}:R>${zoneNote}.${roundingNote}`,
   );
+}
+
+/**
+ * The asker's permissions in a channel picked in a command option, or null if
+ * Discord didn't send them. Resolved options arrive as a Collection keyed by
+ * bigint, or as a plain object keyed by string, depending on the path; see
+ * resolveAttachment in importAppy.ts for the same care.
+ */
+function askerPermissionsIn(
+  interaction: Interaction,
+  channelId: bigint,
+): { has(permission: "VIEW_CHANNEL" | "SEND_MESSAGES" | "SEND_POLLS"): boolean } | null {
+  type Resolved = { permissions?: { has(permission: string): boolean } };
+  const channels = interaction.data?.resolved?.channels as
+    | Map<unknown, Resolved>
+    | Record<string, Resolved>
+    | undefined;
+  const channel = channels instanceof Map
+    ? channels.get(channelId) ?? channels.get(String(channelId))
+    : channels?.[String(channelId)];
+  return channel?.permissions ?? null;
 }
 
 /** Discord timestamp markup takes whole seconds. */

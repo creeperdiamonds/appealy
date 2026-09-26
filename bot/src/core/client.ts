@@ -77,6 +77,10 @@ export const desiredProperties = {
     permissionOverwrites: true,
     // Used when creating a ticket channel under the right category.
     position: true,
+    // Only ever present on a channel picked in a command option: the person
+    // asking's own permissions there, as Discord worked them out. /poll checks
+    // them so nobody can have Appealy post where they can't.
+    permissions: true,
   },
   // /import-appy takes a file upload, so it needs the parts of an attachment
   // that identify and fetch it.
