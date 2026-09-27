@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ytterms.html
+
+  The policy for the Appealy Uploader, the internal tool that uploads videos to
+  Appealy's own YouTube channel through the YouTube API Services. Kept apart
+  from privacy.html / terms.html on purpose: the bot, dashboard and site don't
+  use YouTube, and the API audit needs a page that is about exactly this.
+
+  Every claim matches ~/appealy-promo/youtube/upload.js: the token lives in the
+  macOS keychain, `logout` deletes it, uploaded.json is the only other thing
+  written, and the script refuses any channel but the one in schedule.json.
+-->
+
+<title>YouTube Terms of Service — Appealy</title>
+<meta name="description" content="Terms for the Appealy Uploader, which posts to Appealy's YouTube channel through the YouTube API Services.">
+<link rel="canonical" href="https://appealy.app/ytterms">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="https://docs.appealy.app/">Docs</a>
+      <a href="/#self-hosting">Self-hosting</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+          </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose">
+
+    <p class="eyebrow">Legal · YouTube</p>
+    <h1>YouTube Terms of Service</h1>
+    <p class="updated">Last updated 27 September 2026</p>
+
+    <p class="lede">
+      These terms cover the <strong>Appealy Uploader</strong>, the internal tool that uploads and
+      schedules videos on <a href="https://www.youtube.com/channel/UCg765HScAeDpHl1pAyuvcTA">Appealy&rsquo;s own YouTube channel</a>. The Appealy bot
+      and dashboard have their own <a href="/terms">terms</a>.
+    </p>
+
+    <h2>YouTube Terms of Service</h2>
+    <p>
+      The Appealy Uploader uses the YouTube API Services. <strong>By using the Appealy Uploader,
+      you agree to be bound by the <a href="https://www.youtube.com/t/terms">YouTube Terms of
+      Service</a></strong>, and to the <a href="https://policies.google.com/privacy">Google Privacy
+      Policy</a>.
+    </p>
+
+    <h2>Who may use it</h2>
+    <p>
+      The Uploader is for Appealy&rsquo;s channel owner only, to publish Appealy&rsquo;s own original
+      videos on Appealy&rsquo;s own channel. It is not a public service and is not offered to other
+      users or channels.
+    </p>
+
+    <h2>Content</h2>
+    <p>
+      Everything uploaded is original content made by Appealy, and must follow YouTube&rsquo;s
+      Community Guidelines. Cases shown in videos are fictional.
+    </p>
+
+    <h2>Your data</h2>
+    <p>
+      What the Uploader accesses, stores and deletes, and how to revoke its access, is on the
+      <a href="/ytprivacy">YouTube Privacy Policy</a> page.
+    </p>
+
+    <h2>No warranty</h2>
+    <p>
+      The Uploader is provided as is. YouTube and Google are trademarks of Google LLC, which does
+      not endorse Appealy.
+    </p>
+
+    <h2>Changes</h2>
+    <p>
+      If these terms change, this page is updated and the date at the top changes with it.
+    </p>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">Getting started</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">Ban appeals</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">Review outcomes</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy" aria-current="page">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/refunds">Refunds</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

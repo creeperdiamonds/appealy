@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/ytprivacy.html
+
+  The policy for the Appealy Uploader, the internal tool that uploads videos to
+  Appealy's own YouTube channel through the YouTube API Services. Kept apart
+  from privacy.html / terms.html on purpose: the bot, dashboard and site don't
+  use YouTube, and the API audit needs a page that is about exactly this.
+
+  Every claim matches ~/appealy-promo/youtube/upload.js: the token lives in the
+  macOS keychain, `logout` deletes it, uploaded.json is the only other thing
+  written, and the script refuses any channel but the one in schedule.json.
+-->
+
+<title>YouTube Privacy Policy — Appealy</title>
+<meta name="description" content="How the Appealy Uploader, the tool that posts to Appealy's YouTube channel, uses the YouTube API Services.">
+<link rel="canonical" href="https://appealy.app/ytprivacy">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="https://docs.appealy.app/">Docs</a>
+      <a href="/#self-hosting">Self-hosting</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+          </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap prose">
+
+    <p class="eyebrow">Legal · YouTube</p>
+    <h1>YouTube Privacy Policy</h1>
+    <p class="updated">Last updated 27 September 2026</p>
+
+    <p class="lede">
+      This covers the <strong>Appealy Uploader</strong>, a small internal tool that uploads and
+      schedules videos on <a href="https://www.youtube.com/channel/UCg765HScAeDpHl1pAyuvcTA">Appealy&rsquo;s own YouTube channel</a>. The Appealy
+      Discord bot, the dashboard and the rest of this website do not use YouTube; their privacy
+      policy is <a href="/privacy">here</a>.
+    </p>
+
+    <h2>YouTube API Services</h2>
+    <p>
+      The Appealy Uploader uses the <strong>YouTube API Services</strong>. By using it, you agree
+      to be bound by the <a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a>.
+      Google&rsquo;s own handling of data is covered by the
+      <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.
+    </p>
+
+    <h2>Who uses it</h2>
+    <p>
+      Only Appealy&rsquo;s channel owner, on Appealy&rsquo;s own channel. It is not offered, sold or
+      made available to anyone else, and before every upload it checks the signed-in channel and
+      refuses to act on any other.
+    </p>
+
+    <h2>What it accesses</h2>
+    <ul>
+      <li>The signed-in channel&rsquo;s id and name, to confirm it is the Appealy channel.</li>
+      <li>That channel&rsquo;s playlists, to add new videos to the right series playlist.</li>
+      <li>The videos it uploads, and their title, description, tags, category, audience setting and
+        publish time, to check them against the upload schedule.</li>
+    </ul>
+    <p>
+      It does not access data about viewers, subscribers, comments or any other channel.
+    </p>
+
+    <h2>What it stores, and where</h2>
+    <ul>
+      <li><strong>The sign-in token</strong>, in the channel owner&rsquo;s own computer keychain. It
+        is never printed, uploaded or sent anywhere except to Google.</li>
+      <li><strong>A local list of uploaded videos</strong> (their YouTube ids and titles), so the
+        same video is never uploaded twice.</li>
+    </ul>
+    <p>
+      Nothing from YouTube is stored on Appealy&rsquo;s servers. No data is sold or shared with
+      anyone, and no cookies or tracking are involved.
+    </p>
+
+    <h2>Revoking access</h2>
+    <p>
+      Access can be removed at any time from Google&rsquo;s
+      <a href="https://security.google.com/settings/security/permissions">security settings page</a>.
+      Signing out of the Uploader also deletes the token from the keychain immediately.
+    </p>
+
+    <h2>Deletion</h2>
+    <p>
+      When access is revoked, the stored token stops working and is deleted within 7 days, along
+      with the local list of uploaded videos if asked. To ask about or request deletion of
+      anything the Uploader holds, email
+      <a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a>.
+    </p>
+
+    <h2>Changes</h2>
+    <p>
+      If this policy changes, this page is updated and the date at the top changes with it.
+    </p>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">Getting started</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">Ban appeals</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">Review outcomes</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy" aria-current="page">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/refunds">Refunds</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

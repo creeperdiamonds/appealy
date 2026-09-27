@@ -109,6 +109,8 @@ state to manage. There is none.
 /pricing.html
 /privacy.html
 /terms.html
+/ytprivacy.html   (YouTube Uploader privacy, for the API audit)
+/ytterms.html     (YouTube Uploader terms, for the API audit)
 /appy-alternative.html
 /discord-ban-appeal-bot.html
 /discord-ticket-bot.html
