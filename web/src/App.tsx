@@ -630,8 +630,8 @@ export default function App() {
               own and never opened a ticket, and an unsolicited DM from a bot to
               someone who never asked to be contacted is spam by Discord's own
               rules. The dashboard is the one place they have already chosen to
-              be. Dismissed per browser (lib/feedback.ts) — asked once, then
-              never again. Last in the stack so a real problem is never pushed
+              be. Dismissed per browser (lib/feedback.ts) — asked once per
+              round, then left alone. Last in the stack so a real problem is never pushed
               down the page by a request for opinions. */}
           {askFeedback && guilds && guilds.length > 0 && (
             <Banner
@@ -655,7 +655,8 @@ export default function App() {
               }
             >
               What do you use it for, and what is the most annoying thing about it right now? Both
-              answers change what gets built next. This asks once and then leaves you alone.
+              answers change what gets built next. This asks once and then leaves you alone
+              until the next round.
             </Banner>
           )}
 
