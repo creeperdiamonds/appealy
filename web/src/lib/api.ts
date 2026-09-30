@@ -673,7 +673,8 @@ export interface OpsAppeal {
  *  server has since been deleted; the answer outlives it. */
 export interface OpsFeedback {
   id: string;
-  guildId: string;
+  /** Only on answers from before 2026-09-30; feedback is per person now. */
+  guildId: string | null;
   guildName: string | null;
   authorId: string;
   usedFor: string | null;

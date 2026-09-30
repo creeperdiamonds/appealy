@@ -734,9 +734,8 @@ export default function App() {
           say one sentence is three more than most people will spend, and the
           answers are worth more than the click-through was. Sending counts as
           having been asked, so the banner does not come back. */}
-      {feedbackOpen && guildId && (
+      {feedbackOpen && (
         <FeedbackSheet
-          guildId={guildId}
           onClose={() => setFeedbackOpen(false)}
           onSent={() => {
             dismissFeedback();

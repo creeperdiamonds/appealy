@@ -1,0 +1,1 @@
+ALTER TABLE "feedback" ALTER COLUMN "guild_id" DROP NOT NULL;

@@ -120,6 +120,13 @@
       "when": 1790431328994,
       "tag": "0016_square_jubilee",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790781119441,
+      "tag": "0017_feedback_per_user",
+      "breakpoints": true
     }
   ]
 }

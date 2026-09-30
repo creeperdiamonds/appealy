@@ -162,9 +162,10 @@ opsRouter.get("/feedback", async (_req, res) => {
   res.json({
     feedback: rows.map((f) => ({
       id: f.id,
-      guildId: f.guildId.toString(),
-      // Null when the guild has since been deleted — the answer outlives the
-      // server it came from, and is still worth reading.
+      // Only answers from before 2026-09-30 name a server; feedback is per
+      // person now (routes/feedback.ts). The name is also null when that
+      // server has since been deleted.
+      guildId: f.guildId?.toString() ?? null,
       guildName: f.guildName,
       authorId: f.authorId.toString(),
       usedFor: f.usedFor,

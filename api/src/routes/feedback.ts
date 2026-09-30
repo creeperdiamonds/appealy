@@ -18,31 +18,26 @@
 // March. A table can be read in order, quoted in a commit message, and still
 // answers the question "did anyone actually ask for this" a year later.
 //
+// WHY IT IS PER PERSON
+//
+// An answer is one admin's opinion of Appealy, not a fact about whichever
+// server their dashboard happened to have open, so no server is recorded.
+// It used to be mounted under /api/guilds/:guildId and stored that id; rows
+// from before 2026-09-30 still carry it.
+//
 // WHAT IS TRUSTED
 //
-// The guild comes from the route, which requireGuildAccess has already checked
-// against the session — so nobody can file feedback against a server they
-// cannot administer. The author comes from the session, never the body: an
-// author id a client could choose is not evidence of anything.
+// The author comes from the session (requireSession, where this is mounted in
+// app.ts), never the body: an author id a client could choose is not evidence
+// of anything.
 
 import { Router } from "express";
 import { z } from "zod";
 
 import { db, schema } from "../db/client.ts";
-import { requireGuildAccess } from "../middleware/guildAccess.ts";
-import { routeParams } from "../utils/routeParams.ts";
 import { logger } from "../utils/logger.ts";
 
-// mergeParams is load-bearing, not decoration: without it the :guildId from
-// the parent mount is simply absent at runtime, and routeParams would hand
-// back undefined while still typing it as a string.
-export const feedbackRouter = Router({ mergeParams: true });
-
-// Same gate as every other guild-scoped router. Feedback is low-stakes, but
-// an ungated write keyed on a guild id from the URL would let anyone file
-// answers against a server they have nothing to do with — which would quietly
-// poison the one record of what users actually want.
-feedbackRouter.use(requireGuildAccess);
+export const feedbackRouter = Router();
 
 /**
  * Every field optional, and that is deliberate: the most useful answer is
@@ -71,11 +66,9 @@ feedbackRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: "empty", detail: "Answer at least one question." });
   }
 
-  const guildId = BigInt(routeParams(req).guildId);
   const authorId = req.userId!;
 
   await db.insert(schema.feedback).values({
-    guildId,
     authorId,
     usedFor: usedFor || null,
     annoyance: annoyance || null,
@@ -86,7 +79,6 @@ feedbackRouter.post("/", async (req, res) => {
   // next time someone opens the ops page. The text is not logged: it belongs
   // in the table, not scattered through log storage.
   logger.info("Feedback received", {
-    guildId: guildId.toString(),
     answered: [usedFor && "usedFor", annoyance && "annoyance", missing && "missing"].filter(Boolean),
   });
 

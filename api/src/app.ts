@@ -212,6 +212,8 @@ export function createApp() {
   // Everything below requires a session. banGate then short-circuits a
   // user-banned account with a typed 403 the SPA renders as the ban screen.
   app.use("/api/ops", requireSession, requireOpsUser, opsRouter);
+  // Per person rather than per server: see routes/feedback.ts.
+  app.use("/api/feedback", requireSession, feedbackRouter);
 
   app.use("/api/guilds/:guildId", requireSession);
   app.use("/api/guilds/:guildId", banGate);
@@ -239,7 +241,6 @@ export function createApp() {
   app.use("/api/guilds/:guildId/anti-raid", antiRaidRouter);
   app.use("/api/guilds/:guildId/quick-responses", quickResponsesRouter);
   app.use("/api/guilds/:guildId/sticky-messages", stickyMessagesRouter);
-  app.use("/api/guilds/:guildId/feedback", feedbackRouter);
   app.use("/api/guilds/:guildId", migrationRouter);
 
   app.use(errorHandler);

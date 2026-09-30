@@ -62,7 +62,7 @@ export default function OpsFeedback() {
       {entries.length === 0 && (
         <Empty
           title="No answers yet"
-          hint="The dashboard asks once per browser. Quiet here is normal early on — it is not evidence the form is broken."
+          hint="The dashboard asks once per round, per browser. Quiet here is normal early on — it is not evidence the form is broken."
         />
       )}
 
@@ -70,9 +70,11 @@ export default function OpsFeedback() {
         <Panel key={f.id}>
           <div className="ops-appeal-head">
             <div>
-              <strong>{f.guildName ?? `Server ${f.guildId}`}</strong>
+              <strong>From {f.authorId}</strong>
               <span className="dim block">
-                {formatRelative(f.createdAt)} · from {f.authorId}
+                {formatRelative(f.createdAt)}
+                {/* Older answers recorded the server that was open; new ones don't. */}
+                {f.guildId && <> · sent from {f.guildName ?? `server ${f.guildId}`}</>}
               </span>
             </div>
           </div>

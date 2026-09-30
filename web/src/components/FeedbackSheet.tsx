@@ -10,6 +10,9 @@
 // common useful answer, and demanding all three turns a small favour into a
 // form to abandon. The submit button is disabled only when all three are
 // empty, because that is a misclick rather than an opinion.
+//
+// Per person, not per server: which server happened to be open says nothing
+// about the answer, so none is sent (api/src/routes/feedback.ts).
 
 import { useState } from "react";
 
@@ -17,13 +20,12 @@ import { http } from "../lib/api";
 import { Sheet } from "./ui";
 
 interface FeedbackSheetProps {
-  guildId: string;
   onClose: () => void;
   /** Called once an answer is stored, so the caller can stop asking. */
   onSent: () => void;
 }
 
-export default function FeedbackSheet({ guildId, onClose, onSent }: FeedbackSheetProps) {
+export default function FeedbackSheet({ onClose, onSent }: FeedbackSheetProps) {
   const [usedFor, setUsedFor] = useState("");
   const [annoyance, setAnnoyance] = useState("");
   const [missing, setMissing] = useState("");
@@ -37,7 +39,7 @@ export default function FeedbackSheet({ guildId, onClose, onSent }: FeedbackShee
     setSending(true);
     setError(null);
     try {
-      await http.post(`/api/guilds/${guildId}/feedback`, {
+      await http.post("/api/feedback", {
         usedFor: usedFor.trim() || undefined,
         annoyance: annoyance.trim() || undefined,
         missing: missing.trim() || undefined,

@@ -1306,16 +1306,21 @@ export const quickResponseCategoriesRelations = relations(quickResponseCategorie
  * ratings: a number tells you something is wrong without telling you what, and
  * at this size there is nothing to average anyway.
  *
- * No unique constraint on guild or author. Someone who comes back a month
- * later with a second thought is exactly who is worth hearing from twice.
+ * No unique constraint on author. Someone who comes back a month later with a
+ * second thought is exactly who is worth hearing from twice.
+ *
+ * Per person, not per server: an answer is one admin's opinion of Appealy,
+ * not a fact about whichever server their dashboard happened to have open.
+ * guild_id stays only for answers given before 2026-09-30, which recorded
+ * it; new answers leave it null.
  */
 export const feedback = pgTable(
   "feedback",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    guildId: bigint("guild_id", { mode: "bigint" })
-      .notNull()
-      .references(() => guilds.id, { onDelete: "cascade" }),
+    guildId: bigint("guild_id", { mode: "bigint" }).references(() => guilds.id, {
+      onDelete: "cascade",
+    }),
     /** The Discord account that wrote it, so a reply can find them. */
     authorId: bigint("author_id", { mode: "bigint" }).notNull(),
     /** "What do you use Appealy for?" */
