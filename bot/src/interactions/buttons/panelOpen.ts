@@ -16,6 +16,7 @@
 // state diagram.
 
 import { eq, and, gte, desc } from "drizzle-orm";
+import { modalTextLimits } from "../../services/modalInput.ts";
 import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 
 import type { AppealyBot } from "../../core/client.ts";
@@ -193,18 +194,18 @@ export async function showApplicationModal(
     });
   }
 
-  // Discord's modal text-input label has a hard 45-character limit —
-  // this is the in_server-flow constraint the schema comment on
-  // questions.label refers to. The DB column now allows up to 200 chars
-  // (raised specifically so direct_message-flow questions aren't
-  // needlessly constrained by a limit that flow doesn't have), so this
-  // flow truncates at render time rather than the schema enforcing the
-  // tighter limit for both flows. Truncating (with an ellipsis) rather
-  // than letting Discord reject the whole modal outright preserves the
-  // rest of the application working even if one label is long.
-  const MODAL_LABEL_MAX = 45;
-  const toModalLabel = (label: string) =>
-    label.length > MODAL_LABEL_MAX ? `${label.slice(0, MODAL_LABEL_MAX - 1)}…` : label;
+  // A form with no text questions on this page would send a modal with no
+  // inputs, which Discord rejects outright. Say so instead.
+  if (capped.length === 0) {
+    await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+      type: 4,
+      data: {
+        flags: EPHEMERAL,
+        content: "This form has no questions yet. A server admin can add them on the Appealy dashboard.",
+      },
+    });
+    return;
+  }
 
   await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
     type: 9, // MODAL
@@ -220,12 +221,11 @@ export async function showApplicationModal(
           {
             type: 4, // TEXT_INPUT
             customId: q.id,
-            label: toModalLabel(q.label),
+            // Every limit Discord checks is enforced here: one bad setting
+            // otherwise rejects the whole modal (services/modalInput.ts).
+            ...modalTextLimits(q),
             style: q.type === "paragraph" ? 2 : 1,
             required: q.required,
-            minLength: q.minLength ?? undefined,
-            maxLength: q.maxLength ?? 4000,
-            placeholder: q.placeholder ?? undefined,
           },
         ],
       })),
