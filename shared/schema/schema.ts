@@ -1384,6 +1384,37 @@ export const feedback = pgTable(
   }),
 );
 
+/**
+ * Who has been shown the feedback ask on their private Accept/Deny
+ * confirmation (bot/src/services/feedbackAsk.ts), per feedback round. One row
+ * per person and round: shown once, whatever they clicked. A new round (a new
+ * FEEDBACK_ROUND) asks again.
+ */
+export const feedbackPrompts = pgTable(
+  "feedback_prompts",
+  {
+    userId: bigint("user_id", { mode: "bigint" }).notNull(),
+    round: varchar("round", { length: 32 }).notNull(),
+    askedAt: timestamp("asked_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: uniqueIndex("feedback_prompts_user_round_idx").on(t.userId, t.round),
+  }),
+);
+
+/**
+ * Per-server switch for that ask, on the dashboard's Help & support page.
+ * Its own table rather than a column on guilds so turning it off never
+ * touches the guilds row the bot rewrites on every reconnect.
+ */
+export const feedbackPromptSettings = pgTable("feedback_prompt_settings", {
+  guildId: bigint("guild_id", { mode: "bigint" })
+    .primaryKey()
+    .references(() => guilds.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const quickResponsesRelations = relations(quickResponses, ({ one }) => ({
   category: one(quickResponseCategories, {
     fields: [quickResponses.categoryId],

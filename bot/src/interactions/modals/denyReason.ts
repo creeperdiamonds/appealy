@@ -1,6 +1,7 @@
 // bot/src/interactions/modals/denyReason.ts
 
 import { eq } from "drizzle-orm";
+import { confirmationWithAsk } from "../../services/feedbackAsk.ts";
 import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 import { getGuild } from "../../core/guildLookup.ts";
 
@@ -140,7 +141,10 @@ export async function handleDenyReasonModalSubmit(
     reason,
   });
 
-  await respond(bot, interaction, "Application denied.");
+  // The feedback ask rides on this private confirmation, once per person
+  // (services/feedbackAsk.ts).
+  const reviewerId = interaction.member?.user?.id ?? interaction.user?.id;
+  await finish(bot, interaction, await confirmationWithAsk(guildId, reviewerId, "Application denied."));
 }
 
 // Kept as a one-line wrapper rather than rewriting every call site: the

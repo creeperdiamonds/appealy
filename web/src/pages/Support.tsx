@@ -14,8 +14,9 @@
 // you get half of them; printing them with a copy button is how you get all of
 // them.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Panel } from "../components/ui";
+import { http } from "../lib/api";
 
 interface SupportProps {
   guildId: string | null;
@@ -138,12 +139,10 @@ export default function Support({
             it, and what you expected to find and did not — those three answers decide what gets
             built, more than anything else does.
           </p>
-          <button className="btn btn-primary" onClick={onOpenFeedback} disabled={!guildId}>
+          <button className="btn btn-primary" onClick={onOpenFeedback}>
             Send feedback
           </button>
-          {!guildId && (
-            <p className="dim">Pick a server first — feedback is filed against one.</p>
-          )}
+          {guildId && (access === "owner" || access === "admin") && <FeedbackAskSwitch guildId={guildId} />}
         </Panel>
 
         <Panel title="Something is broken">
@@ -269,5 +268,47 @@ export default function Support({
         </Panel>
       )}
     </>
+  );
+}
+
+/**
+ * Whether Appealy may ask this server's moderators for feedback, once each,
+ * on the private confirmation after Accept or Deny (bot/src/services/
+ * feedbackAsk.ts). Saved as soon as it's flipped: one switch doesn't need a
+ * Save button. Admins only; the API refuses anyone else anyway.
+ */
+function FeedbackAskSwitch({ guildId }: { guildId: string }) {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    http
+      .get<{ enabled: boolean }>(`/api/guilds/${guildId}/feedback-prompt`)
+      .then((r) => setEnabled(r.enabled))
+      .catch(() => setFailed(true));
+  }, [guildId]);
+
+  if (failed || enabled === null) return null;
+
+  async function flip(next: boolean) {
+    setEnabled(next);
+    try {
+      await http.put(`/api/guilds/${guildId}/feedback-prompt`, { enabled: next });
+    } catch {
+      setEnabled(!next);
+      setFailed(true);
+    }
+  }
+
+  return (
+    <label className="row">
+      <input type="checkbox" checked={enabled} onChange={(e) => void flip(e.target.checked)} />
+      <span>
+        <strong>Ask our moderators in Discord too</strong>
+        <span className="dim block">
+          Once per person, on the private message they see after Accept or Deny. Nobody else sees it.
+        </span>
+      </span>
+    </label>
   );
 }

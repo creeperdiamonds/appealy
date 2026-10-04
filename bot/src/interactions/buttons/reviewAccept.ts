@@ -1,6 +1,7 @@
 // bot/src/interactions/buttons/reviewAccept.ts
 
 import { eq } from "drizzle-orm";
+import { confirmationWithAsk } from "../../services/feedbackAsk.ts";
 import { MessageComponentTypes } from "@discordeno/bot";
 import type { MessageComponent } from "@discordeno/bot";
 import type { AppealyInteraction as Interaction } from "../../core/client.ts";
@@ -395,7 +396,9 @@ export async function handleReviewAccept(
   // appeal that left the user banned is the whole outcome they just approved.
   if (liftWarning) messages.push(liftWarning);
 
-  await respond(bot, interaction, messages.join(" "));
+  // The ask for feedback rides on this private confirmation, once per person
+  // (services/feedbackAsk.ts).
+  await finish(bot, interaction, await confirmationWithAsk(guildId, reviewer.id, messages.join(" ")));
 }
 
 // Kept as a one-line wrapper rather than rewriting ~6 call sites: the flag

@@ -54,6 +54,11 @@ export const CUSTOM_ID_NAMESPACES = {
    * look up which server banned them from the interaction alone.
    */
   APPEAL: "appeal",
+  /**
+   * feedback:open|later|submit:<round> — the feedback ask on a moderator's
+   * private Accept/Deny confirmation (bot/src/services/feedbackAsk.ts).
+   */
+  FEEDBACK: "feedback",
 } as const;
 
 export type CustomIdNamespace =

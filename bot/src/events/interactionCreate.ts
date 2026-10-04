@@ -40,6 +40,7 @@ import { handleVerifyCaptchaModalSubmit } from "../interactions/modals/verifyCap
 import { routeSlashCommand, routeAutocomplete } from "../commands/index.ts";
 import { passesBanGate } from "../core/banGate.ts";
 import { absorbFromInteraction } from "../core/entitlements.ts";
+import { dismissFeedbackAsk, openFeedbackModal, submitFeedback } from "../services/feedbackAsk.ts";
 
 export function onInteractionCreate(bot: AppealyBot) {
   return async (interaction: Interaction) => {
@@ -104,6 +105,12 @@ export function onInteractionCreate(bot: AppealyBot) {
           if (namespace === "appeal" && action === "role") {
             const [formId = "", roleId = ""] = (extra ?? "").split(".");
             return await handleAppealStartButton(bot, interaction, entityId, formId, { kind: "restriction", roleId });
+          }
+          if (namespace === "feedback" && action === "open") {
+            return await openFeedbackModal(bot, interaction);
+          }
+          if (namespace === "feedback" && action === "later") {
+            return await dismissFeedbackAsk(bot, interaction);
           }
           if (namespace === "review" && action === "accept") {
             return await handleReviewAccept(bot, interaction, entityId);
@@ -212,6 +219,9 @@ export function onInteractionCreate(bot: AppealyBot) {
               entityId,
               Number.isInteger(page) && page >= 0 ? page : 0,
             );
+          }
+          if (namespace === "feedback" && action === "submit") {
+            return await submitFeedback(bot, interaction);
           }
           if (namespace === "review" && action === "deny_confirm") {
             return await handleDenyReasonModalSubmit(bot, interaction, entityId);
