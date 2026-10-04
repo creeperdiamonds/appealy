@@ -65,6 +65,13 @@ const TEXT = {
     everyone: "Commands for everyone",
     admins: "Commands for server admins",
     data: "Moving your data",
+    moderation: "Moderation (type these in chat)",
+    moderationLines: [
+      "`?ban @user [reason]` · `?unban <id> [reason]`",
+      "`?kick @user [reason]`",
+      "`?mute @user [10m, 2h, 1d…] [reason]` · `?unmute @user`",
+      "Also works as `@Appealy ban @user …`. Banned and timed-out members get the appeal button, if appeals are set up.",
+    ],
     dashboard: "Open the dashboard",
     docs: "Documentation",
     support: "Support server",
@@ -83,6 +90,13 @@ const TEXT = {
     everyone: "全員が使えるコマンド",
     admins: "サーバー管理者向けコマンド",
     data: "データの移行",
+    moderation: "モデレーション（チャットに入力）",
+    moderationLines: [
+      "`?ban @ユーザー [理由]` · `?unban <ID> [理由]`",
+      "`?kick @ユーザー [理由]`",
+      "`?mute @ユーザー [10m, 2h, 1d…] [理由]` · `?unmute @ユーザー`",
+      "`@Appealy ban @ユーザー …` の形でも使えます。異議申し立てを設定していれば、BAN やタイムアウトされたメンバーに申し立てボタンが届きます。",
+    ],
     dashboard: "ダッシュボードを開く",
     docs: "ドキュメント",
     support: "サポートサーバー",
@@ -135,7 +149,12 @@ export function helpMessage(definitions: readonly CreateApplicationCommand[], o:
         title: t.title(o.brand),
         description: t.intro(o.brand, mention("panel", "create"), mention("apply")),
         color: COLOR,
-        fields: groups.flatMap(([name, defs]) => fields(name, defs.flatMap(lines))),
+        fields: [
+          ...groups.flatMap(([name, defs]) => fields(name, defs.flatMap(lines))),
+          // Text commands aren't application commands, so they aren't in
+          // `definitions`; written out here (services/modCommands.ts).
+          ...fields(t.moderation, t.moderationLines),
+        ],
       },
     ],
     components: [{ type: 1, components: buttons }],

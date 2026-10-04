@@ -105,9 +105,12 @@ Deno.test("a long list is split to stay inside Discord's 1024-character fields",
     description: "A description as long as the longest real one, give or take a few words",
     defaultMemberPermissions: ["ADMINISTRATOR"],
   })) as unknown as CreateApplicationCommand[];
-  const fields = helpMessage(many, options()).embeds[0].fields;
+  const all = helpMessage(many, options()).embeds[0].fields;
+  for (const f of all) assert(f.value.length <= 1024, `${f.value.length} characters`);
+  // The text moderation commands always close the list.
+  assertEquals(all.at(-1)!.name, "Moderation (type these in chat)");
+  const fields = all.slice(0, -1);
   assert(fields.length > 1);
-  for (const f of fields) assert(f.value.length <= 1024, `${f.value.length} characters`);
   assertEquals(fields[0].name, "Commands for server admins");
   assert(fields.slice(1).every((f) => f.name === "​"), "continuations read as the same list");
   assertEquals(fields.flatMap((f) => f.value.split("\n")).length, 40);

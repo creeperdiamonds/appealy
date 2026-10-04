@@ -5,10 +5,13 @@
 // this one fires per message, across every channel of every guild.
 // Whatever it does, it does millions of times a day.
 //
-// Two responsibilities:
+// Three responsibilities:
 //   1. DM application replies — route a DM into dmApplicationService if the
 //      author has an in-progress direct_message application.
-//   2. Sticky message bump — count guild messages and repost the channel's
+//   2. Moderation commands — ?ban, ?kick, ?mute… and "@Appealy ban …"
+//      (services/moderation.ts). Only messages starting with "?" or a mention
+//      go further than a one-character check.
+//   3. Sticky message bump — count guild messages and repost the channel's
 //      sticky once it's been buried.
 //
 // THE COST MODEL
@@ -39,6 +42,7 @@ import { getGuildConfig, stickyChannelHint } from "../core/guildConfigCache.ts";
 import { passesBanGateForMessage } from "../core/banGate.ts";
 import { deliverReply, hasPendingPrompts } from "../services/pendingPrompts.ts";
 import { logger } from "../utils/logger.ts";
+import { handleModerationCommand } from "../services/moderation.ts";
 
 // Guilds whose config we've asked for but haven't received yet. Without
 // this, a cold guild receiving a burst of messages fires a cache-warm for
@@ -89,6 +93,28 @@ export function onMessageCreate(bot: AppealyBot) {
     // between free and an allocation per message across every guild.
     if (hasPendingPrompts() && deliverReply(message.channelId, authorId, message.content ?? "")) {
       return;
+    }
+
+    // A moderation command. The first-character test keeps this free for
+    // ordinary chat; a command is never also a sticky bump.
+    const content = message.content ?? "";
+    if (content.startsWith("?") || content.startsWith("<@")) {
+      try {
+        const handled = await handleModerationCommand(bot, {
+          id: message.id,
+          channelId: message.channelId,
+          guildId: message.guildId,
+          authorId,
+          content,
+        });
+        if (handled) return;
+      } catch (err) {
+        logger.error("Error handling a moderation command", {
+          guildId: message.guildId.toString(),
+          error: String(err),
+        });
+        return;
+      }
     }
 
     // ---- Hot path starts here ----

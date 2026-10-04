@@ -36,6 +36,28 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    publishedAt: "2026-10-04T04:45:00Z",
+    title: { en: "Moderation commands", ja: "モデレーションコマンド" },
+    items: [
+      {
+        title: { en: "?ban, ?kick and ?mute are here", ja: "?ban、?kick、?mute が使えるように" },
+        body: {
+          en: "Type ?ban, ?unban, ?kick, ?mute and ?unmute in chat, or @Appealy ban, mute… Mutes take a length like 10m, 2h or 1d. Banned and timed-out members get your appeal button, if appeals are set up. /help lists them all.",
+          ja: "チャットで ?ban、?unban、?kick、?mute、?unmute と入力するか、@Appealy ban のように使えます。?mute には 10m、2h、1d のように長さを指定できます。異議申し立てを設定していれば、BAN やタイムアウトされたメンバーに申し立てボタンが届きます。一覧は /help で確認できます。",
+        },
+        view: "appeals",
+        action: { en: "Set up appeals", ja: "異議申し立てを設定" },
+      },
+      {
+        title: { en: "Fixed: forms that wouldn't open", ja: "修正：開けなかったフォーム" },
+        body: {
+          en: "Some forms showed “Something went wrong” on /apply because of a question's length limits. They open now, with no changes needed on your side.",
+          ja: "質問の文字数の設定によっては、/apply で「Something went wrong」と表示されて開けないフォームがありました。今は開けます。設定を変える必要はありません。",
+        },
+      },
+    ],
+  },
+  {
     publishedAt: "2026-09-26T21:11:00Z",
     title: { en: "AutoMod, from any device", ja: "AutoMod をどの端末からでも" },
     items: [
