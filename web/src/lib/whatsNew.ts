@@ -36,6 +36,37 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    publishedAt: "2026-10-04T09:54:00Z",
+    title: { en: "Moderation, your way", ja: "モデレーションを自分好みに" },
+    items: [
+      {
+        title: { en: "Temporary bans, and bans with no appeal", ja: "期限付き BAN と、異議申し立てなしの BAN" },
+        body: {
+          en: "Add a length to ban for a while: ?ban @user 7d. Appealy unbans them when it ends. ?ban noappeal @user bans without sending the appeal button, for scammers and raiders.",
+          ja: "長さを付けると期限付きの BAN になります（?ban @ユーザー 7d）。期限が来ると Appealy が BAN を解除します。?ban noappeal @ユーザー なら、異議申し立てボタンを送らずに BAN できます。スパムや荒らし向けです。",
+        },
+      },
+      {
+        title: { en: "Change the prefix, or limit who can use it", ja: "プレフィックスの変更と、使える人の制限" },
+        body: {
+          en: "The new Moderation page lets you swap ? for something else, limit the text commands to certain roles, or turn them off if another bot uses the same ones.",
+          ja: "新しいモデレーションページで、? を別の記号に変えたり、テキストコマンドを使えるロールを限定したり、ほかのボットと重なる場合は無効にしたりできます。",
+        },
+        view: "moderation",
+        action: { en: "Open Moderation", ja: "モデレーションを開く" },
+      },
+      {
+        title: { en: "Tell us what you think, right from Discord", ja: "Discord から直接フィードバック" },
+        body: {
+          en: "After you accept or deny an application, Appealy may ask once, privately, for 30 seconds of feedback. Only you see it, and admins can turn it off in Help & support.",
+          ja: "応募を承認または却下したあと、Appealy が一度だけ、あなたにだけ見える形で短いフィードバックをお願いすることがあります。管理者は「ヘルプとサポート」でオフにできます。",
+        },
+        view: "support",
+        action: { en: "Open Help & support", ja: "ヘルプとサポートを開く" },
+      },
+    ],
+  },
+  {
     publishedAt: "2026-10-04T04:45:00Z",
     title: { en: "Moderation commands", ja: "モデレーションコマンド" },
     items: [
