@@ -1026,6 +1026,53 @@ export const welcomerConfigs = pgTable("welcomer_configs", {
 });
 
 // ---------------------------------------------------------------------------
+// Moderation commands — ?ban, ?kick, ?mute… (bot/src/services/moderation.ts).
+// One row per guild; a guild that never saved has no row and gets the
+// defaults: on, prefix "?", anyone with the matching Discord permission.
+// ---------------------------------------------------------------------------
+
+export const moderationConfigs = pgTable("moderation_configs", {
+  guildId: bigint("guild_id", { mode: "bigint" })
+    .primaryKey()
+    .references(() => guilds.id, { onDelete: "cascade" }),
+  /** Off turns off the prefix AND the "@Appealy ban" form: all text commands. */
+  textCommandsEnabled: boolean("text_commands_enabled").notNull().default(true),
+  /** 1-5 characters, no spaces. Not "/", which Discord's own command picker owns. */
+  prefix: varchar("prefix", { length: 5 }).notNull().default("?"),
+  /**
+   * When non-empty, only members with one of these roles may use the text
+   * commands (the server owner always may). On top of the Discord permission
+   * each command needs, never instead of it.
+   */
+  allowedRoleIds: jsonb("allowed_role_ids").$type<string[]>().notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Bans with an end: "?ban @user 2d". The scheduler unbans when unbanAt
+ * passes and deletes the row. Stored rather than held in a timer so a
+ * restart between the ban and its end doesn't make it permanent. One row per
+ * member and server: a new ban (timed or not) replaces it.
+ */
+export const tempBans = pgTable(
+  "temp_bans",
+  {
+    guildId: bigint("guild_id", { mode: "bigint" })
+      .notNull()
+      .references(() => guilds.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "bigint" }).notNull(),
+    unbanAt: timestamp("unban_at", { withTimezone: true }).notNull(),
+    /** The moderator, for the unban's audit-log reason. */
+    bannedBy: bigint("banned_by", { mode: "bigint" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: uniqueIndex("temp_bans_guild_user_idx").on(t.guildId, t.userId),
+    dueIdx: index("temp_bans_unban_at_idx").on(t.unbanAt),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Quick Responses — staff-authored canned replies triggered via a message
 // context-menu command ("right-click a message > Quick Response"), grouped
 // into categories for organization. Distinct from dmTemplates (which are

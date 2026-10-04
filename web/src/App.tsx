@@ -40,6 +40,7 @@ import Billing from "./pages/Billing";
 import Support from "./pages/Support";
 import AntiRaid from "./pages/AntiRaid";
 import AutoMod from "./pages/AutoMod";
+import Moderation from "./pages/Moderation";
 
 // Feedback is asked for in a sheet (components/FeedbackSheet.tsx) and stored,
 // rather than sent to Discord. Support.tsx still points at the server for
@@ -79,6 +80,7 @@ type View =
   | "verification"
   | "anti-raid"
   | "automod"
+  | "moderation"
   | "welcomer"
   | "role-menus"
   | "sticky"
@@ -129,6 +131,7 @@ const ICONS: Record<View, string> = {
   verification: "M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z",
   "anti-raid": "M12 2l9 5v6c0 5-4 9-9 10-5-1-9-5-9-10V7zM12 8v4M12 16h.01",
   automod: "M3 4h18l-7 8.5V19l-4 2v-8.5z",
+  moderation: "M14 4l6 6M11 7l6 6M8.5 9.5l6 6M12 10l-9 9M4 21h10",
   welcomer: "M15 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6",
   "role-menus": "M4 6h16M4 12h16M4 18h16M8 4v4M14 10v4M10 16v4",
   sticky: "M5 3h14v13l-7 5-7-5zM9 8h6",
@@ -201,6 +204,7 @@ const NAV_GROUPS: {
       { id: "verification", label: "Verification", hint: "Screen new members before they can talk" },
       { id: "anti-raid", label: "Anti-raid", hint: "Join-velocity detection and lockdown" },
       { id: "automod", label: "AutoMod", hint: "Discord's filters, editable from a phone" },
+      { id: "moderation", label: "Moderation", hint: "?ban, ?mute and the other text commands" },
     ],
   },
   {
@@ -701,6 +705,7 @@ export default function App() {
               {guildId && view === "automod" && (
                 <AutoMod guildId={guildId} focus={focus} onFocused={clearFocus} />
               )}
+              {guildId && view === "moderation" && <Moderation guildId={guildId} />}
               {guildId && view === "welcomer" && <Welcomer guildId={guildId} />}
               {guildId && view === "role-menus" && <RoleMenus guildId={guildId} />}
               {guildId && view === "sticky" && <StickyMessages guildId={guildId} />}

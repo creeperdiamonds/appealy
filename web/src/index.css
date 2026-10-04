@@ -1628,3 +1628,10 @@ input.input {
   border-radius: 50%; background: var(--accent); vertical-align: middle; flex: none;
 }
 
+
+/* A list without bullets or indent, for short command references (Moderation). */
+ul.plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

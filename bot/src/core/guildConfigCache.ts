@@ -79,6 +79,12 @@ export interface GuildConfigBundle {
   welcomer: typeof schema.welcomerConfigs.$inferSelect | null;
   /** Ban, timeout and restriction appeal settings — read on every guildMemberUpdate. */
   appeal: typeof schema.appealConfigs.$inferSelect | null;
+  /**
+   * Text moderation command settings (prefix, on/off, roles). Read for every
+   * message that could be a command. Optional because bundles cached before
+   * this field existed don't have it; absent means the defaults.
+   */
+  moderation?: typeof schema.moderationConfigs.$inferSelect | null;
   /** Channel IDs (as strings) in this guild that have an ACTIVE sticky
    * message. Almost always empty, which is exactly why caching it is so
    * effective — see stickyMessageService.ts. */
@@ -135,7 +141,7 @@ async function loadFromDatabase(guildId: bigint): Promise<GuildConfigBundle> {
   // One round-trip's worth of parallel queries rather than four sequential
   // awaits. postgres.js pipelines these over the same connection, so the
   // wall-clock cost is roughly one query, not four.
-  const [guild, antiRaid, verification, welcomer, appeal, stickies] = await Promise.all([
+  const [guild, antiRaid, verification, welcomer, appeal, stickies, moderation] = await Promise.all([
     db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) }),
     db.query.antiRaidConfigs.findFirst({ where: eq(schema.antiRaidConfigs.guildId, guildId) }),
     db.query.verificationConfigs.findFirst({
@@ -147,6 +153,7 @@ async function loadFromDatabase(guildId: bigint): Promise<GuildConfigBundle> {
       .select({ channelId: schema.stickyMessages.channelId })
       .from(schema.stickyMessages)
       .where(eq(schema.stickyMessages.guildId, guildId)),
+    db.query.moderationConfigs.findFirst({ where: eq(schema.moderationConfigs.guildId, guildId) }),
   ]);
 
   return {
@@ -156,6 +163,7 @@ async function loadFromDatabase(guildId: bigint): Promise<GuildConfigBundle> {
     welcomer: welcomer ?? null,
     appeal: appeal ?? null,
     stickyChannelIds: stickies.map((s) => s.channelId.toString()),
+    moderation: moderation ?? null,
     cachedAt: Date.now(),
   };
 }

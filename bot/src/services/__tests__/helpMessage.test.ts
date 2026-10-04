@@ -130,3 +130,11 @@ Deno.test("a full command list fits Discord's 6000-character embed limit", () =>
     embed.fields.reduce((n, f) => n + f.name.length + f.value.length, 0);
   assert(total <= 6000, `${total} characters`);
 });
+
+Deno.test("the moderation section uses the server's prefix, and disappears when they're off", () => {
+  const custom = helpMessage([], options({ prefix: "!" })).embeds[0].fields.at(-1)!;
+  assert(custom.value.includes("`!ban"), custom.value);
+  assert(!custom.value.includes("`?ban"));
+  const off = helpMessage([], options({ textCommands: false })).embeds[0].fields;
+  assert(!off.some((f) => f.name.startsWith("Moderation")));
+});

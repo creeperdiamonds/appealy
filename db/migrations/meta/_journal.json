@@ -127,6 +127,13 @@
       "when": 1790781119441,
       "tag": "0017_feedback_per_user",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791090684148,
+      "tag": "0018_moderation_settings_and_temp_bans",
+      "breakpoints": true
     }
   ]
 }

@@ -22,6 +22,10 @@ export interface HelpOptions {
   supportUrl: string;
   /** Command name → id, for mentions people can click. A name missing here is written as plain /name. */
   ids: ReadonlyMap<string, string>;
+  /** This server's prefix for the text moderation commands. Default "?". */
+  prefix?: string;
+  /** False when the server turned the text commands off: their section is left out. */
+  textCommands?: boolean;
 }
 
 /** Moving a server's setup and data. Grouped apart from the everyday admin commands. */
@@ -67,10 +71,10 @@ const TEXT = {
     data: "Moving your data",
     moderation: "Moderation (type these in chat)",
     moderationLines: [
-      "`?ban @user [reason]` · `?unban <id> [reason]`",
+      "`?ban [noappeal] @user [7d…] [reason]` · `?unban <id> [reason]`",
       "`?kick @user [reason]`",
       "`?mute @user [10m, 2h, 1d…] [reason]` · `?unmute @user`",
-      "Also works as `@Appealy ban @user …`. Banned and timed-out members get the appeal button, if appeals are set up.",
+      "Also works as `@Appealy ban @user …`. A length makes a ban temporary; `noappeal` skips the appeal button. Servers can change the prefix, limit these to roles or turn them off on the dashboard.",
     ],
     dashboard: "Open the dashboard",
     docs: "Documentation",
@@ -92,10 +96,10 @@ const TEXT = {
     data: "データの移行",
     moderation: "モデレーション（チャットに入力）",
     moderationLines: [
-      "`?ban @ユーザー [理由]` · `?unban <ID> [理由]`",
+      "`?ban [noappeal] @ユーザー [7d…] [理由]` · `?unban <ID> [理由]`",
       "`?kick @ユーザー [理由]`",
       "`?mute @ユーザー [10m, 2h, 1d…] [理由]` · `?unmute @ユーザー`",
-      "`@Appealy ban @ユーザー …` の形でも使えます。異議申し立てを設定していれば、BAN やタイムアウトされたメンバーに申し立てボタンが届きます。",
+      "`@Appealy ban @ユーザー …` の形でも使えます。長さを付けると期限付きの BAN になり、`noappeal` を付けると申し立てボタンは送られません。プレフィックスの変更、ロールの制限、無効化はダッシュボードでできます。",
     ],
     dashboard: "ダッシュボードを開く",
     docs: "ドキュメント",
@@ -152,8 +156,11 @@ export function helpMessage(definitions: readonly CreateApplicationCommand[], o:
         fields: [
           ...groups.flatMap(([name, defs]) => fields(name, defs.flatMap(lines))),
           // Text commands aren't application commands, so they aren't in
-          // `definitions`; written out here (services/modCommands.ts).
-          ...fields(t.moderation, t.moderationLines),
+          // `definitions`; written out here (services/modCommands.ts), with
+          // the server's own prefix.
+          ...(o.textCommands === false
+            ? []
+            : fields(t.moderation, t.moderationLines.map((l) => l.replaceAll("`?", "`" + (o.prefix ?? "?"))))),
         ],
       },
     ],

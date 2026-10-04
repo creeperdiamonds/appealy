@@ -9,10 +9,13 @@ import {
   type GuildInfo,
   MAX_TIMEOUT_MS,
   memberPermissions,
+  parseArgs,
   parseDuration,
   parseModCommand,
   parseUserId,
   PERM,
+  usage,
+  validPrefix,
 } from "../modCommands.ts";
 
 const BOT = 1538863299574112326n;
@@ -102,4 +105,58 @@ Deno.test("who may act on whom", () => {
   );
   assertEquals(checkAction(guild, "ban", { id: OWNER, roleIds: [] }, { id: MEMBER, roleIds: [ADMIN_ROLE] }, BOT), null);
   assertEquals(checkAction(guild, "unban", mod, { id: MEMBER, roleIds: null }, BOT), null, "not in the server: no rank");
+});
+
+Deno.test("a server's own prefix replaces ?, and the mention form still works", () => {
+  assertEquals(parseModCommand("!ban <@123456789012345678>", BOT, "!")?.action, "ban");
+  assertEquals(parseModCommand("a?kick 123456789012345678", BOT, "a?")?.action, "kick");
+  assertEquals(parseModCommand("?ban x", BOT, "!"), null, "the default prefix no longer counts");
+  assertEquals(parseModCommand(`<@${BOT}> ban x`, BOT, "!")?.action, "ban");
+  assertEquals(usage("kick", "!"), "`!kick @user [reason]`");
+});
+
+Deno.test("which prefixes are allowed", () => {
+  for (const ok of ["?", "!", "a?", "mod!", ">>", "$$$$$"]) assertEquals(validPrefix(ok), true, ok);
+  for (const bad of ["", "/", "@", "<", "#", ":", "a b", "toolong", "`", "a`"]) assertEquals(validPrefix(bad), false, bad);
+});
+
+Deno.test("ban arguments: noappeal in either place, an optional length, then the reason", () => {
+  assertEquals(parseArgs("ban", ["noappeal", "<@123456789012345678>", "7d", "scam", "links"]), {
+    target: "<@123456789012345678>",
+    noAppeal: true,
+    durationMs: 7 * 86_400_000,
+    reason: "scam links",
+  });
+  assertEquals(parseArgs("ban", ["123456789012345678", "NoAppeal", "raiding"]), {
+    target: "123456789012345678",
+    noAppeal: true,
+    durationMs: null,
+    reason: "raiding",
+  });
+  assertEquals(parseArgs("ban", ["<@123456789012345678>"]), {
+    target: "<@123456789012345678>",
+    noAppeal: false,
+    durationMs: null,
+    reason: null,
+  });
+});
+
+Deno.test("only ban and mute take a length; noappeal only means something on ban", () => {
+  assertEquals(parseArgs("mute", ["<@1>", "10m", "spam"]).durationMs, 600_000);
+  assertEquals(parseArgs("kick", ["<@1>", "10m"]).durationMs, null);
+  assertEquals(parseArgs("kick", ["<@1>", "10m"]).reason, "10m");
+  assertEquals(parseArgs("kick", ["noappeal", "<@1>"]).target, "noappeal");
+});
+
+Deno.test("a role limit from the dashboard, which the owner is never held to", () => {
+  const mod = { id: MOD, roleIds: [MOD_ROLE] };
+  const target = { id: MEMBER, roleIds: [MEMBER_ROLE] };
+  assertEquals(checkAction(guild, "ban", mod, target, BOT, [ADMIN_ROLE.toString()])?.reason, "missing_role");
+  assertEquals(checkAction(guild, "ban", mod, target, BOT, [MOD_ROLE.toString()]), null);
+  assertEquals(checkAction(guild, "ban", { id: OWNER, roleIds: [] }, target, BOT, [ADMIN_ROLE.toString()]), null);
+  assertEquals(
+    checkAction(guild, "ban", { id: MEMBER, roleIds: [MEMBER_ROLE] }, { id: MOD, roleIds: [] }, BOT, [MEMBER_ROLE.toString()])?.reason,
+    "missing_permission",
+    "a listed role still needs the Discord permission",
+  );
 });

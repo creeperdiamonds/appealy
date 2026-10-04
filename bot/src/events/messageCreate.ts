@@ -9,8 +9,8 @@
 //   1. DM application replies — route a DM into dmApplicationService if the
 //      author has an in-progress direct_message application.
 //   2. Moderation commands — ?ban, ?kick, ?mute… and "@Appealy ban …"
-//      (services/moderation.ts). Only messages starting with "?" or a mention
-//      go further than a one-character check.
+//      (services/moderation.ts). Messages starting with a letter or digit
+//      never get past a one-character check.
 //   3. Sticky message bump — count guild messages and repost the channel's
 //      sticky once it's been buried.
 //
@@ -42,7 +42,7 @@ import { getGuildConfig, stickyChannelHint } from "../core/guildConfigCache.ts";
 import { passesBanGateForMessage } from "../core/banGate.ts";
 import { deliverReply, hasPendingPrompts } from "../services/pendingPrompts.ts";
 import { logger } from "../utils/logger.ts";
-import { handleModerationCommand } from "../services/moderation.ts";
+import { handleModerationCommand, mightBeCommand } from "../services/moderation.ts";
 
 // Guilds whose config we've asked for but haven't received yet. Without
 // this, a cold guild receiving a burst of messages fires a cache-warm for
@@ -95,10 +95,12 @@ export function onMessageCreate(bot: AppealyBot) {
       return;
     }
 
-    // A moderation command. The first-character test keeps this free for
-    // ordinary chat; a command is never also a sticky bump.
+    // A moderation command. Each server picks its own prefix, so the cheap
+    // test is "doesn't start with a letter or digit" (mightBeCommand); only
+    // those messages read the server's settings, from cache. A command is
+    // never also a sticky bump.
     const content = message.content ?? "";
-    if (content.startsWith("?") || content.startsWith("<@")) {
+    if (mightBeCommand(content)) {
       try {
         const handled = await handleModerationCommand(bot, {
           id: message.id,

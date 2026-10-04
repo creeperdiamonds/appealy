@@ -11,10 +11,13 @@ import { eq, and } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { logger } from "../utils/logger.ts";
+import { takeAppealSuppression } from "../services/appealSuppression.ts";
 import { CUSTOM_ID_NAMESPACES, encodeCustomId } from "../../../shared/types/index.ts";
 
 export function onGuildBanAdd(bot: AppealyBot) {
   return async (payload: { guildId: bigint; user: { id: bigint; username?: string } }) => {
+    // "?ban noappeal" (services/appealSuppression.ts).
+    if (takeAppealSuppression(payload.guildId, payload.user.id)) return;
     try {
       await sendBanAppealDm(bot, payload.guildId, payload.user.id);
     } catch (err) {

@@ -6,6 +6,8 @@
 import type { AppealyBot } from "../core/client.ts";
 import { onReady } from "./ready.ts";
 import { onGuildBanAdd } from "./guildBanAdd.ts";
+import { cancelUnban } from "../services/tempBans.ts";
+import { logger } from "../utils/logger.ts";
 import { onEntitlementEvent } from "../core/entitlements.ts";
 import { onGuildCreate } from "./guildCreate.ts";
 import { onGuildDelete } from "./guildDelete.ts";
@@ -41,6 +43,14 @@ export function registerEventHandlers(bot: AppealyBot) {
   bot.events.ready = (payload) => onReady(bot, payload);
   // (user, guildId) now, not one payload object.
   bot.events.guildBanAdd = (user, guildId) => banAdd({ guildId, user });
+  // Any unban, from a command, an accepted appeal or Discord's own menu,
+  // cancels a pending temporary-ban end, so a later permanent ban isn't lifted
+  // by an old timer (services/tempBans.ts).
+  bot.events.guildBanRemove = (user, guildId) => {
+    cancelUnban(guildId, user.id).catch((err) =>
+      logger.warn("Couldn't clear a temporary ban after an unban", { guildId: guildId.toString(), error: String(err) })
+    );
+  };
 
   // ⚠️ Renewals emit NO event. ENTITLEMENT_UPDATE fires only when a
   // subscription ends, carrying ends_at. Silence means healthy, not expired —

@@ -44,6 +44,7 @@ import { withRedis } from "./redis.ts";
 import { pruneL1 } from "./guildConfigCache.ts";
 import { publishDuePolls } from "../services/pollService.ts";
 import { endDueGiveaways } from "../services/giveawayService.ts";
+import { unbanDueTempBans } from "../services/tempBans.ts";
 import { logger } from "../utils/logger.ts";
 
 const TICK_MS = 30_000;
@@ -119,6 +120,7 @@ async function runTick(bot: AppealyBot) {
     withLock("giveaways:end", 25, () => endDueGiveaways(bot)),
     withLock("jobs:drain", 25, () => drainScheduledJobs(bot)),
     withLock("history:enqueue", 25, () => enqueueHistoryPurges()),
+    withLock("tempbans:unban", 25, () => unbanDueTempBans(bot)),
   ]);
 
   const pruned = pruneL1();

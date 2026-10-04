@@ -10,6 +10,7 @@ import type { AppealyBot } from "../core/client.ts";
 import { deployment, env } from "../core/env.ts";
 import { defer, finish } from "../utils/interactionResponse.ts";
 import { helpMessage } from "../services/helpMessage.ts";
+import { getGuildConfig } from "../core/guildConfigCache.ts";
 import { logger } from "../utils/logger.ts";
 
 /**
@@ -36,6 +37,9 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   // By the time anyone runs /help, both have long finished loading.
   const { commandDefinitions } = await import("./index.ts");
   const guildId = interaction.guildId;
+  // The server's text-command settings, so /help shows its own prefix. A
+  // failed read only costs that: the default is shown instead.
+  const moderation = guildId ? await getGuildConfig(guildId).then((c) => c.moderation ?? null).catch(() => null) : null;
 
   await finish(
     bot,
@@ -48,6 +52,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       docsUrl: DOCS_URL,
       supportUrl: deployment.supportUrl || (deployment.mode === "platform" ? PLATFORM_SUPPORT_URL : ""),
       ids: await commandIds(bot),
+      prefix: moderation?.prefix,
+      textCommands: moderation ? moderation.textCommandsEnabled : true,
     }),
   );
 }

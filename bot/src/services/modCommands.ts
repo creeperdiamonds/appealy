@@ -16,7 +16,19 @@
 // Free of env and network so it can be tested; services/moderation.ts runs
 // the commands.
 
-export const PREFIX = "?";
+/** The prefix a server gets until it picks another on the dashboard. */
+export const DEFAULT_PREFIX = "?";
+
+/**
+ * Whether a prefix can be used: 1-5 characters, no spaces, and not starting
+ * with something Discord gives its own meaning ("/" opens the command
+ * picker, "@" "<" "#" ":" start mentions, channels and emoji). Mirrored by
+ * the dashboard's check in api/src/routes/moderation.ts.
+ */
+export function validPrefix(prefix: string): boolean {
+  // Backticks too: the prefix is shown inside `code` in replies and /help.
+  return /^[^\s\/@<#:`][^\s`]{0,4}$/.test(prefix);
+}
 
 export type ModAction = "ban" | "unban" | "kick" | "mute" | "unmute";
 
@@ -41,11 +53,11 @@ export interface ParsedCommand {
  * common path: anything not starting with the prefix or a mention is
  * rejected before any splitting.
  */
-export function parseModCommand(content: string, botId: bigint): ParsedCommand | null {
+export function parseModCommand(content: string, botId: bigint, prefix = DEFAULT_PREFIX): ParsedCommand | null {
   const text = content.trim();
   let rest: string;
-  if (text.startsWith(PREFIX)) {
-    rest = text.slice(PREFIX.length);
+  if (text.startsWith(prefix)) {
+    rest = text.slice(prefix.length);
   } else if (text.startsWith("<@")) {
     const m = /^<@!?(\d{17,20})>\s*/.exec(text);
     if (!m || BigInt(m[1]) !== botId) return null;
@@ -103,6 +115,50 @@ export function formatDuration(ms: number): string {
   return parts.join(" ") || "0s";
 }
 
+/** The longest ban with an end: a year. Anything longer is a permanent ban. */
+export const MAX_TEMPBAN_MS = 365 * UNIT_MS.d;
+
+export interface ParsedArgs {
+  /** The user token as typed, before parseUserId. */
+  target: string | undefined;
+  /** "noappeal": ban without sending the appeal button. Ban only. */
+  noAppeal: boolean;
+  /** A length for mute, or for ban (a temporary ban). Null when none was given. */
+  durationMs: number | null;
+  reason: string | null;
+}
+
+/**
+ * Splits a command's words into who, how long and why:
+ *   ban    [noappeal] @user [duration] [reason]
+ *   mute   @user [duration] [reason]
+ *   others @user [reason]
+ * "noappeal" is also accepted straight after the user, because people type
+ * it in either place.
+ */
+export function parseArgs(action: ModAction, args: string[]): ParsedArgs {
+  let words = [...args];
+  let noAppeal = false;
+  const isNoAppeal = (w: string | undefined) => w?.toLowerCase() === "noappeal";
+  if (action === "ban" && isNoAppeal(words[0])) {
+    noAppeal = true;
+    words = words.slice(1);
+  }
+  const target = words[0];
+  words = words.slice(1);
+  if (action === "ban" && isNoAppeal(words[0])) {
+    noAppeal = true;
+    words = words.slice(1);
+  }
+  let durationMs: number | null = null;
+  if (action === "ban" || action === "mute") {
+    durationMs = parseDuration(words[0]);
+    if (durationMs !== null) words = words.slice(1);
+  }
+  const reason = words.join(" ").slice(0, 400) || null;
+  return { target, noAppeal, durationMs, reason };
+}
+
 // ------------------------------------------------------------ permissions ----
 
 export const PERM = {
@@ -150,6 +206,7 @@ export function topPosition(guild: GuildInfo, roleIds: bigint[]): number {
 }
 
 export type Refusal =
+  | { reason: "missing_role" }
   | { reason: "missing_permission"; permission: string }
   | { reason: "self" }
   | { reason: "owner" }
@@ -171,7 +228,16 @@ export function checkAction(
   actor: { id: bigint; roleIds: bigint[] },
   target: { id: bigint; roleIds: bigint[] | null },
   botId: bigint,
+  /** From the dashboard. Empty: anyone with the permission. The owner is never limited. */
+  allowedRoleIds: readonly string[] = [],
 ): Refusal | null {
+  if (
+    allowedRoleIds.length > 0 &&
+    actor.id !== guild.ownerId &&
+    !actor.roleIds.some((r) => allowedRoleIds.includes(r.toString()))
+  ) {
+    return { reason: "missing_role" };
+  }
   const need = NEEDS[action];
   if (!(memberPermissions(guild, actor.id, actor.roleIds) & need.bit)) {
     return { reason: "missing_permission", permission: need.name };
@@ -187,6 +253,8 @@ export function checkAction(
 
 export function refusalText(r: Refusal): string {
   switch (r.reason) {
+    case "missing_role":
+      return "This server only lets certain roles use moderation commands.";
     case "missing_permission":
       return `You need the **${r.permission}** permission for that.`;
     case "self":
@@ -200,10 +268,14 @@ export function refusalText(r: Refusal): string {
   }
 }
 
-export const USAGE: Record<ModAction, string> = {
-  ban: "`?ban @user [reason]`",
-  unban: "`?unban <user id> [reason]`",
-  kick: "`?kick @user [reason]`",
-  mute: "`?mute @user [duration, e.g. 10m, 2h, 1d] [reason]`",
-  unmute: "`?unmute @user [reason]`",
-};
+/** How to use each command, with the server's own prefix. */
+export function usage(action: ModAction, prefix = DEFAULT_PREFIX): string {
+  const p = prefix;
+  return {
+    ban: `\`${p}ban [noappeal] @user [duration, e.g. 7d] [reason]\``,
+    unban: `\`${p}unban <user id> [reason]\``,
+    kick: `\`${p}kick @user [reason]\``,
+    mute: `\`${p}mute @user [duration, e.g. 10m, 2h, 1d] [reason]\``,
+    unmute: `\`${p}unmute @user [reason]\``,
+  }[action];
+}
