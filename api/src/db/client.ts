@@ -7,7 +7,20 @@ import * as platformBanSchema from "../../../shared/schema/platformBans.ts";
 import * as outcomeSchema from "../../../shared/schema/outcomes.ts";
 import { env } from "../env.ts";
 
-const queryClient = postgres(env.DATABASE_URL, { max: 15 });
+// Sized to the database, not to the traffic. The hosted database is a
+// db-f1-micro: about 25 connections, a few reserved for admins. This pool and
+// the bot's (bot/src/db/client.ts) share them, and during a deploy the old and
+// new revisions both hold theirs for a moment. At 15 here and 10 in the bot
+// the two alone could take every slot, and on 2 Oct 2026 they did: an hour of
+// "remaining connection slots are reserved" and a dashboard that wouldn't load.
+// 6 + 5, doubled during a rollout, is 22 at most. Queries here take
+// milliseconds, so 6 is plenty at this size; idle connections close after
+// 20 s so a quiet API doesn't sit on slots it isn't using.
+const queryClient = postgres(env.DATABASE_URL, {
+  max: 6,
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
 // Merged explicitly rather than relying on schema.ts's `export *`.
 //
 // outcomes.ts imports `forms` and `submissions` back from schema.ts, so the two

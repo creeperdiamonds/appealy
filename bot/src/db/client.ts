@@ -8,8 +8,10 @@ import * as platformBanSchema from "../../../shared/schema/platformBans.ts";
 import * as outcomeSchema from "../../../shared/schema/outcomes.ts";
 import { env } from "../core/env.ts";
 
+// Shares the database's ~25 connections with the API; see the sizing note in
+// api/src/db/client.ts before raising this.
 const queryClient = postgres(env.DATABASE_URL, {
-  max: 10,
+  max: 5,
   idle_timeout: 20,
   connect_timeout: 10,
 });

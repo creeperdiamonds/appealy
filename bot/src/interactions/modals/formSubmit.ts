@@ -11,6 +11,7 @@
 //      custom template (if configured) or a sane default.
 
 import { eq } from "drizzle-orm";
+import { describeDiscordError } from "../../utils/discordError.ts";
 import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 import { getGuild } from "../../core/guildLookup.ts";
 
@@ -433,7 +434,19 @@ export async function postReviewEmbedForSubmission(
         content: `Staff discussion thread for <@${applicantId}>'s application. Use the Accept/Deny buttons on the original post to record a decision.`,
       });
     } catch (err) {
-      logger.error("Failed to spawn staff thread", { submissionId: submission.id, error: String(err) });
+      // String(err) alone is "Failed to send request to discord", which says
+      // nothing about why. Discord's code says which: 50013 is a missing
+      // permission (Create Public Threads / Send Messages in Threads in the
+      // log channel), 50024 a channel that can't hold threads.
+      const info = describeDiscordError(err);
+      logger.error("Failed to spawn staff thread", {
+        submissionId: submission.id,
+        guildId: guildId.toString(),
+        logChannelId: form.logChannelId.toString(),
+        status: info.status,
+        code: info.code,
+        detail: info.message,
+      });
     }
   }
 
