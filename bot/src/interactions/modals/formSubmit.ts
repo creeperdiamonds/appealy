@@ -410,7 +410,21 @@ export async function postReviewEmbedForSubmission(
       ],
     });
   } catch (err) {
-    logger.error("Failed to post review embed", { formId: form.id, submissionId: submission.id, error: String(err) });
+    // Same reasoning as the staff-thread failure below: String(err) is only
+    // "Failed to send request to discord", which never says whether the log
+    // channel is gone (10003), hidden from the bot (50001) or missing a
+    // permission (50013). Without the review post there are no Accept/Deny
+    // buttons, so this submission cannot be decided until it is posted.
+    const info = describeDiscordError(err);
+    logger.error("Failed to post review embed", {
+      formId: form.id,
+      submissionId: submission.id,
+      guildId: guildId.toString(),
+      logChannelId: form.logChannelId.toString(),
+      status: info.status,
+      code: info.code,
+      detail: info.message,
+    });
     return;
   }
 
