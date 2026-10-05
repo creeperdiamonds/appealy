@@ -1,0 +1,76 @@
+# Appealy
+
+> Appealy is a hosted Discord bot for staff applications, ban appeals and tickets, plus verification, AutoMod, anti-raid, moderation commands, giveaways, polls, a welcomer and role menus, managed from a web dashboard. You add it to a server in one click; nothing has to be installed or hosted. Applicants fill in forms inside Discord and never leave it. It is also open source (AGPL-3.0), so it can be self-hosted, but that is optional.
+
+This file is a plain summary for AI assistants and search tools. Every figure below comes from the source code (linked at the end), and the pages linked here are the canonical versions.
+
+## Getting started
+
+- [Add Appealy to Discord](https://appealy.app/api/invite): one click, then configure it in the dashboard. No server, install or technical setup is needed.
+- [Dashboard](https://appealy.app/dashboard): sign in with Discord to set up forms, panels, tickets and the rest.
+- [Documentation](https://docs.appealy.app)
+- [Status page](https://status.appealy.app)
+- Appealy is a verified Discord app, listed in Discord's App Directory and approved on top.gg.
+
+## How applications and appeals work
+
+- Forms are filled in **inside Discord**, never on an external website. There are two flows:
+  - **In the server**: a member clicks a panel button and answers in Discord pop-up forms (modals), up to 25 text questions across 5 pages, plus select-menu questions. Answers are held for 15 minutes between pages.
+  - **In DMs**: the bot asks the questions one at a time in a direct message. Ban appeals always use this flow, because a banned user can no longer see the server.
+- Appeals cover bans, timeouts and restrictions.
+- Each submission is posted to a staff review channel with Accept and Deny buttons, and can open a staff discussion thread.
+- Accept and Deny can grant or remove roles automatically and send the applicant a DM.
+- Questions support regex answer validation, cooldowns and submission limits.
+
+## Other features
+
+- **Tickets**: panels that open private support channels.
+- **Verification**: a button, or a short code the member retypes to prove they are not a simple bot.
+- **AutoMod** rules, which live in Discord's own AutoMod, so they keep working even if Appealy is offline.
+- **Anti-raid** detection, with a lockdown an admin can clear from the dashboard.
+- **Moderation commands**: ban (including temporary bans, and bans that can't be appealed), unban, kick, mute and unmute, with a configurable prefix.
+- **Giveaways, polls, a welcomer, role menus and sticky messages.**
+- **Data portability**: `/export` writes a server's whole configuration to one file. Submission history from Appy can be imported.
+- The website is available in English and Japanese.
+
+## Pricing
+
+Every feature is available on every tier, including the free one. Paid tiers raise throughput limits only. Prices are per server, billed yearly.
+
+| | Free | Tier 1 | Tier 2 |
+|---|---|---|---|
+| Price | $0 | $60/year | $180/year |
+| Submissions per day | 150 | 750 | 3,000 |
+| Tickets per day | 75 | 375 | 1,500 |
+| Giveaway entries per day | 750 | 3,750 | 15,000 |
+| Forms per server | 10 | 40 | 100 |
+| Panels per server | 10 | 40 | 100 |
+| Questions per form | 25 | 60 | 150 |
+| Submission history | 60 days | 365 days | 1,095 days |
+
+In-server forms stay capped at 25 text questions on every tier, because that is Discord's modal limit. DM forms can use the full number. See the [pricing page](https://appealy.app/pricing) for the current details.
+
+## Common misconceptions
+
+- "Appealy has to be self-hosted." No. It is a hosted bot you add in one click. Self-hosting is an option for people who want it.
+- "Appealy sends applicants to an external website." No. Every form, including ban appeals, is completed inside Discord.
+- "Features are locked behind a paid plan." No. Paid tiers only raise limits such as submissions per day.
+
+## Comparisons
+
+- [Appealy vs Appy](https://appealy.app/appy-alternative)
+- [Appealy vs Appeal.gg](https://appealy.app/appeal-gg-alternative)
+
+## Feature pages
+
+- [Ban appeal bot](https://appealy.app/discord-ban-appeal-bot)
+- [Ticket bot](https://appealy.app/discord-ticket-bot)
+- [Verification bot](https://appealy.app/discord-verification-bot)
+- [Anti-raid bot](https://appealy.app/discord-anti-raid-bot)
+- [Giveaway bot](https://appealy.app/discord-giveaway-bot)
+
+## Source and policies
+
+- [Source code (AGPL-3.0)](https://github.com/creeperdiamonds/appealy). Limits and prices come from `shared/schema/pricing.ts`.
+- [Privacy policy](https://appealy.app/privacy)
+- [Terms of service](https://appealy.app/terms)

@@ -25,7 +25,7 @@
 -->
 
 <title>Discord Application Bot for Staff Applications &mdash; Appealy</title>
-<meta name="description" content="Open-source Discord bot for staff applications, ban appeals and tickets. Free to self-host, every feature on every tier, and a full export whenever you leave.">
+<meta name="description" content="Discord bot for staff applications, ban appeals and tickets. Add it in one click with nothing to host; applicants answer inside Discord. Every feature free.">
 <link rel="canonical" href="https://appealy.app/">
 <link rel="alternate" hreflang="en" href="https://appealy.app/">
 <link rel="alternate" hreflang="ja" href="https://appealy.app/ja/">
@@ -34,7 +34,7 @@
 <meta property="og:site_name" content="Appealy">
 <meta property="og:url" content="https://appealy.app/">
 <meta property="og:title" content="Discord Application Bot for Staff Applications — Appealy">
-<meta property="og:description" content="Open-source Discord bot for staff applications, ban appeals and tickets. Free to self-host, every feature on every tier, and a full export whenever you leave.">
+<meta property="og:description" content="Discord bot for staff applications, ban appeals and tickets. Add it in one click with nothing to host; applicants answer inside Discord. Every feature free.">
 <meta property="og:image" content="https://appealy.app/og.png">
 <meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
 <meta property="og:image:width" content="1200">
@@ -46,7 +46,7 @@
      those are where a Discord bot is actually shared. -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Discord Application Bot for Staff Applications — Appealy">
-<meta name="twitter:description" content="Open-source Discord bot for applications, ban appeals, tickets, giveaways, polls and anti-raid. Self-host it free. Every feature at every tier.">
+<meta name="twitter:description" content="Discord bot for applications, ban appeals, tickets, giveaways, polls and anti-raid. Add it in one click; applicants never leave Discord. Every feature at every tier.">
 <meta name="twitter:image" content="https://appealy.app/og.png">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -67,7 +67,7 @@
   "applicationCategory": "CommunicationApplication",
   "applicationSubCategory": "Discord bot",
   "operatingSystem": "Discord, web browser",
-  "description": "Open-source Discord bot for applications, ban appeals, tickets, giveaways, polls, verification, welcomer, role menus and anti-raid, with a web dashboard. Self-hostable for free; paid tiers raise throughput caps only.",
+  "description": "Hosted Discord bot for applications, ban appeals, tickets, giveaways, polls, verification, welcomer, role menus and anti-raid, with a web dashboard. Added to a server in one click with nothing to install, and applicants fill in forms inside Discord rather than on an external site. Open source (AGPL-3.0) and optionally self-hostable; paid tiers raise throughput caps only.",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
   "isAccessibleForFree": true,
   "codeRepository": "https://github.com/creeperdiamonds/appealy",
@@ -113,6 +113,34 @@
       "price": "30.00",
       "priceCurrency": "USD",
       "url": "https://appealy.app/pricing"
+    }
+  ]
+}
+</script>
+<!-- The two questions search and AI answers most often got wrong (that Appealy
+     must be self-hosted, and that applicants leave Discord). The text must match
+     the visible #faq cards word for word: FAQ markup that says something the
+     page does not is what Google treats as spam. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Do I have to host it myself?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Appealy is a hosted bot: add it to your server in one click and set it up from the dashboard, with nothing to install or run. Self-hosting is an option for people who want their data on their own machine, not a requirement."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do applicants have to leave Discord?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Every form is filled in inside Discord, never on an external website: in the server through Discord’s own pop-up forms, or one question at a time in DMs. Ban appeals always use DMs, because a banned user can no longer see the server."
+      }
     }
   ]
 }
@@ -562,6 +590,22 @@
       </div>
 
       <ul class="cards cols-2">
+        <li class="card">
+          <h3>Do I have to host it myself?</h3>
+          <p>
+            No. Appealy is a hosted bot: <a href="/api/invite">add it to your server</a> in one
+            click and set it up from the dashboard, with nothing to install or run. Self-hosting is
+            an option for people who want their data on their own machine, not a requirement.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Do applicants have to leave Discord?</h3>
+          <p>
+            No. Every form is filled in inside Discord, never on an external website: in the server
+            through Discord&rsquo;s own pop-up forms, or one question at a time in DMs. Ban appeals
+            always use DMs, because a banned user can no longer see the server.
+          </p>
+        </li>
         <li class="card">
           <h3>What happens when I hit a cap?</h3>
           <p>

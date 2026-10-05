@@ -21,7 +21,7 @@
 -->
 
 <title>スタッフ募集に使える Discord 応募ボット &mdash; Appealy</title>
-<meta name="description" content="スタッフ募集、BAN 異議申し立て、チケットに対応するオープンソースの Discord ボット。セルフホストは無料、全機能をすべてのティアで利用でき、やめるときは全データをエクスポートできます。">
+<meta name="description" content="スタッフ募集、BAN 異議申し立て、チケットに対応する Discord ボット。ワンクリックで追加でき、サーバーの用意は不要。応募者は Discord の中で回答します。全機能無料、オープンソース。">
 <link rel="canonical" href="https://appealy.app/ja/">
 <link rel="alternate" hreflang="en" href="https://appealy.app/">
 <link rel="alternate" hreflang="ja" href="https://appealy.app/ja/">
@@ -30,14 +30,14 @@
 <meta property="og:site_name" content="Appealy">
 <meta property="og:url" content="https://appealy.app/ja/">
 <meta property="og:title" content="スタッフ募集に使える Discord 応募ボット — Appealy">
-<meta property="og:description" content="スタッフ募集、BAN 異議申し立て、チケットに対応するオープンソースの Discord ボット。セルフホストは無料、全機能をすべてのティアで利用でき、やめるときは全データをエクスポートできます。">
+<meta property="og:description" content="スタッフ募集、BAN 異議申し立て、チケットに対応する Discord ボット。ワンクリックで追加でき、サーバーの用意は不要。応募者は Discord の中で回答します。全機能無料、オープンソース。">
 <meta property="og:image" content="https://appealy.app/og.png">
 <meta property="og:image:alt" content="Appealy — Discord サーバーのための応募・BAN 異議申し立て・チケット。">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="スタッフ募集に使える Discord 応募ボット — Appealy">
-<meta name="twitter:description" content="応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、アンチレイドに対応するオープンソースの Discord ボット。セルフホストは無料。全機能をすべてのティアで。">
+<meta name="twitter:description" content="応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、アンチレイドに対応する Discord ボット。ワンクリックで追加でき、応募者は Discord から離れません。全機能をすべてのティアで。">
 <meta name="twitter:image" content="https://appealy.app/og.png">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -59,7 +59,7 @@
   "applicationSubCategory": "Discord bot",
   "operatingSystem": "Discord, web browser",
   "inLanguage": "ja",
-  "description": "応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、認証、ウェルカム、ロールメニュー、アンチレイドに対応するオープンソースの Discord ボット。Web ダッシュボード付き。セルフホストは無料で、有料ティアが上げるのは処理上限だけです。",
+  "description": "応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、認証、ウェルカム、ロールメニュー、アンチレイドに対応するホスト型の Discord ボット。Web ダッシュボード付き。ワンクリックでサーバーに追加でき、インストールは不要です。応募者は外部サイトではなく Discord の中でフォームに回答します。オープンソース（AGPL-3.0）で、セルフホストも選べます。有料ティアが上げるのは処理上限だけです。",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
   "isAccessibleForFree": true,
   "codeRepository": "https://github.com/creeperdiamonds/appealy",
@@ -105,6 +105,35 @@
       "price": "30.00",
       "priceCurrency": "USD",
       "url": "https://appealy.app/ja/pricing"
+    }
+  ]
+}
+</script>
+<!-- The two questions search and AI answers most often got wrong (that Appealy
+     must be self-hosted, and that applicants leave Discord). The text must match
+     the visible #faq cards word for word: FAQ markup that says something the
+     page does not is what Google treats as spam. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "inLanguage": "ja",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "自分でホストする必要はありますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "いいえ。Appealy はホスト型のボットです。ワンクリックでサーバーに追加し、ダッシュボードから設定するだけで、インストールや運用は不要です。セルフホストは、データを自分のマシンに置きたい人のための選択肢であって、必須ではありません。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "応募者は Discord から離れる必要がありますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "いいえ。すべてのフォームは外部サイトではなく Discord の中で回答します。サーバー内では Discord 標準のポップアップフォームで、DM では 1 問ずつ回答します。BAN 異議申し立ては常に DM を使います。BAN されたユーザーはサーバーを見られなくなるためです。"
+      }
     }
   ]
 }
@@ -548,6 +577,22 @@
       </div>
 
       <ul class="cards cols-2">
+        <li class="card">
+          <h3>自分でホストする必要はありますか？</h3>
+          <p>
+            いいえ。Appealy はホスト型のボットです。ワンクリックで<a href="/api/invite">サーバーに追加</a>し、
+            ダッシュボードから設定するだけで、インストールや運用は不要です。セルフホストは、データを
+            自分のマシンに置きたい人のための選択肢であって、必須ではありません。
+          </p>
+        </li>
+        <li class="card">
+          <h3>応募者は Discord から離れる必要がありますか？</h3>
+          <p>
+            いいえ。すべてのフォームは外部サイトではなく Discord の中で回答します。サーバー内では
+            Discord 標準のポップアップフォームで、DM では 1 問ずつ回答します。BAN 異議申し立ては
+            常に DM を使います。BAN されたユーザーはサーバーを見られなくなるためです。
+          </p>
+        </li>
         <li class="card">
           <h3>上限に達したらどうなりますか？</h3>
           <p>
