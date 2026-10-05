@@ -5,32 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <!--
-  site/ja/pay.html — Japanese translation of site/pay.html.
+  site/ja/pay.html
 
-  Paddle's default payment link. A Paddle account cannot create transactions
-  at all until one is set, and the page it points at has to include Paddle.js
-  on an approved domain.
-
-  There is no checkout code here on purpose: Paddle.js sees the ?_ptxn=txn_...
-  that Paddle appends and opens the checkout itself. All this page does is
-  load it with the right token.
-
-  The token is fetched from /api/paddle/config rather than written in, because
-  site/ is copied into the image as-is — a token in this file would freeze at
-  build time, and sandbox and production use different ones.
-
-  NOTE: Paddle's default payment link can only point at ONE URL. That URL is
-  /pay (the English page). This file exists so a Japanese-speaking buyer who
-  lands here sees Japanese; it is not wired into Paddle and will not receive
-  the ?_ptxn= redirect unless the default payment link is changed to it.
-
-  The script is identical to the English page's apart from the user-facing
-  strings, which are translated. site.css is referenced as /site.css because
-  this file sits one directory deeper.
+  Japanese twin of site/pay.html. Paddle is gone, and Creem, the merchant of
+  record being applied to, is not approved yet, so for now this only says that
+  paid plans are not on sale. When a provider is approved, its checkout goes
+  in site/pay.html and this page follows.
 -->
 
 <title>お支払い &mdash; Appealy</title>
-<meta name="description" content="Appealy のお支払い手続きです。決済は Paddle が安全に処理します。">
+<meta name="description" content="Appealy の有料プランはまだ販売していません。すべての機能を無料で使えます。">
 <link rel="canonical" href="https://appealy.app/ja/pay">
 <link rel="alternate" hreflang="en" href="https://appealy.app/pay">
 <link rel="alternate" hreflang="ja" href="https://appealy.app/ja/pay">
@@ -40,14 +24,14 @@
 <meta property="og:site_name" content="Appealy">
 <meta property="og:url" content="https://appealy.app/ja/pay">
 <meta property="og:title" content="お支払い — Appealy">
-<meta property="og:description" content="Appealy のお支払い手続きです。決済は Paddle が安全に処理します。">
+<meta property="og:description" content="Appealy の有料プランはまだ販売していません。すべての機能を無料で使えます。">
 <meta property="og:image" content="https://appealy.app/og.png">
 <meta property="og:image:alt" content="Appealy — Discord サーバーのための応募・BAN 異議申し立て・チケット。">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="お支払い — Appealy">
-<meta name="twitter:description" content="Appealy のお支払い手続きです。決済は Paddle が安全に処理します。">
+<meta name="twitter:description" content="Appealy の有料プランはまだ販売していません。すべての機能を無料で使えます。">
 <meta name="twitter:image" content="https://appealy.app/og.png">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -87,20 +71,18 @@
   <div class="wrap prose">
 
     <p class="eyebrow">お支払い</p>
-    <h1>お支払い画面を開いています</h1>
+    <h1>お支払いはまだ受け付けていません</h1>
 
-    <p class="lede" id="status">
-      少々お待ちください &mdash; お支払いフォームを読み込んでいます。
+    <p class="lede">
+      有料プランはまだ販売していません。アカウントの承認後、Appealy の販売事業者（merchant of record）
+      である Creem が決済を処理します。
     </p>
 
-    <p class="dim" id="detail">
-      決済は、Appealy の記録上の販売者である Paddle が処理します。カード情報は Paddle の
-      フォームに入力され、こちらに届くことはありません。
+    <p class="dim">
+      料金は一切請求されていません。すべての機能は無料プランですでに使えます &mdash;
+      <a href="/dashboard/">ダッシュボードに戻る</a>。お問い合わせ:
+      <a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a>。
     </p>
-
-    <noscript>
-      <p class="lede">このページには JavaScript が必要です。お支払いフォームがブラウザー上で動作するためです。</p>
-    </noscript>
 
   </div>
 </main>
@@ -165,62 +147,5 @@
   </div>
 </footer>
 
-
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
-<script>
-  // Paddle appends ?_ptxn=txn_... to this URL. Paddle.js picks it up on its
-  // own once initialised, so there is nothing to call: the checkout opens.
-  (async function () {
-    var status = document.getElementById("status");
-    var detail = document.getElementById("detail");
-    var hasTransaction = window.location.search.indexOf("_ptxn=") !== -1;
-
-    function fail(message) {
-      status.textContent = message;
-      detail.innerHTML =
-        '請求は行われていません。<a href="/dashboard/">ダッシュボード</a>に戻ってもう一度お試しいただくか、' +
-        '<a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a> までメールでご連絡ください。';
-    }
-
-    try {
-      var res = await fetch("/api/paddle/config", { headers: { accept: "application/json" } });
-      if (!res.ok) throw new Error("config " + res.status);
-      var cfg = await res.json();
-
-      if (cfg.payments && cfg.payments.reason === "awaiting_approval") {
-        // The hosted platform before the payment account is approved. The
-        // dashboard disables checkout then, so this is a direct visit.
-        status.textContent = "有料プランはまだ販売していません。";
-        detail.innerHTML =
-          "Appealy の決済アカウントは現在承認待ちのため、お支払い機能は停止しており、請求は行われていません。" +
-          'すべての機能は無料プランでそのままご利用いただけます。<a href="/dashboard/">ダッシュボードに戻る</a>';
-        return;
-      }
-
-      if (!cfg.configured) {
-        // The account exists but this deployment has no token yet. Say so
-        // plainly rather than leaving a spinner that never resolves.
-        fail("このデプロイではお支払い機能がまだ設定されていません。");
-        return;
-      }
-
-      if (cfg.environment === "sandbox") Paddle.Environment.set("sandbox");
-      Paddle.Initialize({ token: cfg.token });
-
-      if (!hasTransaction) {
-        // Someone opened /pay directly. There is no basket to show them.
-        status.textContent = "開くお支払い手続きがありません。";
-        detail.innerHTML =
-          '<a href="/dashboard/">ダッシュボード</a>から始めてください。そこでプランを選ぶことで、' +
-          'このページが開くお支払い手続きが作成されます。';
-        return;
-      }
-
-      status.textContent = "お支払い画面を開きました。何も表示されない場合は、ポップアップを許可してページを再読み込みしてください。";
-    } catch (err) {
-      fail("お支払いフォームを読み込めませんでした。");
-    }
-  })();
-</script>
 </body>
 </html>

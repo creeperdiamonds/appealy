@@ -7,21 +7,15 @@
 <!--
   site/pay.html
 
-  Paddle's default payment link. A Paddle account cannot create transactions
-  at all until one is set, and the page it points at has to include Paddle.js
-  on an approved domain.
-
-  There is no checkout code here on purpose: Paddle.js sees the ?_ptxn=txn_...
-  that Paddle appends and opens the checkout itself. All this page does is
-  load it with the right token.
-
-  The token is fetched from /api/paddle/config rather than written in, because
-  site/ is copied into the image as-is — a token in this file would freeze at
-  build time, and sandbox and production use different ones.
+  Where checkout will live. Paddle is gone, and Creem, the merchant of record
+  being applied to, is not approved yet, so for now this only says that paid
+  plans are not on sale. The dashboard already switches checkout off while the
+  payment account awaits approval, so this is reached only by a direct visit.
+  When a provider is approved, its checkout goes here.
 -->
 
 <title>Checkout — Appealy</title>
-<meta name="description" content="Secure checkout for Appealy, handled by Paddle.">
+<meta name="description" content="Paid plans for Appealy are not on sale yet. Every feature is free.">
 <link rel="canonical" href="https://appealy.app/pay">
 <link rel="alternate" hreflang="en" href="https://appealy.app/pay">
 <link rel="alternate" hreflang="ja" href="https://appealy.app/ja/pay">
@@ -31,14 +25,14 @@
 <meta property="og:site_name" content="Appealy">
 <meta property="og:url" content="https://appealy.app/pay">
 <meta property="og:title" content="Checkout — Appealy">
-<meta property="og:description" content="Secure checkout for Appealy, handled by Paddle.">
+<meta property="og:description" content="Paid plans for Appealy are not on sale yet. Every feature is free.">
 <meta property="og:image" content="https://appealy.app/og.png">
 <meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Checkout — Appealy">
-<meta name="twitter:description" content="Secure checkout for Appealy, handled by Paddle.">
+<meta name="twitter:description" content="Paid plans for Appealy are not on sale yet. Every feature is free.">
 <meta name="twitter:image" content="https://appealy.app/og.png">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -78,20 +72,18 @@
   <div class="wrap prose">
 
     <p class="eyebrow">Checkout</p>
-    <h1>Opening your checkout</h1>
+    <h1>Checkout isn&rsquo;t open yet</h1>
 
-    <p class="lede" id="status">
-      One moment &mdash; the payment form is loading.
+    <p class="lede">
+      Paid plans aren&rsquo;t on sale yet. Payments will be taken by Creem, the merchant of record
+      for Appealy, once its account is approved.
     </p>
 
-    <p class="dim" id="detail">
-      Payment is taken by Paddle, the merchant of record for Appealy. Card details are entered on
-      Paddle&rsquo;s form and never reach us.
+    <p class="dim">
+      Nothing has been charged, and every feature already works on the free plan &mdash;
+      <a href="/dashboard/">back to your dashboard</a>. Questions:
+      <a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a>.
     </p>
-
-    <noscript>
-      <p class="lede">This page needs JavaScript, because the payment form runs in the browser.</p>
-    </noscript>
 
   </div>
 </main>
@@ -156,62 +148,5 @@
   </div>
 </footer>
 
-
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
-<script>
-  // Paddle appends ?_ptxn=txn_... to this URL. Paddle.js picks it up on its
-  // own once initialised, so there is nothing to call: the checkout opens.
-  (async function () {
-    var status = document.getElementById("status");
-    var detail = document.getElementById("detail");
-    var hasTransaction = window.location.search.indexOf("_ptxn=") !== -1;
-
-    function fail(message) {
-      status.textContent = message;
-      detail.innerHTML =
-        'Nothing has been charged. Go back to <a href="/dashboard/">your dashboard</a> and try ' +
-        'again, or email <a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a>.';
-    }
-
-    try {
-      var res = await fetch("/api/paddle/config", { headers: { accept: "application/json" } });
-      if (!res.ok) throw new Error("config " + res.status);
-      var cfg = await res.json();
-
-      if (cfg.payments && cfg.payments.reason === "awaiting_approval") {
-        // The hosted platform before the payment account is approved. The
-        // dashboard disables checkout then, so this is a direct visit.
-        status.textContent = "Paid plans aren't on sale yet.";
-        detail.innerHTML =
-          "Appealy's payment account is still waiting for approval, so checkout is switched off and nothing " +
-          'has been charged. Every feature already works on the free plan &mdash; <a href="/dashboard/">back to your dashboard</a>.';
-        return;
-      }
-
-      if (!cfg.configured) {
-        // The account exists but this deployment has no token yet. Say so
-        // plainly rather than leaving a spinner that never resolves.
-        fail("Checkout is not configured on this deployment yet.");
-        return;
-      }
-
-      if (cfg.environment === "sandbox") Paddle.Environment.set("sandbox");
-      Paddle.Initialize({ token: cfg.token });
-
-      if (!hasTransaction) {
-        // Someone opened /pay directly. There is no basket to show them.
-        status.textContent = "There is no checkout to open.";
-        detail.innerHTML =
-          'Start from <a href="/dashboard/">your dashboard</a> &mdash; choosing a plan there is what ' +
-          'creates the checkout this page opens.';
-        return;
-      }
-
-      status.textContent = "Your checkout is open. If nothing appeared, allow pop-ups and reload.";
-    } catch (err) {
-      fail("The payment form could not be loaded.");
-    }
-  })();
-</script>
 </body>
 </html>
