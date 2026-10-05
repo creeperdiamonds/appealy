@@ -386,7 +386,9 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
       // rarely exceed 10 questions, and submissions reference questions by
       // ID which is preserved for existing rows (see id? in questionSchema).
       await tx.delete(schema.questions).where(eq(schema.questions.formId, formId));
-      await tx.insert(schema.questions).values(
+      // Same guard as create: drizzle throws on values([]), so saving a form
+      // with every question removed was a 500 instead of an empty form.
+      if (data.questions.length > 0) await tx.insert(schema.questions).values(
         data.questions.map((q, i) => ({
           id: q.id, // preserve ID if provided so existing answers stay linked
           formId,
