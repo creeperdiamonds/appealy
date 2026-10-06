@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "jsr:@std/assert@1";
+import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { MissingIntentsError, requirePrivilegedIntents } from "../privilegedIntents.ts";
 
 /** Answers GET /applications/@me with the given flags (or status) for the duration of fn. */
