@@ -3,6 +3,13 @@
 `.env.example` ships with `DEPLOYMENT_MODE=self`. Leave it. Billing is off, no
 Paddle account is needed, and caps come from the `CAP_*` values.
 
+Before starting it, open your application in the [Discord Developer
+Portal](https://discord.com/developers/applications), go to **Bot → Privileged
+Gateway Intents**, and switch on **Server Members Intent** and **Message Content
+Intent**. Those are the only two. If one is off, the bot logs which, with a
+direct link to the switch, and checks again every 30 seconds until it is on, so
+nothing needs restarting.
+
 ```bash
 cp .env.example .env
 # fill: DISCORD_BOT_TOKEN, DISCORD_APPLICATION_ID, DISCORD_PUBLIC_KEY,
