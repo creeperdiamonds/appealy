@@ -199,7 +199,10 @@ export default function Billing({ guildId }: { guildId: string }) {
     // It's allowed to fail — an older API won't have it — in which case the
     // billing routes themselves decide.
     const [cfg, cur, pre] = await Promise.allSettled([
-      http.get<DeploymentInfo>("/config"),
+      // /api/config, not /config: the route moved under /api (see app.ts) and
+      // the old path 404s, which read as "payments open" and left checkout
+      // clickable while sales were closed.
+      http.get<DeploymentInfo>("/api/config"),
       http.get<CurrentResponse>(`/api/guilds/${guildId}/billing`),
       http.get<PresetsResponse>(`/api/guilds/${guildId}/billing/presets`),
     ]);
@@ -317,6 +320,9 @@ export default function Billing({ guildId }: { guildId: string }) {
     } catch (e) {
       setError(describe(e, "Couldn't start checkout."));
       setBusy(false);
+      // The error banner sits at the top of the page, far above this button.
+      // Without the scroll a refused checkout looks like a click that did nothing.
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
