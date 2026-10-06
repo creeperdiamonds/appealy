@@ -17,6 +17,7 @@ import { env } from "./env.ts";
 import { logger } from "../utils/logger.ts";
 import { registerEventHandlers } from "../events/index.ts";
 import { resolveSharding } from "./sharding.ts";
+import { requirePrivilegedIntents } from "./privilegedIntents.ts";
 
 export const desiredProperties = {
   guild: {
@@ -167,6 +168,11 @@ export type AppealyUser = EventArgs<"guildBanAdd">[0];
 export type AppealyMessage = EventArgs<"messageCreate">[0];
 
 export async function startBot(bot: AppealyBot, token: string = env.DISCORD_BOT_TOKEN) {
+  // Before anything else: with Server Members or Message Content switched off,
+  // Discord refuses the gateway (4014) in a way that never reaches this await.
+  // Throws MissingIntentsError naming the switch and the page it is on.
+  await requirePrivilegedIntents(token);
+
   // Shard count is resolved from the live guild count before connecting.
   // Discord's own recommendation acts as a floor — see core/sharding.ts for
   // why the count can't change while running.

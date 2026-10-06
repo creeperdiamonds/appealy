@@ -8,7 +8,8 @@ import { registerCommands } from "./commands/index.ts";
 import { subscribeToInvalidations } from "./core/guildConfigCache.ts";
 import { startDedicatedRunner } from "./core/dedicatedRunner.ts";
 import { logger } from "./utils/logger.ts";
-import { env } from "./core/env.ts";
+import { deployment, env } from "./core/env.ts";
+import { MissingIntentsError } from "./core/privilegedIntents.ts";
 import { markGatewayConnecting } from "./core/startupProfile.ts";
 import { flushGuildBuffer } from "./events/guildCreate.ts";
 
@@ -33,7 +34,7 @@ async function main() {
   }
 
   markGatewayConnecting();
-  await startBot(bot);
+  await startWhenIntentsAllow(bot);
   startControlServer(bot);
   startScheduler(bot);
 
@@ -81,6 +82,30 @@ async function main() {
   }
 }
 
+const INTENT_RECHECK_MS = 30_000;
+
+/**
+ * Starts the gateway, but on a self-hosted install waits out switched-off
+ * privileged intents instead of exiting. The self-hoster's fix is a checkbox in
+ * the Developer Portal, so the bot keeps checking and comes online by itself
+ * once it is ticked: no container restart, and no restart loop repeating the
+ * same error. The hosted platform exits instead, so Cloud Run reports a failed
+ * revision rather than one that never connects.
+ */
+async function startWhenIntentsAllow(bot: ReturnType<typeof createAppealyBot>): Promise<void> {
+  for (;;) {
+    try {
+      await startBot(bot);
+      return;
+    } catch (err) {
+      if (!(err instanceof MissingIntentsError) || deployment.mode !== "self") throw err;
+      logger.error(err.message);
+      logger.info(`Checking again every ${INTENT_RECHECK_MS / 1000} seconds; Appealy connects as soon as the switches are on, with no restart needed.`);
+      await new Promise((resolve) => setTimeout(resolve, INTENT_RECHECK_MS));
+    }
+  }
+}
+
 // Flush buffered guild upserts before the process goes away, so a restart
 // during the READY burst doesn't drop them.
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -90,6 +115,12 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 main().catch((err) => {
+  // A switched-off intent is a setup step, not a crash: its message says what
+  // to do, and a stack trace underneath would only bury it.
+  if (err instanceof MissingIntentsError) {
+    logger.error(err.message);
+    Deno.exit(1);
+  }
   logger.error("Fatal error during bot startup", { error: err instanceof Error ? err.stack : String(err) });
   Deno.exit(1);
 });

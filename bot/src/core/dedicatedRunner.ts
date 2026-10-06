@@ -41,6 +41,7 @@
 import { and, eq, isNotNull, lt, or, isNull, sql } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { createAppealyBot, startBot, type AppealyBot } from "./client.ts";
+import { MissingIntentsError } from "./privilegedIntents.ts";
 import { logger } from "../utils/logger.ts";
 import { decryptWithKey } from "../../../shared/lib/tokenCrypto.ts";
 import { env } from "./env.ts";
@@ -213,6 +214,22 @@ async function claimAndStart(guildId: bigint, tokenEnc: string): Promise<void> {
       held: held.size,
     });
   } catch (err) {
+    // The customer's own application has a privileged intent switched off.
+    // Their fix is two checkboxes on a page we can link to, then saving the
+    // token again on this panel to restart, so say exactly that.
+    if (err instanceof MissingIntentsError) {
+      await fail(
+        guildId,
+        `Your bot can't connect yet: ${err.missing.join(" and ")} ${err.missing.length > 1 ? "are" : "is"} switched off. ` +
+          `Turn ${err.missing.length > 1 ? "them" : "it"} on at ${MissingIntentsError.settingsUrl(err.applicationId)} ` +
+          `under "Privileged Gateway Intents", then save your bot token here again to start it.`,
+      );
+      logger.warn("Dedicated bot has privileged intents switched off", {
+        guildId: guildId.toString(),
+        missing: err.missing,
+      });
+      return;
+    }
     // Almost always a token Discord rejected — revoked, regenerated, or
     // pasted with whitespace. The message reaches the guild owner, so it names
     // what they can do rather than what the library threw.
