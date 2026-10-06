@@ -33,7 +33,7 @@ The distinction shows up in what the banned party is told, too. An account ban s
 
 ## How a server ban appeal works
 
-1.  Someone is banned. Appealy sees the gateway’s ban event — which needs the **Server Moderation** intent enabled in the Developer Portal, or nothing below ever happens. See [Getting started](README.md).
+1.  Someone is banned. Appealy sees the gateway’s ban event, from the *Server Moderation* intent. That intent is not privileged, so there is no switch for it; Appealy requests it on its own. See [Getting started](README.md) for the two switches that do matter.
 2.  They are DM’d, with the reason and a link to the appeal, and walked through the appeal form one question at a time.
 3.  The appeal lands in the same review queue as everything else, so staff review it the way they review an application.
 4.  An accept lifts the ban. That is the whole point of the accept — it is not a note that someone then has to action by hand.

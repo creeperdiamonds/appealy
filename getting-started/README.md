@@ -8,13 +8,18 @@ The **Add to Discord** button on this site is a redirect the API builds from its
 
 The invite requests nine permissions. They are the set the features need, and every one of them is load-bearing somewhere: manage roles to grant what an accept grants, ban members to lift a ban when an appeal succeeds, manage channels for ticket panels. An invite missing one produces a feature that silently does nothing, which is the failure the dashboard’s invite flow exists to prevent.
 
-## 2. Turn on the intents — including the moderation one
+## 2. Turn on the two intents
 
-Only relevant if you are running your own instance; on the hosted deployment these are already on. In the [Discord Developer Portal](https://discord.com/developers/applications), under **Bot**:
+Only relevant if you are running your own instance or a dedicated bot; on the hosted deployment these are already on. In the [Discord Developer Portal](https://discord.com/developers/applications), open your application, then **Bot → Privileged Gateway Intents**, and switch on:
 
--   **Server Members Intent** — without it the welcomer, the verification gate and the auto-kick timer never see anyone join.
--   **Message Content Intent**
--   **Server Moderation** — this is the one people miss. Ban appeals are driven by the `guildBanAdd` gateway event, and Discord does not send it until the portal agrees. The code is complete either way, so the symptom is a ban appeal system that is configured, enabled, and silent.
+-   **Server Members Intent** — without it the welcomer, the verification gate and the auto-kick timer never see anyone join, and nothing notices when someone leaves.
+-   **Message Content Intent** — ticket transcripts and `/poll`'s typed close time read message text.
+
+Save the page. Those are the only two. Ban appeals run on the ban event from the *Server Moderation* intent, but that one is not privileged, has no switch in the portal, and Appealy requests it on its own.
+
+If either switch is off, Discord refuses the connection, and Appealy tells you which switch, with a link to the page it is on. A self-hosted bot logs it and keeps checking every 30 seconds, so it comes online by itself once you tick the box, without a restart. A dedicated bot shows the message on its dashboard panel; save the token again there once the switches are on.
+
+A bot in 100 or more servers needs Discord's approval for each intent, requested from the same page. Below that, the switches are all it takes.
 
 ## 3. Register the slash commands
 
