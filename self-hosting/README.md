@@ -4,6 +4,8 @@ Run the whole thing on your own hardware for nothing. Billing off, no merchant a
 
 ## Start it
 
+First, in the [Discord Developer Portal](https://discord.com/developers/applications), open your application, go to **Bot → Privileged Gateway Intents**, and switch on **Server Members Intent** and **Message Content Intent**. If you skip this, the bot logs which switch is off, with a direct link to it, and checks again every 30 seconds until it is on. You won't need to restart anything.
+
 ```
 cp .env.example .env
 # fill: DISCORD_BOT_TOKEN, DISCORD_APPLICATION_ID, DISCORD_PUBLIC_KEY,
