@@ -100,6 +100,17 @@ with empty blurple either side, which is why the card is drawn rather than
 converted. `make_og.py` (not committed — it is a one-off) redraws the mark from
 this directory's own coordinates.
 
+`make_og.py` itself is lost; it was on the Mac and is not in any backup. The
+bottom line was changed on 6 Oct 2026 by editing the PNG in place. "Open
+source · AGPL-3.0 · self-host for free" became "Add in one click · Every
+feature free · Open source", because search results were describing Appealy
+as something you have to host yourself. The line is Inter 4.1 Regular at
+26px, colour #727D8C, left edge at x=89 and baseline y=538, on the ground
+colour #0D1016. Each "·" has 17px before it and 16px after. Those values
+reproduce the original pixels, so a future edit to that line can do the same.
+After any change to the card, bump the `?v=` on every `og:image` and
+`twitter:image` in `site/`, or Discord and Google keep showing the cached one.
+
 **If the mark changes, the card is stale and nothing will tell you.** Same
 class of hazard as the permission bits in `site/README.md`. Regenerate it in
 the same commit.
