@@ -286,7 +286,7 @@ export function startControlServer(bot: AppealyBot) {
 async function publishPanel(bot: AppealyBot, panelId: string) {
   const panel = await db.query.panels.findFirst({
     where: eq(schema.panels.id, panelId),
-    with: { buttons: { orderBy: (b, { asc }) => [asc(b.sortOrder)] } },
+    with: { buttons: { orderBy: (b, { asc }) => [asc(b.sortOrder)], with: { form: { columns: { description: true } } } } },
   });
   if (!panel) throw new Error("panel_not_found");
 
@@ -301,7 +301,7 @@ async function publishPanel(bot: AppealyBot, panelId: string) {
 async function syncPanel(bot: AppealyBot, panelId: string) {
   const panel = await db.query.panels.findFirst({
     where: eq(schema.panels.id, panelId),
-    with: { buttons: { orderBy: (b, { asc }) => [asc(b.sortOrder)] } },
+    with: { buttons: { orderBy: (b, { asc }) => [asc(b.sortOrder)], with: { form: { columns: { description: true } } } } },
   });
   if (!panel || !panel.messageId) throw new Error("panel_not_published");
 
@@ -315,9 +315,16 @@ const STYLE_MAP: Record<string, ButtonStyles> = {
   danger: ButtonStyles.Danger,
 };
 
+/** A form description trimmed to fit under a select-menu option. */
+function optionDescription(description: string | null | undefined): string | undefined {
+  const first = description?.trim().split(/\r?\n/).find((line) => line.trim())?.trim();
+  if (!first) return undefined;
+  return first.length > 100 ? `${first.slice(0, 99)}…` : first;
+}
+
 function buildPanelMessage(
   panel: typeof schema.panels.$inferSelect & {
-    buttons: (typeof schema.panelButtons.$inferSelect & { formName?: string })[];
+    buttons: (typeof schema.panelButtons.$inferSelect & { formName?: string; form?: { description: string | null } | null })[];
   },
 ) {
   const embed = {
@@ -349,6 +356,9 @@ function buildPanelMessage(
               options: options.map((b) => ({
                 label: b.label,
                 value: b.formId,
+                // The form's description under its name: the first line, as
+                // much as Discord's 100-character limit allows.
+                description: optionDescription(b.form?.description),
                 emoji: b.emoji ? { name: b.emoji } : undefined,
               })),
             },
