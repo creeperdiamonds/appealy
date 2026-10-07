@@ -35,6 +35,17 @@ type FormWithQuestions = typeof schema.forms.$inferSelect & {
   questions: (typeof schema.questions.$inferSelect)[];
 };
 
+/**
+ * How starting a DM application went, so the place the applicant clicked
+ * can tell them. Without it they saw nothing in the server: not on success,
+ * and not when their DMs were closed and the bot could never reach them.
+ */
+export type DmStart =
+  | { status: "started" }
+  | { status: "dm_closed" }
+  | { status: "in_progress" }
+  | { status: "gated"; message: string };
+
 export async function startDmApplication(
   bot: AppealyBot,
   guildId: bigint,
@@ -46,17 +57,20 @@ export async function startDmApplication(
   // unsolicited DM. Ordinary DM applications never need this.
   introNote?: string,
   appeal?: AppealContext,
-) {
+): Promise<DmStart> {
   const gate = await checkGateForDm(form, guildId, applicantId, memberRoleIds);
   if (!gate.allowed) {
-    return dmOrLog(bot, applicantId, gateReasonToMessage(gate));
+    const message = gateReasonToMessage(gate);
+    await dmOrLog(bot, applicantId, message);
+    return { status: "gated", message };
   }
 
   const existing = await db.query.dmApplicationProgress.findFirst({
     where: and(eq(schema.dmApplicationProgress.formId, form.id), eq(schema.dmApplicationProgress.applicantId, applicantId)),
   });
   if (existing) {
-    return dmOrLog(bot, applicantId, "You already have an application in progress. Reply to my last message to continue, or wait for it to expire.");
+    await dmOrLog(bot, applicantId, "You already have an application in progress. Reply to my last message to continue, or wait for it to expire.");
+    return { status: "in_progress" };
   }
 
   const expiresAt = form.timeLimitSeconds ? new Date(Date.now() + form.timeLimitSeconds * 1000) : null;
@@ -81,13 +95,17 @@ export async function startDmApplication(
       await db.delete(schema.dmApplicationProgress).where(
         and(eq(schema.dmApplicationProgress.formId, form.id), eq(schema.dmApplicationProgress.applicantId, applicantId)),
       );
-      return;
+      return { status: "dm_closed" };
     }
   }
 
-  const confirmation = form.confirmationMessage
-    ? `${form.confirmationMessage}\n\nI'll send you ${form.questions.length} question(s) one at a time. Just reply with your answer to each.`
-    : `I'll send you ${form.questions.length} question(s) one at a time. Just reply with your answer to each.`;
+  // The form's description comes first: the dashboard tells admins it's
+  // shown before the applicant starts, and this is the first thing they read.
+  const confirmation = [
+    form.description?.trim() ? `**${form.name}**\n${form.description.trim()}` : null,
+    form.confirmationMessage?.trim() || null,
+    `I'll send you ${form.questions.length} question(s) one at a time. Just reply with your answer to each.`,
+  ].filter(Boolean).join("\n\n");
 
   const sent = await dmOrLog(bot, applicantId, confirmation);
   if (!sent) {
@@ -97,10 +115,11 @@ export async function startDmApplication(
     await db.delete(schema.dmApplicationProgress).where(
       and(eq(schema.dmApplicationProgress.formId, form.id), eq(schema.dmApplicationProgress.applicantId, applicantId)),
     );
-    return;
+    return { status: "dm_closed" };
   }
 
   await sendNextQuestion(bot, form, applicantId);
+  return { status: "started" };
 }
 
 /** Called from a messageCreate handler (bot/src/events/messageCreate.ts)

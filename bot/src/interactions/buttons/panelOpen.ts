@@ -79,8 +79,28 @@ export async function runApplicationFlow(
   }
 
   if (form.applicationType === "direct_message") {
+    // Answer the click first, then edit in how it went. This used to answer
+    // nothing at all: the applicant saw "This interaction failed" even when
+    // the DM arrived, and nothing whatsoever when their DMs were closed.
+    // A plain ephemeral reply rather than the defer helper: this file opens
+    // modals on other paths (deferGuard.test.ts), and this is just as quick.
+    const about = form.description?.trim() ? `**${form.name}**\n${form.description.trim()}\n\n` : "";
+    await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+      type: 4,
+      data: { flags: EPHEMERAL, content: `${about}📨 Sending you the questions in DMs…` },
+    });
     const { startDmApplication } = await import("../../services/dmApplicationService.ts");
-    return startDmApplication(bot, guildId, form, applicant.id, interaction.member?.roles ?? []);
+    const outcome = await startDmApplication(bot, guildId, form, applicant.id, interaction.member?.roles ?? []);
+    const status =
+      outcome.status === "started" ? "📬 Check your DMs: I've sent you the first question."
+      : outcome.status === "dm_closed"
+        ? "❌ I couldn't DM you. Turn on **Direct Messages** in this server's **Privacy Settings** (open the server menu), then try again."
+      : outcome.status === "in_progress" ? "You already have this application open in your DMs. Reply to my last message there to carry on."
+      : outcome.message;
+    await bot.helpers.editOriginalInteractionResponse(interaction.token, { content: `${about}${status}` }).catch((err) => {
+      logger.warn("Couldn't update the DM application status message", { formId, error: String(err) });
+    });
+    return;
   }
 
   const gate = await checkGate(form, guildId, applicant.id, interaction.member?.roles ?? []);
@@ -94,12 +114,18 @@ export async function runApplicationFlow(
   // triggers showApplicationModal, since a MODAL response is only valid as
   // the direct response to *that* interaction (see the encodeCustomId
   // "modal:confirm" handler in events/interactionCreate.ts).
-  if (form.confirmationMessage) {
+  // The form's description is shown here too: a modal has nowhere to put it,
+  // and the dashboard tells admins it's shown before the applicant starts.
+  const intro = [
+    form.description?.trim() ? `**${form.name}**\n${form.description.trim()}` : null,
+    form.confirmationMessage?.trim() || null,
+  ].filter(Boolean).join("\n\n");
+  if (intro) {
     return await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
       type: 4,
       data: {
         flags: EPHEMERAL,
-        content: form.confirmationMessage,
+        content: intro,
         components: [
           {
             type: 1,
