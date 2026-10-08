@@ -59,6 +59,12 @@ export const CUSTOM_ID_NAMESPACES = {
    * private Accept/Deny confirmation (bot/src/services/feedbackAsk.ts).
    */
   FEEDBACK: "feedback",
+  /**
+   * submission:withdraw|withdraw_confirm:<submissionId> — the applicant's
+   * own Withdraw button on their "submitted!" confirmation
+   * (bot/src/interactions/buttons/submissionWithdraw.ts).
+   */
+  SUBMISSION: "submission",
 } as const;
 
 export type CustomIdNamespace =

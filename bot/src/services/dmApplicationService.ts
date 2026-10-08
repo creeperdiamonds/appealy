@@ -254,7 +254,8 @@ async function finalizeDmApplication(
 
   await db.delete(schema.dmApplicationProgress).where(eq(schema.dmApplicationProgress.id, progress.id));
 
-  await dmOrLog(bot, progress.applicantId, `Your application for **${form.name}** has been submitted!`);
+  const { withdrawButtonRow } = await import("../interactions/buttons/submissionWithdraw.ts");
+  await dmOrLog(bot, progress.applicantId, `Your application for **${form.name}** has been submitted!`, withdrawButtonRow(submission.id));
 
   const { applyRoleAutomationOnSubmit, postReviewEmbedForSubmission } = await import("../interactions/modals/formSubmit.ts");
 

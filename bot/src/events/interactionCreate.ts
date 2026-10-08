@@ -25,6 +25,7 @@ import {
 } from "../interactions/buttons/panelOpen.ts";
 import { handleAppealStartButton } from "../interactions/buttons/appealStart.ts";
 import { handleReviewAccept } from "../interactions/buttons/reviewAccept.ts";
+import { handleWithdrawAsk, handleWithdrawConfirm } from "../interactions/buttons/submissionWithdraw.ts";
 import { handleReviewDeny } from "../interactions/buttons/reviewDeny.ts";
 import { handleFormModalSubmit } from "../interactions/modals/formSubmit.ts";
 import { handleDenyReasonModalSubmit } from "../interactions/modals/denyReason.ts";
@@ -93,6 +94,13 @@ export function onInteractionCreate(bot: AppealyBot) {
           // Ban-appeal notice button, clicked in a DM. entityId is the guild
           // id and extra is the form id — both are needed because a DM
           // interaction carries no guild context of its own.
+          // The applicant's Withdraw button, in a DM or on an ephemeral reply.
+          if (namespace === "submission" && action === "withdraw") {
+            return await handleWithdrawAsk(bot, interaction, entityId);
+          }
+          if (namespace === "submission" && action === "withdraw_confirm") {
+            return await handleWithdrawConfirm(bot, interaction, entityId);
+          }
           if (namespace === "appeal" && action === "start") {
             return await handleAppealStartButton(bot, interaction, entityId, extra ?? "");
           }
