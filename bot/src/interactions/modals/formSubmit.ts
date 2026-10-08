@@ -18,6 +18,7 @@ import { getGuild } from "../../core/guildLookup.ts";
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
+import { withdrawButtonRow } from "../buttons/submissionWithdraw.ts";
 import {
   encodeCustomId,
   interpolateTemplate,
@@ -218,7 +219,7 @@ export async function handleFormModalSubmit(
   // handful of REST calls (role grants, a review post, a staff thread, a
   // DM) before hearing "submitted" would trade one problem for a worse
   // one — a delayed confirmation on a request that already succeeded.
-  await respond(bot, interaction, `Your application for **${form.name}** has been submitted!`);
+  await respond(bot, interaction, `Your application for **${form.name}** has been submitted!`, withdrawButtonRow(submission.id));
 
   // What this try/catch is actually guarding against: interactionCreate.ts's
   // error handler is a catch-all that EDITS the deferred response on any

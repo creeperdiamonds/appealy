@@ -19,6 +19,7 @@ const MUST_DEFER = [
   "bot/src/interactions/buttons/ticketOpen.ts",
   "bot/src/interactions/buttons/ticketClose.ts",
   "bot/src/interactions/buttons/giveawayEnter.ts",
+  "bot/src/interactions/buttons/submissionWithdraw.ts",
   "bot/src/interactions/modals/formSubmit.ts",
   "bot/src/interactions/modals/denyReason.ts",
   "bot/src/interactions/modals/verifyCaptcha.ts",
