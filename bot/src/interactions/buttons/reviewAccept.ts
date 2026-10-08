@@ -17,6 +17,7 @@ import {
 } from "../../../../shared/schema/outcomes.ts";
 import { buildConfirm, stageConfirm, takeConfirm } from "../outcomeConfirm.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
+import { markReviewPost, resendableEmbed } from "../../services/reviewPost.ts";
 import { logger } from "../../utils/logger.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
@@ -316,23 +317,15 @@ export async function handleReviewAccept(
   });
 
   // Update the original (pending-channel) review message: disable
-  // buttons, note the decision.
-  if (submission.logMessageId) {
-    try {
-      await bot.helpers.editMessage(form.logChannelId, submission.logMessageId, {
-        embeds: [
-          {
-            ...((interaction.message?.embeds?.[0] as Record<string, unknown>) ?? {}),
-            color: 0x57f287,
-            footer: { text: `Accepted by ${reviewer.username} • Submission ID: ${submission.id}` },
-          },
-        ],
-        components: [], // remove buttons once decided
-      });
-    } catch (err) {
-      logger.warn("Failed to edit review message after accept", { submissionId, error: String(err) });
-    }
-  }
+  // buttons, note the decision. Read from the post itself, not from
+  // interaction.message — see services/reviewPost.ts for why both matter.
+  const reviewEmbed = submission.logMessageId
+    ? await markReviewPost(bot, form.logChannelId, submission.logMessageId, submission.id, {
+        color: 0x57f287,
+        footer: `Accepted by ${reviewer.username} • Submission ID: ${submission.id}`,
+      })
+    : null;
+  const copyOf = reviewEmbed ?? resendableEmbed(interaction.message?.embeds?.[0] as Record<string, unknown> | undefined);
 
   // If a distinct accepted-submission channel is configured, post a fresh
   // copy there too — matching the per-outcome-channel model (pending vs
@@ -347,7 +340,7 @@ export async function handleReviewAccept(
       await bot.helpers.sendMessage(acceptedChannel, {
         embeds: [
           {
-            ...((interaction.message?.embeds?.[0] as Record<string, unknown>) ?? {}),
+            ...copyOf,
             color: 0x57f287,
             footer: {
               text: outcome

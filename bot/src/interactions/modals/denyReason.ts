@@ -11,6 +11,7 @@ import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
 import { logger } from "../../utils/logger.ts";
+import { markReviewPost, resendableEmbed } from "../../services/reviewPost.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleDenyReasonModalSubmit(
@@ -81,24 +82,14 @@ export async function handleDenyReasonModalSubmit(
     detail: reason ? { reason } : undefined,
   });
 
-  if (submission.logMessageId) {
-    try {
-      await bot.helpers.editMessage(form.logChannelId, submission.logMessageId, {
-        embeds: [
-          {
-            ...((interaction.message?.embeds?.[0] as Record<string, unknown>) ?? {}),
-            color: 0xed4245,
-            footer: {
-              text: `Denied by ${reviewer.username} • Reason: ${reason} • Submission ID: ${submission.id}`,
-            },
-          },
-        ],
-        components: [],
-      });
-    } catch (err) {
-      logger.warn("Failed to edit review message after deny", { submissionId, error: String(err) });
-    }
-  }
+  // Read from the post itself, not from interaction.message — see
+  // services/reviewPost.ts for why both matter. No "Reason: null" when the
+  // reviewer left it blank.
+  const deniedFooter = `Denied by ${reviewer.username}${reason ? ` • Reason: ${reason}` : ""} • Submission ID: ${submission.id}`;
+  const reviewEmbed = submission.logMessageId
+    ? await markReviewPost(bot, form.logChannelId, submission.logMessageId, submission.id, { color: 0xed4245, footer: deniedFooter })
+    : null;
+  const copyOf = reviewEmbed ?? resendableEmbed(interaction.message?.embeds?.[0] as Record<string, unknown> | undefined);
 
   // If a distinct denied-submission channel is configured, post a fresh
   // copy there too — mirrors reviewAccept.ts's acceptedChannelId handling.
@@ -107,11 +98,9 @@ export async function handleDenyReasonModalSubmit(
       await bot.helpers.sendMessage(form.deniedChannelId, {
         embeds: [
           {
-            ...((interaction.message?.embeds?.[0] as Record<string, unknown>) ?? {}),
+            ...copyOf,
             color: 0xed4245,
-            footer: {
-              text: `Denied by ${reviewer.username} • Reason: ${reason} • Submission ID: ${submission.id}`,
-            },
+            footer: { text: deniedFooter },
           },
         ],
       });
