@@ -19,6 +19,7 @@ import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
+import { markReviewPost } from "../../services/reviewPost.ts";
 import { logger } from "../../utils/logger.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
@@ -86,16 +87,10 @@ export async function handleWithdrawConfirm(bot: AppealyBot, interaction: Intera
 
   // The review post: no more Accept/Deny, and say why.
   if (submission.logMessageId) {
-    try {
-      const post = await bot.helpers.getMessage(form.logChannelId, submission.logMessageId);
-      const embed = (post.embeds?.[0] ?? {}) as Record<string, unknown>;
-      await bot.helpers.editMessage(form.logChannelId, submission.logMessageId, {
-        embeds: [{ ...embed, color: WITHDRAWN_COLOR, footer: { text: `Withdrawn by the applicant • Submission ID: ${submission.id}` } }],
-        components: [],
-      } as never);
-    } catch (err) {
-      logger.warn("Failed to edit review message after withdraw", { submissionId, error: String(err) });
-    }
+    await markReviewPost(bot, form.logChannelId, submission.logMessageId, submission.id, {
+      color: WITHDRAWN_COLOR,
+      footer: `Withdrawn by the applicant • Submission ID: ${submission.id}`,
+    });
   }
 
   if (form.autoArchiveOnDecision && submission.threadId) {
