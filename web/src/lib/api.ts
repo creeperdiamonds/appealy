@@ -222,6 +222,17 @@ async function request<T>(
   // confirm access with Discord, and says how long to wait. Retried once, like
   // a 429: a page load that happened to land in that moment shouldn't lose a
   // piece of the page for the rest of the visit.
+  // nginx's answer when the API can't be reached at all (web/nginx.conf),
+  // which for a few seconds is every deploy. One quiet retry hides that blip;
+  // if it's still down, the message below points at the status page.
+  if (res.status === 502 && !retried) {
+    const body = await res.clone().json().catch(() => ({}));
+    if (body?.error === "appealy_unavailable") {
+      await new Promise((r) => setTimeout(r, 4000));
+      return request<T>(path, init, true, reauthed);
+    }
+  }
+
   if (res.status === 503 && !retried) {
     const body = await res.clone().json().catch(() => ({}));
     if (body?.error === "permission_check_unavailable") {
@@ -259,12 +270,18 @@ async function request<T>(
     // `detail`. Passing an object as the message is what turned every zod
     // validation failure into "[object Object]".
     const detail = body.detail;
+    // No body to explain it: something between here and the API failed
+    // (a gateway error page, a timeout), not the API saying no.
+    const fallback =
+      res.status >= 502 && res.status <= 504
+        ? "Appealy isn't answering right now. It's usually back within a minute. If nothing is working, check https://status.appealy.app"
+        : `Request failed (${res.status})`;
     const message =
       typeof detail === "string"
         ? detail
         : detail && typeof detail === "object"
-        ? summarise(detail as FieldErrors) ?? body.error ?? `Request failed (${res.status})`
-        : body.error ?? `Request failed (${res.status})`;
+        ? summarise(detail as FieldErrors) ?? body.error ?? fallback
+        : body.error ?? fallback;
 
     throw new ApiError(res.status, body.error ?? "unknown_error", message, body.retryAfter, detail);
   }

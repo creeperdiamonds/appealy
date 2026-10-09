@@ -1,0 +1,58 @@
+<!doctype html>
+<!--
+  site/unavailable.html
+
+  Shown by nginx (web/nginx.conf) when a page that needs the API, like signing
+  in, can't reach it: usually a deploy restarting it for a few seconds,
+  sometimes an outage. Self-contained on purpose: it has to render when
+  nothing behind nginx is answering. Tries again by itself, and points at the
+  status page, which is hosted apart from Appealy and keeps answering.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Appealy is restarting</title>
+  <link rel="icon" href="/favicon.svg">
+  <style>
+    :root { --bg: #0b0d12; --card: #12151c; --text: #e8eaed; --dim: #9aa3b2; --accent: #5aa9ff; --ink: #06121f; --line: #232836; }
+    @media (prefers-color-scheme: light) {
+      :root { --bg: #f5f7fb; --card: #ffffff; --text: #141821; --dim: #5b6577; --accent: #0b63ce; --ink: #ffffff; --line: #dde3ee; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+           background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { width: 100%; max-width: 480px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 28px; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { margin: 0 0 14px; color: var(--dim); }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    a.btn, button.btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border-radius: 999px;
+           font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; border: 1px solid var(--line);
+           background: transparent; color: var(--text); }
+    a.btn.primary { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+    .count { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Appealy isn't answering right now</h1>
+    <p>It's usually just restarting after an update and comes back within a minute. This page will try again by itself in <span class="count" id="count">15</span> seconds.</p>
+    <p>If nothing is working, the status page says whether something is down and when it's expected back.</p>
+    <div class="actions">
+      <a class="btn primary" href="https://status.appealy.app/">Check the status page</a>
+      <button class="btn" type="button" onclick="location.reload()">Try again now</button>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var left = 15, el = document.getElementById("count");
+      var t = setInterval(function () {
+        left -= 1;
+        if (el) el.textContent = String(left);
+        if (left <= 0) { clearInterval(t); location.reload(); }
+      }, 1000);
+    })();
+  </script>
+</body>
+</html>
