@@ -134,6 +134,9 @@ export function startControlServer(bot: AppealyBot) {
         const { sourceChannelId, channelId } = await req.json();
         try {
           const followed = await bot.helpers.followAnnouncement(BigInt(sourceChannelId), BigInt(channelId));
+          // Posts as "Appealy Updates" with the door, not the source server's name.
+          const { brandUpdatesWebhook } = await import("../services/updatesWebhook.ts");
+          await brandUpdatesWebhook(bot, BigInt(followed.webhookId));
           return Response.json({ webhookId: String(followed.webhookId) });
         } catch (err) {
           const { describeDiscordError } = await import("../utils/discordError.ts");
@@ -147,7 +150,10 @@ export function startControlServer(bot: AppealyBot) {
       if (url.pathname === "/internal/updates/verify" && req.method === "POST") {
         const { webhookId } = await req.json();
         try {
-          await bot.helpers.getWebhook(BigInt(webhookId));
+          const hook = (await bot.rest.getWebhook(BigInt(webhookId))) as { name?: string | null };
+          // While we're looking: make sure it posts as "Appealy Updates".
+          const { brandUpdatesWebhook } = await import("../services/updatesWebhook.ts");
+          await brandUpdatesWebhook(bot, BigInt(webhookId), hook);
           return Response.json({ exists: true });
         } catch (err) {
           const { describeDiscordError } = await import("../utils/discordError.ts");
