@@ -709,6 +709,22 @@ export const submissionEvents = pgTable(
 );
 
 /**
+ * Where a server gets Appealy's updates: one of its channels following
+ * Appealy's announcement channel through Discord's own Follow, so updates
+ * arrive with nothing on Appealy's side posting them. Required on the hosted
+ * platform after a deadline (api/src/routes/updates.ts). No row: not set up.
+ */
+export const updateSubscriptions = pgTable("update_subscriptions", {
+  guildId: bigint("guild_id", { mode: "bigint" })
+    .primaryKey()
+    .references(() => guilds.id, { onDelete: "cascade" }),
+  channelId: bigint("channel_id", { mode: "bigint" }).notNull(),
+  /** The follower webhook Discord made; gone means someone removed the follow. */
+  webhookId: bigint("webhook_id", { mode: "bigint" }).notNull(),
+  followedAt: timestamp("followed_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
  * Staff 👍 / 👎 on a pending submission's review post, before anyone decides
  * (bot/src/interactions/buttons/reviewVote.ts). Advisory only: Accept and
  * Deny don't read it. One vote per reviewer per submission.

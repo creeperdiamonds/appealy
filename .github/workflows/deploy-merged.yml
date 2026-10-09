@@ -92,7 +92,13 @@ jobs:
         working-directory: api
         run: |
           set -eu
-          DESTRUCTIVE=$(grep -rilE 'drop[[:space:]]+(table|column)|truncate|alter[[:space:]]+table[^;]*drop' ../db/migrations/*.sql || true)
+          # Statements that lose data: dropping a table or a column, or
+          # emptying a table. "DROP NOT NULL" and "DROP DEFAULT" only relax a
+          # rule, so they don't count. Files already read, approved and applied
+          # are listed in db/migrations/reviewed-destructive.txt: without that,
+          # every later deploy failed on the same old file forever.
+          DESTRUCTIVE=$(grep -lE -i 'drop[[:space:]]+table|drop[[:space:]]+column|truncate' ../db/migrations/*.sql \
+            | grep -vFf ../db/migrations/reviewed-destructive.txt || true)
           if [ -n "$DESTRUCTIVE" ]; then
             if [ "${{ github.event.inputs.migrations }}" != "allow-destructive" ]; then
               echo "::error::Destructive statements found. Re-run with migrations=allow-destructive after reading them, or skip."

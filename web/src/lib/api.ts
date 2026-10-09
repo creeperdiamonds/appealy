@@ -320,6 +320,16 @@ export interface BotHealth {
   memoryMb: number;
 }
 
+/** Whether this server receives Appealy's updates, and whether it has to. */
+export interface UpdatesStatus {
+  /** False on self-hosted deployments: never asked. */
+  asked: boolean;
+  requiredFrom: string;
+  /** Past the deadline: the dashboard waits for a channel. */
+  required: boolean;
+  following: { channelId: string; since: string } | null;
+}
+
 /** One thing about a form's setup that will fail when it's used. */
 export interface SetupIssue {
   formId: string;
@@ -590,6 +600,14 @@ export const api = {
     request<{ id: string; name: string; color: number; position: number }[]>(
       `/api/guilds/${guildId}/resources/roles`,
     ),
+
+  /** Where this server gets Appealy's updates (api/src/routes/updates.ts). */
+  updates: (guildId: string) => request<UpdatesStatus>(`/api/guilds/${guildId}/updates`),
+  followUpdates: (guildId: string, channelId: string) =>
+    request<{ following: UpdatesStatus["following"] }>(`/api/guilds/${guildId}/updates`, {
+      method: "PUT",
+      body: JSON.stringify({ channelId }),
+    }),
 
   /** What about this server's setup will fail quietly: missing channel
    *  permissions, roles Appealy can't give (bot/src/services/setupCheck.ts). */
