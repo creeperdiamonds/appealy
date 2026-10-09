@@ -6,7 +6,7 @@
 
 # Node 24 (LTS "Krypton"), matching api/Dockerfile. Only the build stage runs
 # Node; the image that ships is nginx serving a static bundle.
-FROM node:24-alpine AS build
+FROM mirror.gcr.io/library/node:24-alpine AS build
 WORKDIR /app
 
 # Deps first, so a source change doesn't reinstall node_modules.
@@ -48,7 +48,7 @@ RUN npm run build
 # missing path fails the whole build. Without it the renderer writes a
 # placeholder page — unless REQUIRE_DOCS=1, which the deploy passes, because a
 # production image with no documentation is a broken deploy, not a quiet one.
-FROM node:24-alpine AS docs
+FROM mirror.gcr.io/library/node:24-alpine AS docs
 WORKDIR /renderer
 COPY web/docs-renderer/package.json web/docs-renderer/package-lock.json ./
 RUN npm ci --omit=dev
@@ -57,7 +57,7 @@ ARG REQUIRE_DOCS=0
 RUN --mount=type=bind,source=.,target=/context \
     REQUIRE_DOCS=$REQUIRE_DOCS node render.mjs /context/docs-content /out
 
-FROM nginx:1.27-alpine
+FROM mirror.gcr.io/library/nginx:1.27-alpine
 
 # Cloud Run injects PORT and expects the container to listen on it. nginx
 # can't read an env var in a config file directly, so the template is
