@@ -242,3 +242,13 @@ export function automodEdit(guildId: string, ruleId: string, rule: AutomodRuleIn
 export function automodDelete(guildId: string, ruleId: string, actorId: string) {
   return callBot("/internal/automod/delete", { guildId, ruleId, actorId }) as Promise<{ deleted: true }>;
 }
+
+/** Make one of a server's channels follow Appealy's updates channel (api/src/routes/updates.ts). */
+export function requestUpdatesFollow(sourceChannelId: string, channelId: string) {
+  return callBot("/internal/updates/follow", { sourceChannelId, channelId }) as Promise<{ webhookId: string }>;
+}
+
+/** Whether that follow still exists. Quick: it runs on the dashboard's way in. */
+export function requestUpdatesVerify(webhookId: string) {
+  return callBot("/internal/updates/verify", { webhookId }, BOT_CALL_TIMEOUT_MS_FAST) as Promise<{ exists: boolean }>;
+}

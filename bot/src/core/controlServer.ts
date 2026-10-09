@@ -126,6 +126,38 @@ export function startControlServer(bot: AppealyBot) {
         return Response.json(await getChannelsCached(bot, channelsMatch[1], all));
       }
 
+      // Appealy's updates (api/src/routes/updates.ts): make one of the
+      // server's channels follow Appealy's announcement channel, and check
+      // later that the follow is still there. Discord does the posting from
+      // then on. Needs Manage Webhooks in the chosen channel.
+      if (url.pathname === "/internal/updates/follow" && req.method === "POST") {
+        const { sourceChannelId, channelId } = await req.json();
+        try {
+          const followed = await bot.helpers.followAnnouncement(BigInt(sourceChannelId), BigInt(channelId));
+          return Response.json({ webhookId: String(followed.webhookId) });
+        } catch (err) {
+          const { describeDiscordError } = await import("../utils/discordError.ts");
+          const info = describeDiscordError(err);
+          const hint = info.code === 50013
+            ? "Give Appealy the Manage Webhooks permission in that channel, then try again."
+            : undefined;
+          return Response.json({ error: info.message ?? "follow_failed", hint }, { status: 400 });
+        }
+      }
+      if (url.pathname === "/internal/updates/verify" && req.method === "POST") {
+        const { webhookId } = await req.json();
+        try {
+          await bot.helpers.getWebhook(BigInt(webhookId));
+          return Response.json({ exists: true });
+        } catch (err) {
+          const { describeDiscordError } = await import("../utils/discordError.ts");
+          // Only "it's gone" counts as gone. Anything else (no permission to
+          // look, a hiccup) isn't proof, and unfollowing someone on a guess
+          // would lock their dashboard for nothing.
+          return Response.json({ exists: describeDiscordError(err).code !== 10015 });
+        }
+      }
+
       // The dashboard's setup check (services/setupCheck.ts). Not cached:
       // someone who just fixed a permission reloads to see it gone.
       const setupMatch = url.pathname.match(/^\/internal\/guilds\/(\d+)\/setup-check$/);

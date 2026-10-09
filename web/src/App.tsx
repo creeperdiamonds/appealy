@@ -23,6 +23,7 @@ import FeedbackSheet from "./components/FeedbackSheet";
 import WhatsNewSheet from "./components/WhatsNewSheet";
 import { hasUnseenRelease, markWhatsNewSeen, shouldOpenWhatsNew } from "./lib/whatsNew";
 import Overview from "./pages/Overview";
+import { UpdatesRequirement } from "./components/UpdatesRequirement";
 import Submissions from "./pages/Submissions";
 import Operations from "./pages/Operations";
 import Forms from "./pages/Forms";
@@ -690,8 +691,10 @@ export default function App() {
               nothing here to configure yet. Inviting it opens Discord with this server already
               selected. Anything you configured before is kept and comes back with it.
             </Banner>
-          ) : (
-            <>
+          ) : guildId ? (
+            // Appealy's updates channel: a notice before the deadline, the
+            // picker instead of the pages after it (components/UpdatesRequirement.tsx).
+            <UpdatesRequirement guildId={guildId} bypass={view === "billing"}>
               {guildId && view === "overview" && <Overview guildId={guildId} />}
               {guildId && view === "submissions" && <Submissions guildId={guildId} />}
               {guildId && view === "operations" && <Operations guildId={guildId} />}
@@ -713,8 +716,8 @@ export default function App() {
               {guildId && view === "polls" && <Polls guildId={guildId} />}
               {guildId && view === "staff" && <StaffPermissions guildId={guildId} />}
               {guildId && view === "billing" && <Billing guildId={guildId} />}
-            </>
-          )}
+            </UpdatesRequirement>
+          ) : null}
           {view === "support" && config && (
             <Support
               guildId={guildId}
