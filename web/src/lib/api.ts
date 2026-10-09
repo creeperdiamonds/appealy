@@ -320,6 +320,15 @@ export interface BotHealth {
   memoryMb: number;
 }
 
+/** One thing about a form's setup that will fail when it's used. */
+export interface SetupIssue {
+  formId: string;
+  formName: string;
+  /** "act": fails every time. "watch": fails sometimes. */
+  level: "act" | "watch";
+  message: string;
+}
+
 export interface Overview {
   guild: {
     id: string;
@@ -581,6 +590,11 @@ export const api = {
     request<{ id: string; name: string; color: number; position: number }[]>(
       `/api/guilds/${guildId}/resources/roles`,
     ),
+
+  /** What about this server's setup will fail quietly: missing channel
+   *  permissions, roles Appealy can't give (bot/src/services/setupCheck.ts). */
+  setupCheck: (guildId: string) =>
+    request<{ issues: SetupIssue[] }>(`/api/guilds/${guildId}/resources/setup-check`),
 
   /** Every kind of channel, categories and voice included — for choosing
    *  channels a rule ignores, not somewhere to post. */

@@ -26,6 +26,9 @@ import {
 import { handleAppealStartButton } from "../interactions/buttons/appealStart.ts";
 import { handleReviewAccept } from "../interactions/buttons/reviewAccept.ts";
 import { handleWithdrawAsk, handleWithdrawConfirm } from "../interactions/buttons/submissionWithdraw.ts";
+import { handleReviewVote } from "../interactions/buttons/reviewVote.ts";
+import { openAnswerModal, openAskModal } from "../interactions/buttons/reviewAsk.ts";
+import { handleAnswerSubmit, handleAskSubmit } from "../interactions/modals/followUp.ts";
 import { handleReviewDeny } from "../interactions/buttons/reviewDeny.ts";
 import { handleFormModalSubmit } from "../interactions/modals/formSubmit.ts";
 import { handleDenyReasonModalSubmit } from "../interactions/modals/denyReason.ts";
@@ -94,6 +97,17 @@ export function onInteractionCreate(bot: AppealyBot) {
           // Ban-appeal notice button, clicked in a DM. entityId is the guild
           // id and extra is the form id — both are needed because a DM
           // interaction carries no guild context of its own.
+          // Staff votes and follow-up questions on the review post, and the
+          // applicant's Answer button on the question's DM.
+          if (namespace === "review" && action === "vote") {
+            return await handleReviewVote(bot, interaction, entityId, extra ?? "");
+          }
+          if (namespace === "review" && action === "ask") {
+            return await openAskModal(bot, interaction, entityId);
+          }
+          if (namespace === "submission" && action === "answer") {
+            return await openAnswerModal(bot, interaction, entityId);
+          }
           // The applicant's Withdraw button, in a DM or on an ephemeral reply.
           if (namespace === "submission" && action === "withdraw") {
             return await handleWithdrawAsk(bot, interaction, entityId);
@@ -233,6 +247,12 @@ export function onInteractionCreate(bot: AppealyBot) {
           }
           if (namespace === "review" && action === "deny_confirm") {
             return await handleDenyReasonModalSubmit(bot, interaction, entityId);
+          }
+          if (namespace === "review" && action === "ask_submit") {
+            return await handleAskSubmit(bot, interaction, entityId);
+          }
+          if (namespace === "submission" && action === "answer_submit") {
+            return await handleAnswerSubmit(bot, interaction, entityId);
           }
           if (namespace === "verify" && action === "captcha_confirm") {
             return await handleVerifyCaptchaModalSubmit(bot, interaction, entityId);

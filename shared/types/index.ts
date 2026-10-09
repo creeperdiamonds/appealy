@@ -60,9 +60,11 @@ export const CUSTOM_ID_NAMESPACES = {
    */
   FEEDBACK: "feedback",
   /**
-   * submission:withdraw|withdraw_confirm:<submissionId> — the applicant's
-   * own Withdraw button on their "submitted!" confirmation
-   * (bot/src/interactions/buttons/submissionWithdraw.ts).
+   * The applicant's own buttons:
+   *   submission:withdraw|withdraw_confirm:<submissionId> — Withdraw, on their
+   *     "submitted!" confirmation (interactions/buttons/submissionWithdraw.ts)
+   *   submission:answer|answer_submit:<followupId> — Answer, on a staff
+   *     follow-up question's DM (interactions/modals/followUp.ts)
    */
   SUBMISSION: "submission",
 } as const;

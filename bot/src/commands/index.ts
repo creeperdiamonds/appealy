@@ -26,12 +26,14 @@ import * as exportData from "./exportData.ts";
 import * as importAppy from "./importAppy.ts";
 import * as importAppealy from "./importAppealy.ts";
 import * as help from "./help.ts";
+import * as application from "./application.ts";
 
 const commands = [
   panelCreate,
   formList,
   dashboard,
   apply,
+  application,
   pollCreate,
   exportApplications,
   ticketPanel,
