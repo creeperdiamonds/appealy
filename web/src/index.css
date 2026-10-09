@@ -1635,3 +1635,46 @@ ul.plain {
   margin: 0;
   padding: 0;
 }
+
+/* The "How do I give Appealy Manage Webhooks?" fold-out under the updates
+   picker (components/UpdatesRequirement.tsx). A pill in the accent blue, not
+   a plain disclosure line: it's the help most admins setting this up need,
+   and the default summary is easy to read past. */
+.guide-toggle > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.guide-toggle > summary::-webkit-details-marker {
+  display: none;
+}
+.guide-toggle > summary:hover,
+.guide-toggle > summary:focus-visible {
+  filter: brightness(1.12);
+  box-shadow: 0 0 0 4px var(--accent-line), 0 0 18px var(--accent-line);
+}
+.guide-toggle .guide-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  color: var(--accent);
+  font-size: 13px;
+}
+.guide-toggle .guide-arrow {
+  transition: transform 0.15s ease;
+}
+.guide-toggle[open] .guide-arrow {
+  transform: rotate(90deg);
+}

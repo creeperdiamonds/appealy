@@ -154,8 +154,12 @@ const GUIDE_STEPS = [
 function WebhooksGuide({ open }: { open: boolean }) {
   const base = `${import.meta.env.BASE_URL}tutorial/`;
   return (
-    <details open={open} style={{ flexBasis: "100%" }}>
-      <summary style={{ cursor: "pointer" }}>How do I give Appealy Manage Webhooks?</summary>
+    <details className="guide-toggle" open={open} style={{ flexBasis: "100%" }}>
+      <summary>
+        <span className="guide-badge" aria-hidden="true">?</span>
+        How do I give Appealy Manage Webhooks?
+        <span className="guide-arrow" aria-hidden="true">▸</span>
+      </summary>
       <div style={{ display: "grid", gap: 12, marginTop: 12, maxWidth: 720 }}>
         {GUIDE_STEPS.map((s) => (
           <img
