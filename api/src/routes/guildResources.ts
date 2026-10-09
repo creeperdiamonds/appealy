@@ -29,9 +29,9 @@ guildResourcesRouter.use(requireGuildAccess);
  */
 const BOT_TIMEOUT_MS = 2_000;
 
-async function proxyToBot(path: string) {
+async function proxyToBot(path: string, timeoutMs: number = BOT_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), BOT_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(`${BOT_INTERNAL_URL}${path}`, {
       headers: { "X-Internal-Secret": INTERNAL_SECRET },
@@ -49,6 +49,19 @@ guildResourcesRouter.get("/channels", async (req, res) => {
   const all = req.query.all === "1" ? "?all=1" : "";
   try {
     const r = await proxyToBot(`/internal/guilds/${routeParams(req).guildId}/channels${all}`);
+    if (!r.ok) return res.status(502).json({ error: "bot_unreachable" });
+    res.json(await r.json());
+  } catch (err) {
+    res.status(502).json({ error: "bot_unreachable", detail: String(err) });
+  }
+});
+
+// The Overview page's setup check: what about this server's setup will fail
+// quietly (bot/src/services/setupCheck.ts). Several Discord reads, so it gets
+// longer than the pickers' two seconds.
+guildResourcesRouter.get("/setup-check", async (req, res) => {
+  try {
+    const r = await proxyToBot(`/internal/guilds/${routeParams(req).guildId}/setup-check`, 8_000);
     if (!r.ok) return res.status(502).json({ error: "bot_unreachable" });
     res.json(await r.json());
   } catch (err) {

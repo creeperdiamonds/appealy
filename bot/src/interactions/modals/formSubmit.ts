@@ -19,6 +19,7 @@ import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
 import { withdrawButtonRow } from "../buttons/submissionWithdraw.ts";
+import { reviewButtonRow } from "../../services/reviewButtons.ts";
 import {
   encodeCustomId,
   interpolateTemplate,
@@ -390,25 +391,8 @@ export async function postReviewEmbedForSubmission(
           timestamp: new Date().toISOString(),
         },
       ],
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 2,
-              style: 3,
-              label: "Accept",
-              customId: encodeCustomId("review", "accept", submission.id),
-            },
-            {
-              type: 2,
-              style: 4,
-              label: "Deny",
-              customId: encodeCustomId("review", "deny", submission.id),
-            },
-          ],
-        },
-      ],
+      // Accept, Deny, the staff vote and Ask applicant: services/reviewButtons.ts.
+      components: reviewButtonRow(submission.id) as never,
     });
   } catch (err) {
     // Same reasoning as the staff-thread failure below: String(err) is only

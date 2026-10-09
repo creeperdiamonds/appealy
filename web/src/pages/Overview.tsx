@@ -15,7 +15,7 @@
 // announces itself through the numbers above it first.
 
 import { useEffect, useState, useCallback } from "react";
-import { api, ApiError, type Overview as OverviewData } from "../lib/api";
+import { api, ApiError, type Overview as OverviewData, type SetupIssue } from "../lib/api";
 import {
   Panel,
   Stat,
@@ -179,6 +179,8 @@ export default function Overview({ guildId }: { guildId: string }) {
         </Banner>
       )}
 
+      <SetupCheck guildId={guildId} />
+
       <div className="grid grid-4">
         <Stat
           label="Awaiting review"
@@ -300,6 +302,63 @@ export default function Overview({ guildId }: { guildId: string }) {
         )}
       </Panel>
     </>
+  );
+}
+
+/**
+ * What about this server's setup will fail quietly: a review channel Appealy
+ * can't post in, a role it can't give. Checked once when the page opens, not
+ * on the 15-second poll (it reads a lot from Discord), with a button to
+ * check again after fixing something. Shows nothing when all is well, or
+ * when the bot can't be reached (the banner above already says so).
+ */
+function SetupCheck({ guildId }: { guildId: string }) {
+  const [issues, setIssues] = useState<SetupIssue[] | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const check = useCallback(async () => {
+    setChecking(true);
+    try {
+      setIssues((await api.setupCheck(guildId)).issues);
+    } catch {
+      setIssues(null);
+    } finally {
+      setChecking(false);
+    }
+  }, [guildId]);
+
+  useEffect(() => {
+    void check();
+  }, [check]);
+
+  if (!issues || issues.length === 0) return null;
+  const worst = issues.some((i) => i.level === "act") ? "act" : "watch";
+  const byForm = new Map<string, SetupIssue[]>();
+  for (const i of issues) byForm.set(i.formName, [...(byForm.get(i.formName) ?? []), i]);
+
+  return (
+    <Banner
+      level={worst}
+      title={issues.length === 1 ? "1 setup problem" : `${issues.length} setup problems`}
+      action={
+        <button className="btn" onClick={check} disabled={checking}>
+          {checking ? "Checking…" : "Check again"}
+        </button>
+      }
+    >
+      These will fail when a member applies or staff decide, so fix them before someone runs into
+      them.
+      {[...byForm].map(([form, list]) => (
+        <div key={form} style={{ marginTop: 8 }}>
+          <strong>{form}</strong>
+          <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+            {list.map((i, n) => (
+              <li key={n}>{i.message}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </Banner>
   );
 }
 

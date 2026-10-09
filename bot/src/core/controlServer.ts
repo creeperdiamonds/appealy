@@ -126,6 +126,14 @@ export function startControlServer(bot: AppealyBot) {
         return Response.json(await getChannelsCached(bot, channelsMatch[1], all));
       }
 
+      // The dashboard's setup check (services/setupCheck.ts). Not cached:
+      // someone who just fixed a permission reloads to see it gone.
+      const setupMatch = url.pathname.match(/^\/internal\/guilds\/(\d+)\/setup-check$/);
+      if (setupMatch && req.method === "GET") {
+        const { runSetupCheck } = await import("../services/setupCheck.ts");
+        return Response.json({ issues: await runSetupCheck(bot, BigInt(setupMatch[1])) });
+      }
+
       const rolesMatch = url.pathname.match(/^\/internal\/guilds\/(\d+)\/roles$/);
       if (rolesMatch && req.method === "GET") {
         return Response.json(await getRolesCached(bot, rolesMatch[1]));

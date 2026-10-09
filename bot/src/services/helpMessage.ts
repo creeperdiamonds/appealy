@@ -33,7 +33,7 @@ const DATA = new Set(["export", "import-appealy", "import-appy"]);
 
 /** The order /help lists commands in. Anything not named here follows, in registration order. */
 const ORDER = [
-  "apply", "forms", "dashboard", "poll", "help", "botstats", "ping",
+  "apply", "application", "forms", "dashboard", "poll", "help", "botstats", "ping",
   "panel", "ticket-panel", "role-menu", "verify-setup", "giveaway", "anti-raid",
   "reset-cooldown", "export_applications",
   "export", "import-appealy", "import-appy",

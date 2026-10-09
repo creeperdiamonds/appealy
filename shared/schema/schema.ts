@@ -708,6 +708,52 @@ export const submissionEvents = pgTable(
   }),
 );
 
+/**
+ * Staff 👍 / 👎 on a pending submission's review post, before anyone decides
+ * (bot/src/interactions/buttons/reviewVote.ts). Advisory only: Accept and
+ * Deny don't read it. One vote per reviewer per submission.
+ */
+export const submissionVotes = pgTable(
+  "submission_votes",
+  {
+    submissionId: text("submission_id")
+      .notNull()
+      .references(() => submissions.id, { onDelete: "cascade" }),
+    voterId: bigint("voter_id", { mode: "bigint" }).notNull(),
+    /** "up" or "down". */
+    vote: varchar("vote", { length: 8 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.submissionId, t.voterId] }),
+  }),
+);
+
+/**
+ * A question staff asked the applicant from the review post, and their
+ * answer (bot/src/interactions/buttons/reviewAsk.ts, modals/followUp.ts).
+ * The applicant answers through a button on the DM, so the reply is tied to
+ * this row rather than guessed from whatever they DM next.
+ */
+export const submissionFollowups = pgTable(
+  "submission_followups",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    submissionId: text("submission_id")
+      .notNull()
+      .references(() => submissions.id, { onDelete: "cascade" }),
+    guildId: bigint("guild_id", { mode: "bigint" }).notNull(),
+    askerId: bigint("asker_id", { mode: "bigint" }).notNull(),
+    question: text("question").notNull(),
+    answer: text("answer"),
+    askedAt: timestamp("asked_at", { withTimezone: true }).notNull().defaultNow(),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+  },
+  (t) => ({
+    submissionIdx: index("submission_followup_submission_idx").on(t.submissionId),
+  }),
+);
+
 // ---------------------------------------------------------------------------
 // Polls
 // ---------------------------------------------------------------------------

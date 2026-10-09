@@ -20,6 +20,9 @@ const MUST_DEFER = [
   "bot/src/interactions/buttons/ticketClose.ts",
   "bot/src/interactions/buttons/giveawayEnter.ts",
   "bot/src/interactions/buttons/submissionWithdraw.ts",
+  "bot/src/interactions/buttons/reviewVote.ts",
+  "bot/src/interactions/modals/followUp.ts",
+  "bot/src/commands/application.ts",
   "bot/src/interactions/modals/formSubmit.ts",
   "bot/src/interactions/modals/denyReason.ts",
   "bot/src/interactions/modals/verifyCaptcha.ts",
@@ -65,6 +68,7 @@ const MUST_DEFER = [
 const MUST_NOT_DEFER = [
   "bot/src/interactions/buttons/panelOpen.ts",
   "bot/src/interactions/buttons/reviewDeny.ts",
+  "bot/src/interactions/buttons/reviewAsk.ts",
 ];
 
 for (const path of MUST_DEFER) {
