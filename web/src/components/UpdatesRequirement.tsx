@@ -131,6 +131,42 @@ function UpdatesPicker({ guildId, onDone }: { guildId: string; onDone: () => voi
           {error}
         </p>
       )}
+      {/* Open by itself once a follow has failed: by far the likeliest reason
+          is the missing permission this walks through. */}
+      <WebhooksGuide key={error ? "failed" : "idle"} open={Boolean(error)} />
     </div>
+  );
+}
+
+/**
+ * Giving Appealy Manage Webhooks in one channel, in three annotated Discord
+ * screenshots (built by brand/tutorial-src/make_tutorial.py).
+ */
+const GUIDE_STEPS = [
+  { src: "webhooks-step-1.png", alt: "Hover the channel and click its gear icon, Edit Channel." },
+  { src: "webhooks-step-2.png", alt: "In the channel's settings, open Permissions." },
+  {
+    src: "webhooks-step-3.png",
+    alt: "Select Appealy under Roles/Members (add it with + if it isn't there), set Manage Webhooks to the green tick, then save.",
+  },
+];
+
+function WebhooksGuide({ open }: { open: boolean }) {
+  const base = `${import.meta.env.BASE_URL}tutorial/`;
+  return (
+    <details open={open} style={{ flexBasis: "100%" }}>
+      <summary style={{ cursor: "pointer" }}>How do I give Appealy Manage Webhooks?</summary>
+      <div style={{ display: "grid", gap: 12, marginTop: 12, maxWidth: 720 }}>
+        {GUIDE_STEPS.map((s) => (
+          <img
+            key={s.src}
+            src={base + s.src}
+            alt={s.alt}
+            loading="lazy"
+            style={{ width: "100%", height: "auto", borderRadius: 8 }}
+          />
+        ))}
+      </div>
+    </details>
   );
 }
