@@ -1,7 +1,7 @@
 # Node 24 (LTS "Krypton"). Both stages move together — building on one major
 # and running on another is how a native module compiles fine and then fails
 # to load.
-FROM node:24-alpine AS build
+FROM mirror.gcr.io/library/node:24-alpine AS build
 WORKDIR /app
 COPY api/package.json api/package-lock.json* ./api/
 COPY shared ./shared
@@ -10,7 +10,7 @@ RUN npm install
 COPY api ./
 RUN npm run build
 
-FROM node:24-alpine
+FROM mirror.gcr.io/library/node:24-alpine
 WORKDIR /app
 COPY --from=build /app/api/dist ./dist
 COPY --from=build /app/api/node_modules ./node_modules

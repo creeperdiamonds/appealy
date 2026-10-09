@@ -2,7 +2,7 @@
 # 1.x cannot read, and the npm: specifier for the Discord library resolves
 # through Deno 2's npm compatibility layer. Pinned to the version the type
 # check was run against.
-FROM denoland/deno:2.9.5
+FROM mirror.gcr.io/denoland/deno:2.9.5
 
 WORKDIR /app
 COPY bot ./bot
