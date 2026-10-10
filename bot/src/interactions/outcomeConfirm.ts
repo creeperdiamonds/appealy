@@ -197,10 +197,15 @@ export function buildConfirm(
     flags: 64, // ephemeral
     embeds: [
       {
-        title: `Accept <@${applicantId}> as ${outcome.label}?`,
-        description: privileged
-          ? "**This is a restricted outcome.** Read the roles before confirming."
-          : outcome.description ?? undefined,
+        // Discord never renders mentions in a title: it showed the raw
+        // "<@573…>". The applicant goes in the description, where it does.
+        title: `Accept as ${outcome.label}?`,
+        description: [
+          `Applicant: <@${applicantId}>`,
+          privileged
+            ? "**This is a restricted outcome.** Read the roles before confirming."
+            : outcome.description ?? null,
+        ].filter(Boolean).join("\n"),
         color: privileged ? 0xff4d6d : 0x5865f2,
         fields,
       },
