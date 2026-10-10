@@ -16,6 +16,7 @@ import { canReviewForm } from "../../services/permissionService.ts";
 import { reviewButtonRow, withVotesField } from "../../services/reviewButtons.ts";
 import { reviewPostEmbed } from "../../services/reviewPost.ts";
 import { logger } from "../../utils/logger.ts";
+import { describeDiscordError } from "../../utils/discordError.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleReviewVote(bot: AppealyBot, interaction: Interaction, submissionId: string, choice: string) {
@@ -64,7 +65,8 @@ export async function handleReviewVote(bot: AppealyBot, interaction: Interaction
   const counts = { up: votes.filter((v) => v.vote === "up").length, down: votes.filter((v) => v.vote === "down").length };
 
   if (submission.logMessageId) {
-    const embed = await reviewPostEmbed(bot, submission.form.logChannelId, submission.logMessageId, submission.id);
+    // The vote was clicked on the review post, so it's at hand: no read needed.
+    const embed = await reviewPostEmbed(bot, submission.form.logChannelId, submission.logMessageId, submission.id, interaction.message);
     try {
       await bot.helpers.editMessage(submission.form.logChannelId, submission.logMessageId, {
         ...(embed
@@ -75,7 +77,8 @@ export async function handleReviewVote(bot: AppealyBot, interaction: Interaction
         allowedMentions: { parse: [] },
       } as never);
     } catch (err) {
-      logger.warn("Failed to redraw votes on the review post", { submissionId, error: String(err) });
+      const info = describeDiscordError(err);
+      logger.warn("Failed to redraw votes on the review post", { submissionId, status: info.status, code: info.code, error: info.message });
     }
   }
 

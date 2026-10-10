@@ -11,7 +11,7 @@ import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
 import { logger } from "../../utils/logger.ts";
-import { markReviewPost, resendableEmbed } from "../../services/reviewPost.ts";
+import { markReviewPost } from "../../services/reviewPost.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleDenyReasonModalSubmit(
@@ -87,9 +87,14 @@ export async function handleDenyReasonModalSubmit(
   // reviewer left it blank.
   const deniedFooter = `Denied by ${reviewer.username}${reason ? ` • Reason: ${reason}` : ""} • Submission ID: ${submission.id}`;
   const reviewEmbed = submission.logMessageId
-    ? await markReviewPost(bot, form.logChannelId, submission.logMessageId, submission.id, { color: 0xed4245, footer: deniedFooter })
+    ? await markReviewPost(bot, form.logChannelId, submission.logMessageId, submission.id, { color: 0xed4245, footer: deniedFooter }, interaction.message)
     : null;
-  const copyOf = reviewEmbed ?? resendableEmbed(interaction.message?.embeds?.[0] as Record<string, unknown> | undefined);
+  // Without the post's own embed, a plain card naming who and what, never the
+  // clicked message's: from a confirm step that's the confirmation, not the application.
+  const copyOf = reviewEmbed ?? {
+    title: `Application — ${form.name}`,
+    description: `Submitted by <@${submission.applicantId}>`,
+  };
 
   // If a distinct denied-submission channel is configured, post a fresh
   // copy there too — mirrors reviewAccept.ts's acceptedChannelId handling.
