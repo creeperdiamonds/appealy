@@ -23,6 +23,7 @@ import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, type FormOutcomeDTO } from "../lib/api";
 import { Panel, Banner, Loading, Empty } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
+import { OptionalChannelPicker, POSTABLE_CHANNEL_TYPES, useGuildChannels } from "../components/ChannelPicker";
 
 type Draft = Omit<FormOutcomeDTO, "id"> & { id?: string; isNoop?: boolean };
 
@@ -54,6 +55,7 @@ export default function OutcomeEditor({ guildId, formId }: { guildId: string; fo
   const [outcomes, setOutcomes] = useState<Draft[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<number | null>(null);
+  const { channels, failed: channelsFailed } = useGuildChannels(guildId);
 
   const load = useCallback(async () => {
     try {
@@ -193,6 +195,20 @@ export default function OutcomeEditor({ guildId, formId }: { guildId: string; fo
               onChange={(ids) => patch(i, { removeRoleIds: ids })}
               hint="On top of any roles the form already removes on every decision."
             />
+
+            {/* The column and API always had this; the editor never showed it,
+                so the only way to set it was an import. */}
+            {o.decision !== "deny" && (
+            <OptionalChannelPicker
+              channels={channels}
+              failed={channelsFailed}
+              types={POSTABLE_CHANNEL_TYPES}
+              label="Log channel"
+              hint="Where a copy of each application accepted this way is posted. Leave empty to use the form's accepted channel, or its review channel."
+              value={o.logChannelId}
+              onChange={(id) => patch(i, { logChannelId: id })}
+            />
+            )}
 
             <label className="field">
               <span className="eyebrow">Who can pick this</span>

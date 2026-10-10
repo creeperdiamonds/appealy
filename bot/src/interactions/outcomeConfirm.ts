@@ -144,6 +144,11 @@ export function buildConfirm(
     formRemoveRoleIds: string[];
     pendingRoleIds: string[];
     logChannelId: string | null;
+    /**
+     * The log channel's name, looked up in this server. Null when it couldn't
+     * be found here: deleted, or from another server. Undefined: not checked.
+     */
+    logChannelName?: string | null;
     willDm: boolean;
     /** Roles the bot can see but can't assign — worth knowing BEFORE clicking. */
     unmanageableRoleIds: string[];
@@ -162,8 +167,17 @@ export function buildConfirm(
   if (opts.willDm) {
     fields.push({ name: "They get", value: "a DM with the accept message", inline: false });
   }
-  if (opts.logChannelId) {
-    fields.push({ name: "Logged in", value: `<#${opts.logChannelId}>`, inline: false });
+  if (opts.logChannelId && opts.logChannelName === null) {
+    fields.push({
+      name: "⚠️ Logged in",
+      value: "A channel that doesn't exist in this server any more. Pick a new one in this outcome's settings on the dashboard.",
+      inline: false,
+    });
+  } else if (opts.logChannelId) {
+    // The name spelled out as well as mentioned, so it reads right even where
+    // Discord can't resolve the mention.
+    const named = opts.logChannelName ? ` (#${opts.logChannelName})` : "";
+    fields.push({ name: "Logged in", value: `<#${opts.logChannelId}>${named}`, inline: false });
   }
 
   // Surfaced here rather than after the fact. The current accept path reports

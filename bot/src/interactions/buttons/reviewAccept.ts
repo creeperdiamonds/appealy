@@ -17,7 +17,7 @@ import {
 } from "../../../../shared/schema/outcomes.ts";
 import { buildConfirm, stageConfirm, takeConfirm } from "../outcomeConfirm.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
-import { markReviewPost, resendableEmbed } from "../../services/reviewPost.ts";
+import { markReviewPost } from "../../services/reviewPost.ts";
 import { logger } from "../../utils/logger.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
@@ -178,10 +178,19 @@ export async function handleReviewAccept(
       // that respond fresh; dropped here since the ephemeral flag already
       // landed on the deferral and finish() must not receive it — see
       // finish()'s own doc comment.
+      // Where the decision gets written down: the outcome's own channel, else
+      // the form's accepted channel, else its review channel. Checked rather
+      // than mentioned blind: a deleted channel, or one from another server
+      // (an imported form), rendered as "#unknown" with no hint what to fix.
+      const logTarget = outcome.logChannelId ?? form.acceptedChannelId ?? form.logChannelId;
+      const logChannel = logTarget
+        ? await bot.helpers.getChannel(logTarget).catch(() => null)
+        : null;
       const { embeds, components } = buildConfirm(outcome, submission.applicantId, submissionId, {
         formRemoveRoleIds: form.removeRoleIds,
         pendingRoleIds: form.pendingRoleIds,
-        logChannelId: (outcome.logChannelId ?? form.acceptedChannelId ?? form.logChannelId)?.toString() ?? null,
+        logChannelId: logTarget?.toString() ?? null,
+        logChannelName: logChannel && logChannel.guildId === guildId ? (logChannel.name ?? null) : null,
         willDm: true,
         unmanageableRoleIds: unmanageablePreview,
       });
@@ -323,9 +332,14 @@ export async function handleReviewAccept(
     ? await markReviewPost(bot, form.logChannelId, submission.logMessageId, submission.id, {
         color: 0x57f287,
         footer: `Accepted by ${reviewer.username} • Submission ID: ${submission.id}`,
-      })
+      }, interaction.message)
     : null;
-  const copyOf = reviewEmbed ?? resendableEmbed(interaction.message?.embeds?.[0] as Record<string, unknown> | undefined);
+  // Without the post's own embed, a plain card naming who and what, never the
+  // clicked message's: from a confirm step that's the confirmation, not the application.
+  const copyOf = reviewEmbed ?? {
+    title: `Application — ${form.name}`,
+    description: `Submitted by <@${submission.applicantId}>`,
+  };
 
   // If a distinct accepted-submission channel is configured, post a fresh
   // copy there too — matching the per-outcome-channel model (pending vs
