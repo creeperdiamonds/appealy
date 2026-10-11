@@ -50,7 +50,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
         color: 0x5865f2,
         fields: [
           { name: "Uptime", value: uptimeText, inline: true },
-          { name: "Guilds", value: String(await countRows(schema.guilds)), inline: true },
+          { name: "Unique server joins", value: String(await countRows(schema.guilds)), inline: true },
           { name: "This server's forms", value: String(guildFormCount), inline: true },
           { name: "This server's submissions", value: String(guildSubmissionCount), inline: true },
           { name: "This server's open tickets", value: String(guildOpenTicketCount), inline: true },
