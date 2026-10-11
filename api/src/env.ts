@@ -104,6 +104,12 @@ export const env = {
    * NOT the API key, which must never reach a browser.
    */
   PADDLE_CLIENT_TOKEN: optional("PADDLE_CLIENT_TOKEN", ""),
+  /**
+   * top.gg > your bot > Webhooks: the secret (starts with whs_) for the
+   * webhook pointed at /webhooks/topgg. Optional: unset, votes are refused
+   * and /vote has nothing to spend, which is all that breaks.
+   */
+  TOPGG_WEBHOOK_SECRET: optional("TOPGG_WEBHOOK_SECRET", ""),
   /** "sandbox" until a real account is verified, then "production". */
   PADDLE_ENV: optional("PADDLE_ENV", "sandbox"),
   /**

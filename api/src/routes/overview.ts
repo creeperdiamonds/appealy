@@ -26,6 +26,8 @@ import { requireGuildAccess } from "../middleware/guildAccess.ts";
 import { resolveEffectiveCaps } from "../services/rateLimitService.ts";
 import { withRedis } from "../lib/redis.ts";
 import { RATE_LIMIT_PRESETS } from "../../../shared/schema/pricing.ts";
+import { deployment, PRIVILEGED } from "../env.ts";
+import { findPerk, parseActivePerk, votePerkKey, withVoteBonus } from "../../../shared/schema/votePerks.ts";
 
 export const overviewRouter = Router({ mergeParams: true });
 
@@ -58,16 +60,19 @@ async function readDailyCounters(guildId: string) {
   const names = ["submissionsPerDay", "ticketsPerDay", "giveawayEntriesPerDay"] as const;
   const bucket = dayBucket();
 
+  // The vote perk rides along in the same MGET: it changes the limits
+  // these counters are measured against.
   const values = await withRedis(
-    (r) => r.mget(...names.map((n) => `appealy:ratelimit:${guildId}:${n}:${bucket}`)),
-    names.map(() => null) as (string | null)[],
+    (r) =>
+      r.mget(...names.map((n) => `appealy:ratelimit:${guildId}:${n}:${bucket}`), votePerkKey(guildId)),
+    [...names.map(() => null), null] as (string | null)[],
   );
 
   const used = {} as Record<(typeof names)[number], number>;
   names.forEach((n, i) => {
     used[n] = Number(values[i] ?? 0) || 0;
   });
-  return used;
+  return { used, votePerk: parseActivePerk(values[names.length]) };
 }
 
 async function fetchBotHealth(): Promise<Record<string, unknown> | null> {
@@ -99,7 +104,7 @@ overviewRouter.get("/", async (req, res, next) => {
 
     const [
       guild,
-      dailyUsed,
+      daily,
       formCount,
       panelCount,
       pendingSubmissions,
@@ -172,7 +177,13 @@ overviewRouter.get("/", async (req, res, next) => {
       fetchBotHealth(),
     ]);
 
-    const caps = guild ? resolveEffectiveCaps(guild) : RATE_LIMIT_PRESETS.free.caps;
+    // Same rule as the bot's votePerksApply: only servers on the price list.
+    const votePerk =
+      guild && deployment.features.tieredRateLimits && !PRIVILEGED.ids.has(guildIdStr)
+        ? daily.votePerk
+        : null;
+    const baseCaps = guild ? resolveEffectiveCaps(guild) : RATE_LIMIT_PRESETS.free.caps;
+    const caps = withVoteBonus(baseCaps, votePerk);
     const lockdownActive = Boolean(lockdown && lockdown.expiresAt > new Date());
 
     res.json({
@@ -195,11 +206,15 @@ overviewRouter.get("/", async (req, res, next) => {
       capacity: {
         caps,
         used: {
-          ...dailyUsed,
+          ...daily.used,
           formsPerGuild: formCount[0]?.n ?? 0,
           panelsPerGuild: panelCount[0]?.n ?? 0,
         },
         resetsInSeconds: secondsUntilUtcMidnight(),
+        // Already added into caps above; this says why a limit is higher.
+        votePerk: votePerk
+          ? { label: findPerk(votePerk.perk)!.label, until: new Date(votePerk.until).toISOString() }
+          : null,
       },
 
       activity: {

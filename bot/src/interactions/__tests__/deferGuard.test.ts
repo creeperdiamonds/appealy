@@ -28,6 +28,8 @@ const MUST_DEFER = [
   "bot/src/interactions/modals/verifyCaptcha.ts",
   "bot/src/interactions/selects/roleMenuSelect.ts",
   "bot/src/interactions/selects/pollVote.ts",
+  "bot/src/interactions/selects/votePerk.ts",
+  "bot/src/commands/vote.ts",
   // Slash commands added in Task 7. exportApplications.ts, resetCooldown.ts,
   // and importAppy.ts are deliberately NOT here even though their `execute`
   // handlers were converted the same way — see the dedicated tests below

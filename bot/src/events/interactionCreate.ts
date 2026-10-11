@@ -36,6 +36,7 @@ import { handleFormSelectStep } from "../interactions/selects/formSelectStep.ts"
 import { handlePollVote } from "../interactions/selects/pollVote.ts";
 import { handleRoleMenuSelect } from "../interactions/selects/roleMenuSelect.ts";
 import { handleTimezonePick } from "../interactions/selects/timezonePick.ts";
+import { handleVotePerk } from "../interactions/selects/votePerk.ts";
 import { handleTicketOpenButton } from "../interactions/buttons/ticketOpen.ts";
 import { handleTicketCloseButton, handleTicketClaimButton, handleTicketRateButton } from "../interactions/buttons/ticketClose.ts";
 import { handleGiveawayEnterButton } from "../interactions/buttons/giveawayEnter.ts";
@@ -218,6 +219,10 @@ export function onInteractionCreate(bot: AppealyBot) {
           // clicking someone else's picker is a no-op rather than an answer.
           if (namespace === "tz" && action === "pick") {
             return await handleTimezonePick(bot, interaction, entityId);
+          }
+          // entityId is the voter, who alone can spend their vote.
+          if (namespace === "vote" && action === "perk") {
+            return await handleVotePerk(bot, interaction, entityId);
           }
 
           logger.warn("Unhandled message component interaction", { customId });

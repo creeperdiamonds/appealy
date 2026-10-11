@@ -234,6 +234,9 @@ spec:
               value: "PADDLE_CHECKOUT_URL_VALUE"
             - name: PADDLE_CLIENT_TOKEN
               value: "PADDLE_CLIENT_TOKEN_VALUE"
+            # top.gg vote webhook (api/src/routes/topggWebhook.ts). Optional.
+            - name: TOPGG_WEBHOOK_SECRET
+              value: "TOPGG_WEBHOOK_SECRET_VALUE"
           resources:
             limits:
               cpu: "750m"

@@ -371,6 +371,8 @@ export interface Overview {
     caps: RateLimitCaps;
     used: Record<string, number>;
     resetsInSeconds: number;
+    /** From a top.gg vote (/vote). Already added into caps. Absent on older APIs. */
+    votePerk?: { label: string; until: string } | null;
   };
   activity: {
     pendingSubmissions: number;

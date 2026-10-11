@@ -59,7 +59,7 @@ for var in ("PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET"):
 # They are still substituted unconditionally, because the sweep below fails the
 # deploy on any placeholder left in the spec — "optional" has to mean "renders
 # to nothing", not "skipped".
-for var in ("PADDLE_ENV", "PADDLE_CHECKOUT_URL", "PADDLE_CLIENT_TOKEN"):
+for var in ("PADDLE_ENV", "PADDLE_CHECKOUT_URL", "PADDLE_CLIENT_TOKEN", "TOPGG_WEBHOOK_SECRET"):
     spec = spec.replace(var + "_VALUE", os.environ.get(var, ""))
 
 spec = spec.replace("INTERNAL_RPC_SECRET_VALUE", os.environ["RPC_SECRET"])

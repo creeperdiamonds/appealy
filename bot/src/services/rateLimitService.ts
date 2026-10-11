@@ -44,6 +44,7 @@ import {
 } from "../../../shared/schema/pricing.ts";
 import { deployment, env, PRIVILEGED } from "../core/env.ts";
 import { entitledTier } from "../core/entitlements.ts";
+import { parseActivePerk, voteBonus, votePerkKey, withVoteBonus } from "../../../shared/schema/votePerks.ts";
 
 const FREE_CAPS = RATE_LIMIT_PRESETS.free.caps;
 
@@ -129,6 +130,25 @@ export function resolveEffectiveCaps(
   return resolved;
 }
 
+/**
+ * Vote perks are a nudge for servers on the price list. Privileged and
+ * self-hosted guilds aren't on it, and their caps are already far above
+ * anything a perk adds.
+ */
+function votePerksApply(guild: typeof schema.guilds.$inferSelect): boolean {
+  return deployment.features.tieredRateLimits && !PRIVILEGED.ids.has(guild.id.toString());
+}
+
+/** The server's caps with any active vote perk added, for display. */
+export async function capsWithVotePerk(
+  guild: typeof schema.guilds.$inferSelect,
+): Promise<RateLimitCaps> {
+  const caps = resolveEffectiveCaps(guild);
+  if (!votePerksApply(guild)) return caps;
+  const raw = await withRedis((r) => r.get(votePerkKey(guild.id.toString())), null);
+  return withVoteBonus(caps, parseActivePerk(raw));
+}
+
 export interface RateLimitCheckResult {
   allowed: boolean;
   current: number;
@@ -180,13 +200,21 @@ export async function checkAndConsumeDailyCap(
     return { allowed: true, current: 0, limit: FREE_CAPS[capName] };
   }
 
-  const limit = resolveEffectiveCaps(config.guild)[capName];
+  const baseLimit = resolveEffectiveCaps(config.guild)[capName];
+  let limit = baseLimit;
   const key = capKey(guildId, capName);
 
   let current: number;
   try {
     const redis = await getRedis();
-    current = await redis.incr(key);
+    // The vote perk is read alongside the increment, not before it, so a
+    // server with a perk costs no extra round trip.
+    const [count, perk] = await Promise.all([
+      redis.incr(key),
+      votePerksApply(config.guild) ? redis.get(votePerkKey(guildId.toString())) : null,
+    ]);
+    current = count;
+    limit = baseLimit + voteBonus(parseActivePerk(perk), capName);
     if (current === 1) {
       // ~25h covers UTC-day-boundary skew without leaking keys. Fired only
       // on the first increment of a window, so this costs one extra
@@ -199,7 +227,7 @@ export async function checkAndConsumeDailyCap(
     return {
       allowed: false,
       current: 0,
-      limit,
+      limit: baseLimit,
       degraded: true,
     };
   }
@@ -240,7 +268,7 @@ export interface UsageSnapshot {
  */
 export async function getUsageSnapshot(guildId: bigint): Promise<UsageSnapshot> {
   const config = await getGuildConfig(guildId);
-  const caps = config.guild ? resolveEffectiveCaps(config.guild) : FREE_CAPS;
+  const caps = config.guild ? await capsWithVotePerk(config.guild) : FREE_CAPS;
 
   const dailyNames: DailyCapName[] = [
     "submissionsPerDay",

@@ -212,6 +212,11 @@ export default function Overview({ guildId }: { guildId: string }) {
             used={capacity.used}
             resetsInSeconds={capacity.resetsInSeconds}
           />
+          <p className="dim" style={{ marginTop: 12 }}>
+            {capacity.votePerk
+              ? `Vote perk active: ${capacity.votePerk.label}, until ${new Date(capacity.votePerk.until).toLocaleString()}. Already included above.`
+              : "Vote for Appealy on top.gg, then run /vote in your server for a small perk."}
+          </p>
         </Panel>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
