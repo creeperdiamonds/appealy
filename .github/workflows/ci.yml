@@ -64,7 +64,10 @@ jobs:
         # They passed locally and the pipeline never executed them, which is
         # the worst shape for a test to be in: it looks like cover and is not.
         # pricing.test.ts guards the numbers every charge is calculated from.
-        run: deno test --allow-read -c bot/deno.json bot/src/ shared/
+        #
+        # --allow-env=LOG_LEVEL and nothing wider: the logger reads it the first
+        # time anything logs, and privilegedIntents.test.ts logs on purpose.
+        run: deno test --allow-read --allow-env=LOG_LEVEL -c bot/deno.json bot/src/ shared/
 
       - name: Type check
         run: deno check -c bot/deno.json bot/src/main.ts
