@@ -189,6 +189,8 @@ jobs:
           PADDLE_ENV: ${{ vars.PADDLE_ENV }}
           PADDLE_CHECKOUT_URL: ${{ vars.PADDLE_CHECKOUT_URL }}
           PADDLE_CLIENT_TOKEN: ${{ vars.PADDLE_CLIENT_TOKEN }}
+          # Optional: unset, top.gg votes are refused and /vote has nothing to spend.
+          TOPGG_WEBHOOK_SECRET: ${{ secrets.TOPGG_WEBHOOK_SECRET }}
           # Stored, not generated: it has to match the status Worker's
           # HEARTBEAT_SECRET, which lives on Cloudflare, not in this instance.
           STATUS_HEARTBEAT_SECRET: ${{ secrets.STATUS_HEARTBEAT_SECRET }}

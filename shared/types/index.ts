@@ -67,6 +67,11 @@ export const CUSTOM_ID_NAMESPACES = {
    *     follow-up question's DM (interactions/modals/followUp.ts)
    */
   SUBMISSION: "submission",
+  /**
+   * vote:perk:<userId> — /vote's perk menu (bot/src/commands/vote.ts). The
+   * entity is the voter, who alone can spend their vote.
+   */
+  VOTE: "vote",
 } as const;
 
 export type CustomIdNamespace =

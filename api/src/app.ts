@@ -31,6 +31,7 @@ import { welcomerRouter } from "./routes/welcomer.ts";
 import { billingRouter } from "./routes/billing.ts";
 import { paymentsOpen } from "./services/paddleService.ts";
 import { paddleWebhookRouter } from "./routes/paddleWebhook.ts";
+import { topggWebhookRouter } from "./routes/topggWebhook.ts";
 import { genericInviteUrl } from "./routes/auth.ts";
 import { roleMenusRouter } from "./routes/roleMenus.ts";
 import { antiRaidRouter } from "./routes/antiRaid.ts";
@@ -70,6 +71,7 @@ export function createApp() {
   // request bytes, so this route must never see a body that has already been
   // parsed and would re-serialise differently.
   app.use("/webhooks", paddleWebhookRouter);
+  app.use("/webhooks", topggWebhookRouter);
 
   // Nothing this API returns may be cached, ever.
   //
