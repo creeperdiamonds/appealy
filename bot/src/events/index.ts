@@ -10,6 +10,8 @@ import { cancelUnban } from "../services/tempBans.ts";
 import { logger } from "../utils/logger.ts";
 import { onEntitlementEvent } from "../core/entitlements.ts";
 import { onGuildCreate } from "./guildCreate.ts";
+import { sendWelcome } from "../services/welcome.ts";
+import { isFreshJoin } from "../services/welcomeMessage.ts";
 import { onGuildDelete } from "./guildDelete.ts";
 import { refreshPresence } from "../core/presence.ts";
 import { onInteractionCreate } from "./interactionCreate.ts";
@@ -65,6 +67,7 @@ export function registerEventHandlers(bot: AppealyBot) {
   // startup burst of one event per guild still results in a single write.
   bot.events.guildCreate = (guild) => {
     refreshPresence(bot);
+    if (isFreshJoin(guild.joinedAt)) void sendWelcome(bot, guild.id);
     return onGuildCreate(guild, shardIdForGuild(bot, guild.id));
   };
   bot.events.guildDelete = guildDelete;

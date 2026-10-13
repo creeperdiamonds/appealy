@@ -29,6 +29,9 @@ export const desiredProperties = {
     // Read by the welcomer and the leave handler for the "you're member #N"
     // line. Undeclared, it is absent at runtime, not just untyped.
     memberCount: true,
+    // Tells the bot being added (a join a moment ago) from the guildCreate
+    // every server sends again on reconnect, for the welcome message.
+    joinedAt: true,
   },
   role: {
     id: true,
