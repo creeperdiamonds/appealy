@@ -27,7 +27,7 @@ import { logger } from "../utils/logger.ts";
 /** Appealy's announcement channel, which servers follow. */
 const SOURCE_CHANNEL_ID = process.env.APPEALY_UPDATES_CHANNEL_ID ?? "1511370279312429097";
 /** When picking a channel stops being optional. Announced on the dashboard until then. */
-const REQUIRED_FROM = new Date(process.env.UPDATES_REQUIRED_FROM ?? "2026-10-17T00:00:00Z");
+const REQUIRED_FROM = new Date(process.env.UPDATES_REQUIRED_FROM ?? "2026-10-31T00:00:00Z");
 
 export const updatesRouter = Router({ mergeParams: true });
 updatesRouter.use(requireGuildAccess);
