@@ -18,7 +18,7 @@ import { logger } from "../utils/logger.ts";
  * doesn't set SUPPORT_URL, so without this /help would have no way to ask for
  * help. A self-hosted deployment sets SUPPORT_URL to its own, or shows none.
  */
-const PLATFORM_SUPPORT_URL = "https://discord.gg/UwBMug9JyX";
+export const PLATFORM_SUPPORT_URL = "https://discord.gg/UwBMug9JyX";
 const DOCS_URL = "https://docs.appealy.app";
 
 export const definition: CreateApplicationCommand = {
@@ -66,7 +66,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
  */
 let cachedIds: Map<string, string> | null = null;
 
-async function commandIds(bot: AppealyBot): Promise<Map<string, string>> {
+export async function commandIds(bot: AppealyBot): Promise<Map<string, string>> {
   if (cachedIds) return cachedIds;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {

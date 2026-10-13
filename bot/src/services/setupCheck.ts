@@ -14,6 +14,36 @@ export async function runSetupCheck(bot: AppealyBot, guildId: bigint): Promise<S
   if (forms.length === 0) return [];
   const outcomes = await db.query.formOutcomes.findMany({ where: inArray(schema.formOutcomes.formId, forms.map((f) => f.id)) });
 
+  const { g } = await loadSetupGuild(bot, guildId);
+
+  return checkSetup(
+    g,
+    forms.map((f) => {
+      const mine = outcomes.filter((o) => o.formId === f.id);
+      return {
+        id: f.id,
+        name: f.name,
+        logChannelId: f.logChannelId.toString(),
+        acceptedChannelId: f.acceptedChannelId?.toString() ?? null,
+        deniedChannelId: f.deniedChannelId?.toString() ?? null,
+        threads: f.threadCollabEnabled,
+        archiveOnDecision: f.autoArchiveOnDecision,
+        roleIds: [
+          ...f.grantRoleIds, ...f.removeRoleIds, ...f.deniedGrantRoleIds, ...f.denyRemoveRoleIds, ...f.pendingRoleIds,
+          ...mine.flatMap((o) => [...o.grantRoleIds, ...o.removeRoleIds]),
+        ],
+        outcomeChannelIds: mine.flatMap((o) => (o.logChannelId ? [o.logChannelId.toString()] : [])),
+      };
+    }),
+  );
+}
+
+/**
+ * The server as the setup rules see it: its roles, its channels and Appealy's
+ * own roles, read fresh from Discord. Also returns the raw guild and channels
+ * for callers that need more of them (services/welcome.ts).
+ */
+export async function loadSetupGuild(bot: AppealyBot, guildId: bigint) {
   const [guild, channels, me] = await Promise.all([
     bot.rest.getGuild(guildId),
     bot.rest.getChannels(guildId),
@@ -44,24 +74,5 @@ export async function runSetupCheck(bot: AppealyBot, guildId: bigint): Promise<S
     })),
   };
 
-  return checkSetup(
-    g,
-    forms.map((f) => {
-      const mine = outcomes.filter((o) => o.formId === f.id);
-      return {
-        id: f.id,
-        name: f.name,
-        logChannelId: f.logChannelId.toString(),
-        acceptedChannelId: f.acceptedChannelId?.toString() ?? null,
-        deniedChannelId: f.deniedChannelId?.toString() ?? null,
-        threads: f.threadCollabEnabled,
-        archiveOnDecision: f.autoArchiveOnDecision,
-        roleIds: [
-          ...f.grantRoleIds, ...f.removeRoleIds, ...f.deniedGrantRoleIds, ...f.denyRemoveRoleIds, ...f.pendingRoleIds,
-          ...mine.flatMap((o) => [...o.grantRoleIds, ...o.removeRoleIds]),
-        ],
-        outcomeChannelIds: mine.flatMap((o) => (o.logChannelId ? [o.logChannelId.toString()] : [])),
-      };
-    }),
-  );
+  return { g, guild, channels };
 }
