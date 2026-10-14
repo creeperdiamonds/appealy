@@ -58,6 +58,13 @@ function marketingSite(): Plugin {
           return;
         }
 
+        // The web appeal link is the console's bundle under another path, as
+        // in nginx. Vite only serves its index under base, so point it there.
+        if (/^\/(ja\/)?appeal\/\d{17,20}\/?$/.test(url)) {
+          req.url = "/dashboard/";
+          return next();
+        }
+
         // Everything the app owns keeps its normal handling.
         if (
           url.startsWith("/dashboard") ||
