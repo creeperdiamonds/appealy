@@ -47,6 +47,7 @@ import { automodRouter } from "./routes/automod.ts";
 import { outcomesRouter } from "./routes/outcomes.ts";
 import { opsRouter } from "./routes/ops.ts";
 import { platformAppealsRouter } from "./routes/platformAppeals.ts";
+import { webAppealsRouter } from "./routes/webAppeals.ts";
 import { banGate } from "./middleware/banGate.ts";
 import { requireOpsUser } from "./middleware/requireOpsUser.ts";
 import { overviewRouter } from "./routes/overview.ts";
@@ -213,6 +214,10 @@ export function createApp() {
   // endpoints a banned account may reach, and a ban screen whose form 403s is
   // worse than no appeal process at all.
   app.use("/api/platform-appeals", platformAppealsRouter);
+
+  // Ban appeals from the web appeal link. Its first route is public (the form
+  // a banned person is about to fill in); the rest sign in inside the router.
+  app.use("/api/appeal", webAppealsRouter);
 
   // Everything below requires a session. banGate then short-circuits a
   // user-banned account with a typed 403 the SPA renders as the ban screen.

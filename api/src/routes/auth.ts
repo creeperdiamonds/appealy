@@ -118,7 +118,7 @@ const INVITE_PERMISSION_BITS = INVITE_PERMISSIONS.reduce((acc, [, bit]) => acc |
  * Animated icons are prefixed a_ and must be requested as .gif; asking for
  * .png returns a still frame, which is worse than the thing the server chose.
  */
-function guildIconUrl(guildId: string, hash: string | null | undefined): string | null {
+export function guildIconUrl(guildId: string, hash: string | null | undefined): string | null {
   if (!hash) return null;
   const ext = hash.startsWith("a_") ? "gif" : "png";
   return `https://cdn.discordapp.com/icons/${guildId}/${hash}.${ext}?size=64`;
@@ -206,6 +206,9 @@ function authResultPage(origin: string, ok: boolean, error?: string): string {
 </body></html>`;
 }
 
+/** The only places a sign-in may return to besides the console: a web appeal page. */
+const RETURN_PATH = /^\/(ja\/)?appeal\/\d{17,20}$/;
+
 authRouter.get("/discord/login", async (req, res) => {
   const state = crypto.randomBytes(32).toString("hex");
 
@@ -215,9 +218,13 @@ authRouter.get("/discord/login", async (req, res) => {
   // off the callback would be caller-controlled anyway. Stored here, it comes
   // back from the same atomic GETDEL that already proves the nonce is genuine.
   const mode: LoginMode = req.query.mode === "popup" ? "popup" : "redirect";
+  // Where a redirect sign-in lands afterwards. Only a web appeal page
+  // (web/src/pages/WebAppeal.tsx) may ask, and only by a path of exactly that
+  // shape, so this can never send anyone off the site.
+  const next = typeof req.query.next === "string" && RETURN_PATH.test(req.query.next) ? req.query.next : null;
 
   const stored = await withRedis(
-    (r) => r.set(stateKey(state), mode, "EX", STATE_TTL_SECONDS, "NX"),
+    (r) => r.set(stateKey(state), next ? `${mode} ${next}` : mode, "EX", STATE_TTL_SECONDS, "NX"),
     null,
   );
 
@@ -271,7 +278,10 @@ authRouter.get("/discord/callback", async (req, res) => {
     return res.status(400).type("html").send(authResultPage(env.FRONTEND_ORIGIN, false, "invalid_state"));
   }
 
-  const mode: LoginMode = consumed === "popup" ? "popup" : "redirect";
+  // "<mode>" or "<mode> <return path>"; see /discord/login.
+  const [storedMode, storedNext] = consumed.split(" ");
+  const mode: LoginMode = storedMode === "popup" ? "popup" : "redirect";
+  const next = storedNext && RETURN_PATH.test(storedNext) ? storedNext : null;
 
   try {
     const token = await exchangeCodeForToken(
@@ -312,7 +322,7 @@ authRouter.get("/discord/callback", async (req, res) => {
       return res.type("html").send(authResultPage(env.FRONTEND_ORIGIN, true));
     }
 
-    res.redirect(`${env.FRONTEND_ORIGIN}/dashboard/`);
+    res.redirect(`${env.FRONTEND_ORIGIN}${next ?? "/dashboard/"}`);
   } catch (err) {
     // Logged server-side as well as returned. Without this the only copy of
     // Discord's actual complaint — which names the reason, e.g. a redirect_uri
