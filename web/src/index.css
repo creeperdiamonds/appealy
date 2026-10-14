@@ -1678,3 +1678,17 @@ ul.plain {
 .guide-toggle[open] .guide-arrow {
   transform: rotate(90deg);
 }
+
+/* Form templates: the choices behind "New form" (pages/Forms.tsx). Cards
+   rather than a dropdown, because the blurb is what tells a staff application
+   from a department one, and it should be readable before choosing. */
+.template-card {
+  display: flex; flex-direction: column; gap: 4px; width: 100%;
+  padding: 12px 14px; border-radius: var(--r-sm); cursor: pointer;
+  background: var(--raised); border: 1px solid var(--line); color: var(--text);
+  font: inherit; text-align: left;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.template-card:hover { border-color: var(--accent-line); background: var(--accent-soft); }
+.template-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.template-card .dim { font-size: 13px; }

@@ -36,6 +36,7 @@ import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
 import OutcomeEditor from "./OutcomeEditor";
+import { FORM_TEMPLATES, type FormTemplate } from "../lib/formTemplates";
 import {
   ChannelPicker,
   POSTABLE_CHANNEL_TYPES,
@@ -153,6 +154,23 @@ const blankForm = (): Draft => ({
   questions: [],
 });
 
+/** A new form filled in from a template. Only the log channel is left. */
+const fromTemplate = (t: FormTemplate): Draft => ({
+  ...blankForm(),
+  name: t.name,
+  description: t.description,
+  kind: t.kind,
+  applicationType: t.applicationType,
+  questions: t.questions.map((q, i) => ({
+    ...blankQuestion(i),
+    label: q.label,
+    type: q.type,
+    placeholder: q.placeholder ?? null,
+    maxLength: q.maxLength ?? null,
+    required: q.required ?? true,
+  })),
+});
+
 /**
  * Turns a failed request into something a person can act on.
  *
@@ -245,6 +263,9 @@ export default function Forms({ guildId }: { guildId: string }) {
   // than a nav destination: OutcomeEditor needs a formId as well as a guildId,
   // and App.tsx's `view` state carries a page id and nothing else.
   const [outcomesFor, setOutcomesFor] = useState<string | null>(null);
+  // "New form" opens the templates first. A server with no forms sees them
+  // without asking, since a blank editor is where most first forms stalled.
+  const [choosing, setChoosing] = useState(false);
   // One request for the page rather than one per editor mount: switching
   // between forms remounts the editor, and the channel list doesn't change
   // because you clicked a different row.
@@ -274,6 +295,14 @@ export default function Forms({ guildId }: { guildId: string }) {
 
   if (error && !forms) return <Banner level="act" title="Couldn't load">{error}</Banner>;
   if (!forms) return <Loading rows={5} />;
+
+  /** null is a blank form. */
+  const start = (t: FormTemplate | null) => {
+    setDraft(t ? fromTemplate(t) : blankForm());
+    setChoosing(false);
+    setSaved(false);
+    setError(null);
+  };
 
   const patch = (next: Partial<Draft>) => {
     setDraft((d) => (d ? { ...d, ...next } : d));
@@ -435,12 +464,14 @@ export default function Forms({ guildId }: { guildId: string }) {
         eyebrow="This server"
         title="Forms"
         action={
-          <button className="btn" onClick={() => { setDraft(blankForm()); setSaved(false); }}>
+          <button className="btn" onClick={() => { setChoosing(true); setDraft(null); setError(null); }}>
             New form
           </button>
         }
       >
-        {forms.length === 0 ? (
+        {forms.length === 0 && !draft ? (
+          <TemplatePicker intro="No forms yet. Start from one of these, or from a blank form." onPick={start} />
+        ) : forms.length === 0 ? (
           <Empty
             title="No forms yet"
             hint="Create one, then point a panel or the ban-appeal flow at it."
@@ -476,7 +507,7 @@ export default function Forms({ guildId }: { guildId: string }) {
                       <div className="row">
                         <button
                           className="btn btn-sm"
-                          onClick={() => { setDraft({ ...f }); setSaved(false); setError(null); }}
+                          onClick={() => { setDraft({ ...f }); setChoosing(false); setSaved(false); setError(null); }}
                         >
                           Edit
                         </button>
@@ -496,6 +527,15 @@ export default function Forms({ guildId }: { guildId: string }) {
         )}
       </Panel>
 
+      {choosing && forms.length > 0 && (
+        <Panel
+          title="New form"
+          action={<button className="btn btn-sm" onClick={() => setChoosing(false)}>Cancel</button>}
+        >
+          <TemplatePicker intro="Start from one of these, or from a blank form." onPick={start} />
+        </Panel>
+      )}
+
       {draft && (
         <FormEditor
           key={draft.id ?? "new"}
@@ -513,6 +553,27 @@ export default function Forms({ guildId }: { guildId: string }) {
           onCancel={() => { setDraft(null); setError(null); }}
         />
       )}
+    </div>
+  );
+}
+
+/** The templates in lib/formTemplates.ts, plus a blank form. */
+function TemplatePicker({ intro, onPick }: { intro: string; onPick: (t: FormTemplate | null) => void }) {
+  return (
+    <div className="stack">
+      <p className="dim">{intro} You'll only need to pick the channel submissions go to.</p>
+      <div className="grid grid-3">
+        {FORM_TEMPLATES.map((t) => (
+          <button key={t.id} className="template-card" onClick={() => onPick(t)}>
+            <strong>{t.title}</strong>
+            <span className="dim">{t.blurb}</span>
+          </button>
+        ))}
+        <button className="template-card" onClick={() => onPick(null)}>
+          <strong>Blank form</strong>
+          <span className="dim">Write your own questions.</span>
+        </button>
+      </div>
     </div>
   );
 }
