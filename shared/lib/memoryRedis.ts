@@ -152,7 +152,7 @@ export class MemoryRedis {
       if (opts.ex) ttlSeconds = opts.ex;
       // Accept BOTH spellings. The Upstash client this stands in for takes
       // `{ mode: "NX" }`, and that is the form every caller in this repo
-      // actually uses — scheduler.ts's withLock, banGate.ts:63, and the
+      // actually uses — scheduler.ts's claimTick, banGate.ts:63, and the
       // history-purge day guard. Reading only `nx` meant all three quietly
       // lost their NX semantics whenever REDIS_URL was unset, which is the
       // documented POC mode: set() always overwrote and always returned
