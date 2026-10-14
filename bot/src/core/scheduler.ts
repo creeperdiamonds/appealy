@@ -28,9 +28,9 @@
 //
 // WHAT THIS DOES INSTEAD
 // ----------------------
-// - A Redis lock, held per task, with a TTL shorter than the work is
-//   allowed to take. Only one process runs a given task per tick, and if
-//   the holder dies the lock expires rather than deadlocking.
+// - A Redis lock, one per tick, with a TTL shorter than the tick. Only one
+//   process runs a tick, and if the holder dies the lock expires rather than
+//   deadlocking.
 // - An `isRunning` guard so a slow tick is skipped rather than stacked.
 // - Batched database writes and bounded-concurrency Discord calls.
 // - Each task isolated, so one failure doesn't cancel the others.
@@ -113,56 +113,57 @@ export function startScheduler(bot: AppealyBot) {
 }
 
 async function runTick(bot: AppealyBot) {
+  if (!(await claimTick())) return;
+
   // allSettled, not all: a thrown giveaway must not cancel poll closing.
   await Promise.allSettled([
-    withLock("polls:publish", 25, () => publishDuePolls(bot)),
-    withLock("polls:close", 25, () => closeDuePolls(bot)),
-    withLock("giveaways:end", 25, () => endDueGiveaways(bot)),
-    withLock("jobs:drain", 25, () => drainScheduledJobs(bot)),
-    withLock("history:enqueue", 25, () => enqueueHistoryPurges()),
-    withLock("tempbans:unban", 25, () => unbanDueTempBans(bot)),
+    task("polls:publish", () => publishDuePolls(bot)),
+    task("polls:close", () => closeDuePolls(bot)),
+    task("giveaways:end", () => endDueGiveaways(bot)),
+    task("jobs:drain", () => drainScheduledJobs(bot)),
+    task("history:enqueue", () => enqueueHistoryPurges()),
+    task("tempbans:unban", () => unbanDueTempBans(bot)),
   ]);
 
   const pruned = pruneL1();
   if (pruned > 0) logger.debug("Pruned expired config cache entries", { pruned });
 }
 
+const TICK_LOCK_KEY = "appealy:sched:lock:tick";
+/** Under TICK_MS, so the lock is always free again by the next tick. */
+const TICK_LOCK_SECONDS = 25;
+
 /**
- * Runs `fn` only if this process can acquire the named lock.
+ * Whether this process runs this tick: one SET NX for the whole tick.
  *
- * TTL is in seconds and should be slightly under the tick interval — if
- * the work genuinely takes longer than a tick, letting the lock expire so
- * the next tick can pick up is better than holding it and stalling
- * indefinitely.
+ * This used to be a lock per task, each taken and then released (SET, GET,
+ * DEL), which is 18 Redis commands every 30 seconds whether or not there was
+ * anything to do: about 1.5 million a month. That emptied the free Upstash
+ * plan's 500,000 by the 13th (2026-10-13), and with Redis refusing every
+ * command the whole scheduler stopped, along with sign-in and sticky
+ * messages. One lock per tick, left to expire rather than released, is one
+ * command per tick and the same guarantee: one process runs a given tick.
  *
  * If Redis is unavailable, `withRedis` returns the `null` fallback and the
- * task is SKIPPED rather than run unlocked. That's the deliberate choice:
+ * tick is SKIPPED rather than run unlocked. That's the deliberate choice:
  * a missed tick delays a poll by 30 seconds, whereas running unlocked
  * across replicas double-posts messages and picks giveaway winners twice.
  * Delay is recoverable; duplicate winners are not.
  */
-async function withLock(name: string, ttlSeconds: number, fn: () => Promise<unknown>) {
-  const key = `appealy:sched:lock:${name}`;
-  const token = crypto.randomUUID();
-
+async function claimTick(): Promise<boolean> {
   const acquired = await withRedis(
-    (r) => r.set(key, token, { ex: ttlSeconds, mode: "NX" }),
+    (r) => r.set(TICK_LOCK_KEY, WORKER_ID, { ex: TICK_LOCK_SECONDS, mode: "NX" }),
     null,
   );
-  if (!acquired) return;
+  return acquired !== null;
+}
 
+/** One task of a tick, its failure logged rather than thrown. */
+async function task(name: string, fn: () => Promise<unknown>) {
   try {
     await fn();
   } catch (err) {
     logger.error("Scheduler task failed", { task: name, error: String(err) });
-  } finally {
-    // Only release if we still hold it — if the TTL expired mid-run and
-    // another worker acquired it, deleting would release *their* lock.
-    await withRedis(async (r) => {
-      const current = await r.get(key);
-      if (current === token) await r.del(key);
-      return null;
-    }, null);
   }
 }
 
@@ -289,13 +290,23 @@ async function drainScheduledJobs(bot: AppealyBot) {
  * every guild every 30 seconds to delete nothing is pure load. The daily
  * guard is a Redis SET NX with a 24h TTL, which doubles as the cross-replica
  * lock — if Redis is unavailable, withRedis returns null and this is SKIPPED,
- * matching withLock's reasoning: a day's delay in deleting expired rows is
+ * matching claimTick's reasoning: a day's delay in deleting expired rows is
  * recoverable, and two replicas enqueueing a duplicate job per guild is
  * wasted work draining through the queue.
  */
 const HISTORY_DAY_KEY = "appealy:sched:history-purge-day";
 
+/**
+ * When to next ask Redis for the day key. It changes once a day, so asking
+ * every tick was 2,880 commands a day to learn "not yet"; hourly is 24.
+ */
+const HISTORY_CHECK_MS = 60 * 60_000;
+let nextHistoryCheck = 0;
+
 async function enqueueHistoryPurges() {
+  if (Date.now() < nextHistoryCheck) return;
+  nextHistoryCheck = Date.now() + HISTORY_CHECK_MS;
+
   const claimedToday = await withRedis(
     (r) => r.set(HISTORY_DAY_KEY, new Date().toISOString(), {
       ex: 24 * 60 * 60,
@@ -331,11 +342,12 @@ async function enqueueHistoryPurges() {
 
     logger.info("Enqueued daily history purges", { guilds: guilds.length });
   } catch (err) {
-    // Release the day key. withLock swallows this throw into a warn line, so
-    // without the release a single transient failure would mean no purge for
-    // a full 24 hours — and then the same again tomorrow if it recurred at
-    // the same point.
+    // Release the day key and ask again next tick. task() swallows this
+    // throw into a log line, so without the release a single transient
+    // failure would mean no purge for a full 24 hours — and then the same
+    // again tomorrow if it recurred at the same point.
     await withRedis((r) => r.del(HISTORY_DAY_KEY), null);
+    nextHistoryCheck = 0;
     throw err;
   }
 }
