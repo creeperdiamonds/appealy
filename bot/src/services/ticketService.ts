@@ -230,7 +230,8 @@ export async function closeTicket(
 
 /**
  * Fetches a ticket channel's history, renders it, posts it to the configured
- * transcript channel, and returns a link to that post.
+ * transcript channel, DMs a copy to whoever opened the ticket, and returns a
+ * link to the channel post.
  *
  * FOUR THINGS WERE WRONG HERE, three of them silent.
  *
@@ -254,8 +255,11 @@ export async function closeTicket(
  *    signature.
  *
  * 4. It read the whole channel and then discarded the result when no
- *    transcript channel was configured. Harmless at one REST call; not
- *    harmless now that it pages. The check moved to the top.
+ *    transcript channel was configured. The check moved to the top, and has
+ *    since gone again: the opener now gets the transcript by DM whether or
+ *    not there's a channel, so there's always somewhere for it to go. 42 of
+ *    55 tickets closed with transcripts on in Sep-Oct 2026 had no channel,
+ *    and the dashboard now asks for one.
  *
  * Rendering is in shared/lib/transcript.ts so it can be tested without a
  * gateway connection. See shared/lib/__tests__/transcript.test.ts — every case
@@ -279,9 +283,6 @@ async function generateAndPostTranscript(
   bot: AppealyBot,
   ticket: typeof schema.tickets.$inferSelect & { config: typeof schema.ticketConfigs.$inferSelect },
 ): Promise<string | null> {
-  // Before the work, not after it.
-  if (!ticket.config.transcriptChannelId) return null;
-
   const collected: TranscriptMessage[] = [];
   let before: bigint | undefined;
   let truncated = false;
@@ -305,17 +306,54 @@ async function generateAndPostTranscript(
 
   const transcriptText = renderTranscript(collected.reverse(), { truncated });
 
-  const file = {
+  // A new Blob per send: each upload reads its file body.
+  const file = () => ({
     blob: new Blob([new TextEncoder().encode(transcriptText)], { type: "text/plain" }),
     name: `ticket-${ticket.id}.txt`,
-  };
-
-  const posted = await bot.helpers.sendMessage(ticket.config.transcriptChannelId, {
-    content: `Transcript for ticket \`${ticket.id}\` (opened by <@${ticket.openerId}>)`,
-    files: [file],
   });
 
-  // A message link rather than posted.attachments[0].url. See (3) above.
-  if (!posted?.id) return null;
-  return `https://discord.com/channels/${ticket.guildId}/${ticket.config.transcriptChannelId}/${posted.id}`;
+  // The channel post is the server's record and the DM is the opener's, so
+  // one failing doesn't stop the other. A channel failure still reaches the
+  // caller, after the DM, to be logged.
+  let url: string | null = null;
+  let postError: unknown = null;
+  const transcriptChannelId = ticket.config.transcriptChannelId;
+  if (transcriptChannelId) {
+    try {
+      const posted = await bot.helpers.sendMessage(transcriptChannelId, {
+        content: `Transcript for ticket \`${ticket.id}\` (opened by <@${ticket.openerId}>)`,
+        files: [file()],
+      });
+      // A message link rather than posted.attachments[0].url. See (3) above.
+      if (posted?.id) url = `https://discord.com/channels/${ticket.guildId}/${transcriptChannelId}/${posted.id}`;
+    } catch (err) {
+      postError = err;
+    }
+  }
+
+  await dmTranscript(bot, ticket, file());
+
+  if (postError) throw postError;
+  return url;
+}
+
+/**
+ * The opener's copy. Best effort: closed DMs are common, and an opener who
+ * left the server may share none with the bot any more.
+ */
+async function dmTranscript(
+  bot: AppealyBot,
+  ticket: typeof schema.tickets.$inferSelect & { config: typeof schema.ticketConfigs.$inferSelect },
+  file: { blob: Blob; name: string },
+) {
+  try {
+    const dm = await bot.helpers.getDmChannel(ticket.openerId);
+    await bot.helpers.sendMessage(dm.id, {
+      content: `Your **${ticket.config.name}** ticket was closed. Here's a copy of the conversation.`,
+      files: [file],
+    });
+  } catch (err) {
+    const info = describeDiscordError(err);
+    logger.info("Couldn't DM a ticket transcript to its opener", { ticketId: ticket.id, code: info.code, detail: info.message });
+  }
 }

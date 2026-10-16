@@ -10,10 +10,12 @@
 // so several settings that look like preferences are actually about whether a
 // conversation survives:
 //
-//   1. transcriptOnClose with no transcript channel. The transcript is
-//      generated, has nowhere to go, and is discarded — then the channel is
-//      deleted. The record of that ticket is gone, permanently. With
-//      leaveAction "close" this fires on its own when the opener leaves.
+//   1. transcriptOnClose with no transcript channel. Staff get no transcript,
+//      and on a private channel the ticket itself is deleted on close, so
+//      only the opener's DM copy survives. Saving now refuses it (here and in
+//      api/src/routes/tickets.ts), but older configs can still be in this
+//      state. With leaveAction "close" it fires on its own when the opener
+//      leaves.
 //   2. No support roles on a private channel. The permission overwrites grant
 //      the opener and each support role; with none, staff literally cannot
 //      see the ticket they were opened for. Only Administrators, who bypass
@@ -189,18 +191,18 @@ function problemsFor(c: Draft): Problem[] {
         ? {
             key: "transcript-lost",
             level: "act",
-            title: "Transcripts are being thrown away",
-            body: `Closing a private channel deletes it. The transcript is generated on close, finds no channel to file it in, and is discarded with the channel — so nothing survives.${
+            title: "Transcripts need a channel",
+            body: `Closing a private channel deletes it, and with no transcript channel the only copy left is the one DMed to whoever opened the ticket. Staff keep nothing.${
               c.leaveAction === "close"
                 ? " And with tickets set to close when the opener leaves, that happens without anyone clicking anything."
                 : ""
-            } Pick a transcript channel, or turn transcripts off so the setting stops implying a record exists.`,
+            } Pick a transcript channel, or turn transcripts off. Saving asks for one.`,
           }
         : {
             key: "transcript-unfiled",
             level: "watch",
-            title: "Transcripts have nowhere to go",
-            body: "The thread is archived rather than deleted, so the conversation still exists — but the transcript is generated and discarded, and nothing lands anywhere searchable.",
+            title: "Transcripts need a channel",
+            body: "The thread is archived rather than deleted, so the conversation still exists, but staff get no transcript anywhere searchable. Only the opener gets a copy by DM. Pick a transcript channel, or turn transcripts off. Saving asks for one.",
           },
     );
   }
@@ -381,6 +383,9 @@ export default function Tickets({ guildId }: { guildId: string }) {
     if (!name) return setError("This ticket type needs a name — it's the title on the panel.");
     if (!draft.buttonLabel.trim()) return setError("The button needs a label. Discord won't render a blank one.");
     if (!draft.channelId) return setError("Pick a channel for the panel. That's where the button lives.");
+    if (draft.transcriptOnClose && !draft.transcriptChannelId) {
+      return setError("Pick a transcript channel, or turn transcripts off. Staff need somewhere to find them.");
+    }
 
     setSaving(true);
     setError(null);
@@ -904,9 +909,8 @@ function Editor({
           <span>
             <strong>Save a transcript when a ticket closes</strong>
             <span className="dim block">
-              A plain-text file of the last 100 messages, posted to the channel below. Without a
-              channel it's generated and discarded — and on private channels the ticket itself is
-              deleted at the same moment.
+              A plain-text file of the conversation, posted to the transcript channel below and
+              sent to whoever opened the ticket by DM. Needs a transcript channel.
             </span>
           </span>
         </label>
