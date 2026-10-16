@@ -7,6 +7,7 @@ import * as coreSchema from "../../../shared/schema/schema.ts";
 import * as platformBanSchema from "../../../shared/schema/platformBans.ts";
 import * as outcomeSchema from "../../../shared/schema/outcomes.ts";
 import { env } from "../core/env.ts";
+import { parseJsonKeepingBigIntegers } from "../../../shared/lib/bigJson.ts";
 
 // Shares the database's ~25 connections with the API; see the sizing note in
 // api/src/db/client.ts before raising this.
@@ -15,6 +16,11 @@ const queryClient = postgres(env.DATABASE_URL, {
   idle_timeout: 20,
   connect_timeout: 10,
 });
+// Discord ids in rows loaded with `with: { ... }` arrive inside Postgres json,
+// and the default parser rounded them to ids that don't exist. Every ticket
+// transcript failed on that (shared/lib/bigJson.ts). Set the same way drizzle
+// sets its own parsers, on the client, before drizzle() below.
+queryClient.options.parsers["114"] = parseJsonKeepingBigIntegers;
 
 // Merged explicitly rather than relying on schema.ts's `export *`.
 //
