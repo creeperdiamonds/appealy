@@ -69,6 +69,8 @@ export const desiredProperties = {
     content: true,
     // Ticket transcripts include what was attached, not just what was typed.
     attachments: true,
+    // And when each message was sent: without it every transcript line had no time.
+    timestamp: true,
     // Review and denial flows edit the original review message in place, which
     // means reading the embed they are about to rewrite.
     embeds: true,
