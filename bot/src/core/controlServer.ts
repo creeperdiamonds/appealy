@@ -295,6 +295,28 @@ export function startControlServer(bot: AppealyBot) {
         return Response.json({ users });
       }
 
+      // Ban appeals from the web (services/webAppeal.ts). The API has already
+      // signed the person in; these ask Discord about the ban and do the rest.
+      if (url.pathname === "/internal/appeals/status" && req.method === "POST") {
+        const { guildId, userId } = await req.json();
+        const { webAppealStatus } = await import("../services/webAppeal.ts");
+        return Response.json(await webAppealStatus(bot, BigInt(guildId), BigInt(userId)));
+      }
+
+      if (url.pathname === "/internal/appeals/submit" && req.method === "POST") {
+        const { guildId, userId, answers, completionSeconds } = await req.json();
+        const { submitWebAppeal } = await import("../services/webAppeal.ts");
+        return Response.json(
+          await submitWebAppeal(
+            bot,
+            BigInt(guildId),
+            BigInt(userId),
+            answers && typeof answers === "object" ? answers : {},
+            typeof completionSeconds === "number" ? completionSeconds : null,
+          ),
+        );
+      }
+
       return new Response("not found", { status: 404 });
     } catch (err) {
       // Already worded for the person reading it, by automodService — the

@@ -252,3 +252,28 @@ export function requestUpdatesFollow(sourceChannelId: string, channelId: string)
 export function requestUpdatesVerify(webhookId: string) {
   return callBot("/internal/updates/verify", { webhookId }, BOT_CALL_TIMEOUT_MS_FAST) as Promise<{ exists: boolean }>;
 }
+
+/** What the bot answers about a web ban appeal (bot/src/services/webAppeal.ts). */
+export type WebAppealStatus =
+  | { status: "unavailable" }
+  | { status: "cant_check" }
+  | {
+    status: "banned" | "not_banned";
+    latest: { id: string; status: string; createdAt: string; decidedAt: string | null } | null;
+  };
+
+export type WebAppealResult =
+  | { status: "submitted"; submissionId: string }
+  | { status: "unavailable" }
+  | { status: "cant_check" }
+  | { status: "not_banned" }
+  | { status: "invalid"; problems: Record<string, string> }
+  | { status: "refused"; message: string };
+
+export function webAppealStatus(guildId: string, userId: string) {
+  return callBot("/internal/appeals/status", { guildId, userId }) as Promise<WebAppealStatus>;
+}
+
+export function submitWebAppeal(guildId: string, userId: string, answers: Record<string, string>, completionSeconds: number | null) {
+  return callBot("/internal/appeals/submit", { guildId, userId, answers, completionSeconds }) as Promise<WebAppealResult>;
+}

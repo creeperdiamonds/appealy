@@ -143,10 +143,10 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
       )}
 
       {noEntryPoint && (
-        <Banner level="watch" title="Nobody can start an appeal">
-          The form is set but the ban-time DM is off, and there's
-          no other way in. Turn the DM back on, or tell members in
-          your ban message how to reach you.
+        <Banner level="watch" title="Only the appeal link is left">
+          The ban-time DM is off, so banned members can only appeal through the
+          web appeal link below. Put it in your ban message or your rules, or
+          they won't know it exists.
         </Banner>
       )}
 
@@ -197,6 +197,8 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
             </span>
           )}
         </label>
+
+        {config.enabled && config.formId && <AppealLink guildId={guildId} />}
 
         <label className="row">
           <input
@@ -391,6 +393,42 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
       {appealForms.length === 0 && forms.length === 0 && (
         <Empty title="No forms in this server yet" hint="Create one under Forms to get started." />
       )}
+    </div>
+  );
+}
+
+/**
+ * The web appeal link (pages/WebAppeal.tsx): a page where anyone banned here
+ * can sign in with Discord and appeal, whether or not the ban DM reached them.
+ * It reaches the same form as the DM, so turning ban appeals on with a form is
+ * all it needs.
+ */
+function AppealLink({ guildId }: { guildId: string }) {
+  const url = `${window.location.origin}/appeal/${guildId}`;
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked (an embedded browser, an old one): the link is on
+      // screen to copy by hand.
+    }
+  };
+  return (
+    <div className="field">
+      <span className="eyebrow">Web appeal link</span>
+      <div className="row">
+        <input className="input" readOnly value={url} onFocus={(e) => e.target.select()} />
+        <button className="btn" onClick={() => void copy()}>{copied ? "Copied" : "Copy"}</button>
+      </div>
+      <span className="dim">
+        Banned members open it, sign in with Discord, and fill in the form above. It works even
+        when the ban DM never reached them. Put it in your ban message or rules. Appealy checks
+        that they're really banned before taking an appeal, and it starts working once these
+        settings are saved.
+      </span>
     </div>
   );
 }

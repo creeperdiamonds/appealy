@@ -207,27 +207,78 @@ async function finalizeDmApplication(
   progress: typeof schema.dmApplicationProgress.$inferSelect,
   finalAnswers: Record<string, string>,
 ) {
-  const rateLimit = await checkAndConsumeDailyCap(progress.guildId, "submissionsPerDay");
-  if (!rateLimit.allowed) {
-    await db.delete(schema.dmApplicationProgress).where(eq(schema.dmApplicationProgress.id, progress.id));
-    await dmOrLog(bot, progress.applicantId, rateLimitDeniedMessage(rateLimit, "applications processed today"));
+  const dropProgress = () => db.delete(schema.dmApplicationProgress).where(eq(schema.dmApplicationProgress.id, progress.id));
+  const result = await createSubmission(bot, form, {
+    guildId: progress.guildId,
+    applicantId: progress.applicantId,
+    answers: finalAnswers,
+    completionSeconds: Math.round((Date.now() - progress.startedAt.getTime()) / 1000),
+    appeal: progress.appealKind
+      ? { kind: progress.appealKind, roleIds: progress.appealRoleIds, timeoutUntil: progress.appealTimeoutUntil }
+      : null,
+    // Gone before the applicant hears anything, so a reply sent while the
+    // review post is still going out isn't taken as another last answer.
+    beforeConfirm: dropProgress,
+  });
+  if (result.status === "capped") {
+    await dropProgress();
+    await dmOrLog(bot, progress.applicantId, result.message);
     return;
   }
+  logger.info("DM application finalized", { formId: form.id, submissionId: result.submissionId });
+}
 
-  const completionSeconds = Math.round((Date.now() - progress.startedAt.getTime()) / 1000);
+export interface NewSubmission {
+  guildId: bigint;
+  applicantId: bigint;
+  /** Question id → answer. */
+  answers: Record<string, string>;
+  completionSeconds: number | null;
+  appeal: AppealContext | null;
+  /** Runs once the submission is saved, before the applicant is told. */
+  beforeConfirm?: () => Promise<unknown>;
+  /** False when the applicant isn't in the server, as on a web appeal: there
+   *  are no roles to hand out or take away. */
+  roleAutomation?: boolean;
+}
+
+export type CreateSubmissionResult =
+  | { status: "created"; submissionId: string }
+  | { status: "capped"; message: string };
+
+/**
+ * Saves a finished application and puts it in front of staff: the row and its
+ * answers, the history event, the "submitted" DM with a withdraw button, role
+ * automation, and the review post in the form's log channel.
+ *
+ * Used by the DM flow and by web appeals (services/webAppeal.ts). Gating is
+ * the caller's job, since each checks it at a different moment.
+ */
+export async function createSubmission(
+  bot: AppealyBot,
+  form: FormWithQuestions,
+  s: NewSubmission,
+): Promise<CreateSubmissionResult> {
+  const rateLimit = await checkAndConsumeDailyCap(s.guildId, "submissionsPerDay");
+  if (!rateLimit.allowed) {
+    return { status: "capped", message: rateLimitDeniedMessage(rateLimit, "applications processed today") };
+  }
+
+  const completionSeconds = s.completionSeconds;
+  const finalAnswers = s.answers;
 
   const submission = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(schema.submissions)
       .values({
         formId: form.id,
-        guildId: progress.guildId,
-        applicantId: progress.applicantId,
+        guildId: s.guildId,
+        applicantId: s.applicantId,
         status: "pending",
         completionSeconds,
-        appealKind: progress.appealKind,
-        appealRoleIds: progress.appealRoleIds,
-        appealTimeoutUntil: progress.appealTimeoutUntil,
+        appealKind: s.appeal?.kind ?? null,
+        appealRoleIds: s.appeal?.roleIds ?? [],
+        appealTimeoutUntil: s.appeal?.timeoutUntil ?? null,
       })
       .returning();
 
@@ -246,16 +297,16 @@ async function finalizeDmApplication(
   // transaction holds its own connection, and the event's foreign key points
   // at a submissions row that transaction has not committed yet.
   await recordSubmissionEvent({
-    guildId: progress.guildId,
+    guildId: s.guildId,
     submissionId: submission.id,
-    actorId: progress.applicantId,
+    actorId: s.applicantId,
     action: "created",
   });
 
-  await db.delete(schema.dmApplicationProgress).where(eq(schema.dmApplicationProgress.id, progress.id));
+  await s.beforeConfirm?.();
 
   const { withdrawButtonRow } = await import("../interactions/buttons/submissionWithdraw.ts");
-  await dmOrLog(bot, progress.applicantId, `Your application for **${form.name}** has been submitted!`, withdrawButtonRow(submission.id));
+  await dmOrLog(bot, s.applicantId, `Your application for **${form.name}** has been submitted!`, withdrawButtonRow(submission.id));
 
   const { applyRoleAutomationOnSubmit, postReviewEmbedForSubmission } = await import("../interactions/modals/formSubmit.ts");
 
@@ -270,8 +321,10 @@ async function finalizeDmApplication(
   // partial failures internally; this catch exists solely to stop anything
   // they don't already handle from escaping further than it needs to.
   try {
-    await applyRoleAutomationOnSubmit(bot, progress.guildId, form, progress.applicantId, submission.id);
-    await postReviewEmbedForSubmission(bot, form, submission, progress.applicantId, finalAnswers, completionSeconds);
+    if (s.roleAutomation !== false) {
+      await applyRoleAutomationOnSubmit(bot, s.guildId, form, s.applicantId, submission.id);
+    }
+    await postReviewEmbedForSubmission(bot, form, submission, s.applicantId, finalAnswers, completionSeconds);
   } catch (err) {
     logger.warn("Post-submit follow-up work failed after DM confirmation was already sent", {
       submissionId: submission.id,
@@ -279,10 +332,10 @@ async function finalizeDmApplication(
     });
   }
 
-  logger.info("DM application finalized", { formId: form.id, submissionId: submission.id });
+  return { status: "created", submissionId: submission.id };
 }
 
-async function checkGateForDm(
+export async function checkGateForDm(
   form: FormWithQuestions,
   guildId: bigint,
   applicantId: bigint,

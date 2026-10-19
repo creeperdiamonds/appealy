@@ -1692,3 +1692,21 @@ ul.plain {
 .template-card:hover { border-color: var(--accent-line); background: var(--accent-soft); }
 .template-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .template-card .dim { font-size: 13px; }
+
+/* The web appeal page (pages/WebAppeal.tsx). Public, outside the console
+   shell, so it sets its own column: one form, read on a phone more often
+   than not. */
+.appeal-page { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+.appeal-brand { display: inline-block; margin-bottom: 20px; font-weight: 600; color: var(--text); text-decoration: none; }
+.appeal-head { display: flex; align-items: center; gap: 14px; }
+.appeal-head h1 { margin: 2px 0 0; font-size: 22px; overflow-wrap: anywhere; }
+.appeal-icon { width: 48px; height: 48px; border-radius: 50%; flex: none; }
+.appeal-icon-blank {
+  display: grid; place-items: center; background: var(--raised); border: 1px solid var(--line);
+  font-weight: 600; color: var(--text-dim);
+}
+.appeal-signin { margin-top: 12px; text-decoration: none; }
+.appeal-description { white-space: pre-line; }
+.appeal-problem { color: var(--act); font-size: 13px; }
+.appeal-foot { font-size: 13px; }
+.link-button { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
