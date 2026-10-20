@@ -39,7 +39,7 @@ async function handleWelcomerLeaveMessage(
     userTag: payload.user.username ?? "Someone",
     userId: payload.user.id.toString(),
     guildName: guild?.name ?? "the server",
-    memberCount: guild?.memberCount,
+    memberCount: guild?.memberCount ?? guild?.approximateMemberCount,
   });
 
   try {
