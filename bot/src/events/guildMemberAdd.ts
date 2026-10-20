@@ -162,7 +162,9 @@ async function applyWelcomer(bot: AppealyBot, member: JoiningMember, config: Gui
 
   const guild = await getGuild(bot, member.guildId);
   const guildName = guild?.name ?? config.guild?.name ?? "the server";
-  const memberCount = guild?.memberCount;
+  // REST guilds carry only Discord's approximate count, which can trail a
+  // join by a few minutes; still better than an empty "member #".
+  const memberCount = guild?.memberCount ?? guild?.approximateMemberCount;
 
   const templateVars = {
     username: member.user.username,
