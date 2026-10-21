@@ -56,7 +56,7 @@ export const definition: CreateApplicationCommand = {
       required: false,
       choices: [
         { name: "Discord poll (recommended)", value: "native" },
-        { name: "Legacy embed (exact close time, results in SQL)", value: "legacy" },
+        { name: "Legacy embed (results in SQL)", value: "legacy" },
       ],
     },
   ],
@@ -196,8 +196,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     return respond(bot, interaction, `${when.reason}\n\nNothing was posted. Run \`/poll\` again.`);
   }
 
-  let closesAt = when.at;
-  let roundingNote = "";
+  const closesAt = when.at;
   // Named so the confirmation can say which reading was used. "3pm EST" and
   // "3pm" differ by five hours, and the author should see which they got.
   const zoneNote = when.zone ? ` (read as ${when.zone})` : "";
@@ -211,16 +210,9 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       await editPrompt(bot, promptChannel, prompt.id, `Poll cancelled — ${why}`);
       return respond(bot, interaction, why);
     }
-    if (native.rounded) {
-      // Said out loud rather than applied quietly. Discord takes whole hours,
-      // so the poll will not close at the minute that was asked for, and
-      // finding that out from the poll itself would be worse.
-      const exact = closesAt;
-      closesAt = new Date(Date.now() + native.hours * 3_600_000);
-      roundingNote =
-        `\n\nDiscord polls run in whole hours, so this closes at <t:${unix(closesAt)}:t> ` +
-        `rather than <t:${unix(exact)}:t>. Use \`engine: Legacy embed\` for an exact time.`;
-    }
+    // Discord takes whole hours, so the poll is opened for the hours rounded
+    // up and closesAt keeps the minute asked for: the scheduler ends it early
+    // through Discord's End Poll (closeDuePolls in core/scheduler.ts).
   }
 
   const [poll] = await db
@@ -252,7 +244,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   await respond(
     bot,
     interaction,
-    `Poll posted in <#${channelId}>, closing <t:${unix(closesAt)}:R>${zoneNote}.${roundingNote}`,
+    `Poll posted in <#${channelId}>, closing <t:${unix(closesAt)}:R>${zoneNote}.`,
   );
 }
 

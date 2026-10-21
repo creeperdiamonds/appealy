@@ -181,6 +181,7 @@ async function closeDuePolls(bot: AppealyBot) {
       id: schema.polls.id,
       channelId: schema.polls.channelId,
       messageId: schema.polls.messageId,
+      engine: schema.polls.engine,
     });
 
   if (claimed.length === 0) return;
@@ -189,6 +190,22 @@ async function closeDuePolls(bot: AppealyBot) {
 
   await mapWithConcurrency(claimed, REST_CONCURRENCY, async (poll) => {
     if (!poll.messageId) return;
+    if (poll.engine === "native") {
+      // A native poll is open for whole hours, rounded up from closesAt, and
+      // its votes are Discord's: marking the row closed stops nothing. Ending
+      // it here is what makes it close at the minute asked for, and what makes
+      // the dashboard's "Close now" close it at all.
+      try {
+        // On bot.rest, not bot.helpers — the poll routes live on the REST
+        // manager in Discordeno v20 and were never given helper wrappers.
+        await bot.rest.endPoll(poll.channelId, poll.messageId);
+      } catch (err) {
+        // Already expired on Discord's side when closesAt was a whole number
+        // of hours away, or the message is gone. Either way it takes no votes.
+        logger.debug("endPoll failed for a due poll", { pollId: poll.id, error: String(err) });
+      }
+      return;
+    }
     try {
       // Strip the vote select so a closed poll can't take new votes.
       await bot.helpers.editMessage(poll.channelId, poll.messageId, { components: [] });

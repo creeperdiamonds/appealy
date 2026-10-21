@@ -344,7 +344,7 @@
             <li>締め切りを尋ねられたら、チャンネルでそのまま答えます：<code>1h 20m</code>、<code>10 hours 50 minutes</code>、<code>july 10 3pm</code></li>
             <li>タイムゾーンは普段の言い方のままで構いません &mdash; <code>3pm EST</code>、<code>3pm UTC+5:30</code>、<code>3pm india</code>、<code>3pm tokyo</code>、<code>3pm Asia/Kolkata</code> &mdash; サマータイムは今日ではなく、その投票が実際に締め切られる日付で判定されます</li>
             <li>2 か所を指しうる表記は、推測せずに拒否します。<code>IST</code> はインド、アイルランド、イスラエルのいずれでもありえますし、4 時間早く締め切られる投票は質問されるより厄介です。タイムゾーンを書かなければ UTC として読み、いずれの場合も投稿前にあなたのタイムゾーンで読み上げて確認します</li>
-            <li>Discord の投票は 1 時間単位でしか動かないため、<code>engine: Legacy embed</code> を選べば従来の埋め込みのまま、正確な時刻に締め切れます。SQL で集計できる結果が必要なときも同様です（Discord の投票は結果を取り出せません）</li>
+            <li>Discord の投票も入力した時刻ちょうど（分単位）に締め切られます。<code>engine: Legacy embed</code> を選べば従来の埋め込みのまま、SQL で集計できる結果を残せます（Discord の投票は結果を取り出せません）</li>
             <li>ダッシュボードから、投稿と締め切りを後の時刻に予約できます</li>
             <li>選択肢は最大 9 個。複数選択も任意で有効にできます</li>
           </ul>
