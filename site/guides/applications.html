@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/guides/applications.html
+
+  A beginner guide: where to click, in the dashboard's own words. Quoted labels
+  are copied from web/src/pages/*.tsx. When a label there changes, change it
+  here too, or the guide sends people looking for a button that is gone.
+-->
+
+<title>Set up staff applications — Appealy</title>
+<meta name="description" content="Step by step: create a staff application form in the Appealy dashboard, post an Apply button in your server, and review applications.">
+<link rel="canonical" href="https://appealy.app/guides/applications">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/guides/applications">
+<meta property="og:title" content="Set up staff applications — Appealy">
+<meta property="og:description" content="Step by step: create a staff application form in the Appealy dashboard, post an Apply button in your server, and review applications.">
+<meta property="og:image" content="https://appealy.app/og.png?v=2">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Appealy",
+      "item": "https://appealy.app/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Guides",
+      "item": "https://appealy.app/guides"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Set up staff applications",
+      "item": "https://appealy.app/guides/applications"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/guides">Guides</a>
+      <a href="https://docs.appealy.app/">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li><a href="/guides">Guides</a></li>
+          <li aria-current="page">Set up staff applications</li>
+        </ol>
+      </nav>
+
+      <h1>Set up staff applications</h1>
+      <p class="lede">Make a <strong>form</strong> (the questions), post a <strong>panel</strong> (the Apply
+        button), then accept or deny what people send.</p>
+
+      <h2>1. Make the form</h2>
+      <ol class="steps">
+        <li>
+          <h3>Open Forms</h3>
+          <p>In the <a href="/dashboard/">dashboard</a>, click <strong>Forms</strong> (under Applications). If you have none yet, the templates show right away; otherwise press <strong>New form</strong>.</p>
+        </li>
+        <li>
+          <h3>Pick a template</h3>
+          <p><strong>Staff application</strong>, <strong>Police, Fire &amp; EMS</strong> or <strong>Minecraft SMP</strong> fill in the questions for you. Or pick <strong>Blank form</strong> and write your own.</p>
+        </li>
+        <li>
+          <h3>Pick the Log channel</h3>
+          <p><strong>Log channel</strong> is where applications arrive for your staff to review. Use a staff-only channel. This is the one thing a template can&rsquo;t fill in.</p>
+        </li>
+        <li>
+          <h3>Check the questions</h3>
+          <p>Change any question you like, or press <strong>Add question</strong>. <em>In server</em> forms open as a Discord pop-up, which fits 5 questions; <em>Direct message</em> forms ask up to 10, one at a time, in DMs.</p>
+        </li>
+        <li>
+          <h3>Optional: roles</h3>
+          <p>Under <strong>Roles</strong>, <strong>Granted on accept</strong> gives a role to people you accept, like @Trial Mod. <strong>Pinged when one arrives</strong> pings your staff.</p>
+        </li>
+        <li>
+          <h3>Press Create form</h3>
+
+        </li>
+      </ol>
+
+      <h2>2. Post the Apply button</h2>
+      <ol class="steps">
+        <li>
+          <h3>Open Panels</h3>
+          <p>Click <strong>Panels</strong> (under Applications), then <strong>New panel</strong>.</p>
+        </li>
+        <li>
+          <h3>Fill it in</h3>
+          <p><strong>Channel</strong>: where the button goes, like #apply. <strong>Title</strong>: like <em>Apply to the team</em>.</p>
+        </li>
+        <li>
+          <h3>Attach your form</h3>
+          <p>Press <strong>Attach a form</strong> and pick it. One panel can hold up to 5 forms, each with its own button.</p>
+        </li>
+        <li>
+          <h3>Create and post</h3>
+          <p>Press <strong>Create panel</strong>, then <strong>Post</strong> in the list, then <strong>Post it</strong>. The Apply button appears in your channel.</p>
+        </li>
+      </ol>
+
+      <h2>3. Review applications</h2>
+      <p>Each application shows up in the form&rsquo;s <strong>Log channel</strong> with buttons under it:</p>
+      <ul>
+        <li><strong>Accept</strong>: gives any roles you set and tells the applicant.</li>
+        <li><strong>Deny</strong>: asks for a reason (optional) and tells the applicant.</li>
+        <li><strong>Ask applicant</strong>: sends them a question first.</li>
+        <li>&#128077; / &#128078;: let staff vote before someone decides.</li>
+      </ul>
+      <p>Accepting and denying happen in Discord. The dashboard&rsquo;s <strong>Applications</strong> page
+        lists everything people sent so you can look back through it.</p>
+
+      <div class="callout">
+        <strong>The quick way:</strong> <code>/panel create</code> in a channel posts a panel for a form
+        straight away.
+      </div>
+
+
+      <p class="doc-foot">Stuck on a step? Ask in the <a href="/#support">support server</a>, or see
+        <a href="/guides">all guides</a>.</p>
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Guides</h2>
+        <ul>
+          <li><a href="/guides/getting-started">Getting started</a></li>
+          <li><a href="/guides/tickets">Tickets</a></li>
+          <li><a href="/guides/applications">Applications</a></li>
+          <li><a href="/guides/ban-appeals">Ban appeals</a></li>
+          <li><a href="/guides/plans">Plans and upgrading</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">Getting started</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">Ban appeals</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">Review outcomes</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/refunds">Refunds</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

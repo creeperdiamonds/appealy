@@ -19,7 +19,8 @@ build step, no framework, no bundler, and no JavaScript at all.
 | `discord-giveaway-bot.html` | |
 | `appeal-gg-alternative.html` | The second comparison page. Deliberately has no migration section — see below |
 | `og.png` | The 1200×630 Open Graph card. The one committed raster; `brand/README.md` says why |
-| `sitemap.xml` | The eleven canonical URLs, with no `lastmod` — see the comment in the file |
+| `sitemap.xml` | The canonical URLs, with no `lastmod` — see the comment in the file |
+| `guides.html`, `guides/*.html` | Beginner click-by-click guides (getting started, tickets, applications, ban appeals, plans). Quoted labels are the dashboard's own; change them together |
 
 ## The URLs are extensionless, and the sitemap has to match
 

@@ -36,7 +36,7 @@ import { useCallback, useEffect, useState } from "react";
 import { billingWindow } from "../../../shared/schema/billingWindow";
 import { DedicatedBotPanel } from "../components/DedicatedBotPanel";
 import { http, ApiError } from "../lib/api";
-import { Panel, Banner, Loading, Stat, Pill } from "../components/ui";
+import { Panel, Banner, Loading, Stat, Pill, GuideLink } from "../components/ui";
 
 type RateLimitTier = "free" | "tier1" | "tier2" | "custom";
 type HostingMode = "shared" | "custom";
@@ -405,6 +405,7 @@ export default function Billing({ guildId }: { guildId: string }) {
           Two things are priced, independently: how much throughput this server gets,
           and whether it runs on the shared bot or a dedicated one. Everything is
           billed once a year.
+          {" "}<GuideLink slug="plans" />
         </p>
       </header>
 

@@ -1710,3 +1710,6 @@ ul.plain {
 .appeal-problem { color: var(--act); font-size: 13px; }
 .appeal-foot { font-size: 13px; }
 .link-button { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
+
+/* "Step-by-step guide ↗" at the end of a page intro (GuideLink in components/ui.tsx). */
+.guide-link { white-space: nowrap; font-weight: 500; }

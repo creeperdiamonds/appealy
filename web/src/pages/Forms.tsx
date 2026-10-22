@@ -33,7 +33,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { http, ApiError } from "../lib/api";
-import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
+import { Panel, Banner, Loading, Empty, Pill, GuideLink } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
 import OutcomeEditor from "./OutcomeEditor";
 import { FORM_TEMPLATES, type FormTemplate } from "../lib/formTemplates";
@@ -431,6 +431,7 @@ export default function Forms({ guildId }: { guildId: string }) {
         <p className="dim">
           What applicants are asked, who may apply, and what happens to their roles when
           they do.
+          {" "}<GuideLink slug="applications" />
         </p>
       </header>
 

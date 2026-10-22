@@ -471,3 +471,16 @@ export function formatTier(tier: string | null | undefined): string {
   if (preset) return `Tier ${preset[1]}`;
   return tier.charAt(0).toUpperCase() + tier.slice(1);
 }
+
+/**
+ * Link to the matching beginner guide on the public site (site/guides/*.html),
+ * shown at the end of a page's intro. Opens in a new tab so the half-filled
+ * form behind it isn't lost.
+ */
+export function GuideLink({ slug }: { slug: string }) {
+  return (
+    <a className="guide-link" href={`/guides/${slug}`} target="_blank" rel="noopener">
+      Step-by-step guide ↗
+    </a>
+  );
+}

@@ -32,7 +32,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { http, ApiError } from "../lib/api";
-import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
+import { Panel, Banner, Loading, Empty, Pill, GuideLink } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
 import {
   OptionalChannelPicker,
@@ -467,6 +467,7 @@ export default function Tickets({ guildId }: { guildId: string }) {
           Each type is a button on a panel and a rule for what it opens. Closing a private ticket
           channel deletes it, so the settings about transcripts and who can close are about
           whether a conversation still exists tomorrow.
+          {" "}<GuideLink slug="tickets" />
         </p>
       </header>
 
