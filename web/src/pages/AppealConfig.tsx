@@ -21,7 +21,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, type AppealConfigDTO, type FormSummary } from "../lib/api";
-import { Panel, Banner, Loading, Empty } from "../components/ui";
+import { Panel, Banner, Loading, Empty, GuideLink } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
 
 // Discord caps a timeout at 28 days. Shorter than the threshold and no notice
@@ -124,6 +124,7 @@ export default function AppealConfig({ guildId }: { guildId: string }) {
         <p className="dim">
           When someone is banned, timed out, or given a restriction role, send them a way to
           appeal. Accepting it can undo the punishment automatically.
+          {" "}<GuideLink slug="ban-appeals" />
         </p>
       </header>
 

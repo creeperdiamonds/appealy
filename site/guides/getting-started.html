@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/guides/getting-started.html
+
+  A beginner guide: where to click, in the dashboard's own words. Quoted labels
+  are copied from web/src/pages/*.tsx. When a label there changes, change it
+  here too, or the guide sends people looking for a button that is gone.
+-->
+
+<title>Getting started — Appealy</title>
+<meta name="description" content="Add Appealy to your Discord server, open the dashboard, pick your server and do the one-time setup step.">
+<link rel="canonical" href="https://appealy.app/guides/getting-started">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/guides/getting-started">
+<meta property="og:title" content="Getting started — Appealy">
+<meta property="og:description" content="Add Appealy to your Discord server, open the dashboard, pick your server and do the one-time setup step.">
+<meta property="og:image" content="https://appealy.app/og.png?v=2">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Appealy",
+      "item": "https://appealy.app/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Guides",
+      "item": "https://appealy.app/guides"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Getting started",
+      "item": "https://appealy.app/guides/getting-started"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/guides">Guides</a>
+      <a href="https://docs.appealy.app/">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li><a href="/guides">Guides</a></li>
+          <li aria-current="page">Getting started</li>
+        </ol>
+      </nav>
+
+      <h1>Getting started</h1>
+      <p class="lede">Add the bot, open the dashboard, pick your server. About two minutes.</p>
+
+      <ol class="steps">
+        <li>
+          <h3>Add Appealy to your server</h3>
+          <p>Click <a href="/api/invite">Add to Discord</a>, pick your server and press <strong>Authorize</strong>. You need <strong>Manage Server</strong> on that server, or it won&rsquo;t be in the list.</p>
+          <p>Leave every permission ticked. Each one is used by a feature, and a missing one makes that feature quietly do nothing.</p>
+        </li>
+        <li>
+          <h3>Open the dashboard</h3>
+          <p>Go to <a href="/dashboard/">appealy.app/dashboard</a>. It sends you to Discord to sign in the first time: press <strong>Authorize</strong> there and you come straight back.</p>
+        </li>
+        <li>
+          <h3>Pick your server</h3>
+          <p>Use the server menu at the top. Servers marked <strong>UNINVITED</strong> don&rsquo;t have the bot yet: pick one and press <strong>Invite Appealy</strong>.</p>
+          <p>You only see servers where you&rsquo;re the owner, an Administrator, or have Manage Server.</p>
+        </li>
+        <li>
+          <h3>Pick a channel for Appealy&rsquo;s updates</h3>
+          <p>The first time, the dashboard asks you to <strong>Pick a channel for Appealy&rsquo;s updates</strong>. Choose a staff or announcements channel and press <strong>Send updates here</strong>. Appealy posts a short note there when something important changes, nothing else.</p>
+          <p>If it says it can&rsquo;t, give Appealy the <strong>Manage Webhooks</strong> permission in that channel and try again.</p>
+        </li>
+      </ol>
+
+      <h2>What&rsquo;s in the sidebar</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th scope="col">Group</th><th scope="col">Pages</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Server</th><td>Overview, Applications (the list of everything people sent), Operations</td></tr>
+            <tr><th scope="row">Applications</th><td>Forms, Panels, Appeals</td></tr>
+            <tr><th scope="row">Support</th><td>Tickets, Quick responses, Verification, Anti-raid, AutoMod, Moderation</td></tr>
+            <tr><th scope="row">Engagement</th><td>Welcomer, Role menus, Sticky messages, Giveaways, Polls</td></tr>
+            <tr><th scope="row">Administration</th><td>Staff access, Billing, Help &amp; support</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>What next</h2>
+      <ul>
+        <li><a href="/guides/tickets">Set up tickets</a></li>
+        <li><a href="/guides/applications">Set up staff applications</a></li>
+        <li><a href="/guides/ban-appeals">Let banned members appeal</a></li>
+      </ul>
+
+
+      <p class="doc-foot">Stuck on a step? Ask in the <a href="/#support">support server</a>, or see
+        <a href="/guides">all guides</a>.</p>
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Guides</h2>
+        <ul>
+          <li><a href="/guides/getting-started">Getting started</a></li>
+          <li><a href="/guides/tickets">Tickets</a></li>
+          <li><a href="/guides/applications">Applications</a></li>
+          <li><a href="/guides/ban-appeals">Ban appeals</a></li>
+          <li><a href="/guides/plans">Plans and upgrading</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">Getting started</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">Ban appeals</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">Review outcomes</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/refunds">Refunds</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

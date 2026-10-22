@@ -26,7 +26,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { http, ApiError } from "../lib/api";
-import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
+import { Panel, Banner, Loading, Empty, Pill, GuideLink } from "../components/ui";
 import {
   ChannelPicker,
   POSTABLE_CHANNEL_TYPES,
@@ -321,6 +321,7 @@ export default function Panels({ guildId }: { guildId: string }) {
         <p className="dim">
           A message in a channel with a button for each form. This is how most people find an
           application in the first place.
+          {" "}<GuideLink slug="applications" />
         </p>
       </header>
 

@@ -955,3 +955,36 @@ pre code {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Guides (guides.html, guides/*.html)
+ *
+ * Steps inside .prose are instructions read in order, one after another, so
+ * they stay one column at every width: the landing page's three-across grid
+ * turns a seven-step guide into narrow columns read left to right, then down.
+ * And .prose's own list padding and heading margins are for running text, not
+ * for a list of cards or numbered steps.
+ * ------------------------------------------------------------------ */
+.prose .steps,
+.prose .cards {
+  padding-left: 0;
+  margin: 1.5rem 0;
+}
+.prose .steps {
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+.prose .steps li,
+.prose .cards li {
+  margin-bottom: 0;
+}
+.prose .steps h3,
+.prose .card h3 {
+  margin-top: 0;
+}
+.prose .steps li::before {
+  top: -0.125rem;
+}
+.prose .steps p + p {
+  margin-top: 0.5rem;
+}
