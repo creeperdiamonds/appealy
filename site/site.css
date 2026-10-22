@@ -988,3 +988,15 @@ pre code {
 .prose .steps p + p {
   margin-top: 0.5rem;
 }
+/* Dashboard screenshots in a guide step. Sized by their width/height
+ * attributes so the page doesn't jump while they load; shrink on phones. */
+.prose .shot {
+  margin: 0.875rem 0 0;
+}
+.prose .shot img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
