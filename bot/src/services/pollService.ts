@@ -58,8 +58,9 @@ export async function renderPollEmbed(poll: typeof schema.polls.$inferSelect) {
  * side rather than ours.
  *
  * What it costs is written into the shape of the call. `duration` is whole
- * hours, so closesAt has already been rounded UP by the caller — closing a
- * poll before the time its author announced is the worse error. And nothing
+ * hours, rounded UP from closesAt, so Discord's own timer runs past the
+ * minute asked for; the scheduler ends the poll at closesAt through End Poll
+ * (closeDuePolls in core/scheduler.ts). And nothing
  * writes poll_votes for a native poll: Discord holds those, readable through
  * getPollAnswerVoters on the message, never with SQL.
  */
@@ -91,35 +92,6 @@ async function publishNativePoll(
     channelId: poll.channelId.toString(),
     durationHours,
   });
-}
-
-/**
- * Closes a poll early.
- *
- * Native polls end through Discord, which recounts and freezes them; there is
- * no equivalent for the legacy embed beyond marking the row, since its votes
- * are ours already.
- */
-export async function closePoll(bot: AppealyBot, pollId: string) {
-  const poll = await db.query.polls.findFirst({ where: eq(schema.polls.id, pollId) });
-  if (!poll) return;
-
-  if (poll.engine === "native" && poll.messageId) {
-    try {
-      // On bot.rest, not bot.helpers — the poll routes live on the REST
-      // manager in Discordeno v20 and were never given helper wrappers.
-      await bot.rest.endPoll(poll.channelId, poll.messageId);
-    } catch (err) {
-      // Already expired on Discord's side is the common case and not a
-      // failure — the row still needs closing either way.
-      logger.warn("endPoll failed; closing the row regardless", {
-        pollId,
-        error: String(err),
-      });
-    }
-  }
-
-  await db.update(schema.polls).set({ status: "closed" }).where(eq(schema.polls.id, pollId));
 }
 
 export async function publishPoll(bot: AppealyBot, pollId: string) {
