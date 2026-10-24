@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/guides/moving-from-appy.html
+
+  A beginner guide: where to click, in the dashboard's own words. Quoted labels
+  are copied from web/src/pages/*.tsx. When a label there changes, change it
+  here too, or the guide sends people looking for a button that is gone.
+-->
+
+<title>Moving from Appy — Appealy</title>
+<meta name="description" content="Step by step: move your Discord server's applications from Appy to Appealy, including importing your Appy submission history.">
+<link rel="canonical" href="https://appealy.app/guides/moving-from-appy">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/guides/moving-from-appy">
+<meta property="og:title" content="Moving from Appy — Appealy">
+<meta property="og:description" content="Step by step: move your Discord server's applications from Appy to Appealy, including importing your Appy submission history.">
+<meta property="og:image" content="https://appealy.app/og.png?v=2">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Appealy",
+      "item": "https://appealy.app/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Guides",
+      "item": "https://appealy.app/guides"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Moving from Appy",
+      "item": "https://appealy.app/guides/moving-from-appy"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/guides">Guides</a>
+      <a href="https://docs.appealy.app/">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li><a href="/guides">Guides</a></li>
+          <li aria-current="page">Moving from Appy</li>
+        </ol>
+      </nav>
+
+      <h1>Moving from Appy</h1>
+      <p class="lede">Rebuild each application as an Appealy form, post its Apply button, and, if you
+        want, bring your old submissions across. Keep Appy until the new setup works; there&rsquo;s no
+        need to remove it first.</p>
+
+      <h2>1. Rebuild your applications</h2>
+      <ol class="steps">
+        <li>
+          <h3>Add Appealy</h3>
+          <p>Click <a href="/api/invite">Add to Discord</a> and pick your server. New to the dashboard? See <a href="/guides/getting-started">Getting started</a>.</p>
+        </li>
+        <li>
+          <h3>Make a form for each Appy application</h3>
+          <p>In <a href="/dashboard/">Forms</a>, press <strong>New form</strong>. Pick <strong>Staff application</strong> or another template, or <strong>Blank form</strong>.</p>
+          <p>Copy your Appy questions in <strong>word for word</strong>. The history import matches old answers to questions by their exact text, so a changed word means that question&rsquo;s old answers don&rsquo;t come across.</p>
+        </li>
+        <li>
+          <h3>Set where applications go</h3>
+          <p>Pick a <strong>Log channel</strong>: that&rsquo;s where new applications arrive, with <strong>Accept</strong> and <strong>Deny</strong> buttons. Roles you gave on accept in Appy go under <strong>Granted on accept</strong>.</p>
+        </li>
+        <li>
+          <h3>Choose pop-up or DMs</h3>
+          <p><em>In server</em> asks up to 5 questions in a Discord pop-up. <em>Direct message</em> asks up to 10, one at a time. Pick DMs if your Appy application had more than 5 questions.</p>
+        </li>
+        <li>
+          <h3>Post the Apply button</h3>
+          <p>In <strong>Panels</strong>, press <strong>New panel</strong>, pick the channel your Appy panel was in, <strong>Attach a form</strong>, then <strong>Create panel</strong> and <strong>Post</strong>. One panel can hold up to 5 applications. Then delete the old Appy panel message so members use the new one.</p>
+        </li>
+      </ol>
+
+      <h2>2. Bring your old submissions (optional)</h2>
+      <ol class="steps">
+        <li>
+          <h3>Export from Appy</h3>
+          <p>In your server, run Appy&rsquo;s <code>/export_applications</code> and save the <strong>.json</strong> file it gives you. Appy keeps submission history on its paid plan only, so a free Appy server may have nothing to export.</p>
+        </li>
+        <li>
+          <h3>Import into Appealy</h3>
+          <p>As the <strong>server owner</strong>, run this and attach the file:</p>
+          <p><code>/import-appy application_name: Staff Application file: (your .json)</code></p>
+          <p><code>application_name</code> is the Appealy form to import into; it suggests your forms as you type.</p>
+        </li>
+        <li>
+          <h3>Check the result</h3>
+          <p>Appealy tells you how many submissions it imported. If some questions&rsquo; text didn&rsquo;t match a question on your form, it says how many: those answers are left out (the submissions still come in). Fix the question text on your form and run the import again to fill them in.</p>
+        </li>
+      </ol>
+      <div class="callout">
+        <strong>Running it again is safe.</strong> Appealy remembers each Appy submission it imported
+        and skips it the next time, so re-uploading the same file only adds what&rsquo;s missing.
+        Appy&rsquo;s export doesn&rsquo;t include who reviewed an application or why, so those stay empty.
+        One file can hold up to 5,000 submissions, and if your plan can&rsquo;t hold the whole file,
+        Appealy imports nothing and tells you, rather than importing part of it.
+      </div>
+
+      <h2>3. Finish up</h2>
+      <ul>
+        <li>Send a test application yourself and check it arrives in the Log channel.</li>
+        <li>When everything works, you can remove the old bot in <strong>Server Settings &rarr; Integrations</strong>.</li>
+        <li>Want ban appeals too? Appealy has them; see <a href="/guides/ban-appeals">Let banned members appeal</a>.</li>
+      </ul>
+
+      <p>Comparing the two first? See <a href="/appy-alternative">Appealy as an Appy alternative</a>.</p>
+
+
+      <p class="doc-foot">Stuck on a step? Ask in the <a href="/#support">support server</a>, or see
+        <a href="/guides">all guides</a>.</p>
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Guides</h2>
+        <ul>
+          <li><a href="/guides/getting-started">Getting started</a></li>
+          <li><a href="/guides/tickets">Tickets</a></li>
+          <li><a href="/guides/applications">Applications</a></li>
+          <li><a href="/guides/moving-from-appy">Moving from Appy</a></li>
+          <li><a href="/guides/ban-appeals">Ban appeals</a></li>
+          <li><a href="/guides/plans">Plans and upgrading</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">Getting started</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">Ban appeals</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">Review outcomes</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/refunds">Refunds</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

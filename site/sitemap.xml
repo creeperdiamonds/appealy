@@ -2,12 +2,12 @@
 <!--
   site/sitemap.xml
 
-  Eighteen URLs, matching the eighteen <link rel="canonical"> values exactly.
+  Nineteen URLs, matching the nineteen <link rel="canonical"> values exactly.
   That match is the whole job: /pricing and /pricing.html both return 200, so a
   sitemap listing the .html form would ask Google to index one URL while every
   page's canonical points at another.
 
-  Six of the eighteen are the query-targeted pages. They exist because the site
+  Six of the nineteen are the query-targeted pages. They exist because the site
   was discoverable for two things while the product does nine — someone
   searching for a Discord ticket bot or a verification bot had no door in.
 
@@ -88,6 +88,10 @@
   </url>
   <url>
     <loc>https://appealy.app/guides/applications</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://appealy.app/guides/moving-from-appy</loc>
     <priority>0.7</priority>
   </url>
   <url>
