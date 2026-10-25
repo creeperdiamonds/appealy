@@ -243,7 +243,7 @@
           </tr>
           <tr>
             <th scope="row">Export responses</th>
-            <td class="num">CSV</td><td class="num">Yes</td><td class="num">CSV</td><td class="num">Yes</td>
+            <td class="num">JSON</td><td class="num">Yes</td><td class="num">JSON</td><td class="num">Yes</td>
           </tr>
           <tr>
             <th scope="row">Export the whole server config</th>
@@ -255,8 +255,8 @@
 
     <p class="muted">
       <strong>On export, both do it &mdash; the difference is scope.</strong> Appy exports
-      responses as CSV, which is exactly why Appealy can import your history at all. What it
-      does not export is the server's configuration: the forms, questions, panels, ticket
+      responses as a JSON file (<code>/export_applications</code>), which is exactly why
+      Appealy can import your history at all. What it does not export is the server's configuration: the forms, questions, panels, ticket
       types and role automation. Appealy's <code>/export</code> writes all of that in one
       file, which is what makes leaving for a self-hosted instance a single command rather
       than a rebuild.
