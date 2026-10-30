@@ -11,9 +11,15 @@ import { parseJsonKeepingBigIntegers } from "../../../shared/lib/bigJson.ts";
 
 // Shares the database's ~25 connections with the API; see the sizing note in
 // api/src/db/client.ts before raising this.
+//
+// idle_timeout is longer than the scheduler's 30-second tick and the status
+// heartbeat. At 20 s a quiet bot closed its connections just before the next
+// tick needed them, so it reconnected all day: each one a TLS handshake and a
+// password exchange through the Cloud SQL proxy, and a new process on a very
+// small database, to run queries that find nothing.
 const queryClient = postgres(env.DATABASE_URL, {
   max: 5,
-  idle_timeout: 20,
+  idle_timeout: 45,
   connect_timeout: 10,
 });
 // Discord ids in rows loaded with `with: { ... }` arrive inside Postgres json,

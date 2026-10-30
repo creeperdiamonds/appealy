@@ -115,15 +115,15 @@ export function startScheduler(bot: AppealyBot) {
 async function runTick(bot: AppealyBot) {
   if (!(await claimTick())) return;
 
-  // allSettled, not all: a thrown giveaway must not cancel poll closing.
-  await Promise.allSettled([
-    task("polls:publish", () => publishDuePolls(bot)),
-    task("polls:close", () => closeDuePolls(bot)),
-    task("giveaways:end", () => endDueGiveaways(bot)),
-    task("jobs:drain", () => drainScheduledJobs(bot)),
-    task("history:enqueue", () => enqueueHistoryPurges()),
-    task("tempbans:unban", () => unbanDueTempBans(bot)),
-  ]);
+  // One at a time. Each is a query that almost always finds nothing, and run
+  // together they took a database connection each, every 30 seconds, to learn
+  // that. task() catches, so a thrown giveaway still can't cancel poll closing.
+  await task("polls:publish", () => publishDuePolls(bot));
+  await task("polls:close", () => closeDuePolls(bot));
+  await task("giveaways:end", () => endDueGiveaways(bot));
+  await task("jobs:drain", () => drainScheduledJobs(bot));
+  await task("history:enqueue", () => enqueueHistoryPurges());
+  await task("tempbans:unban", () => unbanDueTempBans(bot));
 
   const pruned = pruneL1();
   if (pruned > 0) logger.debug("Pruned expired config cache entries", { pruned });

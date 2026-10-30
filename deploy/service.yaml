@@ -156,7 +156,7 @@ spec:
           resources:
             limits:
               cpu: "150m"
-              memory: 256Mi
+              memory: 128Mi
 
         # ------------------------------------------------------------------
         # API. No ports block — sidecars are not routable from outside.
@@ -174,6 +174,13 @@ spec:
               value: platform
             - name: LOG_LEVEL
               value: info
+            # V8's default young generation takes this process to 270-310 MiB
+            # while it loads, then it settles near 100, and a container's limit
+            # has to fit the peak. At 4 MB per semi-space the same load peaks near
+            # 105 MiB and is no slower (scripts/sim). The old-space cap makes V8
+            # collect harder before the container's limit would kill it.
+            - name: NODE_OPTIONS
+              value: "--max-semi-space-size=4 --max-old-space-size=160"
             - name: BOT_INTERNAL_URL
               value: "http://127.0.0.1:9090"
             # Where this deployment is reachable. Rendered from the
@@ -239,8 +246,8 @@ spec:
               value: "TOPGG_WEBHOOK_SECRET_VALUE"
           resources:
             limits:
-              cpu: "750m"
-              memory: 768Mi
+              cpu: "300m"
+              memory: 256Mi
 
         # ------------------------------------------------------------------
         # Bot. Holds the Discord gateway connection; see the scaling note above
@@ -257,6 +264,11 @@ spec:
               value: platform
             - name: LOG_LEVEL
               value: info
+            # Same reasoning as NODE_OPTIONS on the API: at 188 simulated servers
+            # this took the busy-traffic peak from 122 MiB to 75 MiB, at no cost
+            # in speed. Comma-separated, unlike NODE_OPTIONS.
+            - name: DENO_V8_FLAGS
+              value: "--max-semi-space-size=4,--max-old-space-size=350"
             - name: INTERNAL_RPC_SECRET
               value: "INTERNAL_RPC_SECRET_VALUE"
             # Where /dashboard sends people. Unset, it fell back to a localhost
@@ -300,21 +312,34 @@ spec:
               value: "PADDLE_WEBHOOK_SECRET_VALUE"
           resources:
             limits:
-              cpu: "1"
-              memory: 1Gi
+              cpu: "450m"
+              memory: 512Mi
       # ------------------------------------------------------------------
       # SIZING NOTE
       #
-      # An instance's CPU is the SUM of its containers' limits, not the max —
-      # so the first version of this file, with cpu "1" on all three, asked for
-      # a 3 vCPU instance. With cpu-throttling off and minScale 1 that is three
-      # always-allocated vCPUs billed around the clock, for a service with no
-      # users yet.
+      # An instance's CPU is the SUM of its containers' limits, not the max, and
+      # with cpu-throttling off and minScale 1 that whole sum is billed around
+      # the clock. Memory is the same.
       #
-      # 100m + 150m + 750m + 1 = 2 vCPU. The bot keeps a full core because it
-      # is the only container doing continuous work; nginx and the proxy are
-      # near-idle, and the API is idle except when somebody loads a page.
+      #   CPU     100m + 150m + 300m + 450m = 1 vCPU
+      #   Memory  128 + 128 + 256 + 512 MiB = 1 GiB
       #
-      # If the bill still looks wrong, halving these is the first thing to try
-      # — at present traffic 1 vCPU total would very likely do.
+      # Cloud Run also ties each container's memory to its own CPU: under 0.5 vCPU
+      # it must be 128-512 MiB, which is why nginx and the proxy can't go lower
+      # even though they use about 30 MiB each, and why the bot stops at 512.
+      #
+      # 1 vCPU is the floor for this service. Below it, Cloud Run requires
+      # request-based billing and a concurrency of 1, and a gateway connection
+      # can live with neither. Above it, only whole numbers are allowed, so the
+      # next step up is 2.
+      #
+      # This was 2 vCPU and 2.1 GiB until 2026-10-31, while the instance used
+      # about 15 mCPU and 325 MiB (14 days of container/cpu/usage and
+      # container/memory/usage, about 190 servers). The busiest minute of those
+      # 14 days, per container: bot 78 mCPU, api 115, web 44, proxy 28.
+      #
+      # scripts/sim tested this size at 188 servers, with the bot and API held to
+      # half these CPU limits to allow for the test machine's faster CPU. See
+      # "Measured resource use" in SCALING.md for what it held and where it fell
+      # behind. That is also what to read before changing these numbers.
       # ------------------------------------------------------------------

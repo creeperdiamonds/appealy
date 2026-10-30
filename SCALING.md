@@ -239,6 +239,84 @@ Order-of-magnitude, not benchmarked. Measure on your own traffic.
 
 ---
 
+## Measured resource use
+
+Measured on 2026-10-31 with `scripts/sim`, which runs the real bot and API
+against a fake Discord on one PC. See its README for how.
+
+**What production uses.** Cloud Monitoring, 14 days, about 190 servers. All of
+this ran on 2 vCPUs and 2.1 GiB, billed around the clock.
+
+| Container | CPU, typical | CPU, busiest minute | Memory, typical | Memory, peak |
+|---|---|---|---|---|
+| bot | 7 mCPU | 78 mCPU | 150 MiB | 161 MiB |
+| api | 0.5 mCPU | 116 mCPU | 116 MiB | 312 MiB, while starting |
+| cloudsql-proxy | 7 mCPU | 28 mCPU | 32 MiB | 38 MiB |
+| web | 0.2 mCPU | 44 mCPU | 26 MiB | 29 MiB |
+
+So the service moved to 1 vCPU and 1 GiB, split as `deploy/service.yaml` shows.
+At list prices that is about $47 a month for Cloud Run instead of about $100.
+
+**What changed in the code.** None of this moves the bill much by itself. It is
+what makes the smaller size comfortable.
+
+- The Redis tier of the guild config cache is gone. See `guildConfigCache.ts`.
+- Config loads and scheduler ticks run their queries one at a time. In parallel
+  they opened a new connection per query.
+- Idle database connections outlast the scheduler's 30-second tick.
+- V8's young generation is capped at 4 MB per semi-space, and each process has an
+  old-space cap under its container's limit. These are set in `deploy/service.yaml`,
+  so self-hosters keep V8's defaults.
+
+**Result at 50 servers.** The "after" run has the bot and API held to half their
+new CPU limits, to allow for the test PC's faster CPU.
+
+| | Before | After |
+|---|---|---|
+| API peak memory | 270 MiB | 107 MiB |
+| Bot peak memory | 122 MiB | 75 MiB |
+| Redis commands per minute, normal traffic | 45 | 18 |
+| New database connections per minute, normal traffic | 4 | 0.5 |
+| First reply to a click, p95, busy traffic | 170 ms | 167 ms |
+| Click fully handled, p95, busy traffic | 1211 ms | 1162 ms |
+| Dashboard request, p95, busy traffic | 171 ms | 161 ms |
+| Failures | 0 | 0 |
+
+At 188 servers, Redis on normal traffic went from 139 commands a minute to 25.
+
+**How far 1 vCPU goes.** 188 servers, bot and API at half their CPU limits. A
+click flow is several clicks: an application is about four, from opening the
+panel to staff deciding. Production sees about 31 applications a day, so even the
+first row has far more clicks than it does.
+
+| Messages/s | Click flows/s | Dashboard requests/s | First reply, p95 | Missed Discord's 3 seconds | Dashboard |
+|---|---|---|---|---|---|
+| 1.9 | 0.04 | 0.08 | 136 ms | 0 | Fine |
+| 19 | 3.8 | 7.5 | 230-339 ms | 0 | Fine |
+| 47 | 4.7 | 9.4 | 170 ms | 0 | Fine |
+| 94 | 9.4 | 19 | 2.4 s | 26 of 1,531 | 90 requests failed with 502 |
+| 188 | 19 | 38 | 10 s | About 400 | Requests failed, the rest took over 10 s |
+
+The old size had no failures on the last row, so this is capacity that was given
+up. In the overloaded runs the bot stayed connected, nothing ran out of memory,
+and missed deadlines stopped about 30 seconds after traffic dropped.
+
+**When to go back up.** Watch `container/cpu/usage` for the bot. If its busiest
+minutes regularly pass 15 CPU-seconds, which is 0.25 vCPU and about half its
+limit, raise the service to 2 vCPU. The change is limited to `deploy/service.yaml`.
+
+**What this doesn't tell you.**
+
+- CPU comparisons between runs are too noisy to claim any saving from the code.
+  The test PC's speed changed by up to 1.7x during the day, which is also why the
+  second row above shows a range and looks worse than the third.
+- Traffic is estimated from production's network metrics and application counts.
+  The feature mix errs high.
+- nginx and the Cloud SQL proxy weren't simulated, and Postgres and Redis were on
+  the same machine, with none of production's network latency or TLS.
+
+---
+
 ## Not done — what's still ahead of you
 
 Being explicit rather than leaving you to find these.
