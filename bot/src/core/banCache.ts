@@ -4,7 +4,7 @@
 //
 // Why this is NOT built like guildConfigCache
 // -------------------------------------------
-// guildConfigCache is a three-tier L1/L2/L3 cache because guild config is
+// guildConfigCache expires its entries because guild config is
 // unbounded — one bundle per guild, and you cannot hold every guild's config
 // in memory forever. Bans are the opposite shape: a few thousand rows total,
 // across the whole platform, growing slowly. So there is no cache here at

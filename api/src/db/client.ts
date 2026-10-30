@@ -15,11 +15,14 @@ import { parseJsonKeepingBigIntegers } from "../../../shared/lib/bigJson.ts";
 // the two alone could take every slot, and on 2 Oct 2026 they did: an hour of
 // "remaining connection slots are reserved" and a dashboard that wouldn't load.
 // 6 + 5, doubled during a rollout, is 22 at most. Queries here take
-// milliseconds, so 6 is plenty at this size; idle connections close after
-// 20 s so a quiet API doesn't sit on slots it isn't using.
+// milliseconds, so 6 is plenty at this size. Idle connections close after 60 s
+// so a quiet API doesn't sit on slots it isn't using, but not sooner: someone
+// using the dashboard clicks every so often, and at 20 s most clicks paid for a
+// new connection first (a TLS handshake and a password exchange through the
+// Cloud SQL proxy).
 const queryClient = postgres(env.DATABASE_URL, {
   max: 6,
-  idle_timeout: 20,
+  idle_timeout: 60,
   connect_timeout: 10,
 });
 // Discord ids in rows loaded with `with: { ... }` arrive inside Postgres json,

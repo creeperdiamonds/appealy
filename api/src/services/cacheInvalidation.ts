@@ -2,8 +2,8 @@
 //
 // The API is where guild config changes; the bot is where it's read on the
 // hot path. The bot caches aggressively (bot/src/core/guildConfigCache.ts)
-// with a 60s L1 TTL, which without this file would mean an admin saves a
-// welcome message, tests it, and sees the old one for up to a minute.
+// for five minutes, which without this file would mean an admin saves a
+// welcome message, tests it, and sees the old one for up to that long.
 //
 // That's a bad enough experience to be worth solving, and it's also the
 // single most common way caching gets ripped back out of a project: it
@@ -30,7 +30,7 @@ const INVALIDATION_CHANNEL = "appealy:cache:invalidate";
  *
  * Deliberately fire-and-forget and never throws: a failed cache
  * invalidation must not fail the write that already succeeded. The admin's
- * change IS saved; the worst outcome is that it takes up to 60s to appear.
+ * change IS saved; the worst outcome is that it takes up to 5 minutes to appear.
  * Turning that into a 500 would be strictly worse for the user.
  *
  * Transport is chosen once per call, on whether REDIS_URL is the in-memory
@@ -71,7 +71,7 @@ export async function invalidateGuildCache(guildId: string | bigint): Promise<vo
  * Doing this centrally rather than adding a call to each of the ~40 write
  * handlers is the point: a per-handler approach works until someone adds
  * the 41st route and forgets, and the resulting bug — one config type that
- * takes a minute to apply while every other one is instant — is
+ * takes minutes to apply while every other one is instant — is
  * maddening to track down.
  *
  * Hooks `res.on("finish")` so it only fires for 2xx responses; a rejected

@@ -29,19 +29,24 @@
 //
 // Design
 // ------
-// Three tiers, checked in order:
+// Two tiers, checked in order:
 //
-//   L1  in-process Map, 60s TTL     -> ~0.001ms, no I/O at all
-//   L2  Redis, 300s TTL             -> ~0.5ms, shared across bot replicas
-//   L3  Postgres                    -> the system of record
+//   L1  in-process Map, 5 minute TTL  -> ~0.001ms, no I/O at all
+//   L2  Postgres                      -> the system of record
 //
-// L1 is what actually carries the load. L2 exists so that a bot restart,
-// or a second replica, doesn't stampede Postgres with cold-cache reads.
+// There used to be a Redis tier between them, for a bot restart or a second
+// replica. It cost more than it saved: its 300s TTL started when a load did, so
+// a longer-lived L1 entry would outlast it, and every load paid a GET that missed
+// and a SET nobody would read. On a simulated 50 servers (scripts/sim) that was
+// most of the bot's Redis traffic, and the free Upstash plan allows about 11
+// commands a minute. A restart costs a few lazily-spread queries per active guild
+// now, and a second replica can't exist (maxScale is 1, see deploy/service.yaml);
+// if one ever does, each keeps its own L1 and the invalidation below reaches both.
 //
 // Invalidation
 // ------------
-// Pull-based TTL expiry alone would mean up to 60s of staleness after a
-// dashboard edit, which is a bad experience — an admin changes a welcome
+// Pull-based TTL expiry alone would mean up to five minutes of staleness after
+// a dashboard edit, which is a bad experience — an admin changes a welcome
 // message, tests it, and it's still the old one. So the API publishes to
 // a Redis channel on every config write and every bot replica evicts that
 // guild's entry immediately (see `subscribeToInvalidations` below, and
@@ -50,25 +55,25 @@
 // Pub/sub is fire-and-forget and can drop messages; that's fine here
 // precisely BECAUSE the TTL also exists. Pub/sub makes the common case
 // instant, TTL guarantees the worst case is bounded. Neither is trusted
-// alone.
+// alone. That bound was six minutes with the Redis tier, since a stale copy
+// there could refill L1; it is five now.
 //
 // A note on what is deliberately NOT cached
 // -----------------------------------------
 // `raidLockdowns` is read on the join path but is NOT part of this bundle.
 // A lockdown is written by the bot itself mid-raid and read microseconds
-// later to decide whether to kick the next joiner; a 60s stale read would
-// mean the first minute of a raid sails straight through the defense that
-// was just armed. It gets its own short-TTL Redis-only cache
+// later to decide whether to kick the next joiner; a stale read would
+// mean the start of a raid sails straight through the defense that was just
+// armed. It gets its own short-TTL Redis-only cache
 // (`isLockdownActiveCached`) with a 2s TTL, which still removes ~99% of
 // the DB reads during a raid without introducing that window.
 
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
-import { connectOptionsFromUrl, getRedis, withRedis } from "./redis.ts";
+import { connectOptionsFromUrl } from "./redis.ts";
 import { logger } from "../utils/logger.ts";
 
-const L1_TTL_MS = 60_000;
-const L2_TTL_SECONDS = 300;
+const L1_TTL_MS = 5 * 60_000;
 const INVALIDATION_CHANNEL = "appealy:cache:invalidate";
 
 /** Everything the per-event hot paths need for one guild, fetched together. */
@@ -81,10 +86,9 @@ export interface GuildConfigBundle {
   appeal: typeof schema.appealConfigs.$inferSelect | null;
   /**
    * Text moderation command settings (prefix, on/off, roles). Read for every
-   * message that could be a command. Optional because bundles cached before
-   * this field existed don't have it; absent means the defaults.
+   * message that could be a command. Null means the defaults.
    */
-  moderation?: typeof schema.moderationConfigs.$inferSelect | null;
+  moderation: typeof schema.moderationConfigs.$inferSelect | null;
   /** Channel IDs (as strings) in this guild that have an ACTIVE sticky
    * message. Almost always empty, which is exactly why caching it is so
    * effective — see stickyMessageService.ts. */
@@ -103,58 +107,25 @@ const l1 = new Map<string, L1Entry>();
 // this, a burst of 50 joins for a cold guild fires 50 identical queries.
 const inFlight = new Map<string, Promise<GuildConfigBundle>>();
 
-function l2Key(guildId: bigint | string) {
-  return `appealy:cfg:${guildId}`;
-}
-
-// ---------------------------------------------------------------------------
-// bigint/Date are not JSON-serializable, so L2 needs an explicit codec.
-// Doing this by hand rather than reaching for a library keeps the failure
-// mode obvious: if a new bigint column is added to one of these tables and
-// isn't listed here, it round-trips as a string and the type error shows up
-// at the call site instead of silently comparing wrong at runtime.
-// ---------------------------------------------------------------------------
-
-function serialize(bundle: GuildConfigBundle): string {
-  return JSON.stringify(bundle, (_key, value) =>
-    typeof value === "bigint" ? { __bigint: value.toString() } : value,
-  );
-}
-
-function deserialize(raw: string): GuildConfigBundle {
-  return JSON.parse(raw, (_key, value) => {
-    if (value && typeof value === "object" && "__bigint" in value) {
-      return BigInt((value as { __bigint: string }).__bigint);
-    }
-    // Drizzle returns timestamptz columns as Date; JSON turns them into
-    // ISO strings. Rehydrate anything that looks like one so callers can
-    // keep doing `config.expiresAt > new Date()` without special-casing
-    // whether the value came from cache or from the database.
-    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(value)) {
-      return new Date(value);
-    }
-    return value;
-  });
-}
-
 async function loadFromDatabase(guildId: bigint): Promise<GuildConfigBundle> {
-  // One round-trip's worth of parallel queries rather than four sequential
-  // awaits. postgres.js pipelines these over the same connection, so the
-  // wall-clock cost is roughly one query, not four.
-  const [guild, antiRaid, verification, welcomer, appeal, stickies, moderation] = await Promise.all([
-    db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) }),
-    db.query.antiRaidConfigs.findFirst({ where: eq(schema.antiRaidConfigs.guildId, guildId) }),
-    db.query.verificationConfigs.findFirst({
-      where: eq(schema.verificationConfigs.guildId, guildId),
-    }),
-    db.query.welcomerConfigs.findFirst({ where: eq(schema.welcomerConfigs.guildId, guildId) }),
-    db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) }),
-    db
-      .select({ channelId: schema.stickyMessages.channelId })
-      .from(schema.stickyMessages)
-      .where(eq(schema.stickyMessages.guildId, guildId)),
-    db.query.moderationConfigs.findFirst({ where: eq(schema.moderationConfigs.guildId, guildId) }),
-  ]);
+  // One after another, on purpose. These used to run in parallel on the belief
+  // that postgres.js pipelines them over one connection, but it only does that
+  // once the pool is full: below that, each query with no idle connection opens
+  // a new one. So every load took the pool to its maximum, and a new connection
+  // costs far more than these seven queries do (through the Cloud SQL proxy, a
+  // TLS handshake and a password exchange, plus a process on the database).
+  const guild = await db.query.guilds.findFirst({ where: eq(schema.guilds.id, guildId) });
+  const antiRaid = await db.query.antiRaidConfigs.findFirst({ where: eq(schema.antiRaidConfigs.guildId, guildId) });
+  const verification = await db.query.verificationConfigs.findFirst({
+    where: eq(schema.verificationConfigs.guildId, guildId),
+  });
+  const welcomer = await db.query.welcomerConfigs.findFirst({ where: eq(schema.welcomerConfigs.guildId, guildId) });
+  const appeal = await db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) });
+  const stickies = await db
+    .select({ channelId: schema.stickyMessages.channelId })
+    .from(schema.stickyMessages)
+    .where(eq(schema.stickyMessages.guildId, guildId));
+  const moderation = await db.query.moderationConfigs.findFirst({ where: eq(schema.moderationConfigs.guildId, guildId) });
 
   return {
     guild: guild ?? null,
@@ -179,28 +150,8 @@ export async function getGuildConfig(guildId: bigint): Promise<GuildConfigBundle
   if (pending) return pending;
 
   const load = (async (): Promise<GuildConfigBundle> => {
-    const cached = await withRedis<string | null>((r) => r.get(l2Key(guildId)), null);
-    if (cached) {
-      try {
-        const bundle = deserialize(cached);
-        l1.set(key, { bundle, expiresAt: Date.now() + L1_TTL_MS });
-        return bundle;
-      } catch (err) {
-        // A schema change can leave an undeserializable payload behind.
-        // Fall through to Postgres rather than failing the event.
-        logger.warn("Discarding unreadable cached guild config", {
-          guildId: key,
-          error: String(err),
-        });
-      }
-    }
-
     const bundle = await loadFromDatabase(guildId);
     l1.set(key, { bundle, expiresAt: Date.now() + L1_TTL_MS });
-    await withRedis(
-      (r) => r.set(l2Key(guildId), serialize(bundle), { ex: L2_TTL_SECONDS }),
-      null,
-    );
     return bundle;
   })();
 
@@ -231,10 +182,9 @@ export function stickyChannelHint(guildId: bigint, channelId: bigint): boolean |
   return hit.bundle.stickyChannelIds.includes(channelId.toString());
 }
 
-/** Drops a guild from every cache tier. Called on dashboard writes. */
-export async function invalidateGuild(guildId: bigint | string): Promise<void> {
+/** Drops a guild from the cache. Called on dashboard writes. */
+export function invalidateGuild(guildId: bigint | string): void {
   l1.delete(guildId.toString());
-  await withRedis((r) => r.del(l2Key(guildId)), 0);
 }
 
 /**
@@ -277,10 +227,7 @@ export async function subscribeToInvalidations(): Promise<void> {
       for await (const { message } of subscription.receive()) {
         try {
           const { guildId } = JSON.parse(message) as { guildId: string };
-          if (guildId) {
-            l1.delete(guildId);
-            await withRedis((r) => r.del(l2Key(guildId)), 0);
-          }
+          if (guildId) l1.delete(guildId);
         } catch (err) {
           logger.warn("Malformed cache invalidation message", { error: String(err) });
         }
