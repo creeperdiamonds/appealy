@@ -2,7 +2,7 @@
 // Mounted at /api/guilds/:guildId/anti-raid
 
 import { Router } from "express";
-import { requestLockdownClear } from "../services/botBridge.ts";
+import { botCallFailure, requestLockdownClear, requestRaidUndo } from "../services/botBridge.ts";
 import { routeParams } from "../utils/routeParams.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
@@ -19,6 +19,7 @@ const configSchema = z.object({
   alertChannelId: z.string().nullable().optional(),
   alertRoleIds: z.array(z.string()).default([]),
   autoLockdownExpiresAfterSeconds: z.number().int().min(60).max(86400).default(1800),
+  newAccountDays: z.number().int().min(0).max(365).default(0),
 });
 
 antiRaidRouter.use(requireGuildAccess);
@@ -43,6 +44,7 @@ antiRaidRouter.put("/", requireAdminAccess, async (req, res) => {
     alertChannelId: data.alertChannelId ? BigInt(data.alertChannelId) : null,
     alertRoleIds: data.alertRoleIds,
     autoLockdownExpiresAfterSeconds: data.autoLockdownExpiresAfterSeconds,
+    newAccountDays: data.newAccountDays,
   };
 
   const [upserted] = await db
@@ -101,6 +103,15 @@ antiRaidRouter.post("/lockdown/clear", requireAdminAccess, async (req, res) => {
   }
 });
 
+// Unlike clearing, there's no database-only fallback: lifting roles needs the bot.
+antiRaidRouter.post("/lockdown/undo", requireAdminAccess, async (req, res) => {
+  try {
+    return res.json(await requestRaidUndo(routeParams(req).guildId, req.userId!.toString()));
+  } catch (err) {
+    return res.status(502).json(botCallFailure(err));
+  }
+});
+
 function toDTO(c: typeof schema.antiRaidConfigs.$inferSelect) {
   return {
     guildId: c.guildId.toString(),
@@ -111,5 +122,6 @@ function toDTO(c: typeof schema.antiRaidConfigs.$inferSelect) {
     alertChannelId: c.alertChannelId?.toString() ?? null,
     alertRoleIds: c.alertRoleIds,
     autoLockdownExpiresAfterSeconds: c.autoLockdownExpiresAfterSeconds,
+    newAccountDays: c.newAccountDays,
   };
 }

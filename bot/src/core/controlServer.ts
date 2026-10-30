@@ -226,6 +226,12 @@ export function startControlServer(bot: AppealyBot) {
         return Response.json({ cleared });
       }
 
+      if (url.pathname === "/internal/anti-raid/undo" && req.method === "POST") {
+        const { guildId, undoneBy } = await req.json();
+        const { undoLastRaid } = await import("../services/antiRaidService.ts");
+        return Response.json(await undoLastRaid(bot, BigInt(guildId), BigInt(undoneBy)));
+      }
+
       if (url.pathname === "/internal/sticky-messages/publish" && req.method === "POST") {
         const { stickyId } = await req.json();
         const { publishStickyMessage } = await import("../services/stickyMessageService.ts");

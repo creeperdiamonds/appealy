@@ -10,7 +10,7 @@
   Targets "discord anti raid bot".
 
   The scope paragraph is load-bearing. This is join-velocity detection and
-  nothing else: no content filtering, no alt detection, no account-age rules.
+  nothing else: no content filtering, no alt detection. Account age only narrows who counts.
   Pages in this category routinely imply all three. Naming the limit is what
   makes the rest of the page believable.
 
@@ -106,7 +106,7 @@
           "name": "Does it filter messages or detect alt accounts?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. It looks at join velocity only \u2014 not message content, not account age, not username or avatar patterns. It answers one question and does not pretend to answer others."
+            "text": "No. It looks at how fast accounts join, and can limit that to new accounts \u2014 not message content, not username or avatar patterns. It answers one question and does not pretend to answer others."
           }
         },
         {
@@ -204,11 +204,19 @@
         the raid.</p>
 
 <pre><code>/anti-raid status    what is configured, and whether a lockdown is live
-/anti-raid clear     end a lockdown now</code></pre>
+/anti-raid clear     end a lockdown now
+/anti-raid undo      false alarm: end it and reverse what it did</code></pre>
+
+      <p>Undo turns forced verification back off and lets through the members it caught. A kick
+        can't be reversed, so undo lists who was kicked for you to invite back.</p>
+
+      <p>You can also limit all of this to new accounts with <code>new_account_days</code>. Older
+        accounts then don't count toward a raid and aren't acted on, so a viral invite is less
+        likely to look like an attack. A raid using older accounts won't trip it.</p>
 
       <div class="callout">
         <strong>This detects join velocity, and nothing else.</strong> Not message content,
-        not account age, not avatar or username patterns, not alt detection. It answers one
+        not avatar or username patterns, not alt detection. It answers one
         question — did a lot of accounts arrive at once — and it answers it well. Anything
         else you read on this page would be an invention, and a raid tool you have the wrong
         model of is worse than one you have no model of.
@@ -246,7 +254,7 @@
       <p>No. It expires by itself after thirty minutes by default, and you can clear it early with a command. An automatic lockdown nobody notices until lunchtime does more damage than most raids.</p>
 
       <h3>Does it filter messages or detect alt accounts?</h3>
-      <p>No. It looks at join velocity only — not message content, not account age, not username or avatar patterns. It answers one question and does not pretend to answer others.</p>
+      <p>No. It looks at how fast accounts join, and can limit that to new accounts — not message content, not username or avatar patterns. It answers one question and does not pretend to answer others.</p>
 
       <h3>Is anti-raid free?</h3>
       <p>Yes. Every feature is on every tier, and the bot can be self-hosted for free under the AGPL-3.0.</p>

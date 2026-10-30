@@ -44,11 +44,12 @@
 //    toggles the feature on — and the window it saves is `windowSeconds`
 //    long, typically 60 seconds. Tracking now happens only when enabled.
 
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, lt } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { pipelineOrNull, withRedis } from "../core/redis.ts";
 import { recordLocalJoin } from "./localJoinWindow.ts";
+import { countsForRaid } from "./raidAccountAge.ts";
 import { logger } from "../utils/logger.ts";
 
 function joinWindowKey(guildId: bigint) {
@@ -79,6 +80,9 @@ export async function recordJoinAndCheckRaid(
   if (!config?.enabled) return;
 
   const now = Date.now();
+
+  // An established account joining isn't part of a raid, so it never counts.
+  if (!countsForRaid(userId, config.newAccountDays, now)) return;
 
   // 1. LOCKDOWN FIRST, before touching Redis at all.
   //
@@ -190,7 +194,8 @@ async function triggerLockdown(
         content:
           `${pingContent}⚠️ **Possible raid detected** — ${joinCount} members joined within ` +
           `${config.windowSeconds}s. Action: \`${config.action}\`. This lockdown clears ` +
-          `<t:${Math.floor(expiresAt.getTime() / 1000)}:R>, or use \`/anti-raid clear\` to end it now.`,
+          `<t:${Math.floor(expiresAt.getTime() / 1000)}:R>. Use \`/anti-raid clear\` to end it now, ` +
+          `or \`/anti-raid undo\` if it's a false alarm.`,
         allowedMentions: { roles: config.alertRoleIds.map((r) => BigInt(r)) },
       });
     } catch (err) {
@@ -203,10 +208,19 @@ async function triggerLockdown(
 
   if (config.action === "lock_verification") {
     try {
-      await db
+      const switched = await db
         .update(schema.verificationConfigs)
         .set({ enabled: true })
-        .where(eq(schema.verificationConfigs.guildId, guildId));
+        .where(and(eq(schema.verificationConfigs.guildId, guildId), eq(schema.verificationConfigs.enabled, false)))
+        .returning({ guildId: schema.verificationConfigs.guildId });
+      // Only when this lockdown is what turned it on. A server that already
+      // runs verification must not lose it to an undo.
+      if (switched.length > 0) {
+        await db
+          .update(schema.antiRaidConfigs)
+          .set({ verificationForcedByRaid: true })
+          .where(eq(schema.antiRaidConfigs.guildId, guildId));
+      }
       // Force-enabling verification changes cached config, so evict.
       const { invalidateGuild } = await import("../core/guildConfigCache.ts");
       await invalidateGuild(guildId);
@@ -267,6 +281,125 @@ export async function clearLockdown(guildId: bigint, clearedBy: bigint): Promise
   // and letting the next read repopulate from Postgres is the honest path.
   await withRedis((r) => r.del(lockdownCacheKey(guildId)), 0);
   return result.length > 0;
+}
+
+/** Remembers who a lockdown acted on, for undoLastRaid. */
+export async function recordRaidAction(
+  guildId: bigint,
+  userId: bigint,
+  action: "kicked" | "gated",
+): Promise<void> {
+  try {
+    await db.insert(schema.raidActions).values({ guildId, userId, action }).onConflictDoNothing();
+  } catch (err) {
+    // The kick or gate already happened. Losing the record only costs the undo.
+    logger.error("Failed to record an anti-raid action", {
+      guildId: guildId.toString(),
+      userId: userId.toString(),
+      error: String(err),
+    });
+  }
+}
+
+export interface RaidUndoResult {
+  lockdownCleared: boolean;
+  verificationTurnedOff: boolean;
+  /** Members who had the unverified role removed. */
+  unrestricted: number;
+  /** Members whose role couldn't be removed, usually because they left. */
+  failed: number;
+  /** A kick can't be reversed, so these are handed to staff to invite back. */
+  kickedUserIds: string[];
+}
+
+// Same reasoning as the scheduler's REST_CONCURRENCY: batch work shouldn't
+// queue live interactions behind it.
+const UNDO_CONCURRENCY = 5;
+
+/**
+ * Reverses what lockdowns have done since the last undo: ends one still
+ * running, turns forced verification back off and lifts the gate from the
+ * members it caught. Safe to repeat if it's interrupted.
+ */
+export async function undoLastRaid(
+  bot: AppealyBot,
+  guildId: bigint,
+  undoneBy: bigint,
+): Promise<RaidUndoResult> {
+  // Lockdown and verification first, so nobody new is acted on during the undo.
+  const lockdownCleared = (await isLockdownActive(guildId)) && (await clearLockdown(guildId, undoneBy));
+
+  const forced = await db
+    .update(schema.antiRaidConfigs)
+    .set({ verificationForcedByRaid: false })
+    .where(and(eq(schema.antiRaidConfigs.guildId, guildId), eq(schema.antiRaidConfigs.verificationForcedByRaid, true)))
+    .returning({ guildId: schema.antiRaidConfigs.guildId });
+  const verificationTurnedOff = forced.length > 0;
+  if (verificationTurnedOff) {
+    await db
+      .update(schema.verificationConfigs)
+      .set({ enabled: false })
+      .where(eq(schema.verificationConfigs.guildId, guildId));
+  }
+  const { invalidateGuild } = await import("../core/guildConfigCache.ts");
+  await invalidateGuild(guildId);
+
+  const actions = await db.query.raidActions.findMany({ where: eq(schema.raidActions.guildId, guildId) });
+  const kickedUserIds = actions.filter((a) => a.action === "kicked").map((a) => a.userId.toString());
+  const gated = actions.filter((a) => a.action === "gated").map((a) => a.userId);
+
+  const verification = await db.query.verificationConfigs.findFirst({
+    where: eq(schema.verificationConfigs.guildId, guildId),
+  });
+  const roleId = verification?.unverifiedRoleId;
+
+  let unrestricted = 0;
+  let failed = 0;
+  for (let i = 0; i < gated.length; i += UNDO_CONCURRENCY) {
+    const batch = gated.slice(i, i + UNDO_CONCURRENCY);
+    const results = await Promise.allSettled(
+      batch.map(async (userId) => {
+        if (roleId) await bot.helpers.removeRole(guildId, userId, roleId, "Anti-raid undone");
+      }),
+    );
+    for (const r of results) {
+      if (r.status === "fulfilled") unrestricted++;
+      else failed++;
+    }
+  }
+
+  if (gated.length > 0) {
+    // They're no longer waiting on verification, so the pending kicks go too.
+    await db
+      .delete(schema.scheduledJobs)
+      .where(
+        and(
+          eq(schema.scheduledJobs.kind, "kick_unverified"),
+          eq(schema.scheduledJobs.guildId, guildId),
+          inArray(schema.scheduledJobs.subjectId, gated),
+        ),
+      );
+  }
+  await db.delete(schema.raidActions).where(eq(schema.raidActions.guildId, guildId));
+
+  logger.info("Anti-raid undone", {
+    guildId: guildId.toString(),
+    lockdownCleared,
+    verificationTurnedOff,
+    unrestricted,
+    failed,
+    kicked: kickedUserIds.length,
+  });
+  return { lockdownCleared, verificationTurnedOff, unrestricted, failed, kickedUserIds };
+}
+
+const RAID_ACTION_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Drops raid records nobody undid, which are the only member IDs kept here. */
+export async function pruneRaidActions(): Promise<void> {
+  await db
+    .delete(schema.raidActions)
+    .where(lt(schema.raidActions.createdAt, new Date(Date.now() - RAID_ACTION_RETENTION_MS)));
 }
 
 /** Live join count in the configured window, for the dashboard's raid gauge. */

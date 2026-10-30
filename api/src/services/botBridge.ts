@@ -115,6 +115,19 @@ export function requestLockdownClear(guildId: string, clearedBy: string) {
   }>;
 }
 
+/** Undo removes a role per member it caught, so it gets longer than a normal call. */
+const RAID_UNDO_TIMEOUT_MS = 60_000;
+
+export function requestRaidUndo(guildId: string, undoneBy: string) {
+  return callBot("/internal/anti-raid/undo", { guildId, undoneBy }, RAID_UNDO_TIMEOUT_MS) as Promise<{
+    lockdownCleared: boolean;
+    verificationTurnedOff: boolean;
+    unrestricted: number;
+    failed: number;
+    kickedUserIds: string[];
+  }>;
+}
+
 export function requestPanelPublish(panelId: string) {
   return callBot("/internal/panels/publish", { panelId });
 }

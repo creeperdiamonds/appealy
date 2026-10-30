@@ -1,5 +1,5 @@
 // bot/src/commands/antiRaid.ts
-// /anti-raid setup|clear|status
+// /anti-raid setup|clear|status|undo
 
 import { ApplicationCommandTypes, ApplicationCommandOptionTypes } from "@discordeno/bot";
 import type { AppealyInteraction as Interaction } from "../core/client.ts";
@@ -7,7 +7,7 @@ import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";
-import { clearLockdown, isLockdownActive } from "../services/antiRaidService.ts";
+import { clearLockdown, isLockdownActive, undoLastRaid } from "../services/antiRaidService.ts";
 import { defer, finish } from "../utils/interactionResponse.ts";
 
 const ADMINISTRATOR = 0x8n;
@@ -43,6 +43,7 @@ export const definition: CreateApplicationCommand = {
           ],
         },
         { name: "alert_channel", description: "Channel to post raid alerts in", descriptionLocalizations: { ja: "荒らし警告を送信するチャンネル" }, type: ApplicationCommandOptionTypes.Channel, required: false },
+        { name: "new_account_days", description: "Only act on accounts younger than this many days. 0 means every account", descriptionLocalizations: { ja: "作成からこの日数未満のアカウントだけを対象にします。0 ですべてのアカウント" }, type: ApplicationCommandOptionTypes.Integer, required: false, minValue: 0, maxValue: 365 },
       ],
     },
     {
@@ -55,6 +56,12 @@ export const definition: CreateApplicationCommand = {
       name: "status",
       description: "Check whether a lockdown is currently active",
       descriptionLocalizations: { ja: "ロックダウンが有効かどうかを確認します" },
+      type: ApplicationCommandOptionTypes.SubCommand,
+    },
+    {
+      name: "undo",
+      description: "False alarm: end the lockdown and reverse what it did",
+      descriptionLocalizations: { ja: "誤検知のとき: ロックダウンを終了し、行った対応を元に戻します" },
       type: ApplicationCommandOptionTypes.SubCommand,
     },
   ],
@@ -76,6 +83,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
   if (sub.name === "setup") {
     const opts = Object.fromEntries((sub.options ?? []).map((o) => [o.name, o.value]));
+    // Left out of the command means keep what's saved, not reset it to 0.
+    const newAccountDays = opts.new_account_days === undefined ? undefined : Number(opts.new_account_days);
     await db
       .insert(schema.antiRaidConfigs)
       .values({
@@ -85,6 +94,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
         windowSeconds: Number(opts.window_seconds),
         action: String(opts.action) as "alert_only" | "lock_verification" | "kick_new_joins",
         alertChannelId: opts.alert_channel ? BigInt(String(opts.alert_channel)) : null,
+        newAccountDays: newAccountDays ?? 0,
       })
       .onConflictDoUpdate({
         target: schema.antiRaidConfigs.guildId,
@@ -94,6 +104,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
           windowSeconds: Number(opts.window_seconds),
           action: String(opts.action) as "alert_only" | "lock_verification" | "kick_new_joins",
           alertChannelId: opts.alert_channel ? BigInt(String(opts.alert_channel)) : null,
+          ...(newAccountDays === undefined ? {} : { newAccountDays }),
           updatedAt: new Date(),
         },
       });
@@ -101,7 +112,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     return respond(
       bot,
       interaction,
-      `Anti-raid enabled: alert if ${opts.join_threshold}+ joins within ${opts.window_seconds}s, action \`${opts.action}\`.`,
+      `Anti-raid enabled: alert if ${opts.join_threshold}+ joins within ${opts.window_seconds}s, action \`${opts.action}\`.` +
+        (newAccountDays ? ` Only accounts younger than ${newAccountDays} days count.` : ""),
     );
   }
 
@@ -113,6 +125,11 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   if (sub.name === "status") {
     const active = await isLockdownActive(guildId);
     return respond(bot, interaction, active ? "🔒 A lockdown is currently active." : "No active lockdown.");
+  }
+
+  if (sub.name === "undo") {
+    const result = await undoLastRaid(bot, guildId, staffMember.id);
+    return respond(bot, interaction, describeUndo(result));
   }
 
   // Defensive fallback, not dead code. Discord validates subcommand names
@@ -127,6 +144,26 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   // truthful. See interactionCreate.ts's catch-all comment: "A hang is worse
   // than an error message — the error at least tells the truth."
   return respond(bot, interaction, "Unrecognised subcommand.");
+}
+
+/** Most IDs one message can carry as mentions and stay under Discord's limit. */
+const MAX_KICKED_LISTED = 50;
+
+function describeUndo(r: Awaited<ReturnType<typeof undoLastRaid>>): string {
+  const lines: string[] = [];
+  if (r.lockdownCleared) lines.push("Lockdown ended.");
+  if (r.verificationTurnedOff) lines.push("Verification is back off.");
+  if (r.unrestricted > 0) lines.push(`Removed the unverified role from ${r.unrestricted} member(s).`);
+  if (r.failed > 0) lines.push(`Couldn't remove it from ${r.failed}, usually because they left.`);
+  if (r.kickedUserIds.length > 0) {
+    const shown = r.kickedUserIds.slice(0, MAX_KICKED_LISTED).map((id) => `<@${id}>`).join(" ");
+    const more = r.kickedUserIds.length - MAX_KICKED_LISTED;
+    lines.push(
+      `${r.kickedUserIds.length} account(s) were kicked. That can't be reversed, but they can rejoin with an invite: ` +
+        shown + (more > 0 ? ` and ${more} more` : ""),
+    );
+  }
+  return lines.length > 0 ? lines.join("\n") : "Nothing to undo.";
 }
 
 // Ephemeral flag now lives on the deferral; this wrapper just routes

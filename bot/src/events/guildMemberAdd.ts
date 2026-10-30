@@ -52,7 +52,8 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { interpolateTemplate } from "../../../shared/types/index.ts";
 import { findUnmanageableRoles } from "../services/permissionService.ts";
-import { recordJoinAndCheckRaid, isLockdownActiveCached } from "../services/antiRaidService.ts";
+import { recordJoinAndCheckRaid, isLockdownActiveCached, recordRaidAction } from "../services/antiRaidService.ts";
+import { countsForRaid } from "../services/raidAccountAge.ts";
 import { getGuildConfig, type GuildConfigBundle } from "../core/guildConfigCache.ts";
 import { logger } from "../utils/logger.ts";
 
@@ -79,13 +80,18 @@ export function onGuildMemberAdd(bot: AppealyBot) {
 
     await recordJoinAndCheckRaid(bot, member.guildId, member.user.id, config.antiRaid);
 
-    if (config.antiRaid?.action === "kick_new_joins" && (await isLockdownActiveCached(member.guildId))) {
+    if (
+      config.antiRaid?.action === "kick_new_joins" &&
+      countsForRaid(member.user.id, config.antiRaid.newAccountDays) &&
+      (await isLockdownActiveCached(member.guildId))
+    ) {
       try {
         await bot.helpers.kickMember(
           member.guildId,
           member.user.id,
           "Anti-raid lockdown active — new joins restricted",
         );
+        await recordRaidAction(member.guildId, member.user.id, "kicked");
         logger.info("Kicked joining member due to active anti-raid lockdown", {
           guildId: member.guildId.toString(),
           userId: member.user.id.toString(),
@@ -115,6 +121,13 @@ async function applyVerificationGate(
 ) {
   const verification = config.verification;
   if (!verification?.enabled || !verification.unverifiedRoleId) return;
+
+  // Verification a lockdown forced on: established accounts walk past it, and
+  // everyone it does catch is remembered so an undo can let them through.
+  if (config.antiRaid?.verificationForcedByRaid) {
+    if (!countsForRaid(member.user.id, config.antiRaid.newAccountDays)) return;
+    await recordRaidAction(member.guildId, member.user.id, "gated");
+  }
 
   try {
     await bot.helpers.addRole(
