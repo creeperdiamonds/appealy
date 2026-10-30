@@ -714,6 +714,7 @@ export async function importGuildData(
         alertChannelId: resolve.optional("anti-raid", "config", "alertChannelId", cfg.alertChannelId),
         alertRoleIds: resolve.roleList(cfg.alertRoleIds).ids,
         autoLockdownExpiresAfterSeconds: Number(cfg.autoLockdownExpiresAfterSeconds ?? 1800),
+        newAccountDays: Number(cfg.newAccountDays ?? 0),
       })
       .onConflictDoNothing();
     count("antiRaidConfig");

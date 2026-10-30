@@ -45,6 +45,7 @@ import { pruneL1 } from "./guildConfigCache.ts";
 import { publishDuePolls } from "../services/pollService.ts";
 import { endDueGiveaways } from "../services/giveawayService.ts";
 import { unbanDueTempBans } from "../services/tempBans.ts";
+import { pruneRaidActions } from "../services/antiRaidService.ts";
 import { logger } from "../utils/logger.ts";
 
 const TICK_MS = 30_000;
@@ -332,6 +333,8 @@ async function enqueueHistoryPurges() {
     null,
   );
   if (!claimedToday) return;
+
+  await task("antiraid:prune", () => pruneRaidActions());
 
   try {
     // Only guilds the bot is actually in. A departed guild's rows are the

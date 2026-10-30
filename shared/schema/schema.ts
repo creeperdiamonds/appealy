@@ -1046,6 +1046,11 @@ export const antiRaidConfigs = pgTable("anti_raid_configs", {
   alertChannelId: bigint("alert_channel_id", { mode: "bigint" }),
   alertRoleIds: jsonb("alert_role_ids").$type<string[]>().notNull().default([]),
   autoLockdownExpiresAfterSeconds: integer("auto_lockdown_expires_after_seconds").notNull().default(1800), // 30 min
+  // Accounts older than this are not counted and not acted on. 0 = every account.
+  newAccountDays: integer("new_account_days").notNull().default(0),
+  // A lockdown switched verification on and nobody has undone it yet. Lives
+  // here so the join path reads it from the cached bundle, with no query.
+  verificationForcedByRaid: boolean("verification_forced_by_raid").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -1061,6 +1066,24 @@ export const raidLockdowns = pgTable("raid_lockdowns", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   clearedBy: bigint("cleared_by", { mode: "bigint" }), // set if a staff member manually cleared it early
 });
+
+// Who a lockdown acted on, which is what /anti-raid undo works from. Removed
+// by the undo, or after 30 days by the scheduler.
+export const raidActions = pgTable(
+  "raid_actions",
+  {
+    guildId: bigint("guild_id", { mode: "bigint" })
+      .notNull()
+      .references(() => guilds.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "bigint" }).notNull(),
+    action: varchar("action", { length: 16 }).$type<"kicked" | "gated">().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.guildId, t.userId, t.action] }),
+    createdIdx: index("raid_actions_created_idx").on(t.createdAt),
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // Welcomer

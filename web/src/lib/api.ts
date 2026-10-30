@@ -610,6 +610,15 @@ export const api = {
       method: "POST",
     }),
 
+  undoRaid: (guildId: string) =>
+    request<{
+      lockdownCleared: boolean;
+      verificationTurnedOff: boolean;
+      unrestricted: number;
+      failed: number;
+      kickedUserIds: string[];
+    }>(`/api/guilds/${guildId}/anti-raid/lockdown/undo`, { method: "POST" }),
+
   channels: (guildId: string) =>
     request<{ id: string; name: string; type: number; position: number }[]>(
       `/api/guilds/${guildId}/resources/channels`,

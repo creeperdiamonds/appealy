@@ -58,6 +58,7 @@ interface AntiRaidConfigDTO {
   alertChannelId: string | null;
   alertRoleIds: string[];
   autoLockdownExpiresAfterSeconds: number;
+  newAccountDays: number;
 }
 
 /** PUT body. guildId comes from the path. */
@@ -86,6 +87,7 @@ const BLANK: AntiRaidDraft = {
   alertChannelId: null,
   alertRoleIds: [],
   autoLockdownExpiresAfterSeconds: 1800,
+  newAccountDays: 0,
 };
 
 /* ------------------------------------------------------------------ *
@@ -96,8 +98,7 @@ const BLANK: AntiRaidDraft = {
  * three do something the name doesn't say:
  *
  *   lock_verification force-enables verification with an UPDATE against an
- *   existing verification_configs row and never turns it back off when the
- *   lockdown expires.
+ *   existing verification_configs row, and only an undo turns it back off.
  *
  *   kick_new_joins is enforced in the join handler, after the detection
  *   step has already primed the lockdown cache — so the member whose join
@@ -124,8 +125,7 @@ const ACTIONS: { value: AntiRaidAction; label: string; what: ReactNode }[] = [
         Sends the alert, then flips this server's verification setting to enabled so new members
         hit the gate. Two things the name doesn't say: it updates an existing verification
         config, so a server that has never set verification up gets nothing from this — and
-        nothing turns it back off when the lockdown expires. Verification stays on until you
-        switch it off yourself.
+        it stays on when the lockdown expires, until you use Undo or switch it off yourself.
       </>
     ),
   },
@@ -192,6 +192,16 @@ const WINDOWS: { value: number; label: string }[] = [
   { value: 600, label: "10 minutes" },
   { value: 1800, label: "30 minutes" },
   { value: 3600, label: "1 hour" },
+];
+
+const ACCOUNT_AGES: { value: number; label: string }[] = [
+  { value: 0, label: "Every account" },
+  { value: 1, label: "Younger than 1 day" },
+  { value: 3, label: "Younger than 3 days" },
+  { value: 7, label: "Younger than 7 days" },
+  { value: 14, label: "Younger than 14 days" },
+  { value: 30, label: "Younger than 30 days" },
+  { value: 90, label: "Younger than 90 days" },
 ];
 
 const LOCKDOWNS: { value: number; label: string }[] = [
@@ -281,7 +291,9 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [clearing, setClearing] = useState(false);
-  const [confirming, setConfirming] = useState<"kick" | "clear" | null>(null);
+  const [confirming, setConfirming] = useState<"kick" | "clear" | "undo" | null>(null);
+  const [undoing, setUndoing] = useState(false);
+  const [undone, setUndone] = useState<Awaited<ReturnType<typeof api.undoRaid>> | null>(null);
 
   // The threshold is the one free-text number on the page, so it needs its
   // own string state: parsing straight into the draft would snap an empty
@@ -304,6 +316,7 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
             alertChannelId: current.alertChannelId,
             alertRoleIds: current.alertRoleIds ?? [],
             autoLockdownExpiresAfterSeconds: current.autoLockdownExpiresAfterSeconds,
+            newAccountDays: current.newAccountDays ?? 0,
           }
         : { ...BLANK };
       setConfig(draft);
@@ -358,6 +371,7 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
         alertChannelId: updated.alertChannelId,
         alertRoleIds: updated.alertRoleIds ?? [],
         autoLockdownExpiresAfterSeconds: updated.autoLockdownExpiresAfterSeconds,
+        newAccountDays: updated.newAccountDays ?? 0,
       });
       setThresholdText(String(updated.joinThreshold));
       setSaved(true);
@@ -387,6 +401,25 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
       setFields(fieldsOf(e));
     } finally {
       setClearing(false);
+      setConfirming(null);
+    }
+  }
+
+  async function undoRaid() {
+    setUndoing(true);
+    setError(null);
+    setFields(null);
+    try {
+      setUndone(await api.undoRaid(guildId));
+      const fresh = await http
+        .get<LockdownDTO>(`/api/guilds/${guildId}/anti-raid/lockdown`)
+        .catch(() => null);
+      setLockdown(fresh);
+    } catch (e) {
+      setError(describe(e, "Couldn't undo the lockdown."));
+      setFields(fieldsOf(e));
+    } finally {
+      setUndoing(false);
       setConfirming(null);
     }
   }
@@ -495,15 +528,26 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
         <Panel
           title={lockdownActive ? "Lockdown in effect" : "Last lockdown"}
           action={
-            lockdownActive && confirming !== "clear" ? (
-              <button
-                className="btn btn-sm"
-                disabled={clearing}
-                onClick={() => setConfirming("clear")}
-              >
-                Clear lockdown
-              </button>
-            ) : undefined
+            <div className="actions">
+              {lockdownActive && confirming !== "clear" && (
+                <button
+                  className="btn btn-sm"
+                  disabled={clearing}
+                  onClick={() => setConfirming("clear")}
+                >
+                  Clear lockdown
+                </button>
+              )}
+              {confirming !== "undo" && (
+                <button
+                  className="btn btn-sm"
+                  disabled={undoing}
+                  onClick={() => setConfirming("undo")}
+                >
+                  Undo
+                </button>
+              )}
+            </div>
           }
         >
           <div className="grid grid-3">
@@ -550,11 +594,44 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
           {config.action === "lock_verification" && (
             <>
               {" "}
-              Verification stays switched on either way: the lockdown turned it on and nothing
-              turns it back off, so that's yours to undo on the Verification page.
+              Verification stays switched on: clearing only ends the lockdown. Use Undo if this was
+              a false alarm.
             </>
           )}
         </Confirm>
+      )}
+
+      {confirming === "undo" && (
+        <Confirm
+          title="Undo what the lockdown did?"
+          confirmLabel="Undo"
+          busy={undoing}
+          onConfirm={() => void undoRaid()}
+          onCancel={() => setConfirming(null)}
+        >
+          This ends the lockdown if it's still running. If it switched verification on, verification
+          goes back off, and the members it caught lose the unverified role and any pending kick.
+          Kicks can't be reversed: you'll get a list of who was kicked so you can invite them back.
+        </Confirm>
+      )}
+
+      {undone && (
+        <Banner level="watch" title="Undone">
+          {[
+            undone.lockdownCleared && "Lockdown ended.",
+            undone.verificationTurnedOff && "Verification is back off.",
+            undone.unrestricted > 0 && `Removed the unverified role from ${undone.unrestricted} member(s).`,
+            undone.failed > 0 && `Couldn't remove it from ${undone.failed}, usually because they left.`,
+          ]
+            .filter(Boolean)
+            .join(" ") || (undone.kickedUserIds.length === 0 ? "There was nothing to undo." : "")}
+          {undone.kickedUserIds.length > 0 && (
+            <span className="block">
+              {undone.kickedUserIds.length} account(s) were kicked and can rejoin with an invite:{" "}
+              <span className="mono">{undone.kickedUserIds.join(", ")}</span>
+            </span>
+          )}
+        </Banner>
       )}
 
       {confirming === "kick" && (
@@ -638,8 +715,8 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
       {tinyThreshold && (
         <Banner level="watch" title="That threshold catches coincidences">
           {config.joinThreshold} people arriving together isn't a raid — it's what happens when
-          someone posts your invite. Detection is a count with no account-age or pattern check
-          behind it, so a number this small will trip on ordinary days
+          someone posts your invite. Detection is only a count, so a number this small will trip
+          on ordinary days
           {kicksArmed ? ", and each time it will kick whoever walks in next." : "."}
         </Banner>
       )}
@@ -660,7 +737,7 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
           This action switches your existing verification config on. A server that never
           configured verification has no row to switch, so the lockdown will alert and change
           nothing else — and once it does switch verification on, it stays on after the lockdown
-          expires until you turn it off yourself.
+          expires until you use Undo or turn it off yourself.
         </Banner>
       )}
 
@@ -726,6 +803,30 @@ export default function AntiRaid({ guildId }: { guildId: string }) {
             A rolling window, not a bucket — the count is of joins in the last{" "}
             {formatDuration(config.windowSeconds)} at every join, so a burst spanning two clock
             minutes still counts as one burst.
+          </span>
+        </label>
+
+        <label className="field">
+          <span className="eyebrow">Which accounts count</span>
+          <select
+            value={config.newAccountDays}
+            onChange={(e) => patch({ newAccountDays: Number(e.target.value) })}
+          >
+            {!ACCOUNT_AGES.some((a) => a.value === config.newAccountDays) && (
+              <option value={config.newAccountDays}>
+                Younger than {config.newAccountDays} days
+              </option>
+            )}
+            {ACCOUNT_AGES.map((a) => (
+              <option key={a.value} value={a.value}>
+                {a.label}
+              </option>
+            ))}
+          </select>
+          <span className="dim">
+            Older accounts don't count toward a raid, aren't kicked, and skip verification a
+            lockdown forced on. Raid accounts are usually new, so this keeps a viral invite from
+            looking like an attack. A raid using older accounts won't trip it.
           </span>
         </label>
       </Panel>
