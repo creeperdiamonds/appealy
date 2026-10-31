@@ -14,17 +14,15 @@ set -euo pipefail
 service_args=(--region "$GCP_REGION" --project "$GCP_PROJECT_ID")
 vm_args=("$VM_NAME" --zone "$VM_ZONE" --project "$GCP_PROJECT_ID" --tunnel-through-iap --ssh-key-expire-after=1h --quiet)
 
-# Generated per deploy rather than stored. It only has to agree between the API
-# and the bot, and a value that lives for one deploy is one less credential to
-# rotate or leak.
-INTERNAL_RPC_SECRET="$(openssl rand -hex 32)"
-export INTERNAL_RPC_SECRET
+# A trailing slash would end up inside the sign-in redirect address, which has to
+# match Discord's list exactly.
+PUBLIC_ORIGIN="${PUBLIC_ORIGIN%/}"
 
 # Goes to deploy/vm/deploy.sh on stdin, see there. Base64 so that no value can
 # break a line, and stdin so that none appears in a command line or a log.
 vm_env="$(mktemp)"
 trap 'rm -f "$vm_env"' EXIT
-for var in ARTIFACT_REGISTRY SHA CLOUDSQL_CONNECTION_NAME PUBLIC_ORIGIN INTERNAL_RPC_SECRET \
+for var in ARTIFACT_REGISTRY SHA CLOUDSQL_CONNECTION_NAME PUBLIC_ORIGIN \
   PADDLE_API_KEY PADDLE_WEBHOOK_SECRET PADDLE_ENV PADDLE_CHECKOUT_URL PADDLE_CLIENT_TOKEN \
   TOPGG_WEBHOOK_SECRET STATUS_HEARTBEAT_SECRET; do
   printf '%s=%s\n' "$var" "$(printf %s "${!var-}" | base64 -w0)" >> "$vm_env"
@@ -34,9 +32,11 @@ vm() {
   gcloud compute ssh "${vm_args[@]}" --command "sudo bash /opt/appealy/deploy.sh $1" < "$vm_env"
 }
 
+# One sudo, because sudo reads stdin on behalf of its command. A separate `sudo mkdir`
+# could eat the start of the archive.
 install_vm_files() {
   tar -C deploy/vm --exclude=.gitattributes -cz . \
-    | gcloud compute ssh "${vm_args[@]}" --command 'sudo mkdir -p /opt/appealy && sudo tar -xz --no-same-owner -C /opt/appealy'
+    | gcloud compute ssh "${vm_args[@]}" --command "sudo sh -c 'mkdir -p /opt/appealy && tar -xz --no-same-owner -C /opt/appealy'"
 }
 
 deploy_web() {
@@ -87,6 +87,23 @@ print(max(traffic, key=lambda t: t.get("percent", 0))["revisionName"])
 '
 }
 
+# Creates the new nginx with no traffic and tests the whole path through its tag,
+# so a bad one never serves anybody.
+test_new_web() {
+  local next_url
+  PIN_TO_REVISION="$1" deploy_web
+  next_url="$(service_json | python3 -c '
+import json, sys
+print(next(t["url"] for t in json.load(sys.stdin)["status"]["traffic"] if t.get("tag") == "next"))
+')"
+  echo "Testing the new revision, which has no traffic yet: $next_url"
+  check_site "$next_url"
+}
+
+switch_to_new_web() {
+  gcloud run services update-traffic appealy "${service_args[@]}" --to-revisions "$REVISION=100" --remove-tags next
+}
+
 # Getting this wrong starts a second bot, so a failed lookup stops the deploy rather
 # than reading as "no bot here".
 revision_holds_bot() {
@@ -99,15 +116,31 @@ revision_holds_bot() {
   esac
 }
 
-# The old instance logs this as Cloud Run takes it down, after its traffic has
-# gone. Until it does, its bot is still connected to Discord.
+# Cloud Run logs this as it takes the old instance down, after its traffic has gone,
+# and until then that bot is still connected to Discord. The log line comes with
+# SIGTERM, and whatever is left gets SIGKILL 10 seconds later. The bot exits on
+# SIGTERM, and in any case reading this log, SSH and starting the new bot take longer
+# than those 10 seconds. The new bot can't connect before the old one has gone.
 wait_for_instance_to_stop() {
-  local filter="resource.type=\"cloud_run_revision\" AND resource.labels.revision_name=\"$1\" AND textPayload:\"Shutting down\" AND timestamp>=\"$2\""
+  local filter="resource.type=\"cloud_run_revision\" AND resource.labels.revision_name=\"$1\" AND textPayload:\"Shutting down user disabled instance\" AND timestamp>=\"$2\""
   for _ in $(seq 1 60); do
     if [ -n "$(gcloud logging read "$filter" --project "$GCP_PROJECT_ID" --limit 1 --format='value(timestamp)')" ]; then
       return 0
     fi
     sleep 2
+  done
+  return 1
+}
+
+# Succeeds if the VM answered and has no bot, whether or not it had one before. Tries
+# more than once because the usual reason to be here is a connection that just failed.
+remove_vm_bot() {
+  for _ in 1 2 3; do
+    if gcloud compute ssh "${vm_args[@]}" \
+      --command 'sudo docker rm -f appealy-bot-1 2>/dev/null; ! sudo docker inspect appealy-bot-1 > /dev/null 2>&1'; then
+      return 0
+    fi
+    sleep 10
   done
   return 1
 }
@@ -121,21 +154,14 @@ wait_for_instance_to_stop() {
 # Everything up to moving the traffic changes nothing anyone can see, and a failure
 # there leaves Cloud Run as it was.
 move_to_vm() {
-  local old="$1" since next_url
+  local old="$1" since
 
   # wait_for_instance_to_stop needs this. Better to find out it's missing now than
   # after the traffic has moved.
   gcloud logging read 'resource.type="cloud_run_revision"' --project "$GCP_PROJECT_ID" --limit 1 > /dev/null
 
   vm api
-
-  PIN_TO_REVISION="$old" deploy_web
-  next_url="$(service_json | python3 -c '
-import json, sys
-print(next(t["url"] for t in json.load(sys.stdin)["status"]["traffic"] if t.get("tag") == "next"))
-')"
-  echo "Testing the new revision, which has no traffic yet: $next_url"
-  check_site "$next_url"
+  test_new_web "$old"
 
   if [ "$REHEARSE" = "true" ]; then
     echo "Rehearsal passed. Traffic and the bot have not moved."
@@ -143,15 +169,22 @@ print(next(t["url"] for t in json.load(sys.stdin)["status"]["traffic"] if t.get(
   fi
 
   since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  gcloud run services update-traffic appealy "${service_args[@]}" --to-revisions "$REVISION=100" --remove-tags next
+  switch_to_new_web
 
   if wait_for_instance_to_stop "$old" "$since" && vm bot && check_site "$PUBLIC_ORIGIN"; then
     echo "Moved. Going back is in deploy/vm/README.md; the old revision is $old."
     return 0
   fi
 
-  echo "::error::The move failed, so traffic and the bot are going back to $old."
-  gcloud compute ssh "${vm_args[@]}" --command 'sudo docker rm -f appealy-bot-1'     || echo "::error::Could not reach the VM. Check that no bot is running on it."
+  # The old revision starts its bot as soon as it has traffic again, so if there may
+  # still be one on the VM, the old one stays off. Having no bot can be fixed by hand.
+  # Events handled twice can't be undone.
+  echo "::error::The move failed."
+  if ! remove_vm_bot; then
+    echo "::error::Could not confirm that the VM has no bot, so the old bot stays off and traffic stays on $REVISION. Going back is in deploy/vm/README.md; the old revision is $old."
+    return 1
+  fi
+  echo "The VM has no bot, so traffic and the bot are going back to $old."
   gcloud run services update-traffic appealy "${service_args[@]}" --to-revisions "$old=100"
   return 1
 }
@@ -171,6 +204,7 @@ if revision_holds_bot "$serving"; then
 else
   vm api
   vm bot
-  deploy_web
+  test_new_web "$serving"
+  switch_to_new_web
   check_site "$PUBLIC_ORIGIN"
 fi

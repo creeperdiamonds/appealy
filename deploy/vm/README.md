@@ -24,6 +24,10 @@ before the new one starts, because two bots on one token would handle every even
 twice, so there are a few seconds when clicks in Discord fail. The website, docs and
 review pages don't notice.
 
+If a new API or bot doesn't come up, `deploy.sh` goes back to the commit that was
+running and the deploy fails. A new nginx is tested with no traffic, so a bad one
+never serves anybody.
+
 ## Looking at it
 
 ```bash
@@ -80,6 +84,20 @@ sudo apt-get update && sudo apt-get upgrade -y && sudo reboot
 ```
 
 The containers start by themselves, and the bot is back about a minute later.
+`setup.sh` is what makes sure of that, and it's stored on the VM as its startup
+script. After changing it:
+
+```bash
+gcloud compute instances add-metadata appealy-vm --zone us-central1-c --project yahav-project-505809 \
+  --metadata-from-file startup-script=deploy/vm/setup.sh
+```
+
+If `net` ever restarts without a reboot, the other three lose the network until they
+restart too:
+
+```bash
+sudo docker restart appealy-cloudsql-proxy-1 appealy-api-1 appealy-bot-1
+```
 
 ## If the VM is lost
 
@@ -105,3 +123,19 @@ address `10.128.0.10` is reserved.
 gcloud compute instances add-iam-policy-binding appealy-vm --zone us-central1-c --project yahav-project-505809 \
   --member serviceAccount:github-deployer@yahav-project-505809.iam.gserviceaccount.com --role roles/compute.osAdminLogin
 ```
+
+## What it relies on
+
+None of this is in Terraform. It was set up by hand and survives losing the VM, but
+a new project would need it all again.
+
+| What | Details |
+|---|---|
+| `appealy-runtime`, the VM's account | `roles/artifactregistry.reader` on `appealy-repo`, `roles/logging.logWriter` on the project, plus the Cloud SQL and Secret Manager roles it already had |
+| `github-deployer`, the deploy account | `roles/compute.osAdminLogin` on the VM, `roles/iap.tunnelResourceAccessor` and `roles/compute.viewer` on the project |
+| `appealy-web`, nginx's account | No roles |
+| `appealy-vm-internal` | Reserved private address `10.128.0.10` |
+| `appealy-vm-allow-iap-ssh` | Firewall: port 22 from Google's IAP range `35.235.240.0/20`, for the tag `appealy-vm` |
+| `appealy-vm-deny-public` | Firewall: denies ports 22 and 3389 from everywhere else, for the same tag |
+| `default-allow-internal` | Firewall: the default rule that lets nginx reach port 3001 |
+| IAP API | `iap.googleapis.com` must be enabled |

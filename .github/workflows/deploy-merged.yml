@@ -21,6 +21,12 @@ on:
         type: boolean
         default: false
 
+# A deploy is several steps on one VM, so a second one has to wait its turn. Mixing
+# them could leave two bots or none.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 env:
   VM_NAME: appealy-vm
   VM_ZONE: us-central1-c
@@ -55,18 +61,21 @@ jobs:
           ref: docs
           path: docs-content
 
-      - name: Fail early if billing credentials are missing
+      - name: Fail early if required secrets are missing
         env:
           A: ${{ secrets.PADDLE_API_KEY }}
           B: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
+          C: ${{ secrets.STATUS_HEARTBEAT_SECRET }}
         run: |
           missing=""
           if [ -z "$A" ]; then missing="$missing PADDLE_API_KEY"; fi
           if [ -z "$B" ]; then missing="$missing PADDLE_WEBHOOK_SECRET"; fi
+          if [ -z "$C" ]; then missing="$missing STATUS_HEARTBEAT_SECRET"; fi
           if [ -n "$missing" ]; then
             echo "::error::Missing repository secret(s):$missing"
-            echo "DEPLOYMENT_MODE=platform needs a billing source, so the containers"
-            echo "would build, deploy, and then fail to start."
+            echo "DEPLOYMENT_MODE=platform needs a billing source, or the containers would"
+            echo "fail to start. Without the heartbeat secret the deploy would pass, and the"
+            echo "status page would show the bot as down."
             exit 1
           fi
           if [ "${{ github.event.inputs.rehearse }}" = "true" ] && [ "${{ github.event.inputs.migrations }}" != "skip" ]; then

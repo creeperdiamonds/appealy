@@ -14,8 +14,9 @@
 # VALUES
 #
 # deploy.sh exports everything used here. The bare names under `environment` take
-# their value from it, so no secret is written into this file or onto the disk
-# outside Docker's own container records.
+# their value from it, so no secret is written into this file. The only ones on the
+# disk are in Docker's own container records and INTERNAL_RPC_SECRET's file, and
+# only root can read those.
 
 name: appealy
 

@@ -49,3 +49,14 @@ systemctl enable --now docker > /dev/null
 cat > /etc/apt/apt.conf.d/51appealy-docker <<'EOF'
 Unattended-Upgrade::Package-Blacklist { "docker.io"; "docker-compose"; "containerd"; "runc"; };
 EOF
+
+# Docker brings the containers back after a reboot, but in no fixed order. One that
+# shares the network of `net` fails if it gets there before `net` does, and Docker
+# doesn't try again, which left the bot down in testing. A failed start leaves an
+# error behind and a container stopped on purpose has none, so this can't bring back
+# a bot someone stopped.
+for name in net cloudsql-proxy api bot; do
+  if [ -n "$(docker inspect --format '{{.State.Error}}' "appealy-$name-1" 2>/dev/null)" ]; then
+    docker start "appealy-$name-1" > /dev/null || echo "Could not start appealy-$name-1." >&2
+  fi
+done
