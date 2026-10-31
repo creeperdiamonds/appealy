@@ -254,8 +254,17 @@ this ran on 2 vCPUs and 2.1 GiB, billed around the clock.
 | cloudsql-proxy | 7 mCPU | 28 mCPU | 32 MiB | 38 MiB |
 | web | 0.2 mCPU | 44 mCPU | 26 MiB | 29 MiB |
 
-So the service moved to 1 vCPU and 1 GiB, split as `deploy/service.yaml` shows.
-At list prices that is about $47 a month for Cloud Run instead of about $100.
+So the service moved to 1 vCPU and 1 GiB. At list prices that is about $47 a month
+for Cloud Run instead of about $100. The real bill for the old size, about 29 days:
+₪301.78 for Cloud Run and ₪336.97 in total.
+
+1 vCPU is as low as Cloud Run goes for something that's always on, so the bot, the
+API and the proxy then moved to an e2-micro (`deploy/vm/`), which falls within
+Compute Engine's free tier. nginx stayed on Cloud Run, scaling to zero, because it
+was in requests for only 29,442 seconds in 30 days, against a free tier of 180,000
+vCPU-seconds, 360,000 GiB-seconds and 2 million requests. The containers on the VM
+peak at about 322 MiB. That should leave about 250 MiB available, worked out from a
+reading with the API and proxy running, before the bot had moved.
 
 **What changed in the code.** None of this moves the bill much by itself. It is
 what makes the smaller size comfortable.
@@ -265,7 +274,7 @@ what makes the smaller size comfortable.
   they opened a new connection per query.
 - Idle database connections outlast the scheduler's 30-second tick.
 - V8's young generation is capped at 4 MB per semi-space, and each process has an
-  old-space cap under its container's limit. These are set in `deploy/service.yaml`,
+  old-space cap under its container's limit. These are set in `deploy/vm/compose.yaml`,
   so self-hosters keep V8's defaults.
 
 **Result at 50 servers.** The "after" run has the bot and API held to half their
@@ -301,9 +310,13 @@ The old size had no failures on the last row, so this is capacity that was given
 up. In the overloaded runs the bot stayed connected, nothing ran out of memory,
 and missed deadlines stopped about 30 seconds after traffic dropped.
 
-**When to go back up.** Watch `container/cpu/usage` for the bot. If its busiest
-minutes regularly pass 15 CPU-seconds, which is 0.25 vCPU and about half its
-limit, raise the service to 2 vCPU. The change is limited to `deploy/service.yaml`.
+**How far the VM goes.** An e2-micro has a baseline of 0.25 vCPU shared by all three
+containers, and can burst above it for short periods. The table above had 0.375 vCPU
+for the bot and API alone, so expect the VM to fall behind sooner than that. The
+table's first row is already far above production's traffic. The VM hasn't been run
+through the simulator.
+
+**When to go up.** See "If it needs more room" in `deploy/vm/README.md`.
 
 **What this doesn't tell you.**
 

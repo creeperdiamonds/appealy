@@ -1,0 +1,2 @@
+# These run on Linux, and a checkout on Windows would otherwise break them.
+* text eol=lf

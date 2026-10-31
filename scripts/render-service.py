@@ -1,24 +1,16 @@
 #!/usr/bin/env python3
-"""Render deploy/service.yaml with real images and secrets.
-
-Substitution is done here rather than with sed because the values include
-generated secrets, and sed would misbehave on any / or & inside one.
+"""Render deploy/service.yaml with the real image and revision name.
 
 Every placeholder must be filled. An unrendered one would deploy a container
-image literally named IMAGE_API, or an env var whose value is the string
-"PADDLE_API_KEY_VALUE" — the first fails loudly, the second starts fine and
-then fails to take payments, so this asserts rather than warns.
+image literally named IMAGE_WEB, so this asserts rather than warns.
 
 Reads from the environment, writes the result to stdout:
 
   ARTIFACT_REGISTRY  us-central1-docker.pkg.dev/<project>/appealy-repo
-  SHA                commit to tag every image with
-  PADDLE_API_KEY / PADDLE_WEBHOOK_SECRET  required: the only payment provider
-  PADDLE_ENV / PADDLE_CHECKOUT_URL
-  PADDLE_CLIENT_TOKEN  browser-side token, served to the payment page
-                     optional, empty until the Paddle account exists
-  RPC_SECRET         guards the bot's control server
-  STATUS_HEARTBEAT_SECRET  shared with the status Worker (status-page branch)
+  SHA                commit to tag the image with
+  REVISION           name for the new revision
+  PIN_TO_REVISION    optional: leave all traffic on this revision, and give the
+                     new one no traffic and the tag "next", so it can be tested
 """
 
 import io
@@ -26,14 +18,7 @@ import os
 import re
 import sys
 
-REQUIRED = [
-    "ARTIFACT_REGISTRY",
-    "SHA",
-    "RPC_SECRET",
-    "CLOUDSQL_CONNECTION_NAME",
-    "PUBLIC_ORIGIN",
-    "STATUS_HEARTBEAT_SECRET",
-]
+REQUIRED = ["ARTIFACT_REGISTRY", "SHA", "REVISION"]
 
 missing = [k for k in REQUIRED if not os.environ.get(k)]
 if missing:
@@ -42,34 +27,23 @@ if missing:
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 spec = io.open(os.path.join(here, "deploy", "service.yaml"), encoding="utf-8").read()
 
-registry = os.environ["ARTIFACT_REGISTRY"]
-sha = os.environ["SHA"]
+spec = spec.replace("IMAGE_WEB", "%s/appealy-web:%s" % (os.environ["ARTIFACT_REGISTRY"], os.environ["SHA"]))
+spec = spec.replace("REVISION_NAME_VALUE", os.environ["REVISION"])
 
-for service, placeholder in (("api", "IMAGE_API"), ("web", "IMAGE_WEB"), ("bot", "IMAGE_BOT")):
-    spec = spec.replace(placeholder, "%s/appealy-%s:%s" % (registry, service, sha))
-
-for var in ("PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET"):
-    spec = spec.replace(var + "_VALUE", os.environ[var])
-
-# Paddle is the only payment provider, so its credentials are required above
-# rather than optional here. The values below stay optional: PADDLE_ENV and
-# PADDLE_CHECKOUT_URL have working defaults, and PADDLE_CLIENT_TOKEN is only
-# needed by the hosted payment page.
-#
-# They are still substituted unconditionally, because the sweep below fails the
-# deploy on any placeholder left in the spec — "optional" has to mean "renders
-# to nothing", not "skipped".
-for var in ("PADDLE_ENV", "PADDLE_CHECKOUT_URL", "PADDLE_CLIENT_TOKEN", "TOPGG_WEBHOOK_SECRET"):
-    spec = spec.replace(var + "_VALUE", os.environ.get(var, ""))
-
-spec = spec.replace("INTERNAL_RPC_SECRET_VALUE", os.environ["RPC_SECRET"])
-spec = spec.replace("CLOUDSQL_CONNECTION_NAME", os.environ["CLOUDSQL_CONNECTION_NAME"])
-spec = spec.replace("PUBLIC_ORIGIN_VALUE", os.environ["PUBLIC_ORIGIN"].rstrip("/"))
-spec = spec.replace("STATUS_HEARTBEAT_SECRET_VALUE", os.environ["STATUS_HEARTBEAT_SECRET"])
-
-left = re.findall(r"IMAGE_[A-Z]+|[A-Z_]+_VALUE|CLOUDSQL_CONNECTION_NAME", spec)
+left = re.findall(r"IMAGE_[A-Z]+|[A-Z_]+_VALUE", spec)
 if left:
     sys.exit("unrendered placeholder(s): %s" % ", ".join(sorted(set(left))))
+
+pin = os.environ.get("PIN_TO_REVISION")
+if pin:
+    spec += (
+        "  traffic:\n"
+        "    - revisionName: %s\n"
+        "      percent: 100\n"
+        "    - revisionName: %s\n"
+        "      percent: 0\n"
+        "      tag: next\n" % (pin, os.environ["REVISION"])
+    )
 
 # Written as bytes, explicitly UTF-8. sys.stdout.write() encodes with the
 # platform default, which on Windows is cp1252 and mangles the em-dashes in

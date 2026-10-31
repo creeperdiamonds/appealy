@@ -1,0 +1,136 @@
+# deploy/vm/compose.yaml
+#
+# The API, the bot and the Cloud SQL proxy, on one small VM. nginx stays on Cloud
+# Run and reaches the API over the private network: see deploy/service.yaml for
+# why, and README.md in this folder for how to run and repair this.
+#
+# THE BOT MUST NEVER RUN TWICE
+#
+# A second gateway connection on the same token means every event is handled
+# twice: two role grants, two DMs, two accepted appeals. One VM with one bot
+# container is what prevents that, so don't add a replica, and don't start this
+# bot while another one is running anywhere else.
+#
+# VALUES
+#
+# deploy.sh exports everything used here. The bare names under `environment` take
+# their value from it, so no secret is written into this file. The only ones on the
+# disk are in Docker's own container records and INTERNAL_RPC_SECRET's file, and
+# only root can read those.
+
+name: appealy
+
+x-logging: &logging
+  driver: gcplogs
+  options:
+    # A slow connection to Cloud Logging must not stall the bot.
+    mode: non-blocking
+    max-buffer-size: 4m
+
+services:
+  # Holds the network the other three share, so they reach each other on
+  # 127.0.0.1 just as containers in one Cloud Run instance do. DATABASE_URL points
+  # at 127.0.0.1, and this keeps that true. A container of its own, because
+  # restarting whichever container held the network would cut off the others.
+  #
+  # 3001 is the only port published, and only on the private address. The bot's
+  # control server and the database proxy can't be reached from outside.
+  net:
+    image: registry.k8s.io/pause:3.10
+    restart: unless-stopped
+    ports:
+      - "${VM_INTERNAL_IP:?}:3001:3001"
+    logging: *logging
+
+  cloudsql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
+    restart: unless-stopped
+    network_mode: service:net
+    depends_on: [net]
+    command:
+      - "--port=5432"
+      - "--auto-iam-authn=false"
+      - "${CLOUDSQL_CONNECTION_NAME:?}"
+    mem_limit: 128m
+    logging: *logging
+
+  api:
+    image: "${ARTIFACT_REGISTRY:?}/appealy-api:${SHA:?}"
+    restart: unless-stopped
+    network_mode: service:net
+    depends_on: [net, cloudsql-proxy]
+    # Node ignores SIGTERM as PID 1, so the old API keeps answering until this
+    # runs out. That's what lets requests already in progress finish.
+    stop_grace_period: 5s
+    mem_limit: 256m
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - APPEALY_ENV=production
+      - DEPLOYMENT_MODE=platform
+      - LOG_LEVEL=info
+      # V8's default young generation takes this process to 270-310 MiB while it
+      # loads, then it settles near 100. At 4 MB per semi-space the same load
+      # peaks near 105 MiB and is no slower (scripts/sim).
+      - NODE_OPTIONS=--max-semi-space-size=4 --max-old-space-size=160
+      - BOT_INTERNAL_URL=http://127.0.0.1:9090
+      - "DISCORD_REDIRECT_URI=${PUBLIC_ORIGIN:?}/auth/discord/callback"
+      - "FRONTEND_ORIGIN=${PUBLIC_ORIGIN:?}"
+      - INTERNAL_RPC_SECRET
+      - DATABASE_URL
+      - REDIS_URL
+      - DISCORD_BOT_TOKEN
+      - DISCORD_APPLICATION_ID
+      - DISCORD_PUBLIC_KEY
+      - DISCORD_CLIENT_ID
+      - DISCORD_CLIENT_SECRET
+      - SESSION_SECRET
+      - TOKEN_ENCRYPTION_KEY
+      - OPS_USER_IDS
+      - PADDLE_API_KEY
+      - PADDLE_WEBHOOK_SECRET
+      - PADDLE_ENV
+      - PADDLE_CHECKOUT_URL
+      - PADDLE_CLIENT_TOKEN
+      - TOPGG_WEBHOOK_SECRET
+    logging: *logging
+
+  bot:
+    image: "${ARTIFACT_REGISTRY:?}/appealy-bot:${SHA:?}"
+    restart: unless-stopped
+    network_mode: service:net
+    depends_on: [net, cloudsql-proxy]
+    mem_limit: 512m
+    environment:
+      - BOT_INTERNAL_PORT=9090
+      - APPEALY_ENV=production
+      - DEPLOYMENT_MODE=platform
+      - LOG_LEVEL=info
+      # Same reasoning as NODE_OPTIONS on the API: at 188 simulated servers this
+      # took the busy-traffic peak from 122 MiB to 75 MiB. Comma-separated, unlike
+      # NODE_OPTIONS.
+      - DENO_V8_FLAGS=--max-semi-space-size=4,--max-old-space-size=350
+      - INTERNAL_RPC_SECRET
+      - "DASHBOARD_BASE_URL=${PUBLIC_ORIGIN:?}/dashboard"
+      # Heartbeat for the public status page, a Cloudflare Worker that shares
+      # nothing with this VM. See bot/src/core/statusPublisher.ts.
+      - STATUS_HEARTBEAT_URL=https://status.appealy.app/api/heartbeat
+      - STATUS_HEARTBEAT_SECRET
+      - DATABASE_URL
+      - REDIS_URL
+      - DISCORD_BOT_TOKEN
+      - DISCORD_APPLICATION_ID
+      - DISCORD_PUBLIC_KEY
+      - TOKEN_ENCRYPTION_KEY
+      # The bot never sells anything, but it does run resolveDeployment, which
+      # refuses to start in DEPLOYMENT_MODE=platform without a billing source.
+      - PADDLE_API_KEY
+      - PADDLE_WEBHOOK_SECRET
+    logging: *logging
+
+networks:
+  default:
+    driver_opts:
+      # Same reason as the mtu in setup.sh, which only covers Docker's default
+      # bridge and not a network Compose creates.
+      com.docker.network.driver.mtu: "1460"
