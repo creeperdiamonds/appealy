@@ -19,12 +19,12 @@ share one Postgres database and one schema definition:
 
 **Stack:** TypeScript · Deno · Node · React · PostgreSQL · Redis · Drizzle ORM
 · Docker · Terraform · Google Cloud Platform (Cloud Run, Compute Engine, Cloud SQL,
-Memorystore, Secret Manager, Artifact Registry) · GitHub Actions
+Secret Manager, Artifact Registry) · Upstash · GitHub Actions
 
 ## Deployment
 
 Runs on **Google Cloud Platform** — Cloud Run for the website and dashboard, a
-small Compute Engine VM for the API and bot, Cloud SQL for Postgres, Memorystore for Redis, Secret Manager for
+small Compute Engine VM for the API and bot, Cloud SQL for Postgres, Upstash for Redis, Secret Manager for
 credentials, and Artifact Registry for images. Infrastructure is defined in
 Terraform (`terraform/`) and deploys through GitHub Actions using Workload
 Identity Federation, so no service account keys are stored anywhere.
