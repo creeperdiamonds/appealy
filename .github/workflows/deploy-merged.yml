@@ -1,15 +1,9 @@
-name: Deploy (single service)
+name: Deploy
 
 # ---------------------------------------------------------------------------
-# Builds all three images and deploys them as ONE Cloud Run service, with
-# nginx as the ingress container and the API and bot alongside it.
-#
-# Deliberately a separate workflow rather than a rewrite of
-# deploy-cloudrun.yml. That one works and is the fallback; this one is the
-# change being tried. Once this has run happily for a while, delete the other.
-#
-# The reasoning for one service, and for why maxScale is pinned to 1, is in
-# deploy/service.yaml next to the settings themselves.
+# Builds all three images, then deploys the API and bot to the VM (deploy/vm/)
+# and nginx to Cloud Run (deploy/service.yaml). scripts/deploy.sh does the
+# rollout, and deploy/service.yaml says why the two are split.
 # ---------------------------------------------------------------------------
 
 on:
@@ -21,8 +15,15 @@ on:
         type: choice
         default: apply
         options: [apply, skip, allow-destructive]
+      rehearse:
+        description: 'Only while the bot is still on Cloud Run: set up the API on the VM and a new nginx with no traffic, test them, and stop before anything moves.'
+        required: false
+        type: boolean
+        default: false
 
 env:
+  VM_NAME: appealy-vm
+  VM_ZONE: us-central1-c
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   # <project>:<region>:<instance>. Set as a repository variable so it is
   # visible in the workflow log rather than masked — it is not a secret, and a
@@ -66,6 +67,10 @@ jobs:
             echo "::error::Missing repository secret(s):$missing"
             echo "DEPLOYMENT_MODE=platform needs a billing source, so the containers"
             echo "would build, deploy, and then fail to start."
+            exit 1
+          fi
+          if [ "${{ github.event.inputs.rehearse }}" = "true" ] && [ "${{ github.event.inputs.migrations }}" != "skip" ]; then
+            echo "::error::A rehearsal must not change the schema. Use migrations=skip."
             exit 1
           fi
 
@@ -176,11 +181,13 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: Render the service spec
+      - name: Deploy
         env:
           SHA: ${{ github.sha }}
+          REVISION: appealy-web-${{ github.run_number }}-${{ github.run_attempt }}
+          REHEARSE: ${{ github.event.inputs.rehearse }}
           # Paddle is the only payment provider, so these are checked by the
-          # "fail early" step above rather than being allowed to render empty:
+          # "fail early" step above rather than being allowed to arrive empty:
           # there is nothing left to fall back to, and a platform deployment
           # without them shows prices nobody can pay.
           # ENV and CHECKOUT_URL are variables, not secrets — neither is one.
@@ -192,37 +199,6 @@ jobs:
           # Optional: unset, top.gg votes are refused and /vote has nothing to spend.
           TOPGG_WEBHOOK_SECRET: ${{ secrets.TOPGG_WEBHOOK_SECRET }}
           # Stored, not generated: it has to match the status Worker's
-          # HEARTBEAT_SECRET, which lives on Cloudflare, not in this instance.
+          # HEARTBEAT_SECRET, which lives on Cloudflare, not on the VM.
           STATUS_HEARTBEAT_SECRET: ${{ secrets.STATUS_HEARTBEAT_SECRET }}
-        run: |
-          set -eu
-          # Generated per deploy rather than stored. It only has to agree
-          # between two containers in the same instance, and a value that lives
-          # for one revision is one less credential to rotate or leak.
-          RPC_SECRET="$(openssl rand -hex 32)"
-          echo "::add-mask::$RPC_SECRET"
-          export RPC_SECRET
-          python3 scripts/render-service.py > rendered-service.yaml
-          echo "Rendered $(grep -c 'image:' rendered-service.yaml) container images."
-
-      - name: Deploy
-        run: |
-          set -eu
-          gcloud run services replace rendered-service.yaml \
-            --region "$GCP_REGION" --project "$GCP_PROJECT_ID"
-
-          # replace does not manage the invoker policy, and a service nobody
-          # may call is not obviously different from one that is broken.
-          # Non-fatal on purpose. The deploy account holds run.developer, which
-          # cannot set an IAM policy, and granting it run.admin so one
-          # idempotent call succeeds would widen its rights permanently. The
-          # binding persists across revisions, so failing after the first
-          # application means nothing — on the run that first succeeded, this
-          # step marked the whole deploy failed AFTER the service was live and
-          # serving traffic.
-          if ! gcloud run services add-iam-policy-binding appealy                  --region "$GCP_REGION" --project "$GCP_PROJECT_ID"                  --member=allUsers --role=roles/run.invoker --quiet 2>/dev/null; then
-            echo "::warning::Could not set the public invoker binding — expected if it is already set. Check the URL below responds."
-          fi
-
-          echo "URL: $(gcloud run services describe appealy \
-            --region "$GCP_REGION" --project "$GCP_PROJECT_ID" --format='value(status.url)')"
+        run: bash scripts/deploy.sh

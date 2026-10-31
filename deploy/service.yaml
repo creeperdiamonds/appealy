@@ -1,48 +1,34 @@
 # deploy/service.yaml
 #
-# One Cloud Run service running the whole product: nginx as the ingress
-# container, the API and the bot alongside it as sidecars.
+# The public web server: nginx on Cloud Run. It serves the site, the dashboard's
+# files and the docs, and passes /api/, /auth/ and /webhooks/ to the API. The API
+# and the bot run on a small VM, see deploy/vm/.
 #
-# WHY ONE SERVICE
+# WHY THEY ARE SPLIT
 #
-# Everything talks over localhost, because containers in a Cloud Run service
-# share a network namespace. That removes real machinery rather than just
-# moving it:
+# The bot holds a Discord gateway connection open all day, so it needs CPU that's
+# always on. Cloud Run's lowest setting for that is 1 vCPU and 1 GiB around the
+# clock, about $50 a month, while the whole product uses about 15 mCPU and 320 MiB.
+# An e2-micro is enough for that and falls within Compute Engine's free tier.
 #
-#   nginx -> api    was a proxy_pass to a *.run.app URL, which needed a runtime
-#                   DNS resolver, proxy_ssl_server_name for SNI, and a Host
-#                   header rewritten to $proxy_host. Now it is 127.0.0.1:3001.
-#   api   -> bot    was an HTTP call to BOT_INTERNAL_URL guarded by a shared
-#                   secret crossing the network. Now it is 127.0.0.1:9090.
+# nginx is the opposite. It only does anything while a request is in progress,
+# about 30,000 seconds a month, so here it scales to zero and stays within Cloud
+# Run's free tier. See "Measured resource use" in SCALING.md for the numbers.
 #
-# It also fixes the class of bug that produced the /webhooks 404: a prefix
-# missing from nginx's proxy list only mattered because the API lived somewhere
-# else.
+# Keeping it here rather than moving it too means the domain mappings, their
+# certificates and Google's front end stayed exactly as they were: moving the bot
+# changed no address and no DNS record. It also means the site, the docs and the
+# privileged intents review pages stay up if the VM is down, and the dashboard's
+# requests get the readable "not answering right now" reply from web/nginx.conf.
 #
-# THE SCALING CONSTRAINT IS NOT OPTIONAL
+# THE PRIVATE LINK
 #
-# maxScale is 1 and cpu-throttling is off, and both are load-bearing because
-# the bot is in here:
-#
-#   maxScale=1        Cloud Run adds instances in response to HTTP traffic. A
-#                     second instance means a second Discord gateway connection
-#                     on the same token, and every event handled twice — two
-#                     role grants, two DMs, two accepted appeals. Someone
-#                     loading the pricing page must not be able to cause that.
-#   cpu-throttling    Outside request handling Cloud Run throttles CPU to
-#     = false         near zero. A gateway connection needs CPU for heartbeats;
-#                     throttled, Discord drops it.
-#   minScale=1        Nothing to serve the gateway if the instance is gone.
-#
-# The cost of that is continuous CPU billing, which is the trade being made
-# deliberately. Watch the actual bill for a few days rather than trusting an
-# estimate — Cloud Run bills per second, so this is cheap to be wrong about.
-#
-# THE CONSEQUENCE TO KNOW
-#
-# maxScale=1 means the API cannot scale out. At present traffic that is
-# irrelevant; if the dashboard ever gets busy, the honest fix is to move the
-# bot to its own host and lift the cap, not to raise maxScale and hope.
+# The network-interfaces annotation gives this service an address inside the VPC,
+# so it reaches the VM on its private address, and the API has no public port.
+# private-ranges-only sends just that traffic through the VPC. Google's docs warn
+# that a new instance can take a while to get this connection going, so scripts/
+# deploy.sh retries before it decides a new revision is broken. In practice
+# requests arrive often enough that an instance is rarely cold.
 
 apiVersion: serving.knative.dev/v1
 kind: Service
@@ -53,293 +39,45 @@ metadata:
 spec:
   template:
     metadata:
+      # Named so that scripts/deploy.sh can refer to it before it takes traffic.
+      name: REVISION_NAME_VALUE
       annotations:
-        autoscaling.knative.dev/minScale: "1"
-        autoscaling.knative.dev/maxScale: "1"
-        run.googleapis.com/cpu-throttling: "false"
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/cpu-throttling: "true"
         run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/network-interfaces: '[{"network":"default","subnetwork":"default"}]'
+        run.googleapis.com/vpc-access-egress: private-ranges-only
     spec:
-      # Runs as a dedicated identity holding exactly two roles:
-      # cloudsql.client and secretmanager.secretAccessor.
-      #
-      # Without this, Cloud Run uses the default compute service account, which
-      # carries roles/editor over the whole project — so a compromised
-      # container could create, modify or delete almost any resource in it.
-      # Here the blast radius is reading its own secrets and talking to its own
-      # database, which is all the app has ever needed.
-      serviceAccountName: appealy-runtime@yahav-project-505809.iam.gserviceaccount.com
-
-      # Generous, because three containers share it. The bot is the one that
-      # actually needs headroom — a large guild's member cache is not small.
+      # An identity with no roles. nginx holds no secrets and calls no Google API,
+      # so if it were ever compromised there is nothing for it to reach.
+      serviceAccountName: appealy-web@yahav-project-505809.iam.gserviceaccount.com
       containerConcurrency: 80
       containers:
-        # ------------------------------------------------------------------
-        # Cloud SQL Auth Proxy.
-        #
-        # Here because postgres.js cannot reach a unix socket from a connection
-        # URL. Its host comes from the URL's hostname and the socket path is
-        # derived from that containing a "/", which no URL can express — the
-        # ?host= query parameter is read into options but never consulted for
-        # the host. Verified empirically: every socket-style URL produced
-        # path=false and host=["localhost"].
-        #
-        # Changing that would mean teaching three separate call sites (the API
-        # client, the bot client, and drizzle.config.ts) to pass an options
-        # object instead of a string. A proxy listening on TCP keeps
-        # DATABASE_URL an ordinary postgres:// string that works unchanged
-        # here, in CI, and on a laptop — the app stays portable and the
-        # awkwardness stays in the infrastructure where it belongs.
-        #
-        # It authenticates to Google with the service's own IAM identity, so
-        # the instance still needs no authorized networks and no password
-        # crosses the open internet.
-        # ------------------------------------------------------------------
-        - name: cloudsql-proxy
-          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
-          args:
-            - "--port=5432"
-            # 0.0.0.0, not the 127.0.0.1 default.
-            #
-            # The default is what failed the second revision. The proxy was
-            # working — it logged an accepted connection — but Cloud Run's
-            # startup probe does not reach a loopback-only listener, so the
-            # probe failed thirty times and the instance was never started. A
-            # health check that cannot see a healthy process reports the
-            # opposite of the truth.
-            #
-            # This does not expose anything: only the ingress container's port
-            # is routable from outside a Cloud Run instance, so binding all
-            # interfaces still means "reachable by the other three containers".
-            - "--address=0.0.0.0"
-            - "--auto-iam-authn=false"
-            - "CLOUDSQL_CONNECTION_NAME"
-          # Nothing else may start before the database is reachable, or the API
-          # and bot spend their first seconds crash-looping on connection
-          # refused.
-          startupProbe:
-            tcpSocket:
-              port: 5432
-            periodSeconds: 2
-            failureThreshold: 30
-          resources:
-            limits:
-              cpu: "100m"
-              memory: 128Mi
-
-        # ------------------------------------------------------------------
-        # Ingress. The only container with a port exposed to Cloud Run, so it
-        # is what traffic routes to; the rest are reachable only from inside
-        # the instance.
-        # ------------------------------------------------------------------
         - name: web
           image: IMAGE_WEB
           ports:
             - name: http1
               containerPort: 8080
           env:
-            # PORT is deliberately absent. Cloud Run injects it into the
-            # INGRESS container automatically, from containerPort above, and
-            # rejects the deployment outright if the spec also sets it. nginx
-            # still gets it — web/nginx.conf reads ${PORT} at container start
-            # and Cloud Run has already put it there.
+            # PORT is deliberately absent. Cloud Run injects it into the container
+            # automatically, from containerPort above, and rejects the deployment
+            # outright if the spec also sets it. web/nginx.conf reads ${PORT} at
+            # container start.
             #
-            # The API sidecar below does set PORT, and that is fine: Cloud Run
-            # only reserves it for the container it routes traffic to.
-            # Was a *.run.app URL. Same instance now.
+            # The VM's fixed private address, reserved as appealy-vm-internal. See
+            # deploy/vm/README.md.
             - name: API_ORIGIN
-              value: "http://127.0.0.1:3001"
+              value: "http://10.128.0.10:3001"
             # nginx.conf resolves proxy targets at request time, which needs a
-            # resolver when the target is a hostname. 127.0.0.1 is not, but the
-            # directive is still parsed, so it is given something valid.
+            # resolver when the target is a hostname. An address is not one, but
+            # the directive is still parsed, so it is given something valid.
             - name: DNS_RESOLVER
               value: "169.254.169.254"
+          # 1 vCPU because below that Cloud Run requires a concurrency of 1, which
+          # would start another instance for each simultaneous request. It's only
+          # billed while a request is in progress. nginx uses about 30 MiB.
           resources:
             limits:
-              cpu: "150m"
-              memory: 128Mi
-
-        # ------------------------------------------------------------------
-        # API. No ports block — sidecars are not routable from outside.
-        # ------------------------------------------------------------------
-        - name: api
-          image: IMAGE_API
-          env:
-            - name: PORT
-              value: "3001"
-            - name: NODE_ENV
-              value: production
-            - name: APPEALY_ENV
-              value: production
-            - name: DEPLOYMENT_MODE
-              value: platform
-            - name: LOG_LEVEL
-              value: info
-            # V8's default young generation takes this process to 270-310 MiB
-            # while it loads, then it settles near 100, and a container's limit
-            # has to fit the peak. At 4 MB per semi-space the same load peaks near
-            # 105 MiB and is no slower (scripts/sim). The old-space cap makes V8
-            # collect harder before the container's limit would kill it.
-            - name: NODE_OPTIONS
-              value: "--max-semi-space-size=4 --max-old-space-size=160"
-            - name: BOT_INTERNAL_URL
-              value: "http://127.0.0.1:9090"
-            # Where this deployment is reachable. Rendered from the
-            # PUBLIC_ORIGIN repository variable so moving to a real domain is a
-            # settings change, not a code change.
-            #
-            # DISCORD_REDIRECT_URI must match an entry in the Discord
-            # Developer Portal's OAuth2 redirect list character for character,
-            # or sign-in fails with an error that blames the redirect rather
-            # than the mismatch.
-            #
-            # FRONTEND_ORIGIN is optional in the app but defaults to
-            # http://localhost:5173 — without it every post-login redirect
-            # sends the user to their own machine.
-            - name: DISCORD_REDIRECT_URI
-              value: "PUBLIC_ORIGIN_VALUE/auth/discord/callback"
-            - name: FRONTEND_ORIGIN
-              value: "PUBLIC_ORIGIN_VALUE"
-            # Guards the bot's control server. Still set even though the call
-            # never leaves the instance — the server checks it unconditionally,
-            # and an unauthenticated internal endpoint that happens to be
-            # unreachable today is a bad thing to leave lying around.
-            - name: INTERNAL_RPC_SECRET
-              value: "INTERNAL_RPC_SECRET_VALUE"
-            - name: DATABASE_URL
-              valueFrom: { secretKeyRef: { name: appealy-database-url, key: latest } }
-            - name: REDIS_URL
-              valueFrom: { secretKeyRef: { name: appealy-redis-url, key: latest } }
-            - name: DISCORD_BOT_TOKEN
-              valueFrom: { secretKeyRef: { name: appealy-discord-bot-token, key: latest } }
-            - name: DISCORD_APPLICATION_ID
-              valueFrom: { secretKeyRef: { name: appealy-discord-application-id, key: latest } }
-            - name: DISCORD_PUBLIC_KEY
-              valueFrom: { secretKeyRef: { name: appealy-discord-public-key, key: latest } }
-            - name: DISCORD_CLIENT_ID
-              valueFrom: { secretKeyRef: { name: appealy-discord-client-id, key: latest } }
-            - name: DISCORD_CLIENT_SECRET
-              valueFrom: { secretKeyRef: { name: appealy-discord-client-secret, key: latest } }
-            - name: SESSION_SECRET
-              valueFrom: { secretKeyRef: { name: appealy-session-secret, key: latest } }
-            - name: TOKEN_ENCRYPTION_KEY
-              valueFrom: { secretKeyRef: { name: appealy-token-encryption-key, key: latest } }
-            - name: OPS_USER_IDS
-              valueFrom: { secretKeyRef: { name: appealy-ops-user-ids, key: latest } }
-            # Substituted at deploy time from GitHub secrets. See the workflow.
-            # Paddle is the only payment provider. Required in platform mode:
-            # api/src/env.ts refuses to start without it, because there is no
-            # second provider to fall back to and a platform deployment that
-            # cannot sell would show prices nobody can pay.
-            # Not on the bot container: nothing under bot/ touches billing.
-            - name: PADDLE_API_KEY
-              value: "PADDLE_API_KEY_VALUE"
-            - name: PADDLE_WEBHOOK_SECRET
-              value: "PADDLE_WEBHOOK_SECRET_VALUE"
-            - name: PADDLE_ENV
-              value: "PADDLE_ENV_VALUE"
-            - name: PADDLE_CHECKOUT_URL
-              value: "PADDLE_CHECKOUT_URL_VALUE"
-            - name: PADDLE_CLIENT_TOKEN
-              value: "PADDLE_CLIENT_TOKEN_VALUE"
-            # top.gg vote webhook (api/src/routes/topggWebhook.ts). Optional.
-            - name: TOPGG_WEBHOOK_SECRET
-              value: "TOPGG_WEBHOOK_SECRET_VALUE"
-          resources:
-            limits:
-              cpu: "300m"
+              cpu: "1"
               memory: 256Mi
-
-        # ------------------------------------------------------------------
-        # Bot. Holds the Discord gateway connection; see the scaling note above
-        # for why this container is the reason maxScale is pinned.
-        # ------------------------------------------------------------------
-        - name: bot
-          image: IMAGE_BOT
-          env:
-            - name: BOT_INTERNAL_PORT
-              value: "9090"
-            - name: APPEALY_ENV
-              value: production
-            - name: DEPLOYMENT_MODE
-              value: platform
-            - name: LOG_LEVEL
-              value: info
-            # Same reasoning as NODE_OPTIONS on the API: at 188 simulated servers
-            # this took the busy-traffic peak from 122 MiB to 75 MiB, at no cost
-            # in speed. Comma-separated, unlike NODE_OPTIONS.
-            - name: DENO_V8_FLAGS
-              value: "--max-semi-space-size=4,--max-old-space-size=350"
-            - name: INTERNAL_RPC_SECRET
-              value: "INTERNAL_RPC_SECRET_VALUE"
-            # Where /dashboard sends people. Unset, it fell back to a localhost
-            # development default and the bot posted
-            # http://localhost:5173/dashboard/guilds/... to real users — a
-            # default that is indistinguishable from a configured value until
-            # somebody reads the message it produced.
-            - name: DASHBOARD_BASE_URL
-              value: "PUBLIC_ORIGIN_VALUE/dashboard"
-            # Heartbeat for the public status page, a Cloudflare Worker that
-            # shares nothing with this service. The secret must match the
-            # Worker's HEARTBEAT_SECRET. See bot/src/core/statusPublisher.ts.
-            - name: STATUS_HEARTBEAT_URL
-              value: "https://status.appealy.app/api/heartbeat"
-            - name: STATUS_HEARTBEAT_SECRET
-              value: "STATUS_HEARTBEAT_SECRET_VALUE"
-            - name: DATABASE_URL
-              valueFrom: { secretKeyRef: { name: appealy-database-url, key: latest } }
-            - name: REDIS_URL
-              valueFrom: { secretKeyRef: { name: appealy-redis-url, key: latest } }
-            - name: DISCORD_BOT_TOKEN
-              valueFrom: { secretKeyRef: { name: appealy-discord-bot-token, key: latest } }
-            - name: DISCORD_APPLICATION_ID
-              valueFrom: { secretKeyRef: { name: appealy-discord-application-id, key: latest } }
-            # Required by bot/src/core/env.ts and missed when this container was
-            # written, because the bot verifies interaction signatures with it
-            # and that is easy to forget when listing "credentials the bot
-            # needs". Its absence is what failed the first revision.
-            - name: DISCORD_PUBLIC_KEY
-              valueFrom: { secretKeyRef: { name: appealy-discord-public-key, key: latest } }
-            - name: TOKEN_ENCRYPTION_KEY
-              valueFrom: { secretKeyRef: { name: appealy-token-encryption-key, key: latest } }
-            # The bot never sells anything, but it does run resolveDeployment, which
-            # refuses to start in DEPLOYMENT_MODE=platform without a billing source.
-            # The TEBEX_* trio used to satisfy that here for exactly this reason;
-            # these replace them. Removing them without setting DEPLOYMENT_MODE to
-            # something else takes the bot down across every guild.
-            - name: PADDLE_API_KEY
-              value: "PADDLE_API_KEY_VALUE"
-            - name: PADDLE_WEBHOOK_SECRET
-              value: "PADDLE_WEBHOOK_SECRET_VALUE"
-          resources:
-            limits:
-              cpu: "450m"
-              memory: 512Mi
-      # ------------------------------------------------------------------
-      # SIZING NOTE
-      #
-      # An instance's CPU is the SUM of its containers' limits, not the max, and
-      # with cpu-throttling off and minScale 1 that whole sum is billed around
-      # the clock. Memory is the same.
-      #
-      #   CPU     100m + 150m + 300m + 450m = 1 vCPU
-      #   Memory  128 + 128 + 256 + 512 MiB = 1 GiB
-      #
-      # Cloud Run also ties each container's memory to its own CPU: under 0.5 vCPU
-      # it must be 128-512 MiB, which is why nginx and the proxy can't go lower
-      # even though they use about 30 MiB each, and why the bot stops at 512.
-      #
-      # 1 vCPU is the floor for this service. Below it, Cloud Run requires
-      # request-based billing and a concurrency of 1, and a gateway connection
-      # can live with neither. Above it, only whole numbers are allowed, so the
-      # next step up is 2.
-      #
-      # This was 2 vCPU and 2.1 GiB until 2026-10-31, while the instance used
-      # about 15 mCPU and 325 MiB (14 days of container/cpu/usage and
-      # container/memory/usage, about 190 servers). The busiest minute of those
-      # 14 days, per container: bot 78 mCPU, api 115, web 44, proxy 28.
-      #
-      # scripts/sim tested this size at 188 servers, with the bot and API held to
-      # half these CPU limits to allow for the test machine's faster CPU. See
-      # "Measured resource use" in SCALING.md for what it held and where it fell
-      # behind. That is also what to read before changing these numbers.
-      # ------------------------------------------------------------------

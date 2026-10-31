@@ -89,8 +89,8 @@ const INTENT_RECHECK_MS = 30_000;
  * privileged intents instead of exiting. The self-hoster's fix is a checkbox in
  * the Developer Portal, so the bot keeps checking and comes online by itself
  * once it is ticked: no container restart, and no restart loop repeating the
- * same error. The hosted platform exits instead, so Cloud Run reports a failed
- * revision rather than one that never connects.
+ * same error. The hosted platform exits instead, so a deploy fails rather than
+ * leaving a bot that never connects.
  */
 async function startWhenIntentsAllow(bot: ReturnType<typeof createAppealyBot>): Promise<void> {
   for (;;) {

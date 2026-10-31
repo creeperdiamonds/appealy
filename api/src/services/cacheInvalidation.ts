@@ -48,10 +48,9 @@ const INVALIDATION_CHANNEL = "appealy:cache:invalidate";
  * `.catch(() => {})` below, which is this same fire-and-forget contract
  * applied to the new transport.
  *
- * The single-instance bet is not merely an assumption: it is enforced in
- * deploy/service.yaml:58, `autoscaling.knative.dev/maxScale: "1"`. Raising
- * that annotation is what invalidates everything above, so change the two
- * together.
+ * The single-instance bet is not merely an assumption: see the top of
+ * deploy/vm/compose.yaml, which runs one bot on one VM. Adding a replica is what
+ * invalidates everything above, so change the two together.
  */
 export async function invalidateGuildCache(guildId: string | bigint): Promise<void> {
   if (useMemoryRedis(env.REDIS_URL)) {

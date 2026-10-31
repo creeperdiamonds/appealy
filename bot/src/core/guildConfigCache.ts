@@ -40,7 +40,7 @@
 // and a SET nobody would read. On a simulated 50 servers (scripts/sim) that was
 // most of the bot's Redis traffic, and the free Upstash plan allows about 11
 // commands a minute. A restart costs a few lazily-spread queries per active guild
-// now, and a second replica can't exist (maxScale is 1, see deploy/service.yaml);
+// now, and there is no second replica (see the top of deploy/vm/compose.yaml);
 // if one ever does, each keeps its own L1 and the invalidation below reaches both.
 //
 // Invalidation

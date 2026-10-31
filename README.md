@@ -18,13 +18,13 @@ share one Postgres database and one schema definition:
   never duplicate a type or table definition in `bot/` or `api/`.
 
 **Stack:** TypeScript · Deno · Node · React · PostgreSQL · Redis · Drizzle ORM
-· Docker · Terraform · Google Cloud Platform (Cloud Run, Cloud SQL,
+· Docker · Terraform · Google Cloud Platform (Cloud Run, Compute Engine, Cloud SQL,
 Memorystore, Secret Manager, Artifact Registry) · GitHub Actions
 
 ## Deployment
 
-Runs on **Google Cloud Platform** — Cloud Run for the API and dashboard,
-Cloud SQL for Postgres, Memorystore for Redis, Secret Manager for
+Runs on **Google Cloud Platform** — Cloud Run for the website and dashboard, a
+small Compute Engine VM for the API and bot, Cloud SQL for Postgres, Memorystore for Redis, Secret Manager for
 credentials, and Artifact Registry for images. Infrastructure is defined in
 Terraform (`terraform/`) and deploys through GitHub Actions using Workload
 Identity Federation, so no service account keys are stored anywhere.
@@ -79,15 +79,11 @@ terraform apply
 terraform output github_variables               # paste into repo settings
 ```
 
-Then run the **Deploy to GCP Cloud Run** workflow from the Actions tab,
-picking `api` or `web`.
+Then run the **Deploy** workflow from the Actions tab.
 
 Note on the bot specifically: a Discord gateway connection is a WebSocket that
 must stay open continuously, which is the opposite of what Cloud Run is built
-for. It needs `--min-instances=1 --no-cpu-throttling --max-instances=1` to
-survive, and those flags bill CPU continuously for roughly the price of an
-e2-micro VM. `DOCKER.md` covers why a small Compute Engine instance is the
-better home for it.
+for, so it runs on a small Compute Engine VM. `deploy/vm/README.md` covers that.
 
 ## Why two processes talk over an internal HTTP bridge
 

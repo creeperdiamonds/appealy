@@ -53,9 +53,9 @@ scales to zero. Without `--min-instances=1 --no-cpu-throttling
 disconnected, and reconnects — spending a Discord session start each time
 until the daily budget is gone and the bot cannot start at all.
 
-Those flags are in the workflow now. With them, Cloud Run bills CPU
-continuously, which is roughly e2-micro pricing with more moving parts — a
-small Compute Engine VM is cheaper and simpler for the bot specifically.
+With those flags, Cloud Run bills CPU continuously, and a small Compute Engine VM
+is cheaper and simpler for the bot specifically. That's where the bot and the API
+run now: see `deploy/vm/README.md`. nginx stayed on Cloud Run.
 
 ## The console proxies the API, and that needs two runtime env vars
 
@@ -68,7 +68,7 @@ at build time:
 
 | Variable | Compose | Cloud Run |
 |---|---|---|
-| `API_ORIGIN` | `http://api:3001` | the API service's `https://…` URL |
+| `API_ORIGIN` | `http://api:3001` | the VM's private address |
 | `DNS_RESOLVER` | `127.0.0.11` (Docker's embedded DNS) | `169.254.169.254` (the metadata server) |
 
 `DNS_RESOLVER` is not optional. `proxy_pass` built from a variable makes nginx
