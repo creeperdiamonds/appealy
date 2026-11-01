@@ -72,31 +72,15 @@ export const authRouter = Router();
 const SCOPES = "identify guilds";
 
 /**
- * Permissions the invite link asks for, named rather than pasted as a number.
+ * Permissions the invite link asks for: Administrator.
  *
- * Every one is load-bearing somewhere: roles for accept/deny grants, channels
- * for ticket creation, ban/kick for appeal unbans and verification timeouts,
- * message management for sticky messages. An invite that omits one produces a
- * feature that silently does nothing, which is the failure mode this whole
- * screen exists to prevent.
+ * It used to be a named list (roles, channels, messages, kick/ban, timeout),
+ * and every feature that grew a new need meant re-inviting the bot or a
+ * feature that silently did nothing. Administrator covers all of them, and a
+ * server that wants less can untick it in Discord's dialog or edit Appealy's
+ * role afterwards.
  */
-const INVITE_PERMISSIONS = [
-  ["MANAGE_ROLES", 1n << 28n],
-  ["MANAGE_CHANNELS", 1n << 4n],
-  ["VIEW_CHANNEL", 1n << 10n],
-  ["SEND_MESSAGES", 1n << 11n],
-  ["MANAGE_MESSAGES", 1n << 13n],
-  ["EMBED_LINKS", 1n << 14n],
-  ["READ_MESSAGE_HISTORY", 1n << 16n],
-  ["KICK_MEMBERS", 1n << 1n],
-  ["BAN_MEMBERS", 1n << 2n],
-  // "Timeout Members" in Discord's UI. Lifting a timeout when its appeal is
-  // accepted; a server that invited the bot before this was added gets a
-  // warning on the review post instead of a silent failure.
-  ["MODERATE_MEMBERS", 1n << 40n],
-] as const;
-
-const INVITE_PERMISSION_BITS = INVITE_PERMISSIONS.reduce((acc, [, bit]) => acc | bit, 0n);
+const INVITE_PERMISSION_BITS = 1n << 3n; // ADMINISTRATOR
 
 /**
  * Where to send someone to add the bot to a specific server.

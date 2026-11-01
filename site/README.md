@@ -152,11 +152,9 @@ correct for whichever deployment is serving it.
 If you host this site somewhere the API is not reachable at the same origin,
 that link is the one thing that needs changing.
 
-The permission bits in that URL are `268528662` — the sum of the nine
-permissions in `INVITE_PERMISSIONS` (`api/src/routes/auth.ts`). **If that array
-changes, change this number.** Nothing checks. An invite missing a permission
-produces a feature that silently does nothing, which is the failure the
-dashboard's whole invite flow exists to prevent.
+The permission bits in that URL are `8`, Administrator (`INVITE_PERMISSION_BITS`
+in `api/src/routes/auth.ts`). A server that wants less can untick it in
+Discord's dialog or edit Appealy's role afterwards.
 
 The site's invite link has no `guild_id`, unlike the dashboard's — a visitor
 here hasn't picked a server yet, so Discord should show them the picker.

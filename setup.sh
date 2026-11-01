@@ -392,7 +392,7 @@ ${B}${GRN}Done.${R}
   API         ${B}http://localhost:3000${R}
 
 ${B}Invite the bot to a server${R}
-  https://discord.com/oauth2/authorize?client_id=$(get_env DISCORD_APPLICATION_ID)&permissions=1374389715462&scope=bot%20applications.commands
+  https://discord.com/oauth2/authorize?client_id=$(get_env DISCORD_APPLICATION_ID)&permissions=8&scope=bot%20applications.commands
 
 ${B}Useful commands${R}
   docker compose logs -f bot      watch the bot
