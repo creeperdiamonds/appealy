@@ -239,26 +239,20 @@ export function startControlServer(bot: AppealyBot) {
         return Response.json({ status: "published" });
       }
 
-      // Cache invalidation, for deployments without a real Redis.
-      //
-      // With REDIS_URL set to the memory substitute the API's publish goes
-      // into its own process and the bot never hears it, so an admin saves a
-      // form and the bot serves the old one until the TTL expires. The API
-      // and bot share one Cloud Run instance and this authenticated channel,
-      // so it carries the message for free — Memorystore plus the VPC
-      // connector it needs is about $420 a year, which is not yet worth
-      // paying to fix this, on a product with one guild on it. See
-      // cacheInvalidation.ts and banGate.ts on the API side, which choose
-      // this transport over Redis pub/sub only when useMemoryRedis() is true;
-      // Redis becomes correct again the moment there is more than one bot
-      // instance to fan this out to. There is only one by design: see the top of
-      // deploy/vm/compose.yaml. Adding a replica invalidates this.
+      // Cache invalidation, sent directly by the API on every write. It also
+      // publishes over Redis when there's a real one; cacheInvalidation.ts on
+      // the API side says why both. This reaches one bot, and there is only one
+      // by design: see the top of deploy/vm/compose.yaml.
       if (url.pathname === "/internal/cache/invalidate" && req.method === "POST") {
         const { guildId } = await req.json();
         await invalidateGuild(guildId);
         return Response.json({ status: "invalidated" });
       }
 
+      // The same for a ban, but only without a real Redis: with REDIS_URL set to
+      // the memory substitute the API's publish goes into its own process and
+      // the bot never hears it. See banGate.ts on the API side, which chooses
+      // this transport over Redis pub/sub only when useMemoryRedis() is true.
       if (url.pathname === "/internal/cache/ban" && req.method === "POST") {
         const msg = await req.json();
         applyBanChange(msg);

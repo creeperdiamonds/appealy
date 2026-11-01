@@ -2,15 +2,14 @@
 //
 // The API is where guild config changes; the bot is where it's read on the
 // hot path. The bot caches aggressively (bot/src/core/guildConfigCache.ts)
-// for five minutes, which without this file would mean an admin saves a
+// for thirty minutes, which without this file would mean an admin saves a
 // welcome message, tests it, and sees the old one for up to that long.
 //
 // That's a bad enough experience to be worth solving, and it's also the
 // single most common way caching gets ripped back out of a project: it
 // works, but it feels broken, so someone deletes it.
 //
-// So: publish a Redis message on every write, and every bot replica evicts
-// that guild immediately.
+// So: tell the bot on every write, and it evicts that guild immediately.
 //
 // Pub/sub is at-most-once and drops messages when a subscriber is
 // disconnected. That's acceptable here ONLY because the TTL still exists
@@ -26,41 +25,35 @@ import { requestCacheInvalidate } from "./botBridge.ts";
 const INVALIDATION_CHANNEL = "appealy:cache:invalidate";
 
 /**
- * Tells every bot replica to drop its cached config for this guild.
+ * Tells the bot to drop its cached config for this guild.
  *
  * Deliberately fire-and-forget and never throws: a failed cache
  * invalidation must not fail the write that already succeeded. The admin's
- * change IS saved; the worst outcome is that it takes up to 5 minutes to appear.
+ * change IS saved; the worst outcome is that it takes up to 30 minutes to appear.
  * Turning that into a 500 would be strictly worse for the user.
  *
- * Transport is chosen once per call, on whether REDIS_URL is the in-memory
- * substitute (see shared/lib/memoryRedis.ts). With the substitute, the API
- * and bot are separate processes holding separate copies of the shim, so
- * publish() below reaches only this process and the bot never hears it —
- * that is the bug this file exists to fix. The API and bot happen to share
- * one Cloud Run instance with an authenticated internal channel already open
- * between them (see botBridge.ts), so that channel carries the message
- * instead. Buying real Redis (Memorystore, ~$26/mo, plus a Serverless VPC
- * Access connector to reach it, ~$9/mo) would also fix this, but that is
- * roughly $420/year to solve a problem this free channel already solves, on
- * a product with one guild on it. Redis becomes the right answer again the
- * moment this runs as more than one bot instance — see the bridge call's
- * `.catch(() => {})` below, which is this same fire-and-forget contract
- * applied to the new transport.
+ * Two transports, because that worst case is long enough to be worth making
+ * rare. Pub/sub alone can fail without a sound: the bot's subscriber only ever
+ * reads and its socket has no keepalive, so if the connection dies without a
+ * goodbye the bot never finds out, and every save after that waits out the TTL
+ * until the next restart. The direct call is one hop on the same machine, over
+ * the authenticated channel already open between the API and the bot (see
+ * botBridge.ts). It reaches one bot, and there is only one by design: see the
+ * top of deploy/vm/compose.yaml. Pub/sub stays for when the bot is too busy to
+ * answer inside the bridge's timeout.
  *
- * The single-instance bet is not merely an assumption: see the top of
- * deploy/vm/compose.yaml, which runs one bot on one VM. Adding a replica is what
- * invalidates everything above, so change the two together.
+ * With the in-memory substitute (see shared/lib/memoryRedis.ts) the API and bot
+ * are separate processes holding separate copies of the shim, so a publish
+ * reaches only this process and the direct call is all there is.
  */
 export async function invalidateGuildCache(guildId: string | bigint): Promise<void> {
-  if (useMemoryRedis(env.REDIS_URL)) {
-    await requestCacheInvalidate(guildId.toString()).catch(() => {});
-    return;
-  }
-  await withRedis(
-    (r) => r.publish(INVALIDATION_CHANNEL, JSON.stringify({ guildId: guildId.toString() })),
-    0,
-  );
+  const id = guildId.toString();
+  await Promise.all([
+    requestCacheInvalidate(id).catch(() => {}),
+    useMemoryRedis(env.REDIS_URL)
+      ? null
+      : withRedis((r) => r.publish(INVALIDATION_CHANNEL, JSON.stringify({ guildId: id })), 0),
+  ]);
 }
 
 /**
@@ -75,6 +68,11 @@ export async function invalidateGuildCache(guildId: string | bigint): Promise<vo
  *
  * Hooks `res.on("finish")` so it only fires for 2xx responses; a rejected
  * write changed nothing and should not evict a warm cache.
+ *
+ * Only guild-scoped routes pass through here. A webhook has no :guildId, so one
+ * that changes what the bot caches has to call invalidateGuildCache itself.
+ * routes/paddleWebhook.ts doesn't yet, so a plan change takes up to the TTL to
+ * reach the bot's caps. Payments are closed for now.
  */
 export function invalidateOnWrite(
   req: { method: string; params: { guildId?: string } },

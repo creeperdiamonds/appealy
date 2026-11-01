@@ -16,6 +16,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, type Overview as OverviewData, type SetupIssue } from "../lib/api";
+import { pollWhileVisible } from "../../../shared/lib/pollWhileVisible";
 import {
   Panel,
   Stat,
@@ -52,18 +53,10 @@ export default function Overview({ guildId }: { guildId: string }) {
 
   useEffect(() => {
     void load();
-    const t = setInterval(load, POLL_MS);
     // Polling stops when the tab is hidden. A console left open on a second
     // monitor overnight would otherwise burn ~5,700 requests against a
     // 60/min free-tier cap that the same user's real work also needs.
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") void load();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
+    return pollWhileVisible(load, POLL_MS, document);
   }, [load]);
 
   async function clearLockdown() {

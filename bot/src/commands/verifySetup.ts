@@ -6,6 +6,7 @@ import type { AppealyInteraction as Interaction } from "../core/client.ts";
 import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
+import { invalidateGuild } from "../core/guildConfigCache.ts";
 import { publishVerificationPanel } from "../services/verificationPanelService.ts";
 import { defer, finish } from "../utils/interactionResponse.ts";
 
@@ -60,6 +61,9 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       target: schema.verificationConfigs.guildId,
       set: { enabled: true, channelId, method: method as "button" | "captcha", verifiedRoleId, unverifiedRoleId, updatedAt: new Date() },
     });
+  // The join handler reads these through the cache. Before the panel, because the
+  // settings are saved even if posting it fails.
+  invalidateGuild(guildId);
 
   await publishVerificationPanel(bot, guildId);
 

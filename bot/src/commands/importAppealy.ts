@@ -18,6 +18,7 @@ import type { AppealyInteraction as Interaction } from "../core/client.ts";
 import type { AppealyBot } from "../core/client.ts";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
+import { invalidateGuild } from "../core/guildConfigCache.ts";
 import { isGuildOwner } from "../services/permissionService.ts";
 import { importGuildData, type ImportReport } from "../../../shared/services/dataImport.ts";
 import { resolveEffectiveCaps } from "../services/rateLimitService.ts";
@@ -205,6 +206,9 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       `Import failed: ${String(err)}\n\n` +
         "Some records may already have been created. Check the server before retrying, or re-run with `replace: true` to start clean.",
     );
+  } finally {
+    // In finally because an import that stops partway keeps what it wrote.
+    invalidateGuild(guildId);
   }
 }
 

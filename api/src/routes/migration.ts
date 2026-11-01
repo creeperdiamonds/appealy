@@ -28,6 +28,7 @@ import {
 import { resolveEffectiveCaps } from "../services/rateLimitService.ts";
 import { importedSubmissionCeiling } from "../../../shared/schema/pricing.ts";
 import { importGuildData } from "../../../shared/services/dataImport.ts";
+import { invalidateGuildCache } from "../services/cacheInvalidation.ts";
 
 export const migrationRouter = Router({ mergeParams: true });
 
@@ -149,6 +150,10 @@ migrationRouter.post("/migrate/import", requireOwnerAccess, async (req, res) => 
     // left with whatever was written before the failure, which the report
     // would not describe. Say so rather than returning a report that looks
     // complete.
+    //
+    // invalidateOnWrite skips a failed request, and this one may have changed
+    // settings the bot caches.
+    void invalidateGuildCache(guildId);
     res.status(500).json({
       error: "import_failed",
       detail: String(err),

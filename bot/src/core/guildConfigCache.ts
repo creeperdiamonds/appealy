@@ -31,7 +31,7 @@
 // ------
 // Two tiers, checked in order:
 //
-//   L1  in-process Map, 5 minute TTL  -> ~0.001ms, no I/O at all
+//   L1  in-process Map, 30 minute TTL -> ~0.001ms, no I/O at all
 //   L2  Postgres                      -> the system of record
 //
 // There used to be a Redis tier between them, for a bot restart or a second
@@ -45,18 +45,20 @@
 //
 // Invalidation
 // ------------
-// Pull-based TTL expiry alone would mean up to five minutes of staleness after
+// Pull-based TTL expiry alone would mean up to thirty minutes of staleness after
 // a dashboard edit, which is a bad experience — an admin changes a welcome
-// message, tests it, and it's still the old one. So the API publishes to
-// a Redis channel on every config write and every bot replica evicts that
-// guild's entry immediately (see `subscribeToInvalidations` below, and
-// api/src/services/cacheInvalidation.ts on the other side).
+// message, tests it, and it's still the old one. So the API tells the bot on
+// every config write, both directly and over a Redis channel, and the bot evicts
+// that guild's entry immediately (see `subscribeToInvalidations` below, and
+// api/src/services/cacheInvalidation.ts on the other side). The bot's own
+// commands call invalidateGuild, which __tests__/configCacheGuard.test.ts checks.
 //
-// Pub/sub is fire-and-forget and can drop messages; that's fine here
-// precisely BECAUSE the TTL also exists. Pub/sub makes the common case
+// Those messages are fire-and-forget and can be lost; that's fine here
+// precisely BECAUSE the TTL also exists. Invalidation makes the common case
 // instant, TTL guarantees the worst case is bounded. Neither is trusted
-// alone. That bound was six minutes with the Redis tier, since a stale copy
-// there could refill L1; it is five now.
+// alone. The TTL was five minutes until 2026-11. About half of production's
+// queries were this cache reloading settings that hadn't changed, seven per
+// active server every five minutes, so the bound is thirty now.
 //
 // A note on what is deliberately NOT cached
 // -----------------------------------------
@@ -73,7 +75,7 @@ import { db, schema } from "../db/client.ts";
 import { connectOptionsFromUrl } from "./redis.ts";
 import { logger } from "../utils/logger.ts";
 
-const L1_TTL_MS = 5 * 60_000;
+const L1_TTL_MS = 30 * 60_000;
 const INVALIDATION_CHANNEL = "appealy:cache:invalidate";
 
 /** Everything the per-event hot paths need for one guild, fetched together. */
