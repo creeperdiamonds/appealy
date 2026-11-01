@@ -107,9 +107,8 @@ export async function decorateGuildBans<T extends { id: string }>(
  * What differs by transport is only how the BOT is told. With a real Redis,
  * `redis.publish` reaches every replica. With the in-memory substitute, that
  * publish reaches only this process, so the bot is told directly over the
- * authenticated internal channel instead (see cacheInvalidation.ts for the
- * full reasoning — same tradeoff, same $420/year Memorystore would cost to
- * avoid it).
+ * authenticated internal channel instead. A lost publish matters less here than
+ * in cacheInvalidation.ts, because the bot reloads its bans every five minutes.
  */
 export async function publishBanChange(op: "add" | "remove", ban: PublicBan) {
   await redis.del(`bans:lookup:${ban.subject}:${ban.subjectId}`).catch(() => {});

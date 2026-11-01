@@ -200,9 +200,8 @@ export async function resolveUsers(
 /**
  * Tells the bot to drop its cached config for a guild.
  *
- * Used only when REDIS_URL is the in-memory substitute, where the pub/sub
- * path in cacheInvalidation.ts cannot cross processes — the API and bot each
- * hold their own copy of the shim, so a publish() from here reaches nothing.
+ * Sent on every write, alongside Redis pub/sub when there is a real Redis; see
+ * cacheInvalidation.ts for why both.
  * The caller (invalidateGuildCache in cacheInvalidation.ts) is responsible
  * for the fire-and-forget contract; this function itself can still reject
  * (a non-2xx from callBot, or the bot being unreachable) and callers must

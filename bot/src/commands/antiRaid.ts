@@ -7,6 +7,7 @@ import type { CreateApplicationCommand } from "@discordeno/bot";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { eq } from "drizzle-orm";
+import { invalidateGuild } from "../core/guildConfigCache.ts";
 import { clearLockdown, isLockdownActive, undoLastRaid } from "../services/antiRaidService.ts";
 import { defer, finish } from "../utils/interactionResponse.ts";
 
@@ -108,6 +109,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
           updatedAt: new Date(),
         },
       });
+    // The join handler reads these through the cache.
+    invalidateGuild(guildId);
 
     return respond(
       bot,
