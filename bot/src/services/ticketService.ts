@@ -14,6 +14,7 @@ import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { renderTranscript, type TranscriptMessage } from "../../../shared/lib/transcript.ts";
+import { onlySnowflakes } from "../../../shared/lib/snowflake.ts";
 import { checkAndConsumeDailyCap } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
 import { describeDiscordError } from "../utils/discordError.ts";
@@ -79,10 +80,11 @@ export async function openTicket(
     .values({ configId, guildId, openerId, channelId, status: "open" })
     .returning();
 
-  const pingContent = config.pingRoleIds.length > 0 ? config.pingRoleIds.map((r) => `<@&${r}>`).join(" ") : "";
+  const pingRoleIds = onlySnowflakes(config.pingRoleIds);
+  const pingContent = pingRoleIds.length > 0 ? pingRoleIds.map((r) => `<@&${r}>`).join(" ") : "";
   await bot.helpers.sendMessage(channelId, {
     content: `${pingContent}${pingContent ? " " : ""}<@${openerId}>`,
-    allowedMentions: { roles: config.pingRoleIds.map((r) => BigInt(r)), users: [openerId] },
+    allowedMentions: { roles: pingRoleIds.map((r) => BigInt(r)), users: [openerId] },
     embeds: [
       {
         title: config.name,
@@ -149,7 +151,7 @@ async function createTicketChannel(
           type: OverwriteTypes.Member,
           allow: ["VIEW_CHANNEL", "SEND_MESSAGES"],
         },
-        ...config.supportRoleIds.map((roleId) => ({
+        ...onlySnowflakes(config.supportRoleIds).map((roleId) => ({
           id: BigInt(roleId),
           type: OverwriteTypes.Role,
           allow: ["VIEW_CHANNEL", "SEND_MESSAGES"] as PermissionStrings[],

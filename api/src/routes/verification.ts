@@ -3,6 +3,7 @@
 
 import { Router } from "express";
 import { routeParams } from "../utils/routeParams.ts";
+import { discordIdOrBlank } from "../utils/discordIds.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -14,10 +15,10 @@ export const verificationRouter = Router({ mergeParams: true });
 
 const configSchema = z.object({
   enabled: z.boolean().default(false),
-  channelId: z.string().nullable().optional(),
+  channelId: discordIdOrBlank.nullable().optional(),
   method: z.enum(["button", "captcha"]).default("button"),
-  verifiedRoleId: z.string().nullable().optional(),
-  unverifiedRoleId: z.string().nullable().optional(),
+  verifiedRoleId: discordIdOrBlank.nullable().optional(),
+  unverifiedRoleId: discordIdOrBlank.nullable().optional(),
   panelTitle: z.string().max(256).default("Verification"),
   panelDescription: z.string().max(2000).default("Click the button below to verify and gain access to the server."),
   kickUnverifiedAfterSeconds: z.number().int().min(60).nullable().optional(),

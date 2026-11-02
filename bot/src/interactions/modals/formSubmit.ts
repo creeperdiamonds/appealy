@@ -31,6 +31,7 @@ import {
   getApplicationStartedAt,
 } from "../../services/pendingAnswers.ts";
 import { cappedModalPageCount, isFinalPage } from "../../../../shared/lib/modalPaging.ts";
+import { onlySnowflakes } from "../../../../shared/lib/snowflake.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
 import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "../../services/rateLimitService.ts";
 import { findUnmanageableRoles } from "../../services/permissionService.ts";
@@ -373,14 +374,17 @@ export async function postReviewEmbedForSubmission(
           : []),
       ];
 
-  const pingContent =
-    form.pingRoleIds.length > 0 ? form.pingRoleIds.map((r) => `<@&${r}>`).join(" ") : undefined;
+  // A form saved before the API checked these can hold text that isn't an ID, and
+  // BigInt() on it throws. This post is the only place Accept and Deny appear, so a
+  // ping that can't work must not cost staff the whole post.
+  const pingRoleIds = onlySnowflakes(form.pingRoleIds);
+  const pingContent = pingRoleIds.length > 0 ? pingRoleIds.map((r) => `<@&${r}>`).join(" ") : undefined;
 
   let logMessage;
   try {
     logMessage = await bot.helpers.sendMessage(form.logChannelId, {
       content: pingContent,
-      allowedMentions: { roles: form.pingRoleIds.map((r) => BigInt(r)) },
+      allowedMentions: { roles: pingRoleIds.map((r) => BigInt(r)) },
       embeds: [
         {
           title: `New Application — ${form.name}`,

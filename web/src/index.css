@@ -860,6 +860,9 @@ button {
 .dim {
   color: var(--text-muted);
 }
+.error {
+  color: var(--act);
+}
 .wrap {
   flex-wrap: wrap;
 }

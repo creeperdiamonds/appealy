@@ -21,6 +21,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { IdListField } from "./IdFields";
+import { sharedLoader } from "../../../shared/lib/sharedLoader";
 
 export interface GuildRole {
   id: string;
@@ -28,6 +30,16 @@ export interface GuildRole {
   color: number;
   position: number;
 }
+
+/**
+ * One request however many pickers a page shows, with the same quiet retries as
+ * useGuildChannels. The form editor opens with six of these, and every role list
+ * that failed in production was part of a burst of five to seven from one server.
+ */
+const loadRoles = sharedLoader(
+  (guildId: string) => api.roles(guildId) as unknown as Promise<GuildRole[]>,
+  [2_000, 4_000],
+);
 
 const hex = (color: number) =>
   color === 0 ? "var(--dim)" : `#${color.toString(16).padStart(6, "0")}`;
@@ -54,10 +66,19 @@ export function RolePicker({
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    api
-      .roles(guildId)
-      .then((r) => setRoles(r as unknown as GuildRole[]))
-      .catch(() => setFailed(true));
+    let live = true;
+    setRoles(null);
+    setFailed(false);
+    loadRoles(guildId)
+      .then((r) => {
+        if (live) setRoles(r);
+      })
+      .catch(() => {
+        if (live) setFailed(true);
+      });
+    return () => {
+      live = false;
+    };
   }, [guildId]);
 
   const sorted = useMemo(
@@ -82,20 +103,13 @@ export function RolePicker({
   // the raw ID field rather than blocking — a degraded editor beats none.
   if (failed) {
     return (
-      <label className="field">
-        <span className="eyebrow">{label}</span>
-        <input
-          value={value.join(", ")}
-          placeholder="Role IDs, comma separated"
-          onChange={(e) =>
-            onChange(e.target.value.split(",").map((x) => x.trim()).filter(Boolean))
-          }
-        />
-        <span className="dim">
-          Couldn't reach the bot to list roles, so this is IDs for now. It'll come back on its
-          own once the bot is up.
-        </span>
-      </label>
+      <IdListField
+        label={label}
+        kind="role"
+        value={value}
+        onChange={onChange}
+        note="Couldn't load the role list, so this takes role IDs for now. Reloading the page tries the list again."
+      />
     );
   }
 

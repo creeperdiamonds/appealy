@@ -5,6 +5,7 @@
 
 import { Router } from "express";
 import { routeParams } from "../utils/routeParams.ts";
+import { discordIdOrBlank } from "../utils/discordIds.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -14,8 +15,8 @@ export const staffPermissionsRouter = Router({ mergeParams: true });
 
 const delegationSchema = z
   .object({
-    roleId: z.string().nullable().optional(),
-    userId: z.string().nullable().optional(),
+    roleId: discordIdOrBlank.nullable().optional(),
+    userId: discordIdOrBlank.nullable().optional(),
     level: z.enum(["owner", "admin", "manager"]).default("manager"),
     formId: z.string().nullable().optional(), // null = applies to all forms
     canReview: z.boolean().default(true),

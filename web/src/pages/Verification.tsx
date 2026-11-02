@@ -28,6 +28,7 @@ import type { ReactNode } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Pill, formatDuration } from "../components/ui";
 import { OptionalChannelPicker, useGuildChannels } from "../components/ChannelPicker";
+import { NotAnId } from "../components/IdFields";
 
 /* ------------------------------------------------------------------ *
  * Shapes, derived from api/src/routes/verification.ts
@@ -163,9 +164,10 @@ function ResourceSelect({
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value.trim() || null)}
         />
+        <NotAnId text={value ?? ""} kind="role" />
         <span className="dim">
-          Couldn't reach the bot to list these, so this is an ID for now. The picker comes back on
-          its own once the bot is up.
+          Couldn't load the role list, so this takes a role ID for now. Reloading the page tries the
+          list again.
         </span>
       </label>
     );

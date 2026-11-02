@@ -73,7 +73,10 @@ async function callBot(path: string, body: unknown, timeoutMs: number = BOT_CALL
     } catch {
       // Not JSON — keep the raw text.
     }
-    throw Object.assign(new Error(hint ? `${detail} ${hint}` : detail), {
+    // Discord's messages have no full stop, and without one "Missing Permissions
+    // Give Appealy..." reads as one broken sentence.
+    const cause = /[.!?]$/.test(detail) ? detail : `${detail}.`;
+    throw Object.assign(new Error(hint ? `${cause} ${hint}` : detail), {
       botStatus: res.status,
       hint,
     });

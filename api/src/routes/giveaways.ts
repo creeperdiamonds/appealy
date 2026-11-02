@@ -9,17 +9,18 @@ import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
 import { requestGiveawayPublish, requestGiveawayEnd, requestGiveawayReroll, botCallFailure } from "../services/botBridge.ts";
+import { discordId, discordIdList } from "../utils/discordIds.ts";
 import type { GiveawayDTO } from "../../../shared/types/index.ts";
 
 export const giveawaysRouter = Router({ mergeParams: true });
 
 const giveawaySchema = z.object({
-  channelId: z.string(),
+  channelId: discordId,
   prize: z.string().min(1).max(256),
   winnerCount: z.number().int().min(1).max(50).default(1),
-  requiredRoleIds: z.array(z.string()).default([]),
-  blacklistedRoleIds: z.array(z.string()).default([]),
-  bonusRoleEntries: z.array(z.object({ roleId: z.string(), extraEntries: z.number().int().min(1).max(50) })).default([]),
+  requiredRoleIds: discordIdList.default([]),
+  blacklistedRoleIds: discordIdList.default([]),
+  bonusRoleEntries: z.array(z.object({ roleId: discordId, extraEntries: z.number().int().min(1).max(50) })).default([]),
   endsAt: z.string().datetime(),
 });
 

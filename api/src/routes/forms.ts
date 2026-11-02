@@ -15,6 +15,7 @@ import {
 } from "../services/rateLimitService.ts";
 import { FORM_ROLE_RULES, type FormRoleRule } from "../../../shared/schema/pricing.ts";
 import { roleCapPayload } from "../utils/roleCapPayload.ts";
+import { discordId, discordIdList, discordIdOrBlank } from "../utils/discordIds.ts";
 import { describeQuestionViolation } from "../../../shared/lib/formLimits.ts";
 import { CUSTOM_CAP_MAXIMUMS } from "../../../shared/schema/pricing.ts";
 import { checkPatternSafety } from "../../../shared/schema/regexValidation.ts";
@@ -71,20 +72,20 @@ const formBaseSchema = z.object({
   // "appeal" forms are reachable only via the ban-time DM flow — never a
   // panel or /apply, since a banned user can see neither.
   kind: z.enum(["application", "appeal"]).default("application"),
-  logChannelId: z.string(),
-  acceptedChannelId: z.string().nullable().optional(),
-  deniedChannelId: z.string().nullable().optional(),
-  grantRoleIds: z.array(z.string()).default([]),
-  removeRoleIds: z.array(z.string()).default([]),
-  deniedGrantRoleIds: z.array(z.string()).default([]),
-  denyRemoveRoleIds: z.array(z.string()).default([]),
-  pendingRoleIds: z.array(z.string()).default([]),
-  removeRolesOnSubmitIds: z.array(z.string()).default([]),
-  pingRoleIds: z.array(z.string()).default([]),
+  logChannelId: discordId,
+  acceptedChannelId: discordIdOrBlank.nullable().optional(),
+  deniedChannelId: discordIdOrBlank.nullable().optional(),
+  grantRoleIds: discordIdList.default([]),
+  removeRoleIds: discordIdList.default([]),
+  deniedGrantRoleIds: discordIdList.default([]),
+  denyRemoveRoleIds: discordIdList.default([]),
+  pendingRoleIds: discordIdList.default([]),
+  removeRolesOnSubmitIds: discordIdList.default([]),
+  pingRoleIds: discordIdList.default([]),
   leaveAction: z.enum(["none", "deny_application"]).default("none"),
-  requiredRoleIds: z.array(z.string()).default([]),
+  requiredRoleIds: discordIdList.default([]),
   requiredRolesMatchMode: z.enum(["has_all", "has_any"]).default("has_all"),
-  blacklistedRoleIds: z.array(z.string()).default([]),
+  blacklistedRoleIds: discordIdList.default([]),
   blacklistedRolesMatchMode: z.enum(["has_all", "has_any"]).default("has_all"),
   cooldownSeconds: z.number().int().min(0).default(0),
   maxTotalSubmissions: z.number().int().min(1).nullable().default(null),
@@ -97,8 +98,8 @@ const formBaseSchema = z.object({
   autoArchiveOnDecision: z.boolean().default(true),
   hideAnswersInEmbed: z.boolean().default(false),
   reviewerWhitelistEnabled: z.boolean().default(false),
-  reviewerUserIds: z.array(z.string()).default([]),
-  reviewerRoleIds: z.array(z.string()).default([]),
+  reviewerUserIds: discordIdList.default([]),
+  reviewerRoleIds: discordIdList.default([]),
   confirmationMessage: z.string().max(2000).nullable().default(null),
   active: z.boolean().default(true),
   // The hard ceiling, not the guild's allowance. This was .max(10), a

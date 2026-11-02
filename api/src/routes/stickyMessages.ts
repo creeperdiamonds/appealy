@@ -3,6 +3,7 @@
 
 import { Router } from "express";
 import { routeParams } from "../utils/routeParams.ts";
+import { discordId } from "../utils/discordIds.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -12,7 +13,7 @@ import { requestStickyMessagePublish } from "../services/botBridge.ts";
 export const stickyMessagesRouter = Router({ mergeParams: true });
 
 const stickySchema = z.object({
-  channelId: z.string(),
+  channelId: discordId,
   content: z.string().min(1).max(2000),
   repostAfterMessages: z.number().int().min(1).max(100).default(5),
   active: z.boolean().default(true),

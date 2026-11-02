@@ -31,6 +31,7 @@ import { useEffect, useState, useCallback } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill } from "../components/ui";
 import { ChannelPicker, useGuildChannels } from "../components/ChannelPicker";
+import { NotAnId } from "../components/IdFields";
 
 /** Discord's hard cap on select-menu options. Not a policy choice. */
 const MAX_OPTIONS = 25;
@@ -667,6 +668,7 @@ function RoleField({
           placeholder="Role ID"
           onChange={(e) => onChange(e.target.value.trim())}
         />
+        <NotAnId text={value} kind="role" />
       </label>
     );
   }

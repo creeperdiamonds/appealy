@@ -22,6 +22,7 @@ import { db, schema } from "../db/client.ts";
 import { deployment } from "../env.ts";
 import { requireAdminAccess, requireGuildAccess } from "../middleware/guildAccess.ts";
 import { botCallFailure, requestUpdatesFollow, requestUpdatesVerify } from "../services/botBridge.ts";
+import { inviteUrlFor } from "./auth.ts";
 import { logger } from "../utils/logger.ts";
 
 /** Appealy's announcement channel, which servers follow. */
@@ -57,6 +58,9 @@ updatesRouter.get("/", async (req, res) => {
     requiredFrom: REQUIRED_FROM.toISOString(),
     required: asked && Date.now() >= REQUIRED_FROM.getTime(),
     following: row ? { channelId: row.channelId.toString(), since: row.followedAt.toISOString() } : null,
+    // A server added before the invite asked for Administrator can re-invite
+    // Appealy, which gives it what the follow needs in every channel.
+    grantUrl: inviteUrlFor(guildId.toString()),
   });
 });
 
@@ -70,7 +74,10 @@ updatesRouter.put("/", requireAdminAccess, async (req, res) => {
     ({ webhookId } = await requestUpdatesFollow(SOURCE_CHANNEL_ID, parsed.data.channelId));
   } catch (err) {
     logger.warn("Couldn't follow Appealy's updates", { guildId: guildId.toString(), error: String(err) });
-    return res.status(502).json(botCallFailure(err));
+    // 422 when Discord refused, which the admin can fix. 502 only when the bot
+    // never answered. See the follow handler in bot/src/core/controlServer.ts.
+    const refused = (err as { botStatus?: number }).botStatus === 400;
+    return res.status(refused ? 422 : 502).json(botCallFailure(err));
   }
 
   const values = { channelId: BigInt(parsed.data.channelId), webhookId: BigInt(webhookId), followedAt: new Date() };
