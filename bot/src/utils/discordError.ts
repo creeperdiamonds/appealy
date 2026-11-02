@@ -99,3 +99,52 @@ export function describeDiscordError(err: unknown): DiscordErrorInfo {
 export function isUnknownInteraction(info: DiscordErrorInfo): boolean {
   return info.code === 10062;
 }
+
+/**
+ * What to actually do about it, in the words of someone setting the bot up.
+ *
+ * Discord's own messages are written for the developer holding the token
+ * ("Missing Access"), not for the server owner who has to go and fix a
+ * channel permission. These are the codes that come up while a panel, ticket
+ * or giveaway is being posted for the first time, which is exactly when the
+ * person reading is least able to guess.
+ *
+ * Unmapped codes get no hint rather than a vague one — a wrong instruction
+ * costs more than an absent one.
+ */
+export function hintFor(info: DiscordErrorInfo): string | undefined {
+  switch (info.code) {
+    case 50001: // Missing Access
+      return "The bot cannot see that channel. Give its role View Channel there, then try again.";
+    case 50013: // Missing Permissions
+      return "The bot can see the channel but cannot post in it. It needs Send Messages and Embed Links.";
+    case 10003: // Unknown Channel
+      return "That channel no longer exists. Pick a different one and save.";
+    case 10008: // Unknown Message
+      return "That message no longer exists in Discord. Post it again to get a new one.";
+    case 50035: // Invalid Form Body
+      return "Discord rejected the message content — usually an image or thumbnail URL it cannot load.";
+    case 30013: // Too many pinned / component limits vary
+      return "Discord refused because a limit was reached. Try fewer buttons or options.";
+  }
+  if (info.status === 403) {
+    return "Discord refused the request as forbidden — check the bot's role permissions in that channel.";
+  }
+  return undefined;
+}
+
+/**
+ * Following Appealy's updates into a channel needs Manage Webhooks rather than the
+ * permissions for posting, so the general hints would send someone to the wrong
+ * setting. The invite didn't ask for it before PR #46, so every server added
+ * earlier lands here on its first try.
+ */
+export function followHintFor(info: DiscordErrorInfo): string | undefined {
+  switch (info.code) {
+    case 50001: // Missing Access
+      return "Appealy can't see that channel. Give it View Channel and Manage Webhooks there, then try again.";
+    case 50013: // Missing Permissions
+      return "Give Appealy the Manage Webhooks permission in that channel, then try again.";
+  }
+  return hintFor(info);
+}

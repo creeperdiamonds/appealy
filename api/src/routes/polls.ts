@@ -4,6 +4,7 @@
 
 import { Router } from "express";
 import { routeParams } from "../utils/routeParams.ts";
+import { discordId } from "../utils/discordIds.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -14,7 +15,7 @@ import type { PollDTO } from "../../../shared/types/index.ts";
 export const pollsRouter = Router({ mergeParams: true });
 
 const pollSchema = z.object({
-  channelId: z.string(),
+  channelId: discordId,
   question: z.string().min(1).max(300),
   options: z
     .array(z.object({ id: z.string().optional(), label: z.string().min(1).max(100), emoji: z.string().optional() }))

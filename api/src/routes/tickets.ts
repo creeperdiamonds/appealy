@@ -11,6 +11,7 @@ import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAcces
 import { requestTicketPanelPublish, botCallFailure } from "../services/botBridge.ts";
 import type { TicketConfigDTO, TicketDTO } from "../../../shared/types/index.ts";
 import { parseEmoji } from "../../../shared/lib/emoji.ts";
+import { discordId, discordIdList, discordIdOrBlank } from "../utils/discordIds.ts";
 
 export const ticketsRouter = Router({ mergeParams: true });
 
@@ -32,18 +33,18 @@ const configSchema = z.object({
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: parsed.message });
       }
     }),
-  channelId: z.string(),
-  categoryId: z.string().nullable().optional(),
+  channelId: discordId,
+  categoryId: discordIdOrBlank.nullable().optional(),
   channelType: z.enum(["private_channel", "private_thread", "public_thread"]).default("private_channel"),
-  supportRoleIds: z.array(z.string()).default([]),
-  pingRoleIds: z.array(z.string()).default([]),
+  supportRoleIds: discordIdList.default([]),
+  pingRoleIds: discordIdList.default([]),
   panelMessage: z.string().max(1000).default("Click below to open a ticket."),
   welcomeMessage: z.string().max(1000).default("Thanks for opening a ticket. A member of staff will be with you shortly."),
   ticketNameFormat: z.string().max(100).default("ticket-{username}"),
   maxOpenPerUser: z.number().int().min(1).max(10).default(1),
   leaveAction: z.enum(["none", "close", "notify"]).default("none"),
   transcriptOnClose: z.boolean().default(true),
-  transcriptChannelId: z.string().nullable().optional(),
+  transcriptChannelId: discordIdOrBlank.nullable().optional(),
   creatorCanClose: z.boolean().default(true),
   claimingEnabled: z.boolean().default(false),
   ratingEnabled: z.boolean().default(false),

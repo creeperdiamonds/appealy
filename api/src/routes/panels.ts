@@ -6,6 +6,7 @@
 
 import { Router } from "express";
 import { routeParams } from "../utils/routeParams.ts";
+import { discordId } from "../utils/discordIds.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -26,7 +27,7 @@ const buttonSchema = z.object({
 });
 
 const panelSchema = z.object({
-  channelId: z.string(),
+  channelId: discordId,
   title: z.string().min(1).max(256),
   description: z.string().max(2000).default(""),
   color: z.number().int().default(0x5865f2),
@@ -149,13 +150,21 @@ panelsRouter.patch("/:panelId", requireAdminAccess, async (req, res) => {
     where: eq(schema.panels.id, panelId),
     with: { buttons: true },
   });
+  // The save stands either way, but the dashboard has to hear when Discord didn't
+  // take it: on 2026-11-01 someone saved one panel 8 times in 17 minutes, 6 of them
+  // against a message that was gone, and was told each time it had been updated.
+  let syncError: string | undefined;
   if (refreshed?.published) {
-    await requestPanelSync(panelId).catch(() => {
-      /* logged inside botBridge; edit still succeeds in DB */
+    await requestPanelSync(panelId).catch((err) => {
+      const failure = botCallFailure(err);
+      syncError =
+        failure.error === "bot_unreachable"
+          ? "The bot didn't answer."
+          : ((err as { hint?: string }).hint ?? failure.detail);
     });
   }
 
-  res.json(toDTO(refreshed!));
+  res.json({ ...toDTO(refreshed!), syncError });
 });
 
 panelsRouter.post("/:panelId/publish", requireAdminAccess, async (req, res) => {

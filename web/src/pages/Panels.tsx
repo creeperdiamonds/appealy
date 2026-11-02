@@ -258,16 +258,19 @@ export default function Panels({ guildId }: { guildId: string }) {
         })),
       };
 
+      type Saved = PanelDTO & { syncError?: string };
       const result = draft.id
-        ? await http.patch<PanelDTO>(`/api/guilds/${guildId}/panels/${draft.id}`, body)
-        : await http.post<PanelDTO>(`/api/guilds/${guildId}/panels`, body);
+        ? await http.patch<Saved>(`/api/guilds/${guildId}/panels/${draft.id}`, body)
+        : await http.post<Saved>(`/api/guilds/${guildId}/panels`, body);
 
       setPanels(
         draft.id ? panels!.map((p) => (p.id === result.id ? result : p)) : [...panels!, result],
       );
       setDraft(result);
       setSaved(true);
-      if (result.published) {
+      if (result.syncError) {
+        setError(`Saved here, but the message in Discord wasn't updated. ${result.syncError}`);
+      } else if (result.published) {
         // Worth saying explicitly: the edit has already gone out to a channel
         // people are reading, without a second confirmation.
         setNotice("Saved, and the live message in Discord was updated.");

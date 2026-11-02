@@ -34,6 +34,7 @@ import type { ReactNode } from "react";
 import { http, ApiError } from "../lib/api";
 import { Panel, Banner, Loading, Empty, Pill, GuideLink } from "../components/ui";
 import { RolePicker } from "../components/RolePicker";
+import { NotAnId } from "../components/IdFields";
 import {
   OptionalChannelPicker,
   useGuildChannels,
@@ -763,6 +764,7 @@ function Editor({
             disabled={draft.channelType !== "private_channel"}
             onChange={(e) => onPatch({ categoryId: e.target.value.trim() || null })}
           />
+          <NotAnId text={draft.categoryId ?? ""} kind="category" />
           <span className="dim">
             {draft.channelType === "private_channel"
               ? "An ID rather than a picker: the bot's channel list only returns text and announcement channels, so categories aren't in it. Right-click a category in Discord with developer mode on to copy its ID."

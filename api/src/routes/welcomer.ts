@@ -3,6 +3,7 @@
 
 import { Router } from "express";
 import { routeParams } from "../utils/routeParams.ts";
+import { discordIdList, discordIdOrBlank } from "../utils/discordIds.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -13,15 +14,15 @@ export const welcomerRouter = Router({ mergeParams: true });
 
 const configSchema = z.object({
   joinEnabled: z.boolean().default(false),
-  joinChannelId: z.string().nullable().optional(),
+  joinChannelId: discordIdOrBlank.nullable().optional(),
   joinMessage: z.string().max(2000).default("Welcome to {guild}, {username}! You are member #{membercount}."),
   joinDmEnabled: z.boolean().default(false),
   joinDmMessage: z.string().max(2000).nullable().optional(),
   joinEmbedColor: z.number().int().default(0x5865f2),
   joinImageUrl: z.string().url().nullable().optional(),
-  autoRoleIds: z.array(z.string()).default([]),
+  autoRoleIds: discordIdList.default([]),
   leaveEnabled: z.boolean().default(false),
-  leaveChannelId: z.string().nullable().optional(),
+  leaveChannelId: discordIdOrBlank.nullable().optional(),
   leaveMessage: z.string().max(2000).default("{username} has left {guild}."),
 });
 

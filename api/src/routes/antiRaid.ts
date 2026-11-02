@@ -4,6 +4,7 @@
 import { Router } from "express";
 import { botCallFailure, requestLockdownClear, requestRaidUndo } from "../services/botBridge.ts";
 import { routeParams } from "../utils/routeParams.ts";
+import { discordIdList, discordIdOrBlank } from "../utils/discordIds.ts";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -16,8 +17,8 @@ const configSchema = z.object({
   joinThreshold: z.number().int().min(3).max(1000).default(10),
   windowSeconds: z.number().int().min(10).max(3600).default(60),
   action: z.enum(["alert_only", "lock_verification", "kick_new_joins"]).default("alert_only"),
-  alertChannelId: z.string().nullable().optional(),
-  alertRoleIds: z.array(z.string()).default([]),
+  alertChannelId: discordIdOrBlank.nullable().optional(),
+  alertRoleIds: discordIdList.default([]),
   autoLockdownExpiresAfterSeconds: z.number().int().min(60).max(86400).default(1800),
   newAccountDays: z.number().int().min(0).max(365).default(0),
 });

@@ -345,6 +345,8 @@ export interface UpdatesStatus {
   /** Past the deadline: the dashboard waits for a channel. */
   required: boolean;
   following: { channelId: string; since: string } | null;
+  /** Re-invites Appealy to this server, which gives it what the follow needs. */
+  grantUrl: string;
 }
 
 /** One thing about a form's setup that will fail when it's used. */

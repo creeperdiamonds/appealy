@@ -3,6 +3,7 @@
 
 import { Router } from "express";
 import { routeParams } from "../utils/routeParams.ts";
+import { discordId } from "../utils/discordIds.ts";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
@@ -12,7 +13,7 @@ import { requestRoleMenuPublish, botCallFailure } from "../services/botBridge.ts
 export const roleMenusRouter = Router({ mergeParams: true });
 
 const optionSchema = z.object({
-  roleId: z.string(),
+  roleId: discordId,
   label: z.string().min(1).max(100),
   emoji: z.string().nullable().optional(),
   description: z.string().max(100).nullable().optional(),
@@ -20,7 +21,7 @@ const optionSchema = z.object({
 });
 
 const menuSchema = z.object({
-  channelId: z.string(),
+  channelId: discordId,
   title: z.string().min(1).max(256).default("Choose your roles"),
   description: z.string().max(2000).default(""),
   selectionMode: z.enum(["single", "multi"]).default("multi"),

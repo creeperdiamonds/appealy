@@ -1,5 +1,5 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { describeDiscordError, isUnknownInteraction } from "../discordError.ts";
+import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { describeDiscordError, followHintFor, hintFor, isUnknownInteraction } from "../discordError.ts";
 
 Deno.test("bare error keeps its message and finds nothing else", () => {
   const info = describeDiscordError(new Error("Failed to send request to discord."));
@@ -54,4 +54,30 @@ Deno.test("isUnknownInteraction only matches 10062", () => {
   assertEquals(isUnknownInteraction(describeDiscordError(Object.assign(new Error("x"), { code: 10062 }))), true);
   assertEquals(isUnknownInteraction(describeDiscordError(Object.assign(new Error("x"), { code: 50013 }))), false);
   assertEquals(isUnknownInteraction(describeDiscordError(new Error("x"))), false);
+});
+
+Deno.test("hintFor says what to do about a message that's gone", () => {
+  const hint = hintFor({ status: 404, code: 10008, message: "Unknown Message" });
+  assertEquals(hint, "That message no longer exists in Discord. Post it again to get a new one.");
+});
+
+Deno.test("hintFor stays quiet about a code it doesn't know", () => {
+  assertEquals(hintFor({ status: 400, code: 12345, message: "Something else" }), undefined);
+});
+
+Deno.test("following a channel Appealy can't see asks for both permissions it needs", () => {
+  const hint = followHintFor({ status: 403, code: 50001, message: "Missing Access" });
+  assert(hint?.includes("View Channel"), hint);
+  assert(hint?.includes("Manage Webhooks"), hint);
+});
+
+Deno.test("following without the permission names it", () => {
+  const hint = followHintFor({ status: 403, code: 50013, message: "Missing Permissions" });
+  assert(hint?.includes("Manage Webhooks"), hint);
+});
+
+Deno.test("following a deleted channel gets the general hint", () => {
+  const info = { status: 404, code: 10003, message: "Unknown Channel" };
+  assertEquals(followHintFor(info), hintFor(info));
+  assert(hintFor(info)?.includes("no longer exists"));
 });

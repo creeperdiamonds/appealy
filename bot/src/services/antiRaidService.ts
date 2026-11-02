@@ -50,6 +50,7 @@ import { db, schema } from "../db/client.ts";
 import { pipelineOrNull, withRedis } from "../core/redis.ts";
 import { recordLocalJoin } from "./localJoinWindow.ts";
 import { countsForRaid } from "./raidAccountAge.ts";
+import { onlySnowflakes } from "../../../shared/lib/snowflake.ts";
 import { logger } from "../utils/logger.ts";
 
 function joinWindowKey(guildId: bigint) {
@@ -185,10 +186,8 @@ async function triggerLockdown(
   });
 
   if (config.alertChannelId) {
-    const pingContent =
-      config.alertRoleIds.length > 0
-        ? config.alertRoleIds.map((r) => `<@&${r}>`).join(" ") + " "
-        : "";
+    const alertRoleIds = onlySnowflakes(config.alertRoleIds);
+    const pingContent = alertRoleIds.length > 0 ? alertRoleIds.map((r) => `<@&${r}>`).join(" ") + " " : "";
     try {
       await bot.helpers.sendMessage(config.alertChannelId, {
         content:
@@ -196,7 +195,7 @@ async function triggerLockdown(
           `${config.windowSeconds}s. Action: \`${config.action}\`. This lockdown clears ` +
           `<t:${Math.floor(expiresAt.getTime() / 1000)}:R>. Use \`/anti-raid clear\` to end it now, ` +
           `or \`/anti-raid undo\` if it's a false alarm.`,
-        allowedMentions: { roles: config.alertRoleIds.map((r) => BigInt(r)) },
+        allowedMentions: { roles: alertRoleIds.map((r) => BigInt(r)) },
       });
     } catch (err) {
       logger.error("Failed to send anti-raid alert", {

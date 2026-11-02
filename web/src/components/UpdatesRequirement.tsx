@@ -65,7 +65,7 @@ export function UpdatesRequirement({
           Your applications, appeals and tickets kept working the whole time. Only this dashboard
           waits.
         </p>
-        <UpdatesPicker guildId={guildId} onDone={load} />
+        <UpdatesPicker guildId={guildId} grantUrl={status.grantUrl} onDone={load} />
       </Panel>
     );
   }
@@ -80,22 +80,32 @@ export function UpdatesRequirement({
         server: Discord delivers them by following Appealy's updates channel. From {deadline}, the
         dashboard will ask for this before it opens. Your server's applications keep working
         either way.
-        <UpdatesPicker guildId={guildId} onDone={load} />
+        <UpdatesPicker guildId={guildId} grantUrl={status.grantUrl} onDone={load} />
       </Banner>
       {children}
     </>
   );
 }
 
-function UpdatesPicker({ guildId, onDone }: { guildId: string; onDone: () => void }) {
+function UpdatesPicker({
+  guildId,
+  grantUrl,
+  onDone,
+}: {
+  guildId: string;
+  grantUrl: string;
+  onDone: () => void;
+}) {
   const { channels, failed } = useGuildChannels(guildId);
   const [channelId, setChannelId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refused, setRefused] = useState(false);
 
   async function save() {
     setSaving(true);
     setError(null);
+    setRefused(false);
     try {
       await api.followUpdates(guildId, channelId);
       onDone();
@@ -105,6 +115,7 @@ function UpdatesPicker({ guildId, onDone }: { guildId: string; onDone: () => voi
           ? err.message
           : "Couldn't set that up. Check Appealy can see the channel and has Manage Webhooks there.",
       );
+      setRefused(err instanceof ApiError && err.code === "discord_refused");
     } finally {
       setSaving(false);
     }
@@ -130,6 +141,22 @@ function UpdatesPicker({ guildId, onDone }: { guildId: string; onDone: () => voi
         <p className="error" role="alert" style={{ flexBasis: "100%", margin: 0 }}>
           {error}
         </p>
+      )}
+      {/* The invite only started asking for what this needs with PR #46, so most
+          servers already using Appealy hit this on their first try. */}
+      {refused && (
+        <div style={{ flexBasis: "100%" }}>
+          <p className="dim" style={{ marginTop: 0 }}>
+            If Appealy can't reach the channel, the quickest fix is to re-invite it. It stays in your
+            server and keeps its settings, and it gets Administrator, which covers every channel. Keep
+            Administrator ticked in Discord's window, then come back and press Send updates here
+            again. If you'd rather not give it that, close the window and follow the steps below for
+            this channel.
+          </p>
+          <a className="btn btn-primary" href={grantUrl} target="_blank" rel="noreferrer">
+            Re-invite Appealy
+          </a>
+        </div>
       )}
       {/* Open by itself once a follow has failed: by far the likeliest reason
           is the missing permission this walks through. */}
@@ -161,6 +188,10 @@ function WebhooksGuide({ open }: { open: boolean }) {
         <span className="guide-arrow" aria-hidden="true">▸</span>
       </summary>
       <div style={{ display: "grid", gap: 12, marginTop: 12, maxWidth: 720 }}>
+        <p className="dim" style={{ margin: 0 }}>
+          If the channel is private, turn on View Channel for Appealy as well, or it can't see the
+          channel at all.
+        </p>
         {GUIDE_STEPS.map((s) => (
           <img
             key={s.src}

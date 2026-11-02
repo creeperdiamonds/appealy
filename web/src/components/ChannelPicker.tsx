@@ -38,6 +38,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../lib/api";
+import { IdListField, NotAnId } from "./IdFields";
 
 export interface GuildChannel {
   id: string;
@@ -201,6 +202,7 @@ function Picker({
           placeholder="Channel ID"
           onChange={(e) => onChange(e.target.value.trim())}
         />
+        <NotAnId text={value} kind="channel" />
         <span className="dim">
           Couldn't load the channel list, so this takes a channel ID for now — right-click the
           channel in Discord and choose Copy Channel ID. Reloading the page tries the list again.
@@ -314,18 +316,13 @@ export function ChannelMultiPicker({
   // Same fallback as RolePicker: an unreachable bot costs the list, not the edit.
   if (failed) {
     return (
-      <label className="field">
-        <span className="eyebrow">{label}</span>
-        <input
-          value={value.join(", ")}
-          placeholder="Channel IDs, comma separated"
-          onChange={(e) => onChange(e.target.value.split(",").map((x) => x.trim()).filter(Boolean))}
-        />
-        <span className="dim">
-          Couldn't load the channel list, so this takes channel IDs for now. Reloading the page
-          tries the list again.
-        </span>
-      </label>
+      <IdListField
+        label={label}
+        kind="channel"
+        value={value}
+        onChange={onChange}
+        note="Couldn't load the channel list, so this takes channel IDs for now. Reloading the page tries the list again."
+      />
     );
   }
 
