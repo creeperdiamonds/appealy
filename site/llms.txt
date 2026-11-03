@@ -28,7 +28,7 @@ This file is a plain summary for AI assistants and search tools. Every figure be
 - **Verification**: a button, or a short code the member retypes to prove they are not a simple bot.
 - **AutoMod** rules, which live in Discord's own AutoMod, so they keep working even if Appealy is offline.
 - **Anti-raid** detection, with a lockdown an admin can clear from the dashboard.
-- **Moderation commands**: ban (including temporary bans, and bans that can't be appealed), unban, kick, mute and unmute, with a configurable prefix.
+- **Moderation commands**: ban (including temporary bans, and bans that can't be appealed), unban, kick, mute and unmute, as slash commands or by mentioning the bot.
 - **Giveaways, polls, a welcomer, role menus and sticky messages.**
 - **Data portability**: `/export` writes a server's whole configuration to one file. Submission history from Appy can be imported.
 - The website is available in English and Japanese.

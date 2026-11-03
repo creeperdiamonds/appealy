@@ -60,6 +60,7 @@ export interface InteractionEditPayload {
   content?: string;
   embeds?: unknown[];
   components?: unknown[];
+  allowedMentions?: { parse?: string[] };
 }
 
 /**

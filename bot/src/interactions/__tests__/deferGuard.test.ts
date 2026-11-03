@@ -50,6 +50,8 @@ const MUST_DEFER = [
   "bot/src/commands/importAppealy.ts",
   // Fetches the command ids for its clickable mentions before answering.
   "bot/src/commands/help.ts",
+  // /ban and the rest: a member lookup, the guild's roles and the action itself.
+  "bot/src/commands/moderation.ts",
 ];
 
 /**

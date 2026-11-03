@@ -1,6 +1,6 @@
 // bot/src/services/tempBans.ts
 //
-// Bans with an end ("?ban @user 7d"). The end is a row in temp_bans, and the
+// Bans with an end ("/ban user duration:7d"). The end is a row in temp_bans, and the
 // scheduler (core/scheduler.ts) unbans once it passes. A row rather than a
 // timer so a restart in between doesn't turn a week's ban into a permanent one.
 

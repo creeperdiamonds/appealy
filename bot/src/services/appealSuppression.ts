@@ -1,6 +1,7 @@
 // bot/src/services/appealSuppression.ts
 //
-// "?ban noappeal": a ban that must not send the appeal button.
+// "/ban appeal:false" or "@Appealy ban noappeal": a ban that must not send the
+// appeal button.
 //
 // The appeal DM isn't sent by the command. It's sent by events/guildBanAdd.ts
 // when Discord reports the ban, which is how bans from Discord's own menu

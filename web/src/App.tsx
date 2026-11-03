@@ -205,7 +205,7 @@ const NAV_GROUPS: {
       { id: "verification", label: "Verification", hint: "Screen new members before they can talk" },
       { id: "anti-raid", label: "Anti-raid", hint: "Join-velocity detection and lockdown" },
       { id: "automod", label: "AutoMod", hint: "Discord's filters, editable from a phone" },
-      { id: "moderation", label: "Moderation", hint: "?ban, ?mute and the other text commands" },
+      { id: "moderation", label: "Moderation", hint: "/ban, /mute and the other moderation commands" },
     ],
   },
   {

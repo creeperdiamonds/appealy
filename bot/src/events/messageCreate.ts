@@ -8,11 +8,16 @@
 // Three responsibilities:
 //   1. DM application replies — route a DM into dmApplicationService if the
 //      author has an in-progress direct_message application.
-//   2. Moderation commands — ?ban, ?kick, ?mute… and "@Appealy ban …"
-//      (services/moderation.ts). Messages starting with a letter or digit
-//      never get past a one-character check.
+//   2. Moderation commands typed as a mention, "@Appealy ban …"
+//      (services/moderation.ts). Messages not starting with a mention never
+//      get past a two-character check.
 //   3. Sticky message bump — count guild messages and repost the channel's
-//      sticky once it's been buried.
+//      sticky once it's been buried. Counting doesn't read what they say.
+//
+// None of the three needs the Message Content intent: Discord sends the text
+// of DMs and of messages that mention the bot regardless. Ticket transcripts
+// are the one feature that needs it, and they read the ticket channel's
+// history when it closes (services/ticketService.ts), not from here.
 //
 // THE COST MODEL
 // --------------
@@ -40,7 +45,6 @@ import { handleDmApplicationReply } from "../services/dmApplicationService.ts";
 import { bumpStickyMessageCounter } from "../services/stickyMessageService.ts";
 import { getGuildConfig, stickyChannelHint } from "../core/guildConfigCache.ts";
 import { passesBanGateForMessage } from "../core/banGate.ts";
-import { deliverReply, hasPendingPrompts } from "../services/pendingPrompts.ts";
 import { logger } from "../utils/logger.ts";
 import { handleModerationCommand, mightBeCommand } from "../services/moderation.ts";
 
@@ -83,22 +87,11 @@ export function onMessageCreate(bot: AppealyBot) {
       return;
     }
 
-    // An answer to a question the bot asked in this channel — /poll's close
-    // time, today. Consumed here and processed no further: a reply to the bot
-    // is not also a sticky bump.
-    //
-    // hasPendingPrompts() is checked first and is an integer compare on a Map
-    // that is empty almost always. Only when something is genuinely
-    // outstanding does this build a key string, which is the difference
-    // between free and an allocation per message across every guild.
-    if (hasPendingPrompts() && deliverReply(message.channelId, authorId, message.content ?? "")) {
-      return;
-    }
-
-    // A moderation command. Each server picks its own prefix, so the cheap
-    // test is "doesn't start with a letter or digit" (mightBeCommand); only
-    // those messages read the server's settings, from cache. A command is
-    // never also a sticky bump.
+    // A moderation command typed as a mention of the bot ("@Appealy ban …").
+    // Discord sends the text of a message that mentions the bot with or without
+    // the Message Content intent, and nothing here reads any other message's
+    // text: the cheap test is "starts with a mention" (mightBeCommand). A
+    // command is never also a sticky bump.
     const content = message.content ?? "";
     if (mightBeCommand(content)) {
       try {

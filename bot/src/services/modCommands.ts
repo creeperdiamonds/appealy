@@ -1,34 +1,19 @@
 // bot/src/services/modCommands.ts
 //
-// The text side of the moderation commands: ?ban, ?unban, ?kick, ?mute and
-// ?unmute, also written "@Appealy ban …".
+// The moderation commands, /ban, /unban, /kick, /mute and /unmute
+// (commands/moderation.ts), and the same commands typed as a mention:
+// "@Appealy ban @user spamming".
 //
-// WHY TEXT COMMANDS
+// WHY ONLY THE MENTION, AND NO PREFIX
 //
-// Dyno and others retired theirs, and plenty of moderators still prefer
-// typing "?ban @user spamming" to filling in a slash command. They need the
-// Message Content intent, which Discord grants freely below 100 servers and
-// refuses for prefix commands after verification at 100. So every command
-// also works by mentioning the bot ("@Appealy ban @user spamming"): Discord
-// always delivers the content of messages that mention a bot, intent or not.
-// If the intent ever goes, "?" stops and "@Appealy" carries on.
+// "?ban" read every message for a prefix, which needs the Message Content
+// intent. Discord turned down Appealy's intents request on 2026-11-03 because
+// prefix commands can be slash commands, so they went. A message that
+// mentions the bot is different: Discord delivers its text with or without
+// the intent, so "@Appealy ban" doesn't depend on it.
 //
 // Free of env and network so it can be tested; services/moderation.ts runs
 // the commands.
-
-/** The prefix a server gets until it picks another on the dashboard. */
-export const DEFAULT_PREFIX = "?";
-
-/**
- * Whether a prefix can be used: 1-5 characters, no spaces, and not starting
- * with something Discord gives its own meaning ("/" opens the command
- * picker, "@" "<" "#" ":" start mentions, channels and emoji). Mirrored by
- * the dashboard's check in api/src/routes/moderation.ts.
- */
-export function validPrefix(prefix: string): boolean {
-  // Backticks too: the prefix is shown inside `code` in replies and /help.
-  return /^[^\s\/@<#:`][^\s`]{0,4}$/.test(prefix);
-}
 
 export type ModAction = "ban" | "unban" | "kick" | "mute" | "unmute";
 
@@ -49,23 +34,15 @@ export interface ParsedCommand {
 }
 
 /**
- * The command in a message, or null when the message isn't one. Cheap on the
- * common path: anything not starting with the prefix or a mention is
+ * The command in a message that starts by mentioning the bot, or null when
+ * the message isn't one. Anything not starting with a mention of this bot is
  * rejected before any splitting.
  */
-export function parseModCommand(content: string, botId: bigint, prefix = DEFAULT_PREFIX): ParsedCommand | null {
+export function parseModCommand(content: string, botId: bigint): ParsedCommand | null {
   const text = content.trim();
-  let rest: string;
-  if (text.startsWith(prefix)) {
-    rest = text.slice(prefix.length);
-  } else if (text.startsWith("<@")) {
-    const m = /^<@!?(\d{17,20})>\s*/.exec(text);
-    if (!m || BigInt(m[1]) !== botId) return null;
-    rest = text.slice(m[0].length);
-  } else {
-    return null;
-  }
-  const words = rest.trim().split(/\s+/).filter(Boolean);
+  const m = /^<@!?(\d{17,20})>\s*/.exec(text);
+  if (!m || BigInt(m[1]) !== botId) return null;
+  const words = text.slice(m[0].length).trim().split(/\s+/).filter(Boolean);
   const action = ALIASES[(words[0] ?? "").toLowerCase()];
   if (!action) return null;
   return { action, args: words.slice(1) };
@@ -268,9 +245,9 @@ export function refusalText(r: Refusal): string {
   }
 }
 
-/** How to use each command, with the server's own prefix. */
-export function usage(action: ModAction, prefix = DEFAULT_PREFIX): string {
-  const p = prefix;
+/** How to type each command as a mention, with the bot's name (brand) in it. */
+export function usage(action: ModAction, brand = "Appealy"): string {
+  const p = `@${brand} `;
   return {
     ban: `\`${p}ban [noappeal] @user [duration, e.g. 7d] [reason]\``,
     unban: `\`${p}unban <user id> [reason]\``,

@@ -15,7 +15,6 @@ import {
   parseUserId,
   PERM,
   usage,
-  validPrefix,
 } from "../modCommands.ts";
 
 const BOT = 1538863299574112326n;
@@ -38,8 +37,8 @@ const guild: GuildInfo = {
   ],
 };
 
-Deno.test("the prefix and a mention of Appealy both start a command", () => {
-  assertEquals(parseModCommand("?ban <@123456789012345678> spamming", BOT), {
+Deno.test("a mention of Appealy starts a command", () => {
+  assertEquals(parseModCommand(`<@${BOT}> ban <@123456789012345678> spamming`, BOT), {
     action: "ban",
     args: ["<@123456789012345678>", "spamming"],
   });
@@ -47,10 +46,17 @@ Deno.test("the prefix and a mention of Appealy both start a command", () => {
   assertEquals(parseModCommand(`<@!${BOT}>   MUTE <@123456789012345678> 10m`, BOT)?.action, "mute");
 });
 
+// Reading "?ban" means reading every message, which needs the Message Content
+// intent; Discord refused it for that on 2026-11-03.
+Deno.test("a prefix no longer starts a command", () => {
+  assertEquals(parseModCommand("?ban <@123456789012345678> spamming", BOT), null);
+  assertEquals(parseModCommand("!kick 123456789012345678", BOT), null);
+});
+
 Deno.test("aliases, and things that are not commands", () => {
-  assertEquals(parseModCommand("?timeout x", BOT)?.action, "mute");
-  assertEquals(parseModCommand("?untimeout x", BOT)?.action, "unmute");
-  assertEquals(parseModCommand("?help", BOT), null);
+  assertEquals(parseModCommand(`<@${BOT}> timeout x`, BOT)?.action, "mute");
+  assertEquals(parseModCommand(`<@${BOT}> untimeout x`, BOT)?.action, "unmute");
+  assertEquals(parseModCommand(`<@${BOT}> help`, BOT), null);
   assertEquals(parseModCommand("is this a ban?", BOT), null);
   assertEquals(parseModCommand("<@123456789012345678> ban someone", BOT), null, "mentioning someone else");
   assertEquals(parseModCommand("", BOT), null);
@@ -107,17 +113,9 @@ Deno.test("who may act on whom", () => {
   assertEquals(checkAction(guild, "unban", mod, { id: MEMBER, roleIds: null }, BOT), null, "not in the server: no rank");
 });
 
-Deno.test("a server's own prefix replaces ?, and the mention form still works", () => {
-  assertEquals(parseModCommand("!ban <@123456789012345678>", BOT, "!")?.action, "ban");
-  assertEquals(parseModCommand("a?kick 123456789012345678", BOT, "a?")?.action, "kick");
-  assertEquals(parseModCommand("?ban x", BOT, "!"), null, "the default prefix no longer counts");
-  assertEquals(parseModCommand(`<@${BOT}> ban x`, BOT, "!")?.action, "ban");
-  assertEquals(usage("kick", "!"), "`!kick @user [reason]`");
-});
-
-Deno.test("which prefixes are allowed", () => {
-  for (const ok of ["?", "!", "a?", "mod!", ">>", "$$$$$"]) assertEquals(validPrefix(ok), true, ok);
-  for (const bad of ["", "/", "@", "<", "#", ":", "a b", "toolong", "`", "a`"]) assertEquals(validPrefix(bad), false, bad);
+Deno.test("usage is written as a mention, with the bot's own name", () => {
+  assertEquals(usage("kick"), "`@Appealy kick @user [reason]`");
+  assertEquals(usage("kick", "ModBot"), "`@ModBot kick @user [reason]`");
 });
 
 Deno.test("ban arguments: noappeal in either place, an optional length, then the reason", () => {

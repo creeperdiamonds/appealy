@@ -1,11 +1,15 @@
 // api/src/routes/moderation.ts
-// Text moderation command settings (?ban, ?kick, ?mute…): on/off, the prefix,
-// and which roles may use them. One row per guild (moderation_configs).
-// Mounted at /api/guilds/:guildId/moderation.
+// Moderation command settings (/ban, /kick, /mute… and "@Appealy ban"):
+// whether the mention form works, and which roles may use them. One row per
+// guild (moderation_configs). Mounted at /api/guilds/:guildId/moderation.
 //
 // A guild that never saved has no row; GET answers with the defaults the bot
-// uses in that case (on, "?", no role limit), so the page shows what is
-// actually in effect.
+// uses in that case (on, no role limit), so the page shows what is actually
+// in effect.
+//
+// The prefix column is left in the table but no longer used: the "?ban"
+// prefix commands were removed on 2026-11-03 (bot/src/services/modCommands.ts
+// says why). A dashboard tab still open from before may send it; it's ignored.
 
 import { Router } from "express";
 import { z } from "zod";
@@ -18,20 +22,13 @@ export const moderationRouter = Router({ mergeParams: true });
 
 export interface ModerationConfigDTO {
   textCommandsEnabled: boolean;
-  prefix: string;
   allowedRoleIds: string[];
 }
 
-const DEFAULTS: ModerationConfigDTO = { textCommandsEnabled: true, prefix: "?", allowedRoleIds: [] };
-
-// The same rule as validPrefix() in bot/src/services/modCommands.ts: 1-5
-// characters, no spaces or backticks, and not starting with "/" "@" "<" "#"
-// ":", which Discord gives its own meaning.
-const PREFIX = /^[^\s/@<#:`][^\s`]{0,4}$/;
+const DEFAULTS: ModerationConfigDTO = { textCommandsEnabled: true, allowedRoleIds: [] };
 
 const body = z.object({
   textCommandsEnabled: z.boolean(),
-  prefix: z.string().regex(PREFIX, "1-5 characters, no spaces, and not starting with / @ < # :"),
   allowedRoleIds: z.array(z.string().regex(/^\d{17,20}$/)).max(50),
 });
 
@@ -58,5 +55,5 @@ moderationRouter.put("/", requireAdminAccess, async (req, res) => {
 });
 
 function toDTO(c: typeof schema.moderationConfigs.$inferSelect): ModerationConfigDTO {
-  return { textCommandsEnabled: c.textCommandsEnabled, prefix: c.prefix, allowedRoleIds: c.allowedRoleIds };
+  return { textCommandsEnabled: c.textCommandsEnabled, allowedRoleIds: c.allowedRoleIds };
 }

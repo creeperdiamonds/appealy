@@ -28,6 +28,7 @@ import * as importAppealy from "./importAppealy.ts";
 import * as help from "./help.ts";
 import * as application from "./application.ts";
 import * as vote from "./vote.ts";
+import { ban, kick, mute, unban, unmute } from "./moderation.ts";
 
 const commands = [
   panelCreate,
@@ -50,6 +51,11 @@ const commands = [
   importAppealy,
   help,
   vote,
+  ban,
+  unban,
+  kick,
+  mute,
+  unmute,
 ];
 
 /** Commands that implement an autocomplete() export get routed
