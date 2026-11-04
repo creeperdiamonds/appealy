@@ -1,8 +1,11 @@
 # The VM
 
-`appealy-vm` runs the bot, the API and the Cloud SQL proxy. nginx, the domains and
-their certificates stay on Cloud Run, and `deploy/service.yaml` says why. The VM
-holds no data: Postgres is Cloud SQL and Redis is Upstash.
+`appealy-vm` runs the bot, the API, Redis and the Cloud SQL proxy. nginx, the
+domains and their certificates stay on Cloud Run, and `deploy/service.yaml` says
+why. The VM holds no data that matters: Postgres is Cloud SQL, and Redis keeps
+short-lived data in memory only, never on disk. It used to be Upstash, but
+Upstash's free plan doesn't encrypt stored data, and Discord's developer policy
+requires that. The VM's disk, where swap lives, is encrypted by Google.
 
 | File | What it is |
 |---|---|

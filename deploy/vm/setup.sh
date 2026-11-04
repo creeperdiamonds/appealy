@@ -5,8 +5,9 @@
 # script, so it runs on every boot and has to be safe to run again. See README.md
 # in this folder for how the VM was created.
 #
-# The VM holds no data: Postgres is Cloud SQL and Redis is Upstash. If it is ever
-# lost, create another one, let this run, and deploy.
+# The VM holds no data that matters: Postgres is Cloud SQL, and Redis runs here
+# in memory only, holding nothing that doesn't expire or can't be rebuilt. If the
+# VM is ever lost, create another one, let this run, and deploy.
 
 set -euo pipefail
 
