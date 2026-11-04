@@ -15,14 +15,14 @@
 // interaction. See docs/ARCHITECTURE.md#select-questions for the full
 // state diagram.
 
-import { eq, and, gte, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { modalTextLimits } from "../../services/modalInput.ts";
 import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
-import { countRows } from "../../db/count.ts";
-import { evaluateGate, gateCountingFrom, gateReasonToMessage } from "../../../../shared/schema/gating.ts";
+import { checkApplicationGate } from "../../services/gateCheck.ts";
+import { gateReasonToMessage } from "../../../../shared/schema/gating.ts";
 import { encodeCustomId } from "../../../../shared/types/index.ts";
 import {
   cappedModalPageCount,
@@ -103,7 +103,7 @@ export async function runApplicationFlow(
     return;
   }
 
-  const gate = await checkGate(form, guildId, applicant.id, interaction.member?.roles ?? []);
+  const gate = await checkApplicationGate(form, applicant.id, interaction.member?.roles ?? []);
   if (!gate.allowed) {
     return respond(bot, interaction, gateReasonToMessage(gate));
   }
@@ -256,88 +256,6 @@ export async function showApplicationModal(
         ],
       })),
     },
-  });
-}
-
-async function checkGate(
-  form: typeof schema.forms.$inferSelect,
-  guildId: bigint,
-  applicantId: bigint,
-  memberRoleIds: bigint[],
-) {
-  // These five reads are independent — each depends only on form/guildId/
-  // applicantId, all already in hand, and none consumes another's result —
-  // so they were only ever sequential because that's how this was written.
-  // That's cheap to ignore when everything's warm (five trips at ~5ms is
-  // noise), but this runs on the /apply and panel-button paths, neither of
-  // which can defer: they end in a modal, and a modal response has to be
-  // Discord's FIRST response, so there is no fifteen-minute window to fall
-  // back on if things are slow. Cold or degraded, five sequential ~100ms
-  // round trips is 500ms out of the 3000ms budget — the exact case
-  // parallelising this actually protects against.
-  // A "reset for everyone" (forms.gateResetAt) drops older submissions from
-  // the cooldown and limit counts below. Not from the pending count.
-  const countFrom = gateCountingFrom(form.gateResetAt);
-  const sinceReset = countFrom ? gte(schema.submissions.createdAt, countFrom) : undefined;
-  const [[lastSubmission], pendingCount, totalCount, windowCount, override] = await Promise.all([
-    db
-      .select()
-      .from(schema.submissions)
-      .where(
-        and(
-          eq(schema.submissions.formId, form.id),
-          eq(schema.submissions.applicantId, applicantId),
-          sinceReset,
-        ),
-      )
-      .orderBy(desc(schema.submissions.createdAt))
-      .limit(1),
-    countRows(
-      schema.submissions,
-      and(
-        eq(schema.submissions.formId, form.id),
-        eq(schema.submissions.applicantId, applicantId),
-        eq(schema.submissions.status, "pending"),
-      ),
-    ),
-    countRows(
-      schema.submissions,
-      and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId), sinceReset),
-    ),
-    form.maxSubmissionsWindowSeconds && form.maxSubmissionsInWindow
-      ? countRows(
-          schema.submissions,
-          and(
-            eq(schema.submissions.formId, form.id),
-            gte(
-              schema.submissions.createdAt,
-              gateCountingFrom(form.gateResetAt, new Date(Date.now() - form.maxSubmissionsWindowSeconds * 1000))!,
-            ),
-          ),
-        )
-      : Promise.resolve(0),
-    db.query.gateOverrides.findFirst({
-      where: and(eq(schema.gateOverrides.formId, form.id), eq(schema.gateOverrides.applicantId, applicantId)),
-    }),
-  ]);
-  const hasActiveOverride = Boolean(override && (!override.expiresAt || override.expiresAt > new Date()));
-
-  return evaluateGate({
-    formActive: form.active,
-    memberRoleIds: memberRoleIds.map(String),
-    requiredRoleIds: form.requiredRoleIds,
-    requiredRolesMatchMode: form.requiredRolesMatchMode,
-    blacklistedRoleIds: form.blacklistedRoleIds,
-    blacklistedRolesMatchMode: form.blacklistedRolesMatchMode,
-    cooldownSeconds: form.cooldownSeconds,
-    lastSubmissionAt: lastSubmission?.createdAt ?? null,
-    hasPendingSubmission: pendingCount > 0,
-    allowMultiplePending: form.allowMultiplePending,
-    totalSubmissionCount: totalCount,
-    maxTotalSubmissions: form.maxTotalSubmissions,
-    submissionsInWindow: windowCount,
-    maxSubmissionsInWindow: form.maxSubmissionsInWindow,
-    hasActiveOverride,
   });
 }
 

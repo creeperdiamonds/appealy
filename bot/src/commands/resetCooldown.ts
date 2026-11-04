@@ -2,7 +2,9 @@
 //
 // /reset-cooldown <application_name> <user> [reason] — grants one applicant
 // a one-time override past cooldown/standing-limit gating for one form,
-// without touching their submission history. See shared/schema/gating.ts
+// without touching their submission history. The pass is used up when they
+// next apply (consumeGateOverride in services/gateCheck.ts), or expires
+// earlier if expires_in_hours is given. See shared/schema/gating.ts
 // for exactly which checks the override does and doesn't bypass (role
 // gates and pending-application checks are never bypassable this way,
 // only throughput restrictions).
@@ -40,8 +42,8 @@ export const definition: CreateApplicationCommand = {
     { name: "reason", description: "Why this override is being granted", descriptionLocalizations: { ja: "この解除を行う理由" }, type: ApplicationCommandOptionTypes.String, required: false },
     {
       name: "expires_in_hours",
-      description: "Override expires after N hours (default: never expires)",
-      descriptionLocalizations: { ja: "N 時間後に解除を失効させます（既定: 失効しない）" },
+      description: "Override expires after N hours if unused (default: lasts until they apply)",
+      descriptionLocalizations: { ja: "未使用なら N 時間後に失効します（既定: 次の応募まで有効）" },
       type: ApplicationCommandOptionTypes.Integer,
       required: false,
       minValue: 1,
@@ -104,7 +106,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   await respond(
     bot,
     interaction,
-    `Cleared <@${targetUserId}>'s cooldown/limit for **${form.name}**${expiresAt ? ` (override expires <t:${Math.floor(expiresAt.getTime() / 1000)}:R>)` : ""}.`,
+    `Cleared <@${targetUserId}>'s cooldown/limit for **${form.name}** for their next application${expiresAt ? ` (unused, it expires <t:${Math.floor(expiresAt.getTime() / 1000)}:R>)` : ""}.`,
   );
 }
 

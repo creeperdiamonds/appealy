@@ -13,12 +13,12 @@
 // natural interaction model — matching how a human would conduct the same
 // back-and-forth manually.
 
-import { eq, and, desc, gte } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { recordSubmissionEvent } from "./submissionEvents.ts";
-import { countRows } from "../db/count.ts";
-import { evaluateGate, gateCountingFrom, gateReasonToMessage } from "../../../shared/schema/gating.ts";
+import { checkApplicationGate, consumeGateOverride } from "./gateCheck.ts";
+import { gateReasonToMessage } from "../../../shared/schema/gating.ts";
 import { validateAnswerAgainstPattern } from "../../../shared/schema/regexValidation.ts";
 import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
@@ -289,6 +289,8 @@ export async function createSubmission(
     if (answerRows.length > 0) {
       await tx.insert(schema.answers).values(answerRows);
     }
+    // A /reset-cooldown pass is one-time: applying uses it up.
+    await consumeGateOverride(tx, form.id, s.applicantId);
     return created;
   });
 
@@ -335,55 +337,14 @@ export async function createSubmission(
   return { status: "created", submissionId: submission.id };
 }
 
-export async function checkGateForDm(
+/** Gating for the DM flow and web ban appeals: the same check as the panel button (services/gateCheck.ts). */
+export function checkGateForDm(
   form: FormWithQuestions,
-  guildId: bigint,
+  _guildId: bigint,
   applicantId: bigint,
   memberRoleIds: bigint[],
 ) {
-  // A "reset for everyone" (forms.gateResetAt) drops older submissions from
-  // the cooldown and limit counts. Not from the pending count.
-  const countFrom = gateCountingFrom(form.gateResetAt);
-  const sinceReset = countFrom ? gte(schema.submissions.createdAt, countFrom) : undefined;
-
-  const [lastSubmission] = await db
-    .select()
-    .from(schema.submissions)
-    .where(and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId), sinceReset))
-    .orderBy(desc(schema.submissions.createdAt))
-    .limit(1);
-
-  const pendingCount = await countRows(
-    schema.submissions,
-    and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId), eq(schema.submissions.status, "pending")),
-  );
-  const totalCount = await countRows(
-    schema.submissions,
-    and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId), sinceReset),
-  );
-
-  const override = await db.query.gateOverrides.findFirst({
-    where: and(eq(schema.gateOverrides.formId, form.id), eq(schema.gateOverrides.applicantId, applicantId)),
-  });
-  const hasActiveOverride = Boolean(override && (!override.expiresAt || override.expiresAt > new Date()));
-
-  return evaluateGate({
-    formActive: form.active,
-    memberRoleIds: memberRoleIds.map(String),
-    requiredRoleIds: form.requiredRoleIds,
-    requiredRolesMatchMode: form.requiredRolesMatchMode,
-    blacklistedRoleIds: form.blacklistedRoleIds,
-    blacklistedRolesMatchMode: form.blacklistedRolesMatchMode,
-    cooldownSeconds: form.cooldownSeconds,
-    lastSubmissionAt: lastSubmission?.createdAt ?? null,
-    hasPendingSubmission: pendingCount > 0,
-    allowMultiplePending: form.allowMultiplePending,
-    totalSubmissionCount: totalCount,
-    maxTotalSubmissions: form.maxTotalSubmissions,
-    submissionsInWindow: 0,
-    maxSubmissionsInWindow: form.maxSubmissionsInWindow,
-    hasActiveOverride,
-  });
+  return checkApplicationGate(form, applicantId, memberRoleIds);
 }
 
 /**

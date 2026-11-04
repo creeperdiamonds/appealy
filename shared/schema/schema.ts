@@ -612,7 +612,8 @@ export const dmApplicationProgress = pgTable(
 // Staff override for one applicant's gating checks on one form — created
 // by /reset-cooldown. When present and unexpired, evaluateGate's cooldown
 // and standing-limit checks are bypassed for that (guild, form, user)
-// combination. Deliberately NOT implemented by mutating or deleting
+// combination, once: the row is deleted in the transaction that saves their
+// next submission (consumeGateOverride, bot/src/services/gateCheck.ts). Deliberately NOT implemented by mutating or deleting
 // submission history (which would corrupt the audit trail /
 // /export_applications relies on) — an explicit, auditable override row
 // is added instead, with who granted it and why.

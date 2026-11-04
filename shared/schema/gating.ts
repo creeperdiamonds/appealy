@@ -144,8 +144,10 @@ export function gateReasonToMessage(result: GateCheckResult): string {
         : "later";
       return `You're on cooldown for this form. You can re-apply ${ts}.`;
     }
+    // Per applicant: totalSubmissionCount counts this person's own
+    // submissions, so the form is not closed for anyone else.
     case "max_total_reached":
-      return "This form has reached its maximum number of submissions and is closed.";
+      return "You've reached the maximum number of applications you can send for this form.";
     case "max_window_reached":
       return "This form has reached its submission limit for the current period. Try again later.";
     case "pending_exists":

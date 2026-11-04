@@ -18,6 +18,7 @@ import { getGuild } from "../../core/guildLookup.ts";
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
+import { consumeGateOverride } from "../../services/gateCheck.ts";
 import { withdrawButtonRow } from "../buttons/submissionWithdraw.ts";
 import { reviewButtonRow } from "../../services/reviewButtons.ts";
 import {
@@ -192,6 +193,8 @@ export async function handleFormModalSubmit(
     if (answerRows.length > 0) {
       await tx.insert(schema.answers).values(answerRows);
     }
+    // A /reset-cooldown pass is one-time: applying uses it up.
+    await consumeGateOverride(tx, form.id, applicant.id);
 
     return created;
   });
