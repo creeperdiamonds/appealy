@@ -131,11 +131,34 @@ prune() {
   docker image prune -af --filter until=72h > /dev/null
 }
 
+# Once, on the first deploy with Redis on the VM: copy what Upstash still holds,
+# such as applications people are halfway through. Run after the bot has
+# switched, so nothing writes to Upstash any more, and copy-redis.js skips keys
+# written here since. A failure is reported but doesn't fail the deploy: all of
+# it expires within the hour anyway, and the marker isn't written, so the next
+# deploy tries again until the secret is deleted.
+copy_from_upstash() {
+  local marker=/opt/appealy/redis-copied-from-upstash
+  [ -e "$marker" ] && return 0
+  local src
+  if ! src="$(read_secret appealy-redis-url 2>/dev/null)" || [ -z "$src" ]; then
+    echo "No Upstash secret left, nothing to copy."
+    touch "$marker"
+    return 0
+  fi
+  if SRC="$src" DEST="$REDIS_URL" docker compose exec -T -e SRC -e DEST api node - < copy-redis.js; then
+    touch "$marker"
+  else
+    echo "Copying from Upstash failed. The next deploy will try again." >&2
+  fi
+}
+
 case "$step" in
   pull) pull ;;
   api) start_api ;;
   bot)
     start_bot
+    copy_from_upstash
     prune
     ;;
   *)
