@@ -18,6 +18,7 @@ import * as ticketPanel from "./ticketPanel.ts";
 import * as giveaway from "./giveaway.ts";
 import * as verifySetup from "./verifySetup.ts";
 import * as resetCooldown from "./resetCooldown.ts";
+import * as resetAllCooldowns from "./resetAllCooldowns.ts";
 import * as ping from "./ping.ts";
 import * as botStats from "./botStats.ts";
 import * as roleMenu from "./roleMenu.ts";
@@ -42,6 +43,7 @@ const commands = [
   giveaway,
   verifySetup,
   resetCooldown,
+  resetAllCooldowns,
   ping,
   botStats,
   roleMenu,

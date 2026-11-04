@@ -162,6 +162,13 @@
       "when": 1793403090613,
       "tag": "0022_anti_raid_age_and_undo",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793805237517,
+      "tag": "0023_gate_reset_for_everyone",
+      "breakpoints": true
     }
   ]
 }

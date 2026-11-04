@@ -52,6 +52,9 @@ const MUST_DEFER = [
   "bot/src/commands/help.ts",
   // /ban and the rest: a member lookup, the guild's roles and the action itself.
   "bot/src/commands/moderation.ts",
+  // Re-exports resetCooldown.ts's autocomplete rather than writing its own,
+  // so it has no sendInteractionResponse and fits the generic checks.
+  "bot/src/commands/resetAllCooldowns.ts",
 ];
 
 /**

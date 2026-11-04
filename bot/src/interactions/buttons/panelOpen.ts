@@ -22,7 +22,7 @@ import type { AppealyInteraction as Interaction } from "../../core/client.ts";
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { countRows } from "../../db/count.ts";
-import { evaluateGate, gateReasonToMessage } from "../../../../shared/schema/gating.ts";
+import { evaluateGate, gateCountingFrom, gateReasonToMessage } from "../../../../shared/schema/gating.ts";
 import { encodeCustomId } from "../../../../shared/types/index.ts";
 import {
   cappedModalPageCount,
@@ -275,6 +275,10 @@ async function checkGate(
   // back on if things are slow. Cold or degraded, five sequential ~100ms
   // round trips is 500ms out of the 3000ms budget — the exact case
   // parallelising this actually protects against.
+  // A "reset for everyone" (forms.gateResetAt) drops older submissions from
+  // the cooldown and limit counts below. Not from the pending count.
+  const countFrom = gateCountingFrom(form.gateResetAt);
+  const sinceReset = countFrom ? gte(schema.submissions.createdAt, countFrom) : undefined;
   const [[lastSubmission], pendingCount, totalCount, windowCount, override] = await Promise.all([
     db
       .select()
@@ -283,6 +287,7 @@ async function checkGate(
         and(
           eq(schema.submissions.formId, form.id),
           eq(schema.submissions.applicantId, applicantId),
+          sinceReset,
         ),
       )
       .orderBy(desc(schema.submissions.createdAt))
@@ -297,7 +302,7 @@ async function checkGate(
     ),
     countRows(
       schema.submissions,
-      and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId)),
+      and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId), sinceReset),
     ),
     form.maxSubmissionsWindowSeconds && form.maxSubmissionsInWindow
       ? countRows(
@@ -306,7 +311,7 @@ async function checkGate(
             eq(schema.submissions.formId, form.id),
             gte(
               schema.submissions.createdAt,
-              new Date(Date.now() - form.maxSubmissionsWindowSeconds * 1000),
+              gateCountingFrom(form.gateResetAt, new Date(Date.now() - form.maxSubmissionsWindowSeconds * 1000))!,
             ),
           ),
         )

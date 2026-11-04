@@ -48,6 +48,22 @@ function matchesRoleSet(
     : listedRoleIds.some((r) => memberRoleIds.includes(r));
 }
 
+/**
+ * Where the cooldown and the submission limits start counting submissions:
+ * the later of a rolling window's start and the form's last "reset for
+ * everyone" (forms.gateResetAt). null = count every submission.
+ *
+ * The gate callers apply this to the queries behind lastSubmissionAt,
+ * totalSubmissionCount and submissionsInWindow, never to the pending check:
+ * a reset clears throughput limits, the same ones a per-user
+ * /reset-cooldown override bypasses, and nothing else.
+ */
+export function gateCountingFrom(resetAt: Date | null, windowStart: Date | null = null): Date | null {
+  if (!resetAt) return windowStart;
+  if (!windowStart) return resetAt;
+  return resetAt > windowStart ? resetAt : windowStart;
+}
+
 export function evaluateGate(input: GateInput): GateCheckResult {
   const now = input.now ?? new Date();
 

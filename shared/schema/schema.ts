@@ -375,6 +375,14 @@ export const forms = pgTable(
     maxTotalSubmissions: integer("max_total_submissions"), // null = unlimited
     maxSubmissionsWindowSeconds: integer("max_submissions_window_seconds"), // rolling window
     maxSubmissionsInWindow: integer("max_submissions_in_window"),
+    // "Reset cooldowns for everyone" (/reset-all-cooldowns or the dashboard
+    // button). Submissions made before this moment no longer count toward
+    // the cooldown or the submission limits above; null = never reset. Like
+    // gate_overrides, it leaves submission history untouched so exports and
+    // the audit trail stay whole. Pending applications still count: the
+    // one-pending rule is eligibility, not a throughput limit.
+    gateResetAt: timestamp("gate_reset_at", { withTimezone: true }),
+    gateResetBy: bigint("gate_reset_by", { mode: "bigint" }),
     // Time allotted to complete the application after starting it. Applies
     // to both application types, but matters most for direct_message ones
     // since those can span a real back-and-forth over time; null = no

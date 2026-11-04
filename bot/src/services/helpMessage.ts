@@ -36,7 +36,7 @@ const MODERATION = new Set(["ban", "unban", "kick", "mute", "unmute"]);
 const ORDER = [
   "apply", "application", "forms", "dashboard", "vote", "poll", "help", "botstats", "ping",
   "panel", "ticket-panel", "role-menu", "verify-setup", "giveaway", "anti-raid",
-  "reset-cooldown", "export_applications",
+  "reset-cooldown", "reset-all-cooldowns", "export_applications",
   "ban", "unban", "kick", "mute", "unmute",
   "export", "import-appealy", "import-appy",
 ];

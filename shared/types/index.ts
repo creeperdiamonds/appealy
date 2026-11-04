@@ -164,6 +164,8 @@ export interface FormDTO {
   maxTotalSubmissions: number | null;
   maxSubmissionsWindowSeconds: number | null;
   maxSubmissionsInWindow: number | null;
+  /** When cooldowns/limits were last reset for everyone (ISO), or null. Read-only: set by POST .../reset-cooldowns. */
+  gateResetAt: string | null;
   timeLimitSeconds: number | null;
   allowMultiplePending: boolean;
   threadCollabEnabled: boolean;

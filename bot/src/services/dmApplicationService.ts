@@ -13,12 +13,12 @@
 // natural interaction model — matching how a human would conduct the same
 // back-and-forth manually.
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { recordSubmissionEvent } from "./submissionEvents.ts";
 import { countRows } from "../db/count.ts";
-import { evaluateGate, gateReasonToMessage } from "../../../shared/schema/gating.ts";
+import { evaluateGate, gateCountingFrom, gateReasonToMessage } from "../../../shared/schema/gating.ts";
 import { validateAnswerAgainstPattern } from "../../../shared/schema/regexValidation.ts";
 import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
@@ -341,10 +341,15 @@ export async function checkGateForDm(
   applicantId: bigint,
   memberRoleIds: bigint[],
 ) {
+  // A "reset for everyone" (forms.gateResetAt) drops older submissions from
+  // the cooldown and limit counts. Not from the pending count.
+  const countFrom = gateCountingFrom(form.gateResetAt);
+  const sinceReset = countFrom ? gte(schema.submissions.createdAt, countFrom) : undefined;
+
   const [lastSubmission] = await db
     .select()
     .from(schema.submissions)
-    .where(and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId)))
+    .where(and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId), sinceReset))
     .orderBy(desc(schema.submissions.createdAt))
     .limit(1);
 
@@ -354,7 +359,7 @@ export async function checkGateForDm(
   );
   const totalCount = await countRows(
     schema.submissions,
-    and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId)),
+    and(eq(schema.submissions.formId, form.id), eq(schema.submissions.applicantId, applicantId), sinceReset),
   );
 
   const override = await db.query.gateOverrides.findFirst({

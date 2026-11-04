@@ -89,6 +89,9 @@ interface FormDTO {
   logChannelId: string;
   active: boolean;
   cooldownSeconds: number;
+  /** Last "reset cooldowns for everyone". Read-only here: the save body never
+   *  sends it, and only POST .../reset-cooldowns moves it. */
+  gateResetAt?: string | null;
   allowMultiplePending: boolean;
   requiredRoleIds: string[];
   requiredRolesMatchMode: MatchMode;
@@ -587,6 +590,76 @@ function TemplatePicker({ intro, onPick }: { intro: string; onPick: (t: FormTemp
  * that the page doesn't know about.
  * ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------
+ * "Reset cooldowns for everyone": the dashboard twin of
+ * /reset-all-cooldowns. Acts at once rather than on Save, so it asks first
+ * and keeps its own state: it is a one-off action, not a setting.
+ * ------------------------------------------------------------------ */
+
+function ResetCooldowns({ guildId, formId, lastReset }: { guildId: string; formId: string; lastReset: string | null }) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [resetAt, setResetAt] = useState<string | null>(lastReset);
+  const [error, setError] = useState<string | null>(null);
+
+  const reset = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await http.post<{ gateResetAt: string }>(`/api/guilds/${guildId}/forms/${formId}/reset-cooldowns`, {});
+      setResetAt(r.gateResetAt);
+      setConfirming(false);
+    } catch (e) {
+      setError(describe(e, "Couldn't reset the cooldowns. Try again."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="field">
+      <span className="eyebrow">Reset for everyone</span>
+      <div className="row">
+        <button className="btn btn-sm" disabled={busy} onClick={() => setConfirming(true)}>
+          Reset cooldowns for everyone
+        </button>
+        <span className="dim">
+          {resetAt ? `Last reset ${new Date(resetAt).toLocaleString()}` : "Never reset"}
+        </span>
+      </div>
+      <span className="dim">
+        Everyone can apply again right away. The cooldown and submission limits stay on and count
+        from now. Same as <code>/reset-all-cooldowns</code> in Discord.
+      </span>
+      {confirming && (
+        <Banner
+          level="act"
+          title="Reset cooldowns for everyone on this form?"
+          action={
+            <div className="actions">
+              <button className="btn-primary" disabled={busy} onClick={() => void reset()}>
+                {busy ? "Resetting…" : "Reset"}
+              </button>
+              <button className="btn" disabled={busy} onClick={() => setConfirming(false)}>
+                Cancel
+              </button>
+            </div>
+          }
+        >
+          This happens straight away, without Save. Past applications are kept; they just stop
+          counting toward the cooldown and limits. Anyone with an application still waiting must
+          have it decided first.
+        </Banner>
+      )}
+      {error && (
+        <Banner level="act" title="Couldn't reset">
+          {error}
+        </Banner>
+      )}
+    </div>
+  );
+}
+
 function FormEditor({
   guildId,
   draft,
@@ -726,6 +799,10 @@ function FormEditor({
           />
           <span className="dim">0 means someone denied at 10:00 can reapply at 10:01.</span>
         </label>
+
+        {draft.id && (
+          <ResetCooldowns guildId={guildId} formId={draft.id} lastReset={draft.gateResetAt ?? null} />
+        )}
 
         <label className="row">
           <input

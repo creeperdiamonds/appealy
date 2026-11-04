@@ -416,6 +416,23 @@ formsRouter.patch("/:formId", requireAdminAccess, async (req, res) => {
   res.json(toDTO(full!));
 });
 
+// "Reset cooldowns for everyone", the dashboard twin of /reset-all-cooldowns.
+// Moves forms.gateResetAt to now so older submissions stop counting toward
+// the cooldown and submission limits (see gateCountingFrom in
+// shared/schema/gating.ts). No submission is touched. Its own route rather
+// than a PATCH field so a form save can never move or clear the reset by
+// sending back a stale value.
+formsRouter.post("/:formId/reset-cooldowns", requireAdminAccess, async (req, res) => {
+  const guildId = BigInt(routeParams(req).guildId);
+  const [updated] = await db
+    .update(schema.forms)
+    .set({ gateResetAt: new Date(), gateResetBy: req.userId ?? null })
+    .where(and(eq(schema.forms.id, routeParams(req).formId), eq(schema.forms.guildId, guildId)))
+    .returning({ gateResetAt: schema.forms.gateResetAt });
+  if (!updated) return res.status(404).json({ error: "form_not_found" });
+  res.json({ gateResetAt: updated.gateResetAt!.toISOString() });
+});
+
 formsRouter.delete("/:formId", requireAdminAccess, async (req, res) => {
   const guildId = BigInt(routeParams(req).guildId);
   const result = await db
@@ -455,6 +472,7 @@ function toDTO(form: typeof schema.forms.$inferSelect & { questions: (typeof sch
     maxTotalSubmissions: form.maxTotalSubmissions,
     maxSubmissionsWindowSeconds: form.maxSubmissionsWindowSeconds,
     maxSubmissionsInWindow: form.maxSubmissionsInWindow,
+    gateResetAt: form.gateResetAt?.toISOString() ?? null,
     timeLimitSeconds: form.timeLimitSeconds,
     allowMultiplePending: form.allowMultiplePending,
     threadCollabEnabled: form.threadCollabEnabled,
