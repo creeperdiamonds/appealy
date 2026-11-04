@@ -40,11 +40,15 @@ read_secret() {
 
 # Assigned before exporting, because `export X="$(...)"` hides a failed read and a
 # container would start with an empty token.
-for name in DATABASE_URL REDIS_URL DISCORD_BOT_TOKEN DISCORD_APPLICATION_ID DISCORD_PUBLIC_KEY   DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET SESSION_SECRET TOKEN_ENCRYPTION_KEY OPS_USER_IDS; do
+for name in DATABASE_URL DISCORD_BOT_TOKEN DISCORD_APPLICATION_ID DISCORD_PUBLIC_KEY   DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET SESSION_SECRET TOKEN_ENCRYPTION_KEY OPS_USER_IDS; do
   secret="appealy-$(printf %s "$name" | tr 'A-Z_' 'a-z-')"
   value="$(read_secret "$secret")"
   export "$name=$value"
 done
+
+# The redis container in compose.yaml, not Upstash: see the comment there. Plain
+# redis://, because it never leaves the VM's own network.
+export REDIS_URL=redis://127.0.0.1:6379
 
 # Only has to agree between the API and the bot, which both run here, so it's made
 # here once. A new one for each deploy would leave them disagreeing until the second
@@ -67,13 +71,13 @@ running_sha() {
 
 pull() {
   printf %s "$token" | docker login -u oauth2accesstoken --password-stdin "${ARTIFACT_REGISTRY%%/*}" > /dev/null
-  docker compose pull --quiet net cloudsql-proxy api bot
+  docker compose pull --quiet net redis cloudsql-proxy api bot
 }
 
 start_api() {
   local previous
   previous="$(running_sha api)"
-  docker compose up -d --pull never net cloudsql-proxy api
+  docker compose up -d --pull never net redis cloudsql-proxy api
   # /health only proves the process is up and checks Redis, so the database gets
   # its own check, over the connection the API itself will use.
   for _ in $(seq 1 60); do
@@ -127,11 +131,34 @@ prune() {
   docker image prune -af --filter until=72h > /dev/null
 }
 
+# Once, on the first deploy with Redis on the VM: copy what Upstash still holds,
+# such as applications people are halfway through. Run after the bot has
+# switched, so nothing writes to Upstash any more, and copy-redis.js skips keys
+# written here since. A failure is reported but doesn't fail the deploy: all of
+# it expires within the hour anyway, and the marker isn't written, so the next
+# deploy tries again until the secret is deleted.
+copy_from_upstash() {
+  local marker=/opt/appealy/redis-copied-from-upstash
+  [ -e "$marker" ] && return 0
+  local src
+  if ! src="$(read_secret appealy-redis-url 2>/dev/null)" || [ -z "$src" ]; then
+    echo "No Upstash secret left, nothing to copy."
+    touch "$marker"
+    return 0
+  fi
+  if SRC="$src" DEST="$REDIS_URL" docker compose exec -T -e SRC -e DEST api node - < copy-redis.js; then
+    touch "$marker"
+  else
+    echo "Copying from Upstash failed. The next deploy will try again." >&2
+  fi
+}
+
 case "$step" in
   pull) pull ;;
   api) start_api ;;
   bot)
     start_bot
+    copy_from_upstash
     prune
     ;;
   *)

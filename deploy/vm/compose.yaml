@@ -1,6 +1,6 @@
 # deploy/vm/compose.yaml
 #
-# The API, the bot and the Cloud SQL proxy, on one small VM. nginx stays on Cloud
+# The API, the bot, Redis and the Cloud SQL proxy, on one small VM. nginx stays on Cloud
 # Run and reaches the API over the private network: see deploy/service.yaml for
 # why, and README.md in this folder for how to run and repair this.
 #
@@ -28,9 +28,9 @@ x-logging: &logging
     max-buffer-size: 4m
 
 services:
-  # Holds the network the other three share, so they reach each other on
-  # 127.0.0.1 just as containers in one Cloud Run instance do. DATABASE_URL points
-  # at 127.0.0.1, and this keeps that true. A container of its own, because
+  # Holds the network the other four share, so they reach each other on
+  # 127.0.0.1 just as containers in one Cloud Run instance do. DATABASE_URL and
+  # REDIS_URL point at 127.0.0.1, and this keeps that true. A container of its own, because
   # restarting whichever container held the network would cut off the others.
   #
   # 3001 is the only port published, and only on the private address. The bot's
@@ -54,11 +54,40 @@ services:
     mem_limit: 128m
     logging: *logging
 
+  # Redis, here rather than at Upstash, whose free plan doesn't encrypt stored
+  # data. It keeps everything in memory and never writes it to disk (no RDB
+  # snapshots, no append-only file), so the only way any of it reaches storage is
+  # swap, and that's on the VM's disk, which Google encrypts. Everything in it
+  # expires by itself or can be rebuilt, so losing it on a restart is fine.
+  # Listens on 127.0.0.1 inside the shared network only, so nothing outside
+  # this VM can reach it.
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    network_mode: service:net
+    depends_on: [net]
+    command:
+      - redis-server
+      - --bind
+      - 127.0.0.1
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 48mb
+      # Only keys with an expiry are evicted when it's full, so a key meant to
+      # stay is never dropped.
+      - --maxmemory-policy
+      - volatile-lru
+    mem_limit: 64m
+    logging: *logging
+
   api:
     image: "${ARTIFACT_REGISTRY:?}/appealy-api:${SHA:?}"
     restart: unless-stopped
     network_mode: service:net
-    depends_on: [net, cloudsql-proxy]
+    depends_on: [net, cloudsql-proxy, redis]
     # Node ignores SIGTERM as PID 1, so the old API keeps answering until this
     # runs out. That's what lets requests already in progress finish.
     stop_grace_period: 5s
@@ -99,7 +128,7 @@ services:
     image: "${ARTIFACT_REGISTRY:?}/appealy-bot:${SHA:?}"
     restart: unless-stopped
     network_mode: service:net
-    depends_on: [net, cloudsql-proxy]
+    depends_on: [net, cloudsql-proxy, redis]
     mem_limit: 512m
     environment:
       - BOT_INTERNAL_PORT=9090
