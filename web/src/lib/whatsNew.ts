@@ -36,6 +36,28 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    publishedAt: "2026-11-04T00:00:00Z",
+    title: { en: "Moderation is now slash commands", ja: "モデレーションはスラッシュコマンドに" },
+    items: [
+      {
+        title: { en: "/ban, /kick and /mute replace ?ban", ja: "?ban の代わりに /ban、/kick、/mute" },
+        body: {
+          en: "Discord asks bots to use slash commands instead of reading every message, so ?ban, ?kick and the rest are gone. /ban, /unban, /kick, /mute and /unmute do the same, lengths and appeals included. @Appealy ban @user still works too.",
+          ja: "Discord はボットがすべてのメッセージを読む代わりにスラッシュコマンドを使うよう求めているため、?ban、?kick などは使えなくなりました。/ban、/unban、/kick、/mute、/unmute で同じことができ、期間や異議申し立ての設定も使えます。@Appealy ban @ユーザー も引き続き使えます。",
+        },
+        view: "moderation",
+        action: { en: "Open Moderation", ja: "モデレーションを開く" },
+      },
+      {
+        title: { en: "/poll asks for the close time up front", ja: "/poll は締め切りを最初に指定" },
+        body: {
+          en: "Type it in the command's closes box: 1h 20m, 2 days, or july 10 3pm EST. Appealy no longer asks for it in the channel afterwards.",
+          ja: "コマンドの closes 欄に入力します（1h 20m、2 days、july 10 3pm JST など）。あとからチャンネルで聞かれることはなくなりました。",
+        },
+      },
+    ],
+  },
+  {
     publishedAt: "2026-10-04T09:54:00Z",
     title: { en: "Moderation, your way", ja: "モデレーションを自分好みに" },
     items: [

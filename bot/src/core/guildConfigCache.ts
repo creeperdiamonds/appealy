@@ -87,8 +87,8 @@ export interface GuildConfigBundle {
   /** Ban, timeout and restriction appeal settings — read on every guildMemberUpdate. */
   appeal: typeof schema.appealConfigs.$inferSelect | null;
   /**
-   * Text moderation command settings (prefix, on/off, roles). Read for every
-   * message that could be a command. Null means the defaults.
+   * Moderation command settings (whether "@Appealy ban" works, and roles).
+   * Read for every moderation command. Null means the defaults.
    */
   moderation: typeof schema.moderationConfigs.$inferSelect | null;
   /** Channel IDs (as strings) in this guild that have an ACTIVE sticky

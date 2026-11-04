@@ -1,6 +1,6 @@
 // bot/src/commands/pollCreate.ts
 //
-// /poll <channel> <question> <option1..option9> [multiselect] — instant poll
+// /poll <channel> <question> <closes> <option1..option9> [multiselect] — instant poll
 // creation and publish, alongside the dashboard's schedule-for-later flow
 // (services/pollService.ts + polls REST routes). This command creates AND
 // immediately publishes; scheduling is dashboard-only since Discord slash
@@ -21,7 +21,8 @@ import { defer, finish } from "../utils/interactionResponse.ts";
 const MAX_OPTIONS = 9;
 
 /**
- * How long the bot waits for the close time to be typed.
+ * How long the bot waits for a timezone to be picked when the close time
+ * names an ambiguous one.
  *
  * Two minutes, against Discord's fifteen-minute deferred-interaction window,
  * so the ephemeral reply is still editable when the wait gives up and can say
@@ -38,6 +39,10 @@ export const definition: CreateApplicationCommand = {
     // Text and announcement channels only: anywhere else, publishing fails.
     { name: "channel", description: "Channel to post the poll in", descriptionLocalizations: { ja: "投票を投稿するチャンネル" }, type: ApplicationCommandOptionTypes.Channel, required: true, channelTypes: [ChannelTypes.GuildText, ChannelTypes.GuildAnnouncement] },
     { name: "question", description: "The poll question", descriptionLocalizations: { ja: "投票の質問" }, type: ApplicationCommandOptionTypes.String, required: true },
+    // Third so it's asked for before the answers. Free text, because "1h 20m",
+    // "10 hours 50 minutes" and "july 10 3pm EST" don't fit a number option;
+    // shared/lib/when.ts reads it.
+    { name: "closes", description: "When it closes: 1h 20m, 2 days, or july 10 3pm EST (UTC without a timezone)", descriptionLocalizations: { ja: "締め切り: 1h 20m、2 days、july 10 3pm JST など（タイムゾーンなしは UTC）" }, type: ApplicationCommandOptionTypes.String, required: true, maxLength: 100 },
     { name: "option1", description: "Answer option 1", descriptionLocalizations: { ja: "選択肢 1" }, type: ApplicationCommandOptionTypes.String, required: true },
     { name: "option2", description: "Answer option 2", descriptionLocalizations: { ja: "選択肢 2" }, type: ApplicationCommandOptionTypes.String, required: true },
     { name: "option3", description: "Answer option 3", descriptionLocalizations: { ja: "選択肢 3" }, type: ApplicationCommandOptionTypes.String, required: false },
@@ -115,37 +120,23 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
     return respond(bot, interaction, `You don't have permission to create polls in <#${channelId}>.`);
   }
 
-  // Asked for rather than taken as an option. A slash-command option can hold
-  // "2" hours; it cannot hold "1h 20m", "10 hours 50 minutes" or "july 10"
-  // without a format nobody remembers. So the bot asks in the channel and
-  // reads the answer — see services/pendingPrompts.ts.
-  const promptChannel = interaction.channelId ?? channelId;
-  const prompt = await bot.helpers.sendMessage(promptChannel, {
-    content:
-      `<@${author.id}> — when should this poll close?\n` +
-      "Reply with a duration like `1h 20m` or `10 hours 50 minutes`, or a date like " +
-      "`july 10 3pm`.\n" +
-      "You can name your timezone after it — `july 10 3pm EST`, `3pm UTC+5:30`, " +
-      "`july 10 3pm india`, `july 10 3pm tokyo`. Without one the time is read as UTC. " +
-      "Either way it's echoed back in your own timezone before anything is posted.",
-  });
-
-  const reply = await awaitReply(promptChannel, author.id, PROMPT_TIMEOUT_MS);
-
-  if (reply === null) {
-    await editPrompt(bot, promptChannel, prompt.id, "No close time given in time — poll cancelled.");
-    return respond(bot, interaction, "You didn't answer in time, so nothing was posted. Run `/poll` again.");
-  }
-
-  let when = parseWhen(reply, new Date());
+  // A command option since 2026-11-03. The bot used to ask in the channel and
+  // read the typed answer, which needed the Message Content intent.
+  const closes = String(opts.closes ?? "");
+  let when = parseWhen(closes, new Date());
 
   // A timezone that names more than one place is a question, not a rejection.
-  // The parser refuses to guess between India, Ireland and Israel; this asks.
+  // The parser refuses to guess between India, Ireland and Israel; this asks,
+  // in the private reply, and the pick comes back through
+  // interactions/selects/timezonePick.ts.
   if (!when.ok && when.ambiguity) {
     const { phrase, body, choices } = when.ambiguity;
+    const promptChannel = interaction.channelId ?? channelId;
+    // Waiting before the menu is shown, so even an instant pick finds a waiter.
+    const answer = awaitReply(promptChannel, author.id, PROMPT_TIMEOUT_MS);
 
-    const menu = await bot.helpers.sendMessage(promptChannel, {
-      content: `<@${author.id}> — \`${phrase}\` could mean more than one place. Which did you mean?`,
+    await finish(bot, interaction, {
+      content: `\`${phrase}\` could mean more than one place. Which did you mean?`,
       components: [
         {
           type: 1,
@@ -169,20 +160,9 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       ],
     });
 
-    // Same waiter a typed reply uses, so picking from the menu and typing
-    // `Asia/Kolkata` are one code path rather than two that could disagree.
-    const picked = await awaitReply(promptChannel, author.id, PROMPT_TIMEOUT_MS);
-
-    await editPrompt(
-      bot,
-      promptChannel,
-      menu.id,
-      picked ? `Timezone: \`${picked}\`` : "No timezone picked in time.",
-    );
-
+    const picked = await answer;
     if (picked === null) {
-      await editPrompt(bot, promptChannel, prompt.id, "No timezone picked — poll cancelled.");
-      return respond(bot, interaction, "You didn't pick a timezone in time, so nothing was posted.");
+      return finish(bot, interaction, { content: "You didn't pick a timezone in time, so nothing was posted.", components: [] });
     }
 
     // Re-parsed rather than patched: the chosen value is a zone the parser
@@ -192,7 +172,6 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   }
 
   if (!when.ok) {
-    await editPrompt(bot, promptChannel, prompt.id, `Poll cancelled — ${when.reason}`);
     return respond(bot, interaction, `${when.reason}\n\nNothing was posted. Run \`/poll\` again.`);
   }
 
@@ -207,7 +186,6 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       const why =
         "A Discord poll can run for at most 32 days. Either pick a sooner time, or " +
         "re-run with `engine: Legacy embed`, which has no such limit.";
-      await editPrompt(bot, promptChannel, prompt.id, `Poll cancelled — ${why}`);
       return respond(bot, interaction, why);
     }
     // Discord takes whole hours, so the poll is opened for the hours rounded
@@ -234,17 +212,10 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
   // <t:...:F> renders in each reader's own timezone, which is the honest way
   // to confirm a time parsed as UTC from text that named no zone.
-  await editPrompt(
-    bot,
-    promptChannel,
-    prompt.id,
-    `Poll posted in <#${channelId}> — closes <t:${unix(closesAt)}:F> (<t:${unix(closesAt)}:R>)${zoneNote}.`,
-  );
-
   await respond(
     bot,
     interaction,
-    `Poll posted in <#${channelId}>, closing <t:${unix(closesAt)}:R>${zoneNote}.`,
+    `Poll posted in <#${channelId}>, closing <t:${unix(closesAt)}:F> (<t:${unix(closesAt)}:R>)${zoneNote}.`,
   );
 }
 
@@ -274,21 +245,8 @@ function unix(d: Date): number {
   return Math.floor(d.getTime() / 1000);
 }
 
-/**
- * Rewrites the question the bot asked into what came of it, so the channel is
- * left with one message that reads as a result rather than a dangling
- * question. Failure here is cosmetic and must not lose a posted poll.
- */
-async function editPrompt(bot: AppealyBot, channelId: bigint, messageId: bigint, content: string) {
-  try {
-    await bot.helpers.editMessage(channelId, messageId, { content });
-  } catch {
-    // The message may have been deleted by a moderator mid-prompt.
-  }
-}
-
-// Ephemeral flag now lives on the deferral; this wrapper just routes
-// through finish() so call sites didn't need to change.
+// Ephemeral flag lives on the deferral. Clears the timezone menu, if one was
+// shown, along with whatever was there before.
 async function respond(bot: AppealyBot, interaction: Interaction, content: string) {
-  await finish(bot, interaction, content);
+  await finish(bot, interaction, { content, components: [] });
 }

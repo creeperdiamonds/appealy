@@ -1111,18 +1111,23 @@ export const welcomerConfigs = pgTable("welcomer_configs", {
 });
 
 // ---------------------------------------------------------------------------
-// Moderation commands — ?ban, ?kick, ?mute… (bot/src/services/moderation.ts).
-// One row per guild; a guild that never saved has no row and gets the
-// defaults: on, prefix "?", anyone with the matching Discord permission.
+// Moderation commands — /ban, /kick, /mute… and "@Appealy ban"
+// (bot/src/services/moderation.ts). One row per guild; a guild that never
+// saved has no row and gets the defaults: on, anyone with the matching
+// Discord permission.
 // ---------------------------------------------------------------------------
 
 export const moderationConfigs = pgTable("moderation_configs", {
   guildId: bigint("guild_id", { mode: "bigint" })
     .primaryKey()
     .references(() => guilds.id, { onDelete: "cascade" }),
-  /** Off turns off the prefix AND the "@Appealy ban" form: all text commands. */
+  /** Off turns off the "@Appealy ban" form. The slash commands are turned off in Discord's Integrations settings. */
   textCommandsEnabled: boolean("text_commands_enabled").notNull().default(true),
-  /** 1-5 characters, no spaces. Not "/", which Discord's own command picker owns. */
+  /**
+   * Unused since the "?ban" prefix commands were removed on 2026-11-03 (see
+   * bot/src/services/modCommands.ts). Kept rather than dropped so no migration
+   * was needed, and so the value is still there if a prefix ever comes back.
+   */
   prefix: varchar("prefix", { length: 5 }).notNull().default("?"),
   /**
    * When non-empty, only members with one of these roles may use the text

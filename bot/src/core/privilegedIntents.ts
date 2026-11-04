@@ -2,8 +2,8 @@
 //
 // Appealy asks Discord for two privileged intents: Server Members (welcomer,
 // auto-roles, verification, auto-closing tickets and auto-denying applications
-// when someone leaves) and Message Content (ticket transcripts, /poll's typed
-// close time). Both are switches in the Developer Portal, off
+// when someone leaves) and Message Content (ticket transcripts, and nothing
+// else since 2026-11-03). Both are switches in the Developer Portal, off
 // by default on every new application.
 //
 // With either switch off, Discord closes the gateway with 4014 "Disallowed

@@ -107,9 +107,7 @@ Deno.test("a long list is split to stay inside Discord's 1024-character fields",
   })) as unknown as CreateApplicationCommand[];
   const all = helpMessage(many, options()).embeds[0].fields;
   for (const f of all) assert(f.value.length <= 1024, `${f.value.length} characters`);
-  // The text moderation commands always close the list.
-  assertEquals(all.at(-1)!.name, "Moderation (type these in chat)");
-  const fields = all.slice(0, -1);
+  const fields = all;
   assert(fields.length > 1);
   assertEquals(fields[0].name, "Commands for server admins");
   assert(fields.slice(1).every((f) => f.name === "​"), "continuations read as the same list");
@@ -131,10 +129,25 @@ Deno.test("a full command list fits Discord's 6000-character embed limit", () =>
   assert(total <= 6000, `${total} characters`);
 });
 
-Deno.test("the moderation section uses the server's prefix, and disappears when they're off", () => {
-  const custom = helpMessage([], options({ prefix: "!" })).embeds[0].fields.at(-1)!;
-  assert(custom.value.includes("`!ban"), custom.value);
-  assert(!custom.value.includes("`?ban"));
-  const off = helpMessage([], options({ textCommands: false })).embeds[0].fields;
-  assert(!off.some((f) => f.name.startsWith("Moderation")));
+const MODERATION_DEFINITIONS = [
+  ...DEFINITIONS,
+  { name: "ban", description: "Ban a member, for good or for a while", defaultMemberPermissions: ["BAN_MEMBERS"] },
+  { name: "kick", description: "Remove a member from the server", defaultMemberPermissions: ["KICK_MEMBERS"] },
+] as unknown as CreateApplicationCommand[];
+
+Deno.test("moderation commands get their own group, before moving data, with the mention form", () => {
+  const all = helpMessage(MODERATION_DEFINITIONS, options()).embeds[0].fields;
+  assertEquals(all.map((f) => f.name), ["Commands for everyone", "Commands for server admins", "Moderation", "Moving your data"]);
+  const moderation = all[2].value;
+  assert(moderation.includes("`/ban`") && moderation.includes("`/kick`"), moderation);
+  assert(moderation.includes("`@Appealy ban @user 7d spamming`"), moderation);
+  assert(!all[1].value.includes("/ban"), "not also listed with the admin commands");
+  assert(!fieldText(helpMessage(MODERATION_DEFINITIONS, options())).includes("`?"), "no prefix commands");
+});
+
+Deno.test("the mention form is left out when the server turned it off; the slash commands stay", () => {
+  const moderation = helpMessage(MODERATION_DEFINITIONS, options({ textCommands: false })).embeds[0].fields
+    .find((f) => f.name === "Moderation")!;
+  assert(moderation.value.includes("`/ban`"));
+  assert(!moderation.value.includes("@Appealy"));
 });

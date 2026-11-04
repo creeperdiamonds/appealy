@@ -37,8 +37,8 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   // By the time anyone runs /help, both have long finished loading.
   const { commandDefinitions } = await import("./index.ts");
   const guildId = interaction.guildId;
-  // The server's text-command settings, so /help shows its own prefix. A
-  // failed read only costs that: the default is shown instead.
+  // Whether the server turned "@Appealy ban" off, so /help doesn't offer it.
+  // A failed read only costs that: it's shown.
   const moderation = guildId ? await getGuildConfig(guildId).then((c) => c.moderation ?? null).catch(() => null) : null;
 
   await finish(
@@ -52,7 +52,6 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       docsUrl: DOCS_URL,
       supportUrl: deployment.supportUrl || (deployment.mode === "platform" ? PLATFORM_SUPPORT_URL : ""),
       ids: await commandIds(bot),
-      prefix: moderation?.prefix,
       textCommands: moderation ? moderation.textCommandsEnabled : true,
     }),
   );

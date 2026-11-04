@@ -16,7 +16,7 @@ import { CUSTOM_ID_NAMESPACES, encodeCustomId } from "../../../shared/types/inde
 
 export function onGuildBanAdd(bot: AppealyBot) {
   return async (payload: { guildId: bigint; user: { id: bigint; username?: string } }) => {
-    // "?ban noappeal" (services/appealSuppression.ts).
+    // "/ban appeal:false" (services/appealSuppression.ts).
     if (takeAppealSuppression(payload.guildId, payload.user.id)) return;
     try {
       await sendBanAppealDm(bot, payload.guildId, payload.user.id);

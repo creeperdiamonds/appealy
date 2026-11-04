@@ -71,7 +71,7 @@ export const ja: Record<string, string> = {
   "Join-velocity detection and lockdown": "参加速度の検知とロックダウン",
   "Discord's filters, editable from a phone": "Discord のフィルターをスマホからも編集",
   "Moderation": "モデレーション",
-  "?ban, ?mute and the other text commands": "?ban や ?mute などのテキストコマンド",
+  "/ban, /mute and the other moderation commands": "/ban や /mute などのモデレーションコマンド",
   "Join and leave messages, auto-roles": "参加・退出メッセージと自動ロール",
   "Self-assignable roles": "自分で取得できるロール",
   "Keep a message at the bottom of a channel": "チャンネルの一番下にメッセージを固定します",

@@ -1,32 +1,25 @@
 // bot/src/services/pendingPrompts.ts
 //
-// "Ask a question in the channel and wait for that person's next message."
+// "Ask that person a question and wait for their answer."
 //
-// Used by /poll to collect a close time conversationally — the bot asks
-// "when should this close?" and the author types "1h 20m" or "july 10"
-// rather than fighting a slash-command option into expressing it.
+// Used by /poll when the close time names a timezone that could be more than
+// one place: it shows a menu and waits for the pick, which arrives through
+// interactions/selects/timezonePick.ts.
+//
+// It used to wait for the person's next typed message too, read from
+// events/messageCreate.ts. That needed the Message Content intent, so the
+// close time became a command option instead (2026-11-03) and only menu picks
+// arrive here now.
 //
 // IN MEMORY, ON PURPOSE
 // ---------------------
-// This is read by events/messageCreate.ts, which that file's own header calls
-// the highest-frequency handler in the bot: it fires per message, across
-// every channel of every guild, and has been tuned down to one Map lookup and
-// no syscall for the ~99% case. A Redis or Postgres read per message to check
-// for a pending prompt would undo precisely the work that file exists to
-// protect, to serve a question that is outstanding for at most two minutes a
-// few times a day.
+// A prompt does not survive a restart, and the waiter simply times out. That
+// is the right trade for a two-minute question: nothing is persisted that
+// could be left inconsistent, and the person is told to run the command again.
 //
-// hasPendingPrompts() exists so the common case costs an integer compare
-// rather than building a key string that is then looked up in an empty Map.
-//
-// The cost of memory is that a prompt does not survive a restart, and the
-// waiter simply times out. That is the right trade for a two-minute
-// conversational prompt: nothing is persisted that could be left inconsistent,
-// and the person is told to run the command again.
-//
-// Sharding does not break this. Discord routes a guild's interactions and its
-// messages to the same shard, so the process that asked the question is the
-// process that receives the answer.
+// Sharding does not break this. Discord routes a guild's interactions to the
+// same shard, so the process that asked the question is the process that
+// receives the answer.
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -43,15 +36,10 @@ function key(channelId: bigint, userId: bigint): string {
   return `${channelId}:${userId}`;
 }
 
-/** True if anything anywhere is waiting. The hot path's first check. */
-export function hasPendingPrompts(): boolean {
-  return pending.size > 0;
-}
-
 /**
- * Waits for `userId`'s next message in `channelId`.
+ * Waits for `userId`'s answer in `channelId`.
  *
- * Resolves with the message text, or null if it times out. Never rejects —
+ * Resolves with the answer, or null if it times out. Never rejects —
  * a caller that has already posted a question to a channel needs an answer
  * or a timeout, not an exception to handle.
  */
@@ -81,13 +69,7 @@ export function awaitReply(
   });
 }
 
-/**
- * Hands a message to a waiting prompt.
- *
- * Returns whether it was consumed, so the caller knows to stop processing the
- * message — an answer to the bot's question is not also a sticky-message bump
- * or a command.
- */
+/** Hands an answer to a waiting prompt. Returns whether anything was waiting for it. */
 export function deliverReply(channelId: bigint, userId: bigint, text: string): boolean {
   const k = key(channelId, userId);
   const waiter = pending.get(k);

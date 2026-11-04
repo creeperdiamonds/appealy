@@ -22,20 +22,22 @@ export interface HelpOptions {
   supportUrl: string;
   /** Command name → id, for mentions people can click. A name missing here is written as plain /name. */
   ids: ReadonlyMap<string, string>;
-  /** This server's prefix for the text moderation commands. Default "?". */
-  prefix?: string;
-  /** False when the server turned the text commands off: their section is left out. */
+  /** False when the server turned "@Appealy ban" off: the line about it is left out. */
   textCommands?: boolean;
 }
 
 /** Moving a server's setup and data. Grouped apart from the everyday admin commands. */
 const DATA = new Set(["export", "import-appealy", "import-appy"]);
 
+/** /ban and the rest, grouped for moderators rather than with the setup commands. */
+const MODERATION = new Set(["ban", "unban", "kick", "mute", "unmute"]);
+
 /** The order /help lists commands in. Anything not named here follows, in registration order. */
 const ORDER = [
   "apply", "application", "forms", "dashboard", "vote", "poll", "help", "botstats", "ping",
   "panel", "ticket-panel", "role-menu", "verify-setup", "giveaway", "anti-raid",
   "reset-cooldown", "export_applications",
+  "ban", "unban", "kick", "mute", "unmute",
   "export", "import-appealy", "import-appy",
 ];
 
@@ -69,13 +71,9 @@ const TEXT = {
     everyone: "Commands for everyone",
     admins: "Commands for server admins",
     data: "Moving your data",
-    moderation: "Moderation (type these in chat)",
-    moderationLines: [
-      "`?ban [noappeal] @user [7d…] [reason]` · `?unban <id> [reason]`",
-      "`?kick @user [reason]`",
-      "`?mute @user [10m, 2h, 1d…] [reason]` · `?unmute @user`",
-      "Also works as `@Appealy ban @user …`. A length makes a ban temporary; `noappeal` skips the appeal button. Servers can change the prefix, limit these to roles or turn them off on the dashboard.",
-    ],
+    moderation: "Moderation",
+    mentionForm: (brand: string) =>
+      `You can also type them as a mention: \`@${brand} ban @user 7d spamming\`. A length makes a ban temporary; \`noappeal\` skips the appeal button.`,
     dashboard: "Open the dashboard",
     docs: "Documentation",
     support: "Support server",
@@ -94,13 +92,9 @@ const TEXT = {
     everyone: "全員が使えるコマンド",
     admins: "サーバー管理者向けコマンド",
     data: "データの移行",
-    moderation: "モデレーション（チャットに入力）",
-    moderationLines: [
-      "`?ban [noappeal] @ユーザー [7d…] [理由]` · `?unban <ID> [理由]`",
-      "`?kick @ユーザー [理由]`",
-      "`?mute @ユーザー [10m, 2h, 1d…] [理由]` · `?unmute @ユーザー`",
-      "`@Appealy ban @ユーザー …` の形でも使えます。長さを付けると期限付きの BAN になり、`noappeal` を付けると申し立てボタンは送られません。プレフィックスの変更、ロールの制限、無効化はダッシュボードでできます。",
-    ],
+    moderation: "モデレーション",
+    mentionForm: (brand: string) =>
+      `メンションでも使えます: \`@${brand} ban @ユーザー 7d 理由\`。長さを付けると期限付きの BAN になり、\`noappeal\` を付けると申し立てボタンは送られません。`,
     dashboard: "ダッシュボードを開く",
     docs: "ドキュメント",
     support: "サポートサーバー",
@@ -135,10 +129,18 @@ export function helpMessage(definitions: readonly CreateApplicationCommand[], o:
   const sorted = [...definitions].sort((a, b) => rank(a.name) - rank(b.name));
   const forAdmins = (d: CreateApplicationCommand) => (d.defaultMemberPermissions?.length ?? 0) > 0;
 
-  const groups: [string, CreateApplicationCommand[]][] = [
-    [t.everyone, sorted.filter((d) => !DATA.has(d.name) && !forAdmins(d))],
-    [t.admins, sorted.filter((d) => !DATA.has(d.name) && forAdmins(d))],
-    [t.data, sorted.filter((d) => DATA.has(d.name))],
+  const general = (d: CreateApplicationCommand) => !DATA.has(d.name) && !MODERATION.has(d.name);
+  const moderation = sorted.filter((d) => MODERATION.has(d.name));
+  const groups: [string, string[]][] = [
+    [t.everyone, sorted.filter((d) => general(d) && !forAdmins(d)).flatMap(lines)],
+    [t.admins, sorted.filter((d) => general(d) && forAdmins(d)).flatMap(lines)],
+    [
+      t.moderation,
+      moderation.length === 0
+        ? []
+        : [...moderation.flatMap(lines), ...(o.textCommands === false ? [] : [t.mentionForm(o.brand)])],
+    ],
+    [t.data, sorted.filter((d) => DATA.has(d.name)).flatMap(lines)],
   ];
 
   const buttons = [
@@ -153,15 +155,7 @@ export function helpMessage(definitions: readonly CreateApplicationCommand[], o:
         title: t.title(o.brand),
         description: t.intro(o.brand, mention("panel", "create"), mention("apply")),
         color: COLOR,
-        fields: [
-          ...groups.flatMap(([name, defs]) => fields(name, defs.flatMap(lines))),
-          // Text commands aren't application commands, so they aren't in
-          // `definitions`; written out here (services/modCommands.ts), with
-          // the server's own prefix.
-          ...(o.textCommands === false
-            ? []
-            : fields(t.moderation, t.moderationLines.map((l) => l.replaceAll("`?", "`" + (o.prefix ?? "?"))))),
-        ],
+        fields: groups.flatMap(([name, groupLines]) => fields(name, groupLines)),
       },
     ],
     components: [{ type: 1, components: buttons }],
