@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!--
+  site/discord-application-bot.html
+
+  Targets "discord application bot" and "discord staff application bot", the
+  thing Appealy does first and the one query it had no page for: the other
+  feature pages pointed "staff applications" at the homepage.
+
+  Written from the code, like the other feature pages. What each section rests on:
+    Forms, questions, roles, gating, review settings  shared/schema/schema.ts (forms, questions)
+    25 text questions in server, more by DM            shared/lib/formLimits.ts
+    Votes, Ask applicant                               submissionVotes, submissionFollowups
+    Withdraw                                           bot/src/interactions/buttons/submissionWithdraw.ts
+    Commands                                           bot/src/commands/{apply,application,panelCreate,
+                                                       resetCooldown,resetAllCooldowns,exportApplications,importAppy}.ts
+    Templates                                          site/guides/applications.html (dashboard labels)
+    Free-tier numbers                                  shared/schema/pricing.ts (RATE_LIMIT_PRESETS.free)
+  If one stops being true, fix the code or fix this page. Do not leave them
+  disagreeing.
+
+  The FAQPage block and the visible questions at the bottom are the SAME text.
+-->
+
+<title>Discord Application Bot for Staff Applications — Appealy</title>
+<meta name="description" content="Staff applications for Discord: build a form, post an Apply button, review in a staff channel with votes, follow-up questions and automatic roles. Every feature free.">
+<link rel="canonical" href="https://appealy.app/discord-application-bot">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Appealy">
+<meta property="og:url" content="https://appealy.app/discord-application-bot">
+<meta property="og:title" content="Discord Application Bot for Staff Applications — Appealy">
+<meta property="og:description" content="Staff applications for Discord: build a form, post an Apply button, review in a staff channel with votes, follow-up questions and automatic roles. Every feature free.">
+<meta property="og:image" content="https://appealy.app/og.png?v=2">
+<meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Discord Application Bot for Staff Applications — Appealy">
+<meta name="twitter:description" content="Staff applications for Discord: build a form, post an Apply button, review in a staff channel with votes, follow-up questions and automatic roles. Every feature free.">
+<meta name="twitter:image" content="https://appealy.app/og.png?v=2">
+
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Appealy",
+          "item": "https://appealy.app/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Application bot",
+          "item": "https://appealy.app/discord-application-bot"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Do applicants have to leave Discord?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. An in-server form opens as a Discord pop-up when someone presses Apply, and a direct-message form asks its questions one at a time in DMs. Nobody is sent to a website."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How many questions can a form have?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Up to 25 on the free plan. An in-server form shows them across several pop-up pages and can ask at most 25 text questions, because that is what Discord's pop-ups allow. A direct-message form asks one at a time, so on a paid plan it can be longer."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can staff discuss an application before deciding?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Each application can open a review thread for staff, staff can vote with thumbs up or down, and Ask applicant sends the applicant a question whose answer is attached to the application."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can accepting an application give a role?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Each form can grant and remove roles on accept, add and remove roles on deny, give a role while the application is waiting, and remove a role the moment someone submits."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I stop people applying over and over?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. A form can have a cooldown, a limit on how many times each person can apply, and a limit within a time window, and by default one person can only have one application waiting. Staff can reset someone's cooldown with /reset-cooldown."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every feature is on the free plan. Paid plans raise limits such as how many forms and applications a server can have, and you can self-host the whole bot for free under the AGPL-3.0."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="home" href="/">
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="/brand/wordmark-light.svg">
+        <img src="/brand/wordmark.svg" alt="Appealy" width="360" height="80">
+      </picture>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/#features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/guides">Guides</a>
+      <a href="https://docs.appealy.app/">Docs</a>
+      <a href="https://github.com/creeperdiamonds/appealy">GitHub</a>
+      <a href="/dashboard/">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article class="prose">
+
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Appealy</a></li>
+          <li aria-current="page">Application bot</li>
+        </ol>
+      </nav>
+
+      <h1>Discord application bot</h1>
+      <p class="lede">Staff applications without a spreadsheet. Build the form in a dashboard, post an
+        Apply button, and every application arrives in a staff channel with Accept and Deny under it.
+        Accepting can hand out the role, and the applicant hears back either way.</p>
+
+      <p class="btn-row">
+        <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
+        <a class="btn" href="/guides/applications">Setup guide</a>
+      </p>
+
+      <h2>Applicants never leave Discord</h2>
+
+      <p>Each form is one of two kinds, and you pick per form:</p>
+      <ul>
+        <li><strong>In server.</strong> Someone presses Apply and a Discord pop-up opens. Longer
+          forms continue over several pop-up pages, up to 25 text questions, and a choice question
+          shows as a menu.</li>
+        <li><strong>Direct message.</strong> The bot asks one question at a time in DMs. There is no
+          pop-up size limit, and you can give people a time limit to finish.</li>
+      </ul>
+      <p>Questions can be short text, a paragraph, or a choice from a list. Each can be required or
+        optional, have a minimum and maximum length, and be checked against a pattern you write, with
+        your own error message when an answer doesn't fit, like a Minecraft username or an age.</p>
+
+      <p>Start from a template if you like: <strong>Staff application</strong>, <strong>Police, Fire
+        &amp; EMS</strong> and <strong>Minecraft SMP</strong> fill the questions in for you.</p>
+
+      <h2>Reviewing, in Discord</h2>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Feature</th><th scope="col">Does</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Review channel</th><td>New applications post to a staff channel, with separate channels for accepted and denied if you want them</td></tr>
+            <tr><th scope="row">Ping roles</th><td>Who gets pinged when an application arrives</td></tr>
+            <tr><th scope="row">Review thread</th><td>A thread under each application for staff to talk it over</td></tr>
+            <tr><th scope="row">Votes</th><td>Staff vote 👍 or 👎 before anyone decides</td></tr>
+            <tr><th scope="row">Ask applicant</th><td>Sends the applicant a question, and their answer is attached to the application</td></tr>
+            <tr><th scope="row">Outcomes</th><td>More than one way to accept, like "Accept as Moderator" or "Accept as Helper", each with its own roles</td></tr>
+            <tr><th scope="row">Reviewers</th><td>Limit who can accept or deny one form to certain people or roles</td></tr>
+            <tr><th scope="row">Hide answers</th><td>Keep the answers out of the Discord channel and show them only on the dashboard</td></tr>
+            <tr><th scope="row">Deny reason</th><td>Optional, and sent to the applicant</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Roles that look after themselves</h2>
+
+      <ul>
+        <li><strong>On accept:</strong> give roles like @Trial Mod, and take others away.</li>
+        <li><strong>On deny:</strong> add or remove roles too, like a "Previously denied" tag.</li>
+        <li><strong>While waiting:</strong> a role such as @Applicant, removed automatically once it's decided.</li>
+        <li><strong>On submit:</strong> remove a role the moment someone applies, like "Can apply".</li>
+      </ul>
+
+      <h2>Who can apply, and how often</h2>
+
+      <p>A form can require certain roles (all of them or any one), refuse people with others, and set
+        a cooldown, a limit on how many times each person can apply, and a limit within a time window. By default one
+        person can only have one application waiting. Staff can let someone apply again early with
+        <code>/reset-cooldown</code>, or everyone with <code>/reset-all-cooldowns</code>. If an
+        applicant leaves the server, their waiting application can be denied automatically.</p>
+
+      <h2>For the applicant</h2>
+
+      <p>They get a DM when they submit, when they're accepted and when they're denied, and you can
+        write each one yourself with <code>{username}</code>, <code>{guild}</code>,
+        <code>{form}</code> and <code>{reason}</code>. They can check where they stand with
+        <code>/application status</code>, and withdraw an application they no longer want.</p>
+
+      <h2>Setting it up</h2>
+
+<pre><code>/panel create form: Staff application title: Apply to the team</code></pre>
+
+      <p>Make the form in the dashboard first, then that posts its Apply button in the channel you run
+        it in. One panel can hold several forms, as buttons or a dropdown, and people can also start
+        one with <code>/apply</code>. The <a href="/guides/applications">applications guide</a> walks
+        through it click by click.</p>
+
+      <h2>History you can take with you</h2>
+
+      <p>The dashboard keeps every application and what happened to it: who accepted it, who denied it
+        and why. <code>/export_applications</code> downloads them. Coming from Appy?
+        <code>/import-appy</code> brings your Appy history across, as the
+        <a href="/guides/moving-from-appy">Moving from Appy guide</a> explains.</p>
+
+      <h2>What it costs</h2>
+
+      <p><strong>Nothing.</strong> Every feature above is on the free plan, which allows 10 forms, 10
+        panels, 25 questions per form, 150 applications a day and 60 days of history. Paid plans raise
+        those numbers and nothing else, as the <a href="/pricing">pricing page</a> lists. Or
+        <a href="https://docs.appealy.app/self-hosting/">run it yourself</a> under the AGPL-3.0.</p>
+
+      <h2>It is not only an application bot</h2>
+
+      <p>The same bot runs <a href="/discord-ban-appeal-bot">ban appeals</a>,
+        <a href="/discord-ticket-bot">tickets</a>,
+        <a href="/discord-verification-bot">verification</a>,
+        <a href="/discord-anti-raid-bot">anti-raid</a> and
+        <a href="/discord-giveaway-bot">giveaways</a>: one bot to invite and one dashboard.</p>
+
+      <h2 id="faq">Questions</h2>
+      <h3>Do applicants have to leave Discord?</h3>
+      <p>No. An in-server form opens as a Discord pop-up when someone presses Apply, and a direct-message form asks its questions one at a time in DMs. Nobody is sent to a website.</p>
+
+      <h3>How many questions can a form have?</h3>
+      <p>Up to 25 on the free plan. An in-server form shows them across several pop-up pages and can ask at most 25 text questions, because that is what Discord's pop-ups allow. A direct-message form asks one at a time, so on a paid plan it can be longer.</p>
+
+      <h3>Can staff discuss an application before deciding?</h3>
+      <p>Yes. Each application can open a review thread for staff, staff can vote with thumbs up or down, and Ask applicant sends the applicant a question whose answer is attached to the application.</p>
+
+      <h3>Can accepting an application give a role?</h3>
+      <p>Yes. Each form can grant and remove roles on accept, add and remove roles on deny, give a role while the application is waiting, and remove a role the moment someone submits.</p>
+
+      <h3>Can I stop people applying over and over?</h3>
+      <p>Yes. A form can have a cooldown, a limit on how many times each person can apply, and a limit within a time window, and by default one person can only have one application waiting. Staff can reset someone's cooldown with /reset-cooldown.</p>
+
+      <h3>Is it free?</h3>
+      <p>Yes. Every feature is on the free plan. Paid plans raise limits such as how many forms and applications a server can have, and you can self-host the whole bot for free under the AGPL-3.0.</p>
+
+    </article>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <section>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/guides">Guides</a></li>
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="https://status.appealy.app/">Status</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Use it for</h2>
+        <ul>
+          <li><a href="/discord-application-bot">Staff applications</a></li>
+          <li><a href="/discord-ban-appeal-bot">Ban appeals</a></li>
+          <li><a href="/discord-ticket-bot">Tickets</a></li>
+          <li><a href="/discord-verification-bot">Verification</a></li>
+          <li><a href="/discord-anti-raid-bot">Anti-raid</a></li>
+          <li><a href="/discord-giveaway-bot">Giveaways</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="https://docs.appealy.app/getting-started/">Getting started</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/ban-appeals">Ban appeals</a></li>
+          <li><a href="https://docs.appealy.app/getting-started/outcomes">Review outcomes</a></li>
+          <li><a href="https://docs.appealy.app/self-hosting/">Self-hosting</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Compare</h2>
+        <ul>
+          <li><a href="/appy-alternative">Appy alternative</a></li>
+          <li><a href="/appeal-gg-alternative">Appeal.gg alternative</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a></li>
+          <li><a href="https://github.com/creeperdiamonds/appealy/blob/main/LICENSE">AGPL-3.0 licence</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/refunds">Refunds</a></li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="colophon">
+      <img src="/brand/icon.svg" alt="" width="512" height="512">
+      Appealy is free software under the GNU Affero General Public License v3.0. Not affiliated with
+      Discord Inc. Discord is a trademark of Discord Inc. Appealy is also unaffiliated with, and a
+      separate project from, Appy and Appeal.gg.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

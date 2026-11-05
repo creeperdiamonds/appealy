@@ -63,6 +63,7 @@ In-server forms stay capped at 25 text questions on every tier, because that is 
 
 ## Feature pages
 
+- [Application bot](https://appealy.app/discord-application-bot)
 - [Ban appeal bot](https://appealy.app/discord-ban-appeal-bot)
 - [Ticket bot](https://appealy.app/discord-ticket-bot)
 - [Verification bot](https://appealy.app/discord-verification-bot)

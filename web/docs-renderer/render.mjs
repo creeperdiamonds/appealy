@@ -246,6 +246,7 @@ ${body}
       <section>
         <h2>Use it for</h2>
         <ul>
+          <li><a href="${SITE}/discord-application-bot">Staff applications</a></li>
           <li><a href="${SITE}/discord-ban-appeal-bot">Ban appeals</a></li>
           <li><a href="${SITE}/discord-ticket-bot">Tickets</a></li>
           <li><a href="${SITE}/discord-verification-bot">Verification</a></li>

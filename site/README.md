@@ -12,9 +12,10 @@ build step, no framework, no bundler, and no JavaScript at all.
 | `terms.html` | Hosted-service terms |
 | `site.css` | Shared styles |
 | `robots.txt` | Allows everything, names the answer-engine crawlers explicitly, points at the sitemap |
+| `discord-application-bot.html` | |
 | `discord-ban-appeal-bot.html` | | 
 | `discord-ticket-bot.html` | |
-| `discord-verification-bot.html` | The five query-targeted feature pages — see below |
+| `discord-verification-bot.html` | The six query-targeted feature pages — see below |
 | `discord-anti-raid-bot.html` | |
 | `discord-giveaway-bot.html` | |
 | `appeal-gg-alternative.html` | The second comparison page. Deliberately has no migration section — see below |
@@ -113,6 +114,7 @@ state to manage. There is none.
 /ytprivacy.html   (YouTube Uploader privacy, for the API audit)
 /ytterms.html     (YouTube Uploader terms, for the API audit)
 /appy-alternative.html
+/discord-application-bot.html
 /discord-ban-appeal-bot.html
 /discord-ticket-bot.html
 /discord-verification-bot.html
