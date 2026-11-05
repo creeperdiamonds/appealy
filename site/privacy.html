@@ -91,7 +91,7 @@
 
     <p class="eyebrow">Legal</p>
     <h1>Privacy</h1>
-    <p class="updated">Last updated 4 November 2026</p>
+    <p class="updated">Last updated 5 November 2026</p>
 
     <p class="lede">
       This describes the hosted deployment at appealy.app. If you self-host, none of it applies to
@@ -209,7 +209,7 @@
 
     <h2>How long it is kept</h2>
     <p>
-      Every server has a history retention window, and it is one of the metered caps: 30 days on
+      Every server has a history retention window, and it is one of the metered caps: 60 days on
       the free tier, up to five years at the ceiling. Reviewed submissions &mdash; accepted, denied
       or withdrawn &mdash; are eligible for deletion once they pass it, and answers are deleted
       with the submission they belong to.
@@ -323,6 +323,17 @@
       can read the repository. The
       <a href="https://github.com/creeperdiamonds/appealy">GitHub repository</a> is still the right
       place for bugs.
+    </p>
+    <p>
+      A person&rsquo;s deletion covers every table that holds a Discord user ID, and a test fails
+      if a new one is added without saying what deletion does to it
+      (<a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/services/userDataDeletion.ts"><code>userDataDeletion.ts</code></a>
+      lists each one). What&rsquo;s about you is deleted: your applications and their answers,
+      tickets you opened, votes, entries, verification attempts and logins. Where you acted as
+      staff on someone else&rsquo;s record, such as reviewing an application or closing a ticket,
+      the record stays and your ID is replaced. Two things are kept: a temporary ban stays until
+      it ends, because that record is what lifts it, and a ban from Appealy itself for abuse
+      stays. You&rsquo;ll be told which, if any, applied to you.
     </p>
 
     <h2>If you self-host</h2>
