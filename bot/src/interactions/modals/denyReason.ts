@@ -1,23 +1,17 @@
 // bot/src/interactions/modals/denyReason.ts
 
-import { eq } from "drizzle-orm";
 import { confirmationWithAsk } from "../../services/feedbackAsk.ts";
 import type { AppealyInteraction as Interaction } from "../../core/client.ts";
-import { getGuild } from "../../core/guildLookup.ts";
-
 import type { AppealyBot } from "../../core/client.ts";
-import { db, schema } from "../../db/client.ts";
-import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
-import { findUnmanageableRoles } from "../../services/permissionService.ts";
-import { sendTemplatedDm } from "../../services/dmService.ts";
-import { logger } from "../../utils/logger.ts";
-import { markReviewPost } from "../../services/reviewPost.ts";
+import { denySubmission, reviewerFromInteraction } from "../../services/reviewDecision.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleDenyReasonModalSubmit(
   bot: AppealyBot,
   interaction: Interaction,
   submissionId: string,
+  /** The denial outcome chosen from the menu, when the form has them. */
+  outcomeId?: string,
 ) {
   const guildId = interaction.guildId;
   const reviewer = interaction.member?.user ?? interaction.user;
@@ -29,116 +23,24 @@ export async function handleDenyReasonModalSubmit(
   await defer(bot, interaction, { ephemeral: true });
 
   const reason =
-    interaction.data?.components?.[0]?.components?.[0]?.value?.trim() || "No reason provided";
+    interaction.data?.components?.[0]?.components?.[0]?.value?.trim() ?? "";
 
-  const submission = await db.query.submissions.findFirst({
-    where: eq(schema.submissions.id, submissionId),
-    with: { form: true },
-  });
-  if (!submission || submission.status !== "pending") {
-    return respond(bot, interaction, "This application is no longer pending.");
-  }
-
-  const form = submission.form;
-
-  // denyRemoveRoleIds strips roles on denial (e.g. remove an "Applicant"
-  // holding role); deniedGrantRoleIds adds roles on denial (e.g. tag the
-  // user so staff can see at a glance they were previously denied).
-  // pendingRoleIds are always cleared on any decision, same as accept.
-  const denyTargetRoles = [...form.denyRemoveRoleIds, ...form.pendingRoleIds, ...form.deniedGrantRoleIds];
-  if (denyTargetRoles.length > 0) {
-    const unmanageable = await findUnmanageableRoles(bot, guildId, denyTargetRoles);
-    const manageableRemove = [...form.denyRemoveRoleIds, ...form.pendingRoleIds].filter((r) => !unmanageable.includes(r));
-    const manageableGrant = form.deniedGrantRoleIds.filter((r) => !unmanageable.includes(r));
-    try {
-      for (const roleId of manageableRemove) {
-        await bot.helpers.removeRole(guildId, submission.applicantId, BigInt(roleId), "Application denied");
-      }
-      for (const roleId of manageableGrant) {
-        await bot.helpers.addRole(guildId, submission.applicantId, BigInt(roleId), "Application denied");
-      }
-    } catch (err) {
-      logger.error("Role update failed during deny", { submissionId, error: String(err) });
-    }
-  }
-
-  await db
-    .update(schema.submissions)
-    .set({
-      status: "denied",
-      reviewerId: reviewer.id,
-      reviewReason: reason,
-      reviewedAt: new Date(),
-    })
-    .where(eq(schema.submissions.id, submissionId));
-
-  // The reason is snapshotted here as well as on the row, because the row's
-  // copy is replaced if the submission is ever reopened and decided again.
-  await recordSubmissionEvent({
+  // The modal's custom id carries the denial outcome picked from the menu,
+  // if there was one. It used to be dropped here, so a denial outcome's label
+  // and roles never applied.
+  const result = await denySubmission(bot, {
     guildId,
-    submissionId: submission.id,
-    actorId: reviewer.id,
-    action: "denied",
-    detail: reason ? { reason } : undefined,
-  });
-
-  // Read from the post itself, not from interaction.message — see
-  // services/reviewPost.ts for why both matter. No "Reason: null" when the
-  // reviewer left it blank.
-  const deniedFooter = `Denied by ${reviewer.username}${reason ? ` • Reason: ${reason}` : ""} • Submission ID: ${submission.id}`;
-  const reviewEmbed = submission.logMessageId
-    ? await markReviewPost(bot, form.logChannelId, submission.logMessageId, submission.id, { color: 0xed4245, footer: deniedFooter }, interaction.message)
-    : null;
-  // Without the post's own embed, a plain card naming who and what, never the
-  // clicked message's: from a confirm step that's the confirmation, not the application.
-  const copyOf = reviewEmbed ?? {
-    title: `Application — ${form.name}`,
-    description: `Submitted by <@${submission.applicantId}>`,
-  };
-
-  // If a distinct denied-submission channel is configured, post a fresh
-  // copy there too — mirrors reviewAccept.ts's acceptedChannelId handling.
-  if (form.deniedChannelId && form.deniedChannelId !== form.logChannelId) {
-    try {
-      await bot.helpers.sendMessage(form.deniedChannelId, {
-        embeds: [
-          {
-            ...copyOf,
-            color: 0xed4245,
-            footer: { text: deniedFooter },
-          },
-        ],
-      });
-    } catch (err) {
-      logger.warn("Failed to post to denied-submission channel", { submissionId, error: String(err) });
-    }
-  }
-
-  if (form.autoArchiveOnDecision && submission.threadId) {
-    try {
-      await bot.helpers.editChannel(submission.threadId, { archived: true, locked: true });
-    } catch (err) {
-      logger.warn("Failed to archive staff thread after deny", { submissionId, error: String(err) });
-    }
-  }
-
-  const guildName = (await getGuild(bot, guildId))?.name ?? "the server";
-  const applicantUser = await bot.helpers.getUser(submission.applicantId).catch(() => null);
-  await sendTemplatedDm(bot, {
-    formId: form.id,
-    type: "denial",
-    userId: submission.applicantId,
-    username: applicantUser?.username ?? "there",
-    userTag: applicantUser ? `${applicantUser.username}#${applicantUser.discriminator ?? "0"}` : submission.applicantId.toString(),
-    guildName,
-    formName: form.name,
+    submissionId,
+    reviewer: reviewerFromInteraction(reviewer, interaction.member),
     reason,
+    outcomeId,
+    clicked: interaction.message,
   });
+  if (!result.ok) return respond(bot, interaction, result.message);
 
   // The feedback ask rides on this private confirmation, once per person
   // (services/feedbackAsk.ts).
-  const reviewerId = interaction.member?.user?.id ?? interaction.user?.id;
-  await finish(bot, interaction, await confirmationWithAsk(guildId, reviewerId, "Application denied."));
+  await finish(bot, interaction, await confirmationWithAsk(guildId, reviewer.id, result.message));
 }
 
 // Kept as a one-line wrapper rather than rewriting every call site: the

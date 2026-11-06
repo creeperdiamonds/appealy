@@ -1,8 +1,10 @@
 // api/src/routes/submissions.ts
-// Read-mostly routes for the dashboard's review queue view. Actual
-// accept/deny actions stay in the bot (they require posting to Discord,
-// role changes, DMs) — this surface is for browsing history and manual
-// housekeeping (e.g. withdrawing a stale submission).
+// The dashboard's Applications page: the queue, one application's answers and
+// history, and accepting or denying it. A decision is carried out by the bot
+// (bot/src/services/reviewDecision.ts), the same code the Accept and Deny
+// buttons in Discord run, because it needs Discord: roles, DMs, the review
+// post. Whether this person may decide this form is checked there too, from
+// their roles in the server.
 
 import { Router } from "express";
 import { routeParams } from "../utils/routeParams.ts";
@@ -10,7 +12,7 @@ import { z } from "zod";
 import { eq, and, desc, asc } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { logger } from "../utils/logger.ts";
-import { resolveUsers } from "../services/botBridge.ts";
+import { botCallFailure, decideSubmission, resolveUsers, reviewOptions } from "../services/botBridge.ts";
 import { requireGuildAccess } from "../middleware/guildAccess.ts";
 import type { SubmissionDTO } from "../../../shared/types/index.ts";
 
@@ -45,7 +47,12 @@ submissionsRouter.get("/", async (req, res) => {
     with: { answers: { with: { question: true } } },
   });
 
-  res.json(rows.map(toDTO));
+  // Names and faces for the applicants, resolved now and not stored. One
+  // call for the page, cached on the bot's side; if it fails the list still
+  // loads and shows IDs.
+  const resolved = await resolveUsers([...new Set(rows.map((r) => r.applicantId.toString()))]);
+  const byId = new Map(resolved.map((u) => [u.id, { username: u.username, avatarUrl: u.avatarUrl }]));
+  res.json(rows.map((r) => ({ ...toDTO(r), applicant: byId.get(r.applicantId.toString()) })));
 });
 
 submissionsRouter.get("/:submissionId", async (req, res) => {
@@ -115,6 +122,41 @@ submissionsRouter.get("/:submissionId/events", async (req, res) => {
   });
 });
 
+// What the signed-in person may do with this application: whether they can
+// review it, and which outcomes they may pick. Asked when it's opened, so the
+// page only shows buttons that will work.
+submissionsRouter.get("/:submissionId/review-options", async (req, res) => {
+  try {
+    res.json(await reviewOptions(routeParams(req).guildId, routeParams(req).submissionId, req.userId!.toString()));
+  } catch (err) {
+    res.status(502).json(botCallFailure(err));
+  }
+});
+
+const decisionSchema = z.object({
+  decision: z.enum(["accept", "deny"]),
+  outcomeId: z.string().max(64).optional(),
+  reason: z.string().max(1000).optional(),
+});
+
+submissionsRouter.post("/:submissionId/decide", async (req, res) => {
+  const parsed = decisionSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+  try {
+    const result = await decideSubmission({
+      guildId: routeParams(req).guildId,
+      submissionId: routeParams(req).submissionId,
+      userId: req.userId!.toString(),
+      ...parsed.data,
+    });
+    // A refusal (no permission, already decided) is an answer, not a failure:
+    // 200 either way, and the page shows the message.
+    res.json(result);
+  } catch (err) {
+    res.status(502).json(botCallFailure(err));
+  }
+});
+
 // Manual withdrawal — e.g. staff clean-up of a duplicate/stale pending
 // submission without going through Discord. Does NOT touch Discord roles
 // or send DMs; those side effects only happen via the bot's accept/deny
@@ -173,6 +215,7 @@ function toDTO(
     // Moderator" has to stay true after that outcome is renamed or deleted,
     // which is exactly why the dashboard should show it rather than re-deriving.
     outcomeLabel: submission.outcomeLabel ?? null,
+    completionSeconds: submission.completionSeconds ?? null,
     createdAt: submission.createdAt.toISOString(),
     answers: submission.answers.map((a) => ({
       questionId: a.questionId,

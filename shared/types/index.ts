@@ -238,8 +238,12 @@ export interface SubmissionDTO {
    * it has to stay true after the outcome is renamed or deleted.
    */
   outcomeLabel: string | null;
+  /** How long the applicant took to fill it in, when known. */
+  completionSeconds: number | null;
   createdAt: string;
   answers: { questionId: string; label: string; value: string }[];
+  /** Resolved when the list is read, never stored; absent when Discord couldn't be asked. */
+  applicant?: { username: string; avatarUrl: string };
 }
 
 export interface DmTemplateDTO {

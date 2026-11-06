@@ -1339,6 +1339,22 @@ input.input {
 }
 
 
+/* One application in the sheet: the answers, then Review, then History. */
+.sheet-heading { margin: 0 0 .5rem; }
+.answers { margin: 0; display: grid; gap: .875rem; }
+.answer dt { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: .1875rem; }
+.answer dd { margin: 0; white-space: pre-wrap; word-break: break-word; line-height: 1.55; }
+.review-box {
+  margin-top: 1.25rem; padding: .875rem 1rem;
+  border: 1px solid var(--line); border-radius: 4px; background: var(--line-soft);
+}
+.review-box p { margin: 0 0 .625rem; }
+.review-box .review-done { margin: 0; }
+.outcome-pick { border: 0; margin: 0 0 .5rem; padding: 0; }
+.outcome-pick legend { font-size: 12px; margin-bottom: .25rem; padding: 0; }
+.outcome-pick .row { padding: .375rem 0; align-items: flex-start; }
+.outcome-pick input[type="radio"] { margin-top: .25rem; flex: none; }
+
 /* --- Appeal surfaces --- */
 .stack { display: grid; gap: 1rem; }
 .page-head h1 { margin: 0 0 .25rem; font-size: 1.375rem; letter-spacing: -.01em; }

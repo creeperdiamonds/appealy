@@ -436,7 +436,28 @@ export interface Submission {
   outcomeLabel: string | null;
   completionSeconds: number | null;
   createdAt: string;
+  answers: { questionId: string; label: string; value: string }[];
+  /** Absent when Discord couldn't be asked; show the ID then. */
+  applicant?: { username: string; avatarUrl: string };
 }
+
+export interface ReviewOutcomeOption {
+  id: string;
+  label: string;
+  description: string | null;
+  grantRoleIds: string[];
+  removeRoleIds: string[];
+}
+
+/** What the signed-in person may do with one application. */
+export type ReviewOptions =
+  | { canReview: false; reason: string }
+  | {
+    canReview: true;
+    /** Null: the form has no accept outcomes, so there's one plain Accept. */
+    acceptOutcomes: ReviewOutcomeOption[] | null;
+    denyOutcomes: ReviewOutcomeOption[];
+  };
 
 /** One thing that happened to an application, for the history view.
  *
@@ -603,6 +624,19 @@ export const api = {
     const suffix = q.toString() ? `?${q}` : "";
     return request<Submission[]>(`/api/guilds/${guildId}/submissions${suffix}`);
   },
+
+  reviewOptions: (guildId: string, submissionId: string) =>
+    request<ReviewOptions>(`/api/guilds/${guildId}/submissions/${submissionId}/review-options`),
+
+  decideSubmission: (
+    guildId: string,
+    submissionId: string,
+    body: { decision: "accept" | "deny"; outcomeId?: string; reason?: string },
+  ) =>
+    request<{ ok: boolean; message: string }>(`/api/guilds/${guildId}/submissions/${submissionId}/decide`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
   antiRaid: (guildId: string) =>
     request<Record<string, unknown>>(`/api/guilds/${guildId}/anti-raid`),
