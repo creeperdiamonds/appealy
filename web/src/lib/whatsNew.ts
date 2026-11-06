@@ -36,6 +36,21 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    publishedAt: "2026-11-07T00:00:00Z",
+    title: { en: "Applications open as one popup", ja: "応募はひとつのポップアップで" },
+    items: [
+      {
+        title: { en: "No more Continue message or separate dropdown", ja: "「続ける」や別のドロップダウンはなくなりました" },
+        body: {
+          en: "Pressing Apply now opens the form straight away: its description at the top, then every question, with choice questions as dropdowns inside it. Long questions show in full instead of being cut off.",
+          ja: "「応募」を押すとすぐにフォームが開きます。上に説明、その下にすべての質問が並び、選択式の質問はその中のドロップダウンになります。長い質問も途中で切れずに表示されます。",
+        },
+        view: "forms",
+        action: { en: "Open Forms", ja: "フォームを開く" },
+      },
+    ],
+  },
+  {
     publishedAt: "2026-11-06T12:00:00Z",
     title: { en: "Review applications from the dashboard", ja: "ダッシュボードで応募を審査" },
     items: [
