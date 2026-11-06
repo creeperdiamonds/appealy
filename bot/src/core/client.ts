@@ -18,6 +18,7 @@ import { logger } from "../utils/logger.ts";
 import { registerEventHandlers } from "../events/index.ts";
 import { resolveSharding } from "./sharding.ts";
 import { requirePrivilegedIntents } from "./privilegedIntents.ts";
+import { labelComponentCustomizer } from "../services/modalAnswers.ts";
 
 export const desiredProperties = {
   guild: {
@@ -152,6 +153,17 @@ export function createAppealyBot(token: string = env.DISCORD_BOT_TOKEN) {
       GatewayIntents.GuildModeration,
     desiredProperties,
   });
+
+  // Application popups use Labels, Text Displays and dropdowns, which
+  // Discordeno 20 doesn't read back from a submitted popup. Without this every
+  // answer in one arrives as undefined (services/modalAnswers.ts).
+  const defaultComponentCustomizer = bot.transformers.customizers.component;
+  bot.transformers.customizers.component = (b, payload, component) =>
+    defaultComponentCustomizer(
+      b,
+      payload,
+      labelComponentCustomizer(b as never, payload as never, component) as typeof component,
+    );
 
   registerEventHandlers(bot);
 

@@ -22,6 +22,7 @@ import {
   handlePanelOpenButton,
   proceedToQuestions,
   showApplicationModal,
+  showFormPopup,
 } from "../interactions/buttons/panelOpen.ts";
 import { handleAppealStartButton } from "../interactions/buttons/appealStart.ts";
 import { handleReviewAccept } from "../interactions/buttons/reviewAccept.ts";
@@ -179,13 +180,16 @@ export function onInteractionCreate(bot: AppealyBot) {
           // submit, only to a message component — so a button has to sit
           // between page N and page N+1. Same reason modal:confirm exists.
           if (namespace === "modal" && action === "page") {
-            const page = Number(extra);
+            // "p2": a page of the one-popup flow; a bare number: the older flow.
+            const popup = extra?.startsWith("p") ?? false;
+            const page = Number(popup ? extra!.slice(1) : extra);
             if (!Number.isInteger(page) || page < 0) return;
             const form = await db.query.forms.findFirst({
               where: eq(schema.forms.id, entityId),
               with: { questions: { orderBy: (q, { asc }) => [asc(q.sortOrder)] } },
             });
             if (!form) return;
+            if (popup) return await showFormPopup(bot, interaction, form, page);
             return await showApplicationModal(
               bot,
               interaction,
@@ -239,12 +243,15 @@ export function onInteractionCreate(bot: AppealyBot) {
             // before pagination existed and on single-page forms, both of
             // which are page 0 — Number(undefined) is NaN, so the fallback
             // has to test the parse rather than the value.
-            const page = Number(extra);
+            // "p0", "p1"…: the one-popup flow (services/formPopup.ts).
+            const popup = extra?.startsWith("p") ?? false;
+            const page = Number(popup ? extra!.slice(1) : extra);
             return await handleFormModalSubmit(
               bot,
               interaction,
               entityId,
               Number.isInteger(page) && page >= 0 ? page : 0,
+              popup ? "popup" : "legacy",
             );
           }
           if (namespace === "feedback" && action === "submit") {

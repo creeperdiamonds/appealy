@@ -56,3 +56,25 @@ export function modalTextLimits(q: QuestionLike): ModalTextLimits {
   const minLength = q.minLength == null ? undefined : Math.min(clamp(q.minLength, 0, MODAL_LIMITS.value), maxLength);
   return { label, placeholder, minLength: minLength || undefined, maxLength };
 }
+
+/** Discord's limits for a Label around a question in a popup. */
+export const LABEL_LIMITS = { label: 45, description: 100 } as const;
+
+/**
+ * A question as a Label's label and description.
+ *
+ * A text box's own label was cut at 45 characters, so a longer question lost
+ * its end. A Label has a 100-character description as well, so the question
+ * breaks at a word near 45 and carries on there: "What kind of Strafe content
+ * would you make, and…" / "…how often could you post it?".
+ */
+export function modalLabel(text: string): { label: string; description?: string } {
+  const t = text.trim().replace(/\s+/g, " ") || "Question";
+  if (t.length <= LABEL_LIMITS.label) return { label: t };
+  const space = t.lastIndexOf(" ", LABEL_LIMITS.label - 1);
+  const at = space >= 20 ? space : LABEL_LIMITS.label - 1;
+  return {
+    label: `${t.slice(0, at).trimEnd()}…`,
+    description: clip(`…${t.slice(at).trimStart()}`, LABEL_LIMITS.description),
+  };
+}

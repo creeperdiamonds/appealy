@@ -48,3 +48,41 @@ export function modalPageSlice<T>(textQuestions: T[], page: number): T[] {
 export function isFinalPage(textQuestionCount: number, page: number): boolean {
   return page + 1 >= cappedModalPageCount(textQuestionCount);
 }
+
+// ---------------------------------------------------------------------------
+// The whole form in the popup.
+//
+// Popups used to hold only text boxes, so a form's description went in a
+// message with a Continue button first, and each choice question was a
+// dropdown in its own message before the popup opened. Discord's popups now
+// take dropdowns (inside a Label) and plain text (a Text Display), so a form
+// can be one popup, or a few pages of one: the description at the top of the
+// first page, then every question in order.
+//
+// The description takes one of the first page's five places. A form needing
+// more than the five pages this allows keeps the old flow (those functions
+// above), so nothing is ever cut off.
+// ---------------------------------------------------------------------------
+
+const POPUP_PLACES = MODAL_PAGE_SIZE * MAX_MODAL_PAGES;
+
+/** Whether every question, and the intro if there is one, fits in the popup pages. */
+export function fitsInOnePopupFlow(questionCount: number, withIntro: boolean): boolean {
+  return questionCount > 0 && questionCount + (withIntro ? 1 : 0) <= POPUP_PLACES;
+}
+
+/** The questions on each page, in order. The first page leaves a place for the intro. */
+export function popupPages<T>(questions: T[], withIntro: boolean): T[][] {
+  const pages: T[][] = [];
+  const first = MODAL_PAGE_SIZE - (withIntro ? 1 : 0);
+  pages.push(questions.slice(0, first));
+  for (let i = first; i < questions.length; i += MODAL_PAGE_SIZE) {
+    pages.push(questions.slice(i, i + MODAL_PAGE_SIZE));
+  }
+  return pages;
+}
+
+/** Whether a submit of this page completes the application. */
+export function isFinalPopupPage(questionCount: number, withIntro: boolean, page: number): boolean {
+  return page + 1 >= popupPages(Array.from({ length: questionCount }), withIntro).length;
+}
