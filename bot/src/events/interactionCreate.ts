@@ -251,7 +251,7 @@ export function onInteractionCreate(bot: AppealyBot) {
             return await submitFeedback(bot, interaction);
           }
           if (namespace === "review" && action === "deny_confirm") {
-            return await handleDenyReasonModalSubmit(bot, interaction, entityId);
+            return await handleDenyReasonModalSubmit(bot, interaction, entityId, extra || undefined);
           }
           if (namespace === "review" && action === "ask_submit") {
             return await handleAskSubmit(bot, interaction, entityId);

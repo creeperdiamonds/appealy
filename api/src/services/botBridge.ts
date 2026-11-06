@@ -292,3 +292,35 @@ export function webAppealStatus(guildId: string, userId: string) {
 export function submitWebAppeal(guildId: string, userId: string, answers: Record<string, string>, completionSeconds: number | null) {
   return callBot("/internal/appeals/submit", { guildId, userId, answers, completionSeconds }) as Promise<WebAppealResult>;
 }
+
+// --- Reviewing from the dashboard (bot/src/services/reviewDecision.ts) ---
+
+export interface ReviewOutcomeOption {
+  id: string;
+  label: string;
+  description: string | null;
+  grantRoleIds: string[];
+  removeRoleIds: string[];
+}
+
+export type ReviewOptions =
+  | { canReview: false; reason: string }
+  | { canReview: true; acceptOutcomes: ReviewOutcomeOption[] | null; denyOutcomes: ReviewOutcomeOption[] };
+
+export function reviewOptions(guildId: string, submissionId: string, userId: string) {
+  return callBot("/internal/submissions/review-options", { guildId, submissionId, userId }) as Promise<ReviewOptions>;
+}
+
+/** Roles, unbans, the review post, log copies and a DM: longer than a normal call. */
+const DECISION_TIMEOUT_MS = 45_000;
+
+export function decideSubmission(body: {
+  guildId: string;
+  submissionId: string;
+  userId: string;
+  decision: "accept" | "deny";
+  outcomeId?: string;
+  reason?: string;
+}) {
+  return callBot("/internal/submissions/decide", body, DECISION_TIMEOUT_MS) as Promise<{ ok: boolean; message: string }>;
+}

@@ -259,6 +259,41 @@ export function startControlServer(bot: AppealyBot) {
         return Response.json({ users });
       }
 
+      // Reviewing from the dashboard (services/reviewDecision.ts). The API has
+      // checked the person can open this server's dashboard; whether they may
+      // decide THIS form is answered here, from their roles in the server, by
+      // the same checks the Accept and Deny buttons use.
+      if (url.pathname === "/internal/submissions/review-options" && req.method === "POST") {
+        const { guildId, submissionId, userId } = await req.json();
+        const { reviewerFromMember, reviewOptions } = await import("../services/reviewDecision.ts");
+        const reviewer = await reviewerFromMember(bot, BigInt(guildId), BigInt(userId));
+        if (!reviewer) {
+          return Response.json({ canReview: false, reason: "You need to be in this server to review its applications." });
+        }
+        return Response.json(await reviewOptions(BigInt(guildId), String(submissionId), reviewer));
+      }
+
+      if (url.pathname === "/internal/submissions/decide" && req.method === "POST") {
+        const { guildId, submissionId, userId, decision, outcomeId, reason } = await req.json();
+        const { acceptSubmission, denySubmission, reviewerFromMember } = await import("../services/reviewDecision.ts");
+        const reviewer = await reviewerFromMember(bot, BigInt(guildId), BigInt(userId));
+        if (!reviewer) {
+          return Response.json({ ok: false, message: "You need to be in this server to review its applications." });
+        }
+        const common = {
+          guildId: BigInt(guildId),
+          submissionId: String(submissionId),
+          reviewer,
+          outcomeId: typeof outcomeId === "string" && outcomeId ? outcomeId : undefined,
+        };
+        const result = decision === "accept"
+          ? await acceptSubmission(bot, common)
+          : decision === "deny"
+          ? await denySubmission(bot, { ...common, reason: typeof reason === "string" ? reason.slice(0, 1000) : "" })
+          : { ok: false, message: "Unknown decision." };
+        return Response.json(result);
+      }
+
       // Ban appeals from the web (services/webAppeal.ts). The API has already
       // signed the person in; these ask Discord about the ban and do the rest.
       if (url.pathname === "/internal/appeals/status" && req.method === "POST") {

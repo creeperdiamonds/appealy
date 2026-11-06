@@ -36,6 +36,21 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    publishedAt: "2026-11-06T12:00:00Z",
+    title: { en: "Review applications from the dashboard", ja: "ダッシュボードで応募を審査" },
+    items: [
+      {
+        title: { en: "Read answers and accept or deny on the website", ja: "サイトで回答を読み、承認・却下" },
+        body: {
+          en: "Open an application on the Applications page to see what they answered, then accept or deny it right there. It does the same as the buttons in Discord: roles, the applicant's DM and the review post all update. Applicants now show with their name too.",
+          ja: "応募ページで応募を開くと回答が表示され、その場で承認・却下できます。Discord のボタンと同じく、ロール、応募者への DM、審査の投稿がすべて更新されます。応募者は名前でも表示されるようになりました。",
+        },
+        view: "submissions",
+        action: { en: "Open Applications", ja: "応募を開く" },
+      },
+    ],
+  },
+  {
     publishedAt: "2026-11-04T00:00:00Z",
     title: { en: "Moderation is now slash commands", ja: "モデレーションはスラッシュコマンドに" },
     items: [

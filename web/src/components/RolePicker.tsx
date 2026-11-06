@@ -36,7 +36,7 @@ export interface GuildRole {
  * useGuildChannels. The form editor opens with six of these, and every role list
  * that failed in production was part of a burst of five to seven from one server.
  */
-const loadRoles = sharedLoader(
+export const loadRoles = sharedLoader(
   (guildId: string) => api.roles(guildId) as unknown as Promise<GuildRole[]>,
   [2_000, 4_000],
 );

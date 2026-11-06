@@ -9,16 +9,13 @@ import { getGuild } from "../../core/guildLookup.ts";
 
 import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
-import { recordSubmissionEvent } from "../../services/submissionEvents.ts";
 import { canReviewForm, findUnmanageableRoles, staffLevelFor } from "../../services/permissionService.ts";
 import {
   buildOutcomeMenu, shouldConfirm, visibleOutcomes, outcomeExceedsReviewer,
   type FormOutcomeDTO,
 } from "../../../../shared/schema/outcomes.ts";
 import { buildConfirm, stageConfirm, takeConfirm } from "../outcomeConfirm.ts";
-import { sendTemplatedDm } from "../../services/dmService.ts";
-import { markReviewPost } from "../../services/reviewPost.ts";
-import { logger } from "../../utils/logger.ts";
+import { acceptSubmission, reviewerFromInteraction } from "../../services/reviewDecision.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
 export async function handleReviewAccept(
@@ -207,205 +204,20 @@ export async function handleReviewAccept(
     }
   }
 
-  // What an appeal-kind submission is appealing. Null only on submissions
-  // from before timeout and restriction appeals existed, all of them bans.
-  const appealKind = form.kind === "appeal" ? (submission.appealKind ?? "ban") : null;
-  const appealConfig = appealKind
-    ? await db.query.appealConfigs.findFirst({ where: eq(schema.appealConfigs.guildId, guildId) })
-    : null;
-  // Accepting a restriction appeal lifts the role it was about through the
-  // same removal path — and the same hierarchy check — as every other role.
-  const liftedRoleIds =
-    appealKind === "restriction" && (appealConfig?.liftRestrictionOnAccept ?? true) ? submission.appealRoleIds : [];
-
-  // The outcome's roles replace the form's; the form's removeRoleIds and
-  // pendingRoleIds still apply on top, since those clear regardless of which
-  // outcome was chosen.
-  const rolesToGrant = outcome ? outcome.grantRoleIds : form.grantRoleIds;
-  const rolesToRemove = [
-    ...new Set([...(outcome?.removeRoleIds ?? []), ...form.removeRoleIds, ...form.pendingRoleIds, ...liftedRoleIds]),
-  ]; // pending roles always clear on decision
-  const allTargetRoles = [...rolesToGrant, ...rolesToRemove];
-
-  const unmanageable = await findUnmanageableRoles(bot, guildId, allTargetRoles);
-  if (unmanageable.length > 0) {
-    logger.warn("Some roles are above the bot's highest role and cannot be managed", {
-      guildId: guildId.toString(),
-      formId: form.id,
-      unmanageable,
-    });
-  }
-
-  const manageableGrant = rolesToGrant.filter((r) => !unmanageable.includes(r));
-  const manageableRemove = rolesToRemove.filter((r) => !unmanageable.includes(r));
-
-  try {
-    for (const roleId of manageableGrant) {
-      await bot.helpers.addRole(guildId, submission.applicantId, BigInt(roleId), "Application accepted");
-    }
-    for (const roleId of manageableRemove) {
-      await bot.helpers.removeRole(guildId, submission.applicantId, BigInt(roleId), "Application accepted");
-    }
-  } catch (err) {
-    logger.error("Role assignment failed during accept", {
-      submissionId,
-      error: String(err),
-    });
-  }
-
-  // Ban-appeal-specific: accepting an appeal is the one case in this
-  // codebase where "accepted" needs to reverse something Discord itself
-  // did (a ban), not just grant/remove roles — the applicant isn't a
-  // guild member to grant roles to in the first place. See
-  // shared/schema/schema.ts's appealConfigs comment for the full design.
-  let liftWarning: string | null = null;
-  if (appealKind === "ban") {
-    // Default to unbanning even with no config row (or autoUnbanOnAccept
-    // unset) — a missing config shouldn't silently leave an accepted
-    // appeal banned, since "accepted" has an unambiguous real-world
-    // meaning for a ban appeal specifically. autoUnbanOnAccept only needs
-    // to be explicitly false to opt OUT of this.
-    if (appealConfig?.autoUnbanOnAccept ?? true) {
-      try {
-        await bot.helpers.unbanMember(guildId, submission.applicantId, "Ban appeal accepted");
-      } catch (err) {
-        // Common, non-alarming causes: the user was already unbanned by
-        // a staff member manually before this button was clicked, or the
-        // bot lacks the Ban Members permission. Surface it to the
-        // reviewer rather than only logging it, since "accepted" without
-        // an actual unban is a state a moderator needs to know about.
-        logger.warn("Unban failed after appeal acceptance", { submissionId, error: String(err) });
-        liftWarning =
-          "Note: the automatic unban failed — the user may already be unbanned, or I'm missing the Ban Members permission. Please verify manually.";
-      }
-    }
-  }
-
-  // Timeout appeals: reversing the timeout needs Moderate Members, which a
-  // server that invited the bot before this existed may not have granted.
-  if (appealKind === "timeout" && (appealConfig?.liftTimeoutOnAccept ?? true)) {
-    try {
-      await bot.helpers.editMember(
-        guildId,
-        submission.applicantId,
-        { communicationDisabledUntil: null },
-        "Timeout appeal accepted",
-      );
-    } catch (err) {
-      logger.warn("Lifting the timeout failed after appeal acceptance", { submissionId, error: String(err) });
-      liftWarning =
-        "Note: lifting the timeout failed — it may already have ended, or I'm missing the Timeout Members permission. Please check manually.";
-    }
-  }
-  if (liftedRoleIds.some((r) => unmanageable.includes(r))) {
-    liftWarning =
-      "Note: I couldn't remove the restriction role — it sits above my highest role. Remove it by hand, or move my role above it.";
-  }
-
-  await db
-    .update(schema.submissions)
-    .set({
-      status: "accepted",
-      reviewerId: reviewer.id,
-      reviewedAt: new Date(),
-      outcomeId: outcome?.id ?? null,
-      // Snapshot, not a join — see shared/schema/outcomes.ts. "Accepted as
-      // Moderator" has to stay true after the outcome is renamed or deleted.
-      outcomeLabel: outcome?.label ?? null,
-    })
-    .where(eq(schema.submissions.id, submissionId));
-
-  // The row now says "accepted"; this says who did it and as what. The row is
-  // overwritten by the next change, so without this the history is gone.
-  await recordSubmissionEvent({
+  // Everything from here is shared with the dashboard (services/reviewDecision.ts),
+  // which re-checks the outcome and the reviewer's permission itself.
+  const result = await acceptSubmission(bot, {
     guildId,
-    submissionId: submission.id,
-    actorId: reviewer.id,
-    action: "accepted",
-    detail: outcome?.label ? { outcomeLabel: outcome.label } : undefined,
+    submissionId,
+    reviewer: reviewerFromInteraction(reviewer, interaction.member),
+    outcomeId: outcome?.id,
+    clicked: interaction.message,
   });
-
-  // Update the original (pending-channel) review message: disable
-  // buttons, note the decision. Read from the post itself, not from
-  // interaction.message — see services/reviewPost.ts for why both matter.
-  const reviewEmbed = submission.logMessageId
-    ? await markReviewPost(bot, form.logChannelId, submission.logMessageId, submission.id, {
-        color: 0x57f287,
-        footer: `Accepted by ${reviewer.username} • Submission ID: ${submission.id}`,
-      }, interaction.message)
-    : null;
-  // Without the post's own embed, a plain card naming who and what, never the
-  // clicked message's: from a confirm step that's the confirmation, not the application.
-  const copyOf = reviewEmbed ?? {
-    title: `Application — ${form.name}`,
-    description: `Submitted by <@${submission.applicantId}>`,
-  };
-
-  // If a distinct accepted-submission channel is configured, post a fresh
-  // copy there too — matching the per-outcome-channel model (pending vs
-  // accepted vs denied each get their own optional destination) rather
-  // than relying solely on the edited-in-place pending post.
-  // Outcome channel wins over the form's accepted channel — the point of a
-  // per-outcome channel is that Moderator accepts can go somewhere other than
-  // Trainee accepts.
-  const acceptedChannel = outcome?.logChannelId ?? form.acceptedChannelId;
-  if (acceptedChannel && acceptedChannel !== form.logChannelId) {
-    try {
-      await bot.helpers.sendMessage(acceptedChannel, {
-        embeds: [
-          {
-            ...copyOf,
-            color: 0x57f287,
-            footer: {
-              text: outcome
-                ? `Accepted as ${outcome.label} by ${reviewer.username} • Submission ID: ${submission.id}`
-                : `Accepted by ${reviewer.username} • Submission ID: ${submission.id}`,
-            },
-          },
-        ],
-      });
-    } catch (err) {
-      logger.warn("Failed to post to accepted-submission channel", { submissionId, error: String(err) });
-    }
-  }
-
-  if (form.autoArchiveOnDecision && submission.threadId) {
-    try {
-      await bot.helpers.editChannel(submission.threadId, { archived: true, locked: true });
-    } catch (err) {
-      logger.warn("Failed to archive staff thread after accept", { submissionId, error: String(err) });
-    }
-  }
-
-  const guildName = (await getGuild(bot, guildId))?.name ?? "the server";
-  const applicantUser = await bot.helpers.getUser(submission.applicantId).catch(() => null);
-  await sendTemplatedDm(bot, {
-    formId: form.id,
-    type: "acceptance",
-    userId: submission.applicantId,
-    username: applicantUser?.username ?? "there",
-    userTag: applicantUser ? `${applicantUser.username}#${applicantUser.discriminator ?? "0"}` : submission.applicantId.toString(),
-    guildName,
-    formName: form.name,
-  });
-
-  const outcomeVerb = outcome
-    ? `Accepted as ${outcome.label}`
-    : form.kind === "appeal"
-    ? "Appeal accepted"
-    : "Application accepted";
-  const messages = [
-    unmanageable.length > 0
-      ? `${outcomeVerb}. Note: ${unmanageable.length} role(s) could not be assigned. Appealy needs the Manage Roles permission, with its role above them (Server Settings → Roles).`
-      : `${outcomeVerb}.`,
-  ];
-  // A failed unban must reach the reviewer, not just the log. "Accepted" on an
-  // appeal that left the user banned is the whole outcome they just approved.
-  if (liftWarning) messages.push(liftWarning);
+  if (!result.ok) return respond(bot, interaction, result.message);
 
   // The ask for feedback rides on this private confirmation, once per person
   // (services/feedbackAsk.ts).
-  await finish(bot, interaction, await confirmationWithAsk(guildId, reviewer.id, messages.join(" ")));
+  await finish(bot, interaction, await confirmationWithAsk(guildId, reviewer.id, result.message));
 }
 
 // Kept as a one-line wrapper rather than rewriting ~6 call sites: the flag
