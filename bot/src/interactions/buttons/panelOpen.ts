@@ -6,14 +6,14 @@
 //   2. If gated out, respond ephemerally with the reason.
 //   3. Otherwise show a Discord Modal built from the form's questions.
 //
-// Discord modals only support text inputs (short/paragraph) natively —
-// there is no native "select" component inside a modal as of the current
-// Discord API. Forms that include a `select` question therefore route
-// through a two-step flow: an ephemeral message with a select menu first
-// (handled in interactions/selects/), whose choice is stashed in Redis,
-// then the modal is shown for the remaining text questions on select
-// interaction. See docs/ARCHITECTURE.md#select-questions for the full
-// state diagram.
+// Most forms open as one real popup (services/formPopup.ts): the form's
+// description at the top, then every question, dropdowns included.
+//
+// The older flow below is kept for forms the popup can't hold (more than
+// five pages, or a dropdown Discord would refuse). It dates from when popups
+// had only text boxes: the description went in a message with a Continue
+// button, and each choice question was a dropdown in its own message, stashed
+// in Redis, before the popup opened for the text questions.
 
 import { eq, and } from "drizzle-orm";
 import { modalTextLimits } from "../../services/modalInput.ts";
@@ -32,6 +32,7 @@ import {
 } from "../../../../shared/lib/modalPaging.ts";
 import { logger } from "../../utils/logger.ts";
 import { stashPendingSelectAnswers, markApplicationStarted } from "../../services/pendingAnswers.ts";
+import { buildFormPopup, usesPopupFlow } from "../../services/formPopup.ts";
 
 const EPHEMERAL = 64;
 
@@ -108,6 +109,20 @@ export async function runApplicationFlow(
     return respond(bot, interaction, gateReasonToMessage(gate));
   }
 
+  if (usesPopupFlow(form)) {
+    try {
+      return await showFormPopup(bot, interaction, form, 0);
+    } catch (err) {
+      // A refused popup isn't an answer, so the click can still be answered
+      // the older way below. Without this, a popup Discord didn't accept
+      // would leave the applicant with "This interaction failed" and no way in.
+      logger.error("Discord refused the application popup; used the older flow instead", {
+        formId,
+        error: String(err),
+      });
+    }
+  }
+
   // Confirmation step: Discord modals can't carry a body/description of
   // their own, so the confirmation message is shown as its own ephemeral
   // reply with a "Continue" button; clicking that button is what actually
@@ -144,6 +159,22 @@ export async function runApplicationFlow(
   }
 
   await proceedToQuestions(bot, interaction, formId, form);
+}
+
+/** One page of the form as a real popup (services/formPopup.ts). */
+export async function showFormPopup(
+  bot: AppealyBot,
+  interaction: Interaction,
+  form: typeof schema.forms.$inferSelect & { questions: (typeof schema.questions.$inferSelect)[] },
+  page: number,
+) {
+  const applicant = interaction.member?.user ?? interaction.user;
+  // Only on the first page, so completionSeconds covers the whole application.
+  if (applicant && page === 0) await markApplicationStarted(applicant.id, form.id);
+  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+    type: 9, // MODAL
+    data: buildFormPopup(form, page) as never,
+  });
 }
 
 export async function proceedToQuestions(

@@ -32,6 +32,8 @@ import {
   getApplicationStartedAt,
 } from "../../services/pendingAnswers.ts";
 import { cappedModalPageCount, isFinalPage } from "../../../../shared/lib/modalPaging.ts";
+import { popupPageCount, popupPageTag } from "../../services/formPopup.ts";
+import { readModalAnswers } from "../../services/modalAnswers.ts";
 import { onlySnowflakes } from "../../../../shared/lib/snowflake.ts";
 import { sendTemplatedDm } from "../../services/dmService.ts";
 import { checkAndConsumeDailyCap, rateLimitDeniedMessage } from "../../services/rateLimitService.ts";
@@ -45,6 +47,8 @@ export async function handleFormModalSubmit(
   interaction: Interaction,
   formId: string,
   page = 0,
+  /** "popup": every question in the popup (services/formPopup.ts); "legacy": the older flow. */
+  layout: "popup" | "legacy" = "legacy",
 ) {
   const guildId = interaction.guildId;
   const applicant = interaction.member?.user ?? interaction.user;
@@ -65,15 +69,9 @@ export async function handleFormModalSubmit(
     return respond(bot, interaction, "This form no longer exists.");
   }
 
-  // Collect text-input answers from the modal's action rows.
-  const textAnswers: Record<string, string> = {};
-  for (const row of interaction.data?.components ?? []) {
-    for (const comp of row.components ?? []) {
-      if (comp.customId && typeof comp.value === "string") {
-        textAnswers[comp.customId] = comp.value;
-      }
-    }
-  }
+  // Answers from this page: text boxes in action rows (the older flow), or
+  // text boxes and dropdowns in Labels (the popup flow).
+  const textAnswers = readModalAnswers(interaction.data?.components as never);
 
   // A modal holds five components, so a longer form arrives as several. This
   // is not the last page: stash what was just typed and hand back a button,
@@ -81,9 +79,10 @@ export async function handleFormModalSubmit(
   // submit — only to a message-component interaction. Same constraint
   // formSelectStep.ts works around, same shape of answer.
   const textQuestions = form.questions.filter((q) => q.type !== "select");
-  const totalPages = cappedModalPageCount(textQuestions.length);
+  const totalPages = layout === "popup" ? popupPageCount(form) : cappedModalPageCount(textQuestions.length);
+  const finalPage = layout === "popup" ? page + 1 >= totalPages : isFinalPage(textQuestions.length, page);
 
-  if (!isFinalPage(textQuestions.length, page)) {
+  if (!finalPage) {
     try {
       await stashPendingAnswers(applicant.id, formId, textAnswers);
     } catch (err) {
@@ -115,7 +114,12 @@ export async function handleFormModalSubmit(
               type: 2,
               style: 1,
               label: `Continue (${page + 2}/${totalPages})`,
-              customId: encodeCustomId("modal", "page", formId, String(page + 1)),
+              customId: encodeCustomId(
+                "modal",
+                "page",
+                formId,
+                layout === "popup" ? popupPageTag(page + 1) : String(page + 1),
+              ),
             },
           ],
         },

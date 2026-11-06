@@ -3,7 +3,7 @@
 // Run with: deno test -c bot/deno.json bot/src/services/__tests__/modalInput.test.ts
 
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { MODAL_LIMITS, modalTextLimits } from "../modalInput.ts";
+import { MODAL_LIMITS, modalLabel, modalTextLimits } from "../modalInput.ts";
 
 Deno.test("an ordinary question passes through unchanged", () => {
   assertEquals(modalTextLimits({ label: "Why do you want to join?", placeholder: "A few sentences", minLength: 20, maxLength: 1000 }), {
@@ -48,4 +48,24 @@ Deno.test("an empty label gets a stand-in, and a blank placeholder is dropped", 
   const r = modalTextLimits({ label: "   ", placeholder: "  " });
   assertEquals(r.label, "Question");
   assertEquals(r.placeholder, undefined);
+});
+
+Deno.test("a short question is the whole label", () => {
+  assertEquals(modalLabel("What do you make?"), { label: "What do you make?" });
+});
+
+Deno.test("a long question carries on in the description instead of being cut", () => {
+  const q = "What kind of Strafe content would you make, and how often could you post it?";
+  const { label, description } = modalLabel(q);
+  assert(label.length <= 45, label);
+  assert(label.endsWith("…"));
+  assert(description !== undefined && description.length <= 100);
+  // Nothing is lost: the two read as the question.
+  assertEquals(`${label.slice(0, -1)} ${description!.slice(1)}`.replace(/\s+/g, " "), q);
+});
+
+Deno.test("a question too long for both is clipped at the description's 100", () => {
+  const { label, description } = modalLabel("x ".repeat(120));
+  assert(label.length <= 45);
+  assert(description!.length <= 100);
 });
