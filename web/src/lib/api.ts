@@ -617,7 +617,10 @@ export const api = {
     expiresAt?: string | null;
   }) => request<{ id: string }>("/api/ops/bans", { method: "POST", body: JSON.stringify(body) }),
 
-  submissions: (guildId: string, params: { status?: string; formId?: string } = {}) => {
+  submissions: (
+    guildId: string,
+    params: { status?: string; formId?: string; applicantId?: string; offset?: string } = {},
+  ) => {
     const q = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v) as [string, string][],
     );

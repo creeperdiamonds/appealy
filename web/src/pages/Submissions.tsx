@@ -11,7 +11,7 @@
 // fine in development and falls over on the one customer who actually uses
 // the product hard.
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   api,
   ApiError,
@@ -36,12 +36,26 @@ import { loadRoles, type GuildRole } from "../components/RolePicker";
 
 const STATUSES = ["pending", "accepted", "denied", "withdrawn"] as const;
 
+/** What the API sends per page (its default limit). */
+const PAGE = 25;
+
+/** A Discord user ID from what someone pasted: the ID itself, or a mention. */
+function parseUserId(text: string): string | null {
+  const m = text.trim().match(/^(?:<@!?)?(\d{17,20})>?$/);
+  return m ? m[1] : null;
+}
+
 export default function Submissions({ guildId }: { guildId: string }) {
   const [status, setStatus] = useState<string>("pending");
   const [formId, setFormId] = useState<string>("");
   const [forms, setForms] = useState<FormSummary[]>([]);
   const [rows, setRows] = useState<Submission[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Search by applicant: what's typed, and the ID actually being searched.
+  const [query, setQuery] = useState("");
+  const [applicantId, setApplicantId] = useState("");
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   // The application open in the sheet. Null = nothing open.
   const [open, setOpen] = useState<Submission | null>(null);
 
@@ -49,16 +63,48 @@ export default function Submissions({ guildId }: { guildId: string }) {
     api.forms(guildId).then(setForms).catch(() => setForms([]));
   }, [guildId]);
 
+  const filters = { status: status || undefined, formId: formId || undefined, applicantId: applicantId || undefined };
+
   useEffect(() => {
     setRows(null);
     api
-      .submissions(guildId, { status, formId: formId || undefined })
+      .submissions(guildId, filters)
       .then((r) => {
         setRows(r);
+        setHasMore(r.length === PAGE);
         setError(null);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : String(err)));
-  }, [guildId, status, formId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guildId, status, formId, applicantId]);
+
+  async function loadMore() {
+    if (!rows) return;
+    setLoadingMore(true);
+    try {
+      const next = await api.submissions(guildId, { ...filters, offset: String(rows.length) });
+      setRows([...rows, ...next]);
+      setHasMore(next.length === PAGE);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const typedId = parseUserId(query);
+  function search(e: FormEvent) {
+    e.preventDefault();
+    if (!query.trim()) return clearSearch();
+    if (!typedId) return;
+    setApplicantId(typedId);
+    // Looking someone up usually means their history, not just what's waiting.
+    setStatus("");
+  }
+  function clearSearch() {
+    setQuery("");
+    setApplicantId("");
+  }
 
   const formName = (id: string) => forms.find((f) => f.id === id)?.name ?? id.slice(0, 8);
 
@@ -75,12 +121,32 @@ export default function Submissions({ guildId }: { guildId: string }) {
         title="Applications"
         action={
           <div className="row">
+            <form className="row" onSubmit={search} role="search">
+              <input
+                className="input mono"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by user ID"
+                aria-label="Search applications by the applicant's Discord user ID"
+                inputMode="numeric"
+                style={{ width: 190 }}
+              />
+              <button type="submit" className="btn btn-sm" disabled={!!query.trim() && !typedId}>
+                Search
+              </button>
+              {applicantId && (
+                <button type="button" className="btn btn-sm" onClick={clearSearch}>
+                  Clear
+                </button>
+              )}
+            </form>
             <select
               className="input"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               aria-label="Filter by status"
             >
+              <option value="">any status</option>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -103,13 +169,28 @@ export default function Submissions({ guildId }: { guildId: string }) {
           </div>
         }
       >
+        {query.trim() && !typedId && (
+          <p className="dim" style={{ fontSize: 12, margin: "0 0 .5rem" }}>
+            Paste a Discord user ID (Developer Mode, then right-click them and Copy User ID) or a mention.
+          </p>
+        )}
         {rows === null ? (
           <Loading rows={6} />
         ) : rows.length === 0 ? (
           <Empty
-            title={status === "pending" ? "Nothing waiting" : `No ${status} applications`}
+            title={
+              applicantId
+                ? "No applications from this user"
+                : status === "pending"
+                ? "Nothing waiting"
+                : status
+                ? `No ${status} applications`
+                : "No applications yet"
+            }
             hint={
-              status === "pending"
+              applicantId
+                ? "Check the ID, and that the status filter is set to any status."
+                : status === "pending"
                 ? "Every application has been reviewed."
                 : "Try a different status or form."
             }
@@ -183,6 +264,13 @@ export default function Submissions({ guildId }: { guildId: string }) {
                 ))}
               </tbody>
             </table>
+            {hasMore && (
+              <div className="actions" style={{ justifyContent: "center", padding: ".75rem 0" }}>
+                <button type="button" className="btn btn-sm" disabled={loadingMore} onClick={loadMore}>
+                  {loadingMore ? "Loading…" : "Show more"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </Panel>
@@ -201,7 +289,9 @@ export default function Submissions({ guildId }: { guildId: string }) {
             onDecided={(next) => {
               const id = open.id;
               // The list is filtered by status, so a decided application leaves it.
-              setRows((r) => r && r.filter((x) => x.id !== id || next === status));
+              setRows((r) =>
+                r && (status === "" ? r.map((x) => (x.id === id ? { ...x, status: next } : x)) : r.filter((x) => x.id !== id || next === status)),
+              );
               setOpen({ ...open, status: next });
             }}
           />
