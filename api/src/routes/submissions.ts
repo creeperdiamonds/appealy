@@ -21,7 +21,7 @@ export const submissionsRouter = Router({ mergeParams: true });
 const listQuerySchema = z.object({
   formId: z.string().optional(),
   status: z.enum(["pending", "accepted", "denied", "withdrawn"]).optional(),
-  applicantId: z.string().regex(/^d{17,20}$/).optional(),
+  applicantId: z.string().regex(/^\d{17,20}$/).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
   offset: z.coerce.number().int().min(0).default(0),
 });
