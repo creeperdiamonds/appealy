@@ -45,28 +45,71 @@ export async function openAskModal(bot: AppealyBot, interaction: Interaction, su
   });
 }
 
+/** How many files an answer can carry. */
+export const ANSWER_MAX_FILES = 5;
+
 export async function openAnswerModal(bot: AppealyBot, interaction: Interaction, followupId: string) {
-  await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
-    type: 9, // MODAL
-    data: {
-      customId: encodeCustomId("submission", "answer_submit", followupId),
-      title: "Answer the staff",
-      components: [
-        {
-          type: 1,
-          components: [
-            {
+  // Text, files, or both: either is an answer, which the submit handler
+  // checks (interactions/modals/followUp.ts), since a popup can't require
+  // "one of these two".
+  try {
+    await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+      type: 9, // MODAL
+      data: {
+        customId: encodeCustomId("submission", "answer_submit", followupId),
+        title: "Answer the staff",
+        components: [
+          {
+            type: 18, // LABEL
+            label: "Your answer",
+            component: {
               type: 4, // TEXT_INPUT
               customId: "answer",
-              label: "Your answer",
               style: 2, // paragraph
-              required: true,
-              minLength: 1,
+              required: false,
               maxLength: ANSWER_MAX,
             },
-          ],
-        },
-      ],
-    },
-  });
+          },
+          {
+            type: 18, // LABEL
+            label: "Files",
+            description: `Optional. Screenshots, videos or documents, up to ${ANSWER_MAX_FILES}.`,
+            component: {
+              type: 19, // FILE_UPLOAD
+              customId: "files",
+              required: false,
+              minValues: 0,
+              maxValues: ANSWER_MAX_FILES,
+            },
+          },
+        ],
+      } as never,
+    });
+  } catch {
+    // A refused popup doesn't use up the click, so the text-only one can
+    // still open: answering without files beats not being able to answer.
+    await bot.helpers.sendInteractionResponse(interaction.id, interaction.token, {
+      type: 9, // MODAL
+      data: {
+        customId: encodeCustomId("submission", "answer_submit", followupId),
+        title: "Answer the staff",
+        components: [
+          {
+            type: 1,
+            components: [
+              {
+                type: 4, // TEXT_INPUT
+                customId: "answer",
+                label: "Your answer",
+                style: 2, // paragraph
+                required: true,
+                minLength: 1,
+                maxLength: ANSWER_MAX,
+              },
+            ],
+          },
+        ],
+      },
+    });
+  }
 }

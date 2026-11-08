@@ -10,6 +10,11 @@
 // review post when the form has no threads, so the conversation sits next to
 // the application it's about. Questions are only for pending submissions, and
 // each one is answered once.
+//
+// An answer can carry files (up to five, from the answer popup's File
+// Upload). They're copied into the staff thread with the answer, so they stay
+// there like any attachment: Discord's link for an uploaded file stops working
+// after about a day. Appealy keeps only their names, in the stored answer.
 
 import { and, eq, isNull } from "drizzle-orm";
 import { encodeCustomId } from "../../../../shared/types/index.ts";
@@ -19,6 +24,7 @@ import { getGuild } from "../../core/guildLookup.ts";
 import { db, schema } from "../../db/client.ts";
 import { canReviewForm } from "../../services/permissionService.ts";
 import { logger } from "../../utils/logger.ts";
+import { readModalAnswers, readModalFileIds } from "../../services/modalAnswers.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
 type Submission = typeof schema.submissions.$inferSelect & { form: typeof schema.forms.$inferSelect };
@@ -97,8 +103,12 @@ export async function handleAnswerSubmit(bot: AppealyBot, interaction: Interacti
 
   await defer(bot, interaction, { ephemeral: true });
 
-  const answer = textValue(interaction);
-  if (!answer) return finish(bot, interaction, "Your answer was empty, so nothing was sent.");
+  // The popup's Labels, or the older text-only popup's action row.
+  const answer = (readModalAnswers(interaction.data?.components as never).answer ?? "").trim();
+  const files = readModalFileIds(interaction.data?.components as never, "files")
+    .map((id) => uploadedFile(interaction, id))
+    .filter((f): f is UploadedFile => f !== null);
+  if (!answer && files.length === 0) return finish(bot, interaction, "Your answer was empty, so nothing was sent.");
 
   const followup = await db.query.submissionFollowups.findFirst({ where: eq(schema.submissionFollowups.id, followupId) });
   if (!followup) return finish(bot, interaction, "This question no longer exists.");
@@ -114,7 +124,13 @@ export async function handleAnswerSubmit(bot: AppealyBot, interaction: Interacti
   // Answered once: the update only lands if nobody answered first.
   const [saved] = await db
     .update(schema.submissionFollowups)
-    .set({ answer, answeredAt: new Date() })
+    .set({
+      // Only the names: the files themselves are posted in Discord, not kept.
+      answer: files.length
+        ? `${answer}${answer ? "\n\n" : ""}Attached: ${files.map((f) => f.filename).join(", ")}`
+        : answer,
+      answeredAt: new Date(),
+    })
     .where(and(eq(schema.submissionFollowups.id, followupId), isNull(schema.submissionFollowups.answeredAt)))
     .returning({ id: schema.submissionFollowups.id });
   if (!saved) return finish(bot, interaction, "You already answered this question.");
@@ -122,7 +138,8 @@ export async function handleAnswerSubmit(bot: AppealyBot, interaction: Interacti
   await tellStaff(
     bot,
     submission,
-    `💬 <@${submission.applicantId}> answered <@${followup.askerId}>'s question:\n> ${followup.question.slice(0, 300).replace(/\n/g, "\n> ")}\n>>> ${answer}`,
+    `💬 <@${submission.applicantId}> answered <@${followup.askerId}>'s question:\n> ${followup.question.slice(0, 300).replace(/\n/g, "\n> ")}\n>>> ${answer || "*(sent files only)*"}`,
+    files,
   );
   return finish(bot, interaction, "Thanks! Your answer was sent to the staff.");
 }
@@ -132,19 +149,76 @@ export async function handleAnswerSubmit(bot: AppealyBot, interaction: Interacti
  * people without pinging them: staff are reading the thread already, and the
  * applicant must never be pinged into a staff channel.
  */
-async function tellStaff(bot: AppealyBot, submission: Submission, content: string) {
+async function tellStaff(bot: AppealyBot, submission: Submission, content: string, files: UploadedFile[] = []) {
   const target = submission.threadId ?? submission.form.logChannelId;
-  try {
-    await bot.helpers.sendMessage(target, {
-      content: content.slice(0, 2000),
+  const send = (text: string, attach: { blob: Blob; name: string }[]) =>
+    bot.helpers.sendMessage(target, {
+      content: text.slice(0, 2000),
       allowedMentions: { parse: [] },
+      ...(attach.length ? { files: attach } : {}),
       ...(!submission.threadId && submission.logMessageId
         ? { messageReference: { messageId: submission.logMessageId, failIfNotExists: false } }
         : {}),
     } as never);
+
+  // Copied, not linked: a link to an uploaded file stops working after about
+  // a day. Files over what a bot can post in any server stay links.
+  const copied: { blob: Blob; name: string }[] = [];
+  const linked: UploadedFile[] = [];
+  for (const f of files) {
+    if (f.size > COPY_LIMIT_BYTES) {
+      linked.push(f);
+      continue;
+    }
+    try {
+      const res = await fetch(f.url);
+      if (!res.ok) throw new Error(`download failed: ${res.status}`);
+      copied.push({ blob: await res.blob(), name: f.filename });
+    } catch (err) {
+      logger.warn("Couldn't copy an answer's file", { submissionId: submission.id, error: String(err) });
+      linked.push(f);
+    }
+  }
+  const links = (list: UploadedFile[]) =>
+    list.length
+      ? `\n-# Linked, not copied (links stop working after about a day): ${
+        list.map((f) => `[${f.filename}](<${f.url}>)`).join(", ")
+      }`
+      : "";
+
+  try {
+    await send(content + links(linked), copied);
   } catch (err) {
+    // Usually the server's upload limit. Post the answer with links rather than lose it.
+    if (copied.length) {
+      try {
+        await send(content + links(files), []);
+        return;
+      } catch { /* reported below */ }
+    }
     logger.warn("Couldn't post a follow-up to staff", { submissionId: submission.id, error: String(err) });
   }
+}
+
+/** What a bot can post in any server, boosted or not. */
+const COPY_LIMIT_BYTES = 10 * 1024 * 1024;
+
+interface UploadedFile {
+  filename: string;
+  url: string;
+  size: number;
+}
+
+/** One file from the popup, found in the interaction's resolved data by its ID. */
+function uploadedFile(interaction: Interaction, id: string): UploadedFile | null {
+  const all = interaction.data?.resolved?.attachments as unknown as Map<bigint | string, UploadedFile> | undefined;
+  if (!all) return null;
+  let found: UploadedFile | undefined;
+  try {
+    found = all.get(BigInt(id));
+  } catch { /* not a snowflake */ }
+  found ??= all.get(id);
+  return found?.url ? { filename: found.filename || "file", url: found.url, size: Number(found.size ?? 0) } : null;
 }
 
 /** The one text input in these modals. */

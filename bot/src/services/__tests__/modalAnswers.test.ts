@@ -7,7 +7,7 @@
 // dropdowns inside Labels. A shape this misses is an answer silently lost.
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { labelComponentCustomizer, readModalAnswers } from "../modalAnswers.ts";
+import { labelComponentCustomizer, readModalAnswers, readModalFileIds } from "../modalAnswers.ts";
 
 Deno.test("text boxes in action rows (the old popups)", () => {
   assertEquals(
@@ -60,4 +60,17 @@ Deno.test("the customizer keeps what Discordeno 20 drops from a Label and a sele
   // Everything else passes through untouched.
   const button = { type: 2, customId: "b" };
   assertEquals(labelComponentCustomizer(bot, { type: 2 }, button), button);
+});
+
+Deno.test("a File Upload's uploaded file IDs, read back through the customizer", () => {
+  const bot = { transformers: { component: () => undefined } };
+  const upload = labelComponentCustomizer(bot, { type: 19, custom_id: "files", values: ["111", "222"] }, undefined);
+  assertEquals(upload, { type: 19, customId: "files", values: ["111", "222"] });
+  const components = [
+    { type: 18, component: { type: 4, customId: "answer", value: "see attached" } },
+    { type: 18, component: upload as { type: number; customId: string; values: string[] } },
+  ];
+  assertEquals(readModalFileIds(components, "files"), ["111", "222"]);
+  assertEquals(readModalFileIds(components, "other"), []);
+  assertEquals(readModalAnswers(components).answer, "see attached");
 });
