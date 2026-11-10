@@ -295,6 +295,35 @@ export type TicketChannelType = "private_channel" | "private_thread" | "public_t
 export type TicketStatus = "open" | "closed";
 export type TicketLeaveAction = "none" | "close" | "notify";
 
+/** Discord allows at most 5 inputs in a pop-up, and 25 buttons on a message. */
+export const MAX_TICKET_QUESTIONS = 5;
+export const MAX_TICKET_CATEGORIES = 25;
+
+export interface TicketQuestion {
+  /** Max 45 characters: Discord's limit for a text input's label. */
+  label: string;
+  paragraph: boolean;
+  required: boolean;
+}
+
+/**
+ * One button on a ticket panel. Empty/null overrides mean "same as the
+ * ticket type" (see ticketCategories in shared/schema/schema.ts).
+ */
+export interface TicketCategoryDTO {
+  /** Absent on a category not yet saved. */
+  id?: string;
+  label: string;
+  emoji: string | null;
+  description: string | null;
+  /** The Discord channel category tickets of this kind open under. */
+  discordCategoryId: Snowflake | null;
+  supportRoleIds: Snowflake[];
+  pingRoleIds: Snowflake[];
+  welcomeMessage: string | null;
+  questions: TicketQuestion[];
+}
+
 export interface TicketConfigDTO {
   id: string;
   guildId: Snowflake;
@@ -319,11 +348,14 @@ export interface TicketConfigDTO {
   claimingEnabled: boolean;
   ratingEnabled: boolean;
   active: boolean;
+  /** In panel order. Empty = the panel has one plain button. */
+  categories: TicketCategoryDTO[];
 }
 
 export interface TicketDTO {
   id: string;
   configId: string;
+  ticketCategoryId: string | null;
   openerId: Snowflake;
   channelId: Snowflake;
   status: TicketStatus;

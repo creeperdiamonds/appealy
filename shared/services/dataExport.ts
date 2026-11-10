@@ -130,7 +130,8 @@ export async function buildFullDataExport(db: Db, guildId: bigint): Promise<Appe
         db.select({ id: schema.forms.id }).from(schema.forms).where(eq(schema.forms.guildId, guildId)),
       ),
     }),
-    db.query.ticketConfigs.findMany({ where: eq(schema.ticketConfigs.guildId, guildId) }),
+    // Each type carries its categories (the panel's buttons) with it.
+    db.query.ticketConfigs.findMany({ where: eq(schema.ticketConfigs.guildId, guildId), with: { categories: true } }),
     db.query.tickets.findMany({ where: eq(schema.tickets.guildId, guildId) }),
     // Appeals against a ban on THIS guild — i.e. the guild owner appealing us
     // banning their server. Scoped by ban subject, not by member.
