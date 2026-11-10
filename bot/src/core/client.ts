@@ -71,10 +71,8 @@ export const desiredProperties = {
     guildId: true,
     author: true,
     content: true,
-    // Ticket transcripts include what was attached, not just what was typed.
-    attachments: true,
-    // And when each message was sent: without it every transcript line had no time.
-    timestamp: true,
+    // Only filled in for DMs and messages that mention the bot: Appealy has no
+    // Message Content intent.
     // Review and denial flows edit the original review message in place, which
     // means reading the embed they are about to rewrite.
     embeds: true,
@@ -143,9 +141,13 @@ export function createAppealyBot(token: string = env.DISCORD_BOT_TOKEN) {
       //
       // Guilds/GuildMessages do not imply it. DM events are their own intent,
       // and it is not privileged — no portal toggle is needed, unlike
-      // MessageContent and GuildMembers.
+      // GuildMembers.
       GatewayIntents.DirectMessages |
-      GatewayIntents.MessageContent |
+      // No MessageContent (dropped 2026-11-10). Discord still sends the text of
+      // DMs and of messages that mention the bot, which is all the DM
+      // applications and "@Appealy ban" need; other messages arrive empty.
+      // Ticket transcripts, its only other use, became "keep closed tickets".
+      // Asking for it again would need Discord to approve it again.
       // Needed for guildBanAdd, which drives the ban-appeal DM. Renamed across
       // releases: GuildModeration here, GuildBans in older ones. If this stops
       // compiling, check the GatewayIntents export before assuming the feature
@@ -188,7 +190,7 @@ export type AppealyUser = EventArgs<"guildBanAdd">[0];
 export type AppealyMessage = EventArgs<"messageCreate">[0];
 
 export async function startBot(bot: AppealyBot, token: string = env.DISCORD_BOT_TOKEN) {
-  // Before anything else: with Server Members or Message Content switched off,
+  // Before anything else: with Server Members switched off,
   // Discord refuses the gateway (4014) in a way that never reaches this await.
   // Throws MissingIntentsError naming the switch and the page it is on.
   await requirePrivilegedIntents(token);

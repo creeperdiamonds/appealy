@@ -10,12 +10,10 @@
 // so several settings that look like preferences are actually about whether a
 // conversation survives:
 //
-//   1. transcriptOnClose with no transcript channel. Staff get no transcript,
-//      and on a private channel the ticket itself is deleted on close, so
-//      only the opener's DM copy survives. Saving now refuses it (here and in
-//      api/src/routes/tickets.ts), but older configs can still be in this
-//      state. With leaveAction "close" it fires on its own when the opener
-//      leaves.
+//   1. transcriptOnClose ("Keep closed tickets") off on a private channel.
+//      Closing deletes the channel, and the conversation with it. Appealy
+//      doesn't copy conversations out (no Message Content intent since
+//      2026-11-10), so keeping the channel read-only is the only record.
 //   2. No support roles on a private channel. The permission overwrites grant
 //      the opener and each support role; with none, staff literally cannot
 //      see the ticket they were opened for. Only Administrators, who bypass
@@ -143,7 +141,7 @@ const CHANNEL_TYPES: { value: ChannelType; label: string; detail: string }[] = [
     value: "private_channel",
     label: "Private channel",
     detail:
-      "A new text channel, visible only to the opener and the support roles below. The most private option, and the only one where closing DELETES the channel — so the conversation is gone unless a transcript channel is set. Every open ticket also counts against Discord's 500-channel guild limit.",
+      "A new text channel, visible only to the opener and the support roles below. The most private option. Closing locks it read-only, or deletes it if Keep closed tickets is off. Every open ticket also counts against Discord's 500-channel guild limit.",
   },
   {
     value: "private_thread",
@@ -162,7 +160,7 @@ const CHANNEL_TYPES: { value: ChannelType; label: string; detail: string }[] = [
 const LEAVE_ACTIONS: { value: LeaveAction; label: string; detail: string }[] = [
   { value: "none", label: "Leave it open", detail: "The ticket stays exactly as it is. Staff decide what to do with it." },
   { value: "notify", label: "Post a notice in the ticket", detail: "Staff get a message in the ticket saying the opener left, and the ticket stays open." },
-  { value: "close", label: "Close the ticket", detail: "Closes automatically — which for a private channel means deleting it. Someone rage-quitting takes the evidence with them unless transcripts are filed somewhere." },
+  { value: "close", label: "Close the ticket", detail: "Closes automatically. With Keep closed tickets off, a private channel is deleted, and the conversation with it." },
 ];
 
 /* ------------------------------------------------------------------ *
@@ -186,26 +184,17 @@ function problemsFor(c: Draft): Problem[] {
   const isChannel = c.channelType === "private_channel";
   const noStaff = c.supportRoleIds.length === 0;
 
-  if (c.transcriptOnClose && !c.transcriptChannelId) {
-    out.push(
-      isChannel
-        ? {
-            key: "transcript-lost",
-            level: "act",
-            title: "Transcripts need a channel",
-            body: `Closing a private channel deletes it, and with no transcript channel the only copy left is the one DMed to whoever opened the ticket. Staff keep nothing.${
-              c.leaveAction === "close"
-                ? " And with tickets set to close when the opener leaves, that happens without anyone clicking anything."
-                : ""
-            } Pick a transcript channel, or turn transcripts off. Saving asks for one.`,
-          }
-        : {
-            key: "transcript-unfiled",
-            level: "watch",
-            title: "Transcripts need a channel",
-            body: "The thread is archived rather than deleted, so the conversation still exists, but staff get no transcript anywhere searchable. Only the opener gets a copy by DM. Pick a transcript channel, or turn transcripts off. Saving asks for one.",
-          },
-    );
+  if (!c.transcriptOnClose && isChannel) {
+    out.push({
+      key: "conversation-deleted",
+      level: c.leaveAction === "close" ? "act" : "watch",
+      title: "Closed tickets are deleted",
+      body: `With "Keep closed tickets" off, closing a private channel deletes it, and nobody keeps the conversation.${
+        c.leaveAction === "close"
+          ? " And with tickets set to close when the opener leaves, that happens without anyone clicking anything."
+          : ""
+      }`,
+    });
   }
 
   if (noStaff) {
@@ -384,9 +373,6 @@ export default function Tickets({ guildId }: { guildId: string }) {
     if (!name) return setError("This ticket type needs a name — it's the title on the panel.");
     if (!draft.buttonLabel.trim()) return setError("The button needs a label. Discord won't render a blank one.");
     if (!draft.channelId) return setError("Pick a channel for the panel. That's where the button lives.");
-    if (draft.transcriptOnClose && !draft.transcriptChannelId) {
-      return setError("Pick a transcript channel, or turn transcripts off. Staff need somewhere to find them.");
-    }
 
     setSaving(true);
     setError(null);
@@ -465,9 +451,9 @@ export default function Tickets({ guildId }: { guildId: string }) {
       <header className="page-head">
         <h1>Tickets</h1>
         <p className="dim">
-          Each type is a button on a panel and a rule for what it opens. Closing a private ticket
-          channel deletes it, so the settings about transcripts and who can close are about
-          whether a conversation still exists tomorrow.
+          Each type is a button on a panel and a rule for what it opens. Closed tickets are kept
+          read-only unless you turn that off, so the settings about keeping tickets and who can
+          close are about whether a conversation still exists tomorrow.
           {" "}<GuideLink slug="tickets" />
         </p>
       </header>
@@ -591,7 +577,7 @@ export default function Tickets({ guildId }: { guildId: string }) {
           onCancel={() => setConfirmDelete(null)}
         >
           This also deletes every ticket record filed under it — who opened what, when it closed,
-          the ratings, and the transcript links. Open ticket channels aren't touched and will be
+          and the ratings. Open ticket channels aren't touched and will be
           left orphaned. There's no undo. If you only want to stop new tickets, untick Active
           instead.
         </Confirm>
@@ -910,21 +896,22 @@ function Editor({
             onChange={(e) => onPatch({ transcriptOnClose: e.target.checked })}
           />
           <span>
-            <strong>Save a transcript when a ticket closes</strong>
+            <strong>Keep closed tickets</strong>
             <span className="dim block">
-              A plain-text file of the conversation, posted to the transcript channel below and
-              sent to whoever opened the ticket by DM. Needs a transcript channel.
+              A closed private channel stays, read-only, for the opener and your support roles,
+              instead of being deleted. Threads are always kept (archived and locked). Appealy
+              doesn't copy or store the conversation.
             </span>
           </span>
         </label>
 
         <OptionalChannelPicker
-          label="Transcript channel"
+          label="Log channel"
           channels={channels}
           failed={channelsFailed}
           value={draft.transcriptChannelId}
           onChange={(id) => onPatch({ transcriptChannelId: id })}
-          hint="Staff-only, ideally. Transcripts include everything the member typed, so this channel inherits the sensitivity of every ticket this type opens."
+          hint="Optional. When a kept ticket closes, Appealy posts who opened and closed it, the reason, and a link to it here."
         />
 
         <label className="row">

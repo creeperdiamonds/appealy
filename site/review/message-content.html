@@ -7,8 +7,9 @@
 <!--
   site/review/message-content.html
 
-  Evidence for Discord's privileged intents review, linked from the request
-  form. Unlisted: not in the nav, the footer or sitemap.xml.
+  Linked from earlier privileged intents requests. Unlisted: not in the nav,
+  the footer or sitemap.xml. Since 2026-11-10 it says Appealy doesn't use the
+  intent at all.
 -->
 
 <title>Message Content intent — Appealy</title>
@@ -18,16 +19,14 @@
 <body>
 <main class="prose" style="max-width:760px;margin:0 auto;padding:32px 16px">
 <h1>Message Content intent</h1>
-<p>A ticket is closed and Appealy posts its transcript to the server&rsquo;s transcript channel (and DMs a copy to the person who opened it). The transcript is the text of the messages sent in the ticket, which needs Message Content.</p>
-<p><img src="/review/img/transcript.png" alt="Transcript post with a ticket .txt file listing each message with its time and author." style="max-width:100%"></p>
-<p>Server staff keep the transcript as a log of the support conversation, so they can check what was said after the ticket channel is deleted, for example when a member disputes a decision or appeals it later. The transcript has to include what the members wrote, not just commands, so a slash command can&rsquo;t replace it.</p>
-<p>Appealy reads the ticket channel&rsquo;s messages once, when the ticket closes. The transcript is the file posted in Discord: Appealy doesn&rsquo;t store message text on its own servers, and doesn&rsquo;t use it for AI training.</p>
+<p><strong>Appealy doesn&rsquo;t use the Message Content intent.</strong> It was removed from the bot on 10 November 2026, and the bot no longer asks for it when it connects.</p>
 
-<h2>What doesn&rsquo;t use it any more</h2>
+<h2>What used it, and what replaced it</h2>
 <ul>
-<li>Moderation commands are slash commands: <code>/ban</code>, <code>/unban</code>, <code>/kick</code>, <code>/mute</code> and <code>/unmute</code>. The <code>?ban</code> prefix commands, which read every message, have been removed. Moderators can still type <code>@Appealy ban &hellip;</code>, which works without Message Content because the message mentions the bot.</li>
-<li><code>/poll</code> takes its close time as a command option. Appealy used to ask in the channel and read the reply.</li>
-<li>Applications done by DM and sticky messages never needed it: Discord sends the text of DMs to the bot, and sticky messages only count messages.</li>
+<li><strong>Ticket transcripts</strong> were its last use. They&rsquo;re gone. A closed ticket now stays in the server as a read-only channel (or an archived, locked thread), so staff can still read the conversation in Discord. Appealy doesn&rsquo;t copy or store it.</li>
+<li><strong>Moderation commands</strong> are slash commands: <code>/ban</code>, <code>/unban</code>, <code>/kick</code>, <code>/mute</code> and <code>/unmute</code>. Moderators can also type <code>@Appealy ban &hellip;</code>, which works without Message Content because the message mentions the bot.</li>
+<li><strong><code>/poll</code></strong> takes its close time as a command option.</li>
+<li><strong>Applications done by DM</strong> and <strong>sticky messages</strong> never needed it: Discord sends the text of DMs to the bot, and sticky messages only count messages.</li>
 </ul>
 </main>
 </body>

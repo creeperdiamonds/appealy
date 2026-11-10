@@ -61,7 +61,7 @@ export const ja: Record<string, string> = {
     "質問、参加条件、審査結果で付与するロール",
   "The message people apply from": "応募の入口となるメッセージ",
   "DM banned members a form": "BAN されたメンバーにフォームを DM で送る",
-  "Ticket types, support roles, transcripts": "チケットの種類、対応ロール、書き起こし",
+  "Ticket types, support roles, closed tickets": "チケットの種類、対応ロール、終了したチケット",
   "Saved replies for staff": "スタッフ用の保存済み返信",
   "Staff access": "スタッフ権限",
   "Help & support": "ヘルプとサポート",

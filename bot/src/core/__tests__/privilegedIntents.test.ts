@@ -15,26 +15,28 @@ async function withApplication(response: { flags?: number; status?: number }, fn
   }
 }
 
-Deno.test("both switches off names both intents and links the Bot page", async () => {
+Deno.test("Server Members off names it and links the Bot page", async () => {
   await withApplication({ flags: 0 }, async () => {
     const err = await assertRejects(() => requirePrivilegedIntents("t"), MissingIntentsError);
-    assertEquals(err.missing, ["Server Members Intent", "Message Content Intent"]);
+    assertEquals(err.missing, ["Server Members Intent"]);
     assertEquals(err.message.includes("https://discord.com/developers/applications/123/bot"), true);
   });
 });
 
-Deno.test("an unverified bot under 100 servers passes on the _LIMITED flags", async () => {
-  await withApplication({ flags: (1 << 15) | (1 << 19) }, () => requirePrivilegedIntents("t"));
+Deno.test("an unverified bot under 100 servers passes on the _LIMITED flag", async () => {
+  await withApplication({ flags: 1 << 15 }, () => requirePrivilegedIntents("t"));
 });
 
-Deno.test("a verified bot passes on the approved flags", async () => {
-  await withApplication({ flags: (1 << 14) | (1 << 18) }, () => requirePrivilegedIntents("t"));
+Deno.test("a verified bot passes on the approved flag", async () => {
+  await withApplication({ flags: 1 << 14 }, () => requirePrivilegedIntents("t"));
 });
 
-Deno.test("only Message Content off names only that one", async () => {
-  await withApplication({ flags: 1 << 15 }, async () => {
+Deno.test("Message Content is not required: a bot without it still connects", async () => {
+  await withApplication({ flags: 1 << 14 }, () => requirePrivilegedIntents("t"));
+  // Message Content alone (approved or limited) doesn't stand in for Server Members.
+  await withApplication({ flags: (1 << 18) | (1 << 19) }, async () => {
     const err = await assertRejects(() => requirePrivilegedIntents("t"), MissingIntentsError);
-    assertEquals(err.missing, ["Message Content Intent"]);
+    assertEquals(err.missing, ["Server Members Intent"]);
   });
 });
 
