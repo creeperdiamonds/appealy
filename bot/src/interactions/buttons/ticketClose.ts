@@ -21,8 +21,8 @@ export async function handleTicketCloseButton(
   if (!guildId || !actor) return;
 
   // The permission check alone is a query plus canManageTicket's own lookups,
-  // and closeTicket() below generates a transcript, DMs a rating prompt and
-  // archives or deletes the channel — several more REST round trips. On
+  // and closeTicket() below DMs a rating prompt, locks, archives or deletes the
+  // channel and posts to the log channel — several more REST round trips. On
   // 2026-08-23 this combination blew the three-second window the same way
   // ticketOpen did: the ticket closed successfully and the clicker was shown
   // "This interaction failed", so they clicked Close again.
@@ -58,8 +58,8 @@ export async function handleTicketCloseButton(
   // wrong" and tell the clicker their (successful) close had failed. See
   // interactionCreate.ts's error handler for why it edits rather than sends.
   const result = await closeTicket(bot, ticketId, actor.id, undefined);
-  if (result?.transcriptUrl) {
-    logger.info("Ticket closed with transcript", { ticketId, transcriptUrl: result.transcriptUrl });
+  if (result?.conversationUrl) {
+    logger.info("Ticket closed and kept", { ticketId });
   }
 
   await respond(bot, interaction, "Ticket closed.");

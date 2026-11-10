@@ -91,7 +91,7 @@
 
     <p class="eyebrow">Legal</p>
     <h1>Privacy</h1>
-    <p class="updated">Last updated 8 November 2026</p>
+    <p class="updated">Last updated 10 November 2026</p>
 
     <p class="lede">
       This describes the hosted deployment at appealy.app. If you self-host, none of it applies to
@@ -134,7 +134,7 @@
           </tr>
           <tr>
             <th scope="row">Tickets</th>
-            <td>Who opened it, who claimed it, when it closed, the rating if ratings are on, and a link to the transcript if transcripts are on.</td>
+            <td>Who opened it, who claimed it, when it closed, the rating if ratings are on, and a link to the closed ticket if it was kept.</td>
           </tr>
           <tr>
             <th scope="row">Giveaway entries, poll votes</th>
@@ -172,12 +172,11 @@
         in a diff if it ever changed.
       </li>
       <li>
-        <strong>No message archive.</strong> The bot uses the Message Content intent to notice when
-        a channel has been busy enough to warrant re-posting a sticky message. No message content is
-        written to the database. The one thing that reads a channel&rsquo;s history is a ticket
-        transcript, generated when that ticket closes and posted as a plain-text file into a channel
-        you configured &mdash; in your server, not ours. Only its URL is stored, and it is only
-        produced if you switched transcripts on.
+        <strong>No message archive.</strong> Appealy doesn&rsquo;t use the Message Content intent, so
+        it can&rsquo;t read what people write in your channels. It only sees the text of DMs sent to
+        it and of messages that mention it, and uses those for DM applications and
+        <code>@Appealy ban</code>-style commands. Sticky messages only count messages. Closed tickets
+        stay in your server, read-only; Appealy doesn&rsquo;t copy them anywhere.
       </li>
       <li>
         <strong>No card details.</strong> They never reach this service. The payment provider is the

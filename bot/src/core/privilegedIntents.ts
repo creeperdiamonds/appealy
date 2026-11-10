@@ -1,12 +1,12 @@
 // bot/src/core/privilegedIntents.ts
 //
-// Appealy asks Discord for two privileged intents: Server Members (welcomer,
+// Appealy asks Discord for one privileged intent: Server Members (welcomer,
 // auto-roles, verification, auto-closing tickets and auto-denying applications
-// when someone leaves) and Message Content (ticket transcripts, and nothing
-// else since 2026-11-03). Both are switches in the Developer Portal, off
-// by default on every new application.
+// when someone leaves). It used to ask for Message Content too, for ticket
+// transcripts, until 2026-11-10. It is a switch in the Developer Portal, off by
+// default on every new application.
 //
-// With either switch off, Discord closes the gateway with 4014 "Disallowed
+// With the switch off, Discord closes the gateway with 4014 "Disallowed
 // intent(s)". Discordeno treats that as fatal and throws from inside the
 // socket's close handler, where nothing catches it: the bot just never comes
 // online, and the only trace is Discord's own three words. A self-hoster
@@ -14,7 +14,7 @@
 // no way to tell that one missed checkbox was the whole problem.
 //
 // So the application is asked first. GET /applications/@me returns its flags,
-// and each intent has two: the full one, set once Discord approves it for a
+// and the intent has two: the full one, set once Discord approves it for a
 // verified bot, and _LIMITED, set when the switch is on for a bot under 100
 // servers. Either means Discord will accept the intent.
 
@@ -22,8 +22,6 @@ import { logger } from "../utils/logger.ts";
 
 const GATEWAY_GUILD_MEMBERS = 1 << 14;
 const GATEWAY_GUILD_MEMBERS_LIMITED = 1 << 15;
-const GATEWAY_MESSAGE_CONTENT = 1 << 18;
-const GATEWAY_MESSAGE_CONTENT_LIMITED = 1 << 19;
 
 export class MissingIntentsError extends Error {
   constructor(
@@ -46,8 +44,7 @@ export class MissingIntentsError extends Error {
 }
 
 /**
- * Throws MissingIntentsError when Server Members or Message Content is switched
- * off for the application this token belongs to.
+ * Throws MissingIntentsError when Server Members is switched off for the application this token belongs to.
  *
  * Any other failure (a network blip, a token Discord rejects) is logged and let
  * through: the gateway connection that follows reports those better than a guess
@@ -73,6 +70,5 @@ export async function requirePrivilegedIntents(token: string): Promise<void> {
   const flags = app.flags ?? 0;
   const missing: string[] = [];
   if (!(flags & (GATEWAY_GUILD_MEMBERS | GATEWAY_GUILD_MEMBERS_LIMITED))) missing.push("Server Members Intent");
-  if (!(flags & (GATEWAY_MESSAGE_CONTENT | GATEWAY_MESSAGE_CONTENT_LIMITED))) missing.push("Message Content Intent");
   if (missing.length > 0) throw new MissingIntentsError(app.id ?? "your-application-id", missing);
 }

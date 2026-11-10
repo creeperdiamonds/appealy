@@ -22,7 +22,7 @@
 -->
 
 <title>Discord Ticket Bot — Appealy</title>
-<meta name="description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and transcripts on close. Free, open source, and self-hostable.">
+<meta name="description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and closed tickets kept read-only. Free, open source, and self-hostable.">
 <link rel="canonical" href="https://appealy.app/discord-ticket-bot">
 <link rel="alternate" hreflang="en" href="https://appealy.app/discord-ticket-bot">
 <link rel="alternate" hreflang="ja" href="https://appealy.app/ja/discord-ticket-bot">
@@ -31,14 +31,14 @@
 <meta property="og:site_name" content="Appealy">
 <meta property="og:url" content="https://appealy.app/discord-ticket-bot">
 <meta property="og:title" content="Discord Ticket Bot — Appealy">
-<meta property="og:description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and transcripts on close. Free, open source, and self-hostable.">
+<meta property="og:description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and closed tickets kept read-only. Free, open source, and self-hostable.">
 <meta property="og:image" content="https://appealy.app/og.png?v=2">
 <meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Discord Ticket Bot — Appealy">
-<meta name="twitter:description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and transcripts on close. Free, open source, and self-hostable.">
+<meta name="twitter:description" content="Support tickets as private channels or threads, with claiming, ratings, saved replies and closed tickets kept read-only. Free, open source, and self-hostable.">
 <meta name="twitter:image" content="https://appealy.app/og.png?v=2">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -84,10 +84,10 @@
         },
         {
           "@type": "Question",
-          "name": "Do I get transcripts when a ticket closes?",
+          "name": "Is the conversation kept when a ticket closes?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Turn on transcript-on-close and pick a channel, and the conversation is posted there when the ticket ends."
+            "text": "Yes, by default. A closed private channel stays, read-only, for the person who opened it and your support roles, and threads are archived and locked. Appealy doesn’t copy or store the conversation."
           }
         },
         {
@@ -157,7 +157,7 @@
 
       <h1>Discord ticket bot</h1>
       <p class="lede">A panel with a button. Someone presses it and gets a private channel or
-        a thread, your support role gets pinged, and when it closes you keep a transcript.</p>
+        a thread, your support role gets pinged, and when it closes the conversation stays, read-only.</p>
 
       <p class="btn-row">
         <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
@@ -184,7 +184,7 @@
             <tr><th scope="row">Ping roles</th><td>Who gets notified when one opens — separate from who can see it</td></tr>
             <tr><th scope="row">Claiming</th><td>A staff member takes a ticket, so two people do not answer at once</td></tr>
             <tr><th scope="row">Ratings</th><td>The opener leaves a score and a comment when it closes</td></tr>
-            <tr><th scope="row">Transcript on close</th><td>Posted to a channel you choose, so the conversation survives the ticket</td></tr>
+            <tr><th scope="row">Keep closed tickets</th><td>The closed ticket stays, read-only, so the conversation survives it. A log channel can note who closed what</td></tr>
             <tr><th scope="row">Max open per user</th><td>Stops one person opening fifteen</td></tr>
             <tr><th scope="row">Ticket name format</th><td>Your own naming, rather than a scheme you have to live with</td></tr>
             <tr><th scope="row">Welcome message</th><td>Sent inside the ticket, so the first reply is not "what do you need?"</td></tr>
@@ -204,7 +204,7 @@
 <pre><code>/ticket-panel create name: Support channel_type: Private thread support_role: @Staff</code></pre>
 
       <p>That publishes the panel in the channel you run it in. Everything else — the welcome
-        message, claiming, ratings, transcripts, the open limit — is in the dashboard
+        message, claiming, ratings, keeping closed tickets, the open limit — is in the dashboard
         afterwards, and none of it is required to get a working ticket.</p>
 
       <h2>What it costs</h2>
@@ -227,8 +227,8 @@
       <h3>Does it use channels or threads?</h3>
       <p>Either, chosen per panel: a private channel in a category you pick, a private thread, or a public thread. Different ticket types in the same server can use different ones.</p>
 
-      <h3>Do I get transcripts when a ticket closes?</h3>
-      <p>Yes. Turn on transcript-on-close and pick a channel, and the conversation is posted there when the ticket ends.</p>
+      <h3>Is the conversation kept when a ticket closes?</h3>
+      <p>Yes, by default. A closed private channel stays, read-only, for the person who opened it and your support roles, and threads are archived and locked. Appealy doesn&rsquo;t copy or store the conversation.</p>
 
       <h3>Can staff claim a ticket so two people do not reply at once?</h3>
       <p>Yes, claiming is a per-panel setting and the claimer is recorded on the ticket.</p>

@@ -273,8 +273,9 @@ category of bot, no third-party source or assets used.
   staff choose per ticket-type whether opened tickets become a **private
   channel**, a **private thread**, or a **public thread**
   (`ticketConfigs.channelType`) — your requested per-config choice rather
-  than a single hardcoded mode. Includes claim/close buttons, an optional
-  transcript posted to a configured channel on close, and the same
+  than a single hardcoded mode. Includes claim/close buttons, closed
+  tickets kept read-only (or deleted, per type) with an optional close log
+  in a channel, and the same
   `leaveAction` pattern used for applications (`none` / `close` /
   `notify`) when the ticket opener leaves the guild.
 - **Giveaways** (`giveaways`/`giveawayEntries`, `bot/src/services/giveawayService.ts`):
@@ -315,8 +316,8 @@ docker compose up --build
 ```
 
 Register a Discord application at https://discord.com/developers/applications,
-enable the **Server Members Intent** and **Message Content Intent** under
-Bot settings, and set the OAuth2 redirect URI to match `DISCORD_REDIRECT_URI`.
+enable the **Server Members Intent** under Bot settings (Appealy doesn't
+use the Message Content Intent), and set the OAuth2 redirect URI to match `DISCORD_REDIRECT_URI`.
 
 ### What is served where
 

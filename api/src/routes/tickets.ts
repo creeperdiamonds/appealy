@@ -59,24 +59,15 @@ ticketsRouter.get("/", async (req, res) => {
 });
 
 
-/**
- * Transcripts need somewhere for staff to find them. Turning them on with no
- * channel used to be accepted and then threw every transcript away, and 42 of
- * 55 tickets closed with transcripts on in Sep-Oct 2026 went that way. The
- * opener also gets a copy by DM (bot/src/services/ticketService.ts), but that
- * is their record, not the server's.
- */
-const TRANSCRIPT_CHANNEL_REQUIRED = {
-  error: "transcript_channel_required",
-  detail: "Pick a transcript channel, or turn transcripts off.",
-};
+// transcriptOnClose is "Keep closed tickets" and transcriptChannelId the log
+// channel since 2026-11-10, when transcripts went with the Message Content
+// intent. A log channel is optional: a kept ticket is its own record.
 
 ticketsRouter.post("/", requireAdminAccess, async (req, res) => {
   const parsed = configSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", detail: parsed.error.flatten() });
   const data = parsed.data;
   const guildId = BigInt(routeParams(req).guildId);
-  if (data.transcriptOnClose && !data.transcriptChannelId) return res.status(400).json(TRANSCRIPT_CHANNEL_REQUIRED);
 
   const [created] = await db
     .insert(schema.ticketConfigs)
@@ -118,15 +109,6 @@ ticketsRouter.patch("/:configId", requireAdminAccess, async (req, res) => {
     where: and(eq(schema.ticketConfigs.id, configId), eq(schema.ticketConfigs.guildId, guildId)),
   });
   if (!existing) return res.status(404).json({ error: "config_not_found" });
-
-  // Only when this request touches transcripts, so an older config that has
-  // them on without a channel can still be paused or renamed. The dashboard
-  // sends both fields on every save, so it asks for a channel there.
-  if (data.transcriptOnClose !== undefined || data.transcriptChannelId !== undefined) {
-    const on = data.transcriptOnClose ?? existing.transcriptOnClose;
-    const channel = data.transcriptChannelId !== undefined ? data.transcriptChannelId : existing.transcriptChannelId;
-    if (on && !channel) return res.status(400).json(TRANSCRIPT_CHANNEL_REQUIRED);
-  }
 
   const updateSet: Record<string, unknown> = { updatedAt: new Date() };
   for (const key of [

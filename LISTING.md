@@ -18,7 +18,7 @@ Appealy turns your server's forms into a real review queue. Members apply from a
 **Tickets 🎫**
 
 - Ticket panels with their own support roles per ticket type
-- Transcripts and ticket ratings
+- Closed tickets kept read-only, and ticket ratings
 
 **Also included:**
 

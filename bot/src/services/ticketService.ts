@@ -13,7 +13,6 @@ import type { AppealyBot } from "../core/client.ts";
 import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
-import { renderTranscript, type TranscriptMessage } from "../../../shared/lib/transcript.ts";
 import { onlySnowflakes } from "../../../shared/lib/snowflake.ts";
 import { checkAndConsumeDailyCap } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
@@ -189,27 +188,22 @@ export async function closeTicket(
   });
   if (!ticket || ticket.status === "closed") return null;
 
-  let transcriptUrl: string | null = null;
-  if (ticket.config.transcriptOnClose) {
-    transcriptUrl = await generateAndPostTranscript(bot, ticket).catch((err) => {
-      // Discordeno collapses every REST failure into the same generic
-      // wrapper message, so a permission error, a closed channel, and a
-      // network blip all used to log identically. describeDiscordError
-      // walks the body/cause chain for whatever Discord actually said.
-      const info = describeDiscordError(err);
-      logger.warn("Transcript generation failed", {
-        ticketId,
-        status: info.status,
-        code: info.code,
-        detail: info.message,
-      });
-      return null;
-    });
-  }
+  // "Keep closed tickets" (stored as transcript_on_close, its old name): the
+  // conversation stays where it happened, read-only, instead of being copied
+  // out. Copying it out meant reading every message, which needs the Message
+  // Content intent, and Appealy doesn't use that any more (2026-11-10).
+  const keep = ticket.config.transcriptOnClose;
+  const conversationUrl = keep ? `https://discord.com/channels/${ticket.guildId}/${ticket.channelId}` : null;
 
   await db
     .update(schema.tickets)
-    .set({ status: "closed", closedBy, closeReason: reason ?? null, closedAt: new Date(), transcriptUrl })
+    .set({
+      status: "closed",
+      closedBy,
+      closeReason: reason ?? null,
+      closedAt: new Date(),
+      transcriptUrl: conversationUrl,
+    })
     .where(eq(schema.tickets.id, ticketId));
 
   if (ticket.config.ratingEnabled) {
@@ -218,144 +212,76 @@ export async function closeTicket(
   }
 
   try {
-    if (ticket.config.channelType === "private_channel") {
-      await bot.helpers.deleteChannel(ticket.channelId, reason ?? "Ticket closed");
-    } else {
+    if (ticket.config.channelType !== "private_channel") {
       await bot.helpers.editChannel(ticket.channelId, { archived: true, locked: true });
+    } else if (keep) {
+      await bot.helpers.editChannel(ticket.channelId, {
+        name: closedName(ticket.id),
+        permissionOverwrites: closedOverwrites(ticket.guildId, ticket.openerId, ticket.config.supportRoleIds),
+      } as never, reason ?? "Ticket closed");
+    } else {
+      await bot.helpers.deleteChannel(ticket.channelId, reason ?? "Ticket closed");
     }
-  } catch (err) {
-    logger.warn("Failed to archive/delete ticket channel on close", { ticketId, error: String(err) });
-  }
-
-  return { transcriptUrl };
-}
-
-/**
- * Fetches a ticket channel's history, renders it, posts it to the configured
- * transcript channel, DMs a copy to whoever opened the ticket, and returns a
- * link to the channel post.
- *
- * FOUR THINGS WERE WRONG HERE, three of them silent.
- *
- * 1. It fetched `{ limit: 100 }` once. That is Discord's per-call maximum, not
- *    a channel's message count — so any ticket longer than a hundred messages
- *    was transcribed from its last hundred, with nothing anywhere saying so.
- *    The busiest tickets, which are the ones a transcript is actually for,
- *    were the ones least likely to be complete. It pages now, and when it hits
- *    the cap the transcript says so in its own first line.
- *
- * 2. Attachments were dropped. core/client.ts caches them with the comment
- *    "Ticket transcripts include what was attached, not just what was typed"
- *    — the intent was written down in one file and never implemented in this
- *    one. A screenshot rendered as an empty line.
- *
- * 3. It returned the posted attachment's CDN url, and that url expires.
- *    Discord signs attachment links and they stop resolving after about a
- *    day, so `tickets.transcript_url` was filling up with links that were dead
- *    before anyone clicked them. It returns a MESSAGE link now: permanent,
- *    and it lands on the post, from which the file downloads with a fresh
- *    signature.
- *
- * 4. It read the whole channel and then discarded the result when no
- *    transcript channel was configured. The check moved to the top, and has
- *    since gone again: the opener now gets the transcript by DM whether or
- *    not there's a channel, so there's always somewhere for it to go. 42 of
- *    55 tickets closed with transcripts on in Sep-Oct 2026 had no channel,
- *    and the dashboard now asks for one.
- *
- * Rendering is in shared/lib/transcript.ts so it can be tested without a
- * gateway connection. See shared/lib/__tests__/transcript.test.ts — every case
- * in it is one of the above.
- */
-
-/** Discord's own per-request maximum. Not a choice. */
-const TRANSCRIPT_PAGE = 100;
-
-/**
- * Ten pages, so a thousand messages.
- *
- * A bound is necessary — without one, one pathological channel blocks a close
- * behind an unbounded number of REST calls. A thousand is well past any real
- * support ticket, and the transcript is explicit when it is reached, which is
- * the part that makes the limit honest rather than lossy.
- */
-const TRANSCRIPT_MAX_PAGES = 10;
-
-async function generateAndPostTranscript(
-  bot: AppealyBot,
-  ticket: typeof schema.tickets.$inferSelect & { config: typeof schema.ticketConfigs.$inferSelect },
-): Promise<string | null> {
-  const collected: TranscriptMessage[] = [];
-  let before: bigint | undefined;
-  let truncated = false;
-
-  for (let page = 0; page < TRANSCRIPT_MAX_PAGES; page++) {
-    const batch = await bot.helpers.getMessages(ticket.channelId, {
-      limit: TRANSCRIPT_PAGE,
-      ...(before ? { before } : {}),
-    });
-    const rows = [...batch];
-    if (rows.length === 0) break;
-
-    collected.push(...rows);
-    // Discord returns newest first, so the last row of a page is the oldest
-    // one seen — which is where the next page continues from.
-    before = rows[rows.length - 1].id;
-
-    if (rows.length < TRANSCRIPT_PAGE) break;
-    if (page === TRANSCRIPT_MAX_PAGES - 1) truncated = true;
-  }
-
-  const transcriptText = renderTranscript(collected.reverse(), { truncated });
-
-  // A new Blob per send: each upload reads its file body.
-  const file = () => ({
-    blob: new Blob([new TextEncoder().encode(transcriptText)], { type: "text/plain" }),
-    name: `ticket-${ticket.id}.txt`,
-  });
-
-  // The channel post is the server's record and the DM is the opener's, so
-  // one failing doesn't stop the other. A channel failure still reaches the
-  // caller, after the DM, to be logged.
-  let url: string | null = null;
-  let postError: unknown = null;
-  const transcriptChannelId = ticket.config.transcriptChannelId;
-  if (transcriptChannelId) {
-    try {
-      const posted = await bot.helpers.sendMessage(transcriptChannelId, {
-        content: `Transcript for ticket \`${ticket.id}\` (opened by <@${ticket.openerId}>)`,
-        files: [file()],
-      });
-      // A message link rather than posted.attachments[0].url. See (3) above.
-      if (posted?.id) url = `https://discord.com/channels/${ticket.guildId}/${transcriptChannelId}/${posted.id}`;
-    } catch (err) {
-      postError = err;
-    }
-  }
-
-  await dmTranscript(bot, ticket, file());
-
-  if (postError) throw postError;
-  return url;
-}
-
-/**
- * The opener's copy. Best effort: closed DMs are common, and an opener who
- * left the server may share none with the bot any more.
- */
-async function dmTranscript(
-  bot: AppealyBot,
-  ticket: typeof schema.tickets.$inferSelect & { config: typeof schema.ticketConfigs.$inferSelect },
-  file: { blob: Blob; name: string },
-) {
-  try {
-    const dm = await bot.helpers.getDmChannel(ticket.openerId);
-    await bot.helpers.sendMessage(dm.id, {
-      content: `Your **${ticket.config.name}** ticket was closed. Here's a copy of the conversation.`,
-      files: [file],
-    });
   } catch (err) {
     const info = describeDiscordError(err);
-    logger.info("Couldn't DM a ticket transcript to its opener", { ticketId: ticket.id, code: info.code, detail: info.message });
+    logger.warn("Failed to archive/lock/delete ticket channel on close", {
+      ticketId,
+      status: info.status,
+      code: info.code,
+      detail: info.message,
+    });
+  }
+
+  if (keep) await logClosedTicket(bot, ticket, closedBy, reason);
+
+  return { conversationUrl };
+}
+
+/** "closed-" and the start of the ticket ID, so closed tickets sort together and are easy to tell apart. */
+function closedName(ticketId: string): string {
+  return `closed-${ticketId.slice(0, 8)}`;
+}
+
+/**
+ * A closed private channel: still hidden from everyone else, still readable by
+ * the opener and the support roles, and nobody but admins can post in it.
+ */
+export function closedOverwrites(guildId: bigint, openerId: bigint, supportRoleIds: readonly string[]) {
+  const readOnly = { allow: ["VIEW_CHANNEL", "READ_MESSAGE_HISTORY"], deny: ["SEND_MESSAGES"] } as {
+    allow: PermissionStrings[];
+    deny: PermissionStrings[];
+  };
+  return [
+    { id: guildId, type: OverwriteTypes.Role, deny: ["VIEW_CHANNEL"] as PermissionStrings[] },
+    { id: openerId, type: OverwriteTypes.Member, ...readOnly },
+    ...onlySnowflakes(supportRoleIds).map((roleId) => ({ id: BigInt(roleId), type: OverwriteTypes.Role, ...readOnly })),
+  ];
+}
+
+/**
+ * Who closed which ticket, and where to read it, in the log channel. Only the
+ * close details: Appealy doesn't read or copy the conversation itself.
+ */
+async function logClosedTicket(
+  bot: AppealyBot,
+  ticket: typeof schema.tickets.$inferSelect & { config: typeof schema.ticketConfigs.$inferSelect },
+  closedBy: bigint,
+  reason: string | undefined,
+) {
+  const logChannelId = ticket.config.transcriptChannelId;
+  if (!logChannelId) return;
+  try {
+    await bot.helpers.sendMessage(logChannelId, {
+      content: [
+        `Ticket \`${ticket.id}\` (${ticket.config.name}) opened by <@${ticket.openerId}> was closed by <@${closedBy}>.`,
+        reason ? `Reason: ${reason.slice(0, 500)}` : null,
+        `The conversation is kept, read-only, in <#${ticket.channelId}>.`,
+      ].filter(Boolean).join("\n"),
+      allowedMentions: { parse: [] },
+    } as never);
+  } catch (err) {
+    const info = describeDiscordError(err);
+    logger.warn("Couldn't post a closed ticket to its log channel", { ticketId: ticket.id, code: info.code, detail: info.message });
   }
 }
+

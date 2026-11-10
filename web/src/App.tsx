@@ -200,7 +200,7 @@ const NAV_GROUPS: {
   {
     group: "Support",
     items: [
-      { id: "tickets", label: "Tickets", hint: "Ticket types, support roles, transcripts" },
+      { id: "tickets", label: "Tickets", hint: "Ticket types, support roles, closed tickets" },
       { id: "quick-responses", label: "Quick responses", hint: "Saved replies for staff" },
       { id: "verification", label: "Verification", hint: "Screen new members before they can talk" },
       { id: "anti-raid", label: "Anti-raid", hint: "Join-velocity detection and lockdown" },

@@ -144,7 +144,7 @@ export function ChannelPicker({
 
 /**
  * A channel the field can genuinely do without, and that has to be clearable
- * once set — a goodbye channel, a transcript channel, a raid alert channel.
+ * once set — a goodbye channel, a ticket log channel, a raid alert channel.
  * Null rather than "", because that's what these columns are in the database
  * and a round-trip through "" would write the wrong thing back.
  */

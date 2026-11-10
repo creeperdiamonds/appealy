@@ -36,6 +36,21 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    publishedAt: "2026-11-10T00:00:00Z",
+    title: { en: "Closed tickets are kept instead of transcribed", ja: "閉じたチケットは書き起こしではなくそのまま残ります" },
+    items: [
+      {
+        title: { en: "Keep closed tickets", ja: "閉じたチケットを残す" },
+        body: {
+          en: "Appealy no longer reads what people write in your channels, so ticket transcripts are gone. Instead, a closed private ticket channel stays, read-only, for the person who opened it and your support roles, and the old transcript channel becomes an optional log of who closed what. Turn Keep closed tickets off to delete them on close, as before.",
+          ja: "Appealy はチャンネルで書かれた内容を読まなくなったため、チケットの書き起こしはなくなりました。代わりに、閉じたプライベートチケットのチャンネルは、開いた人とサポートロールが読み取り専用で見られるまま残ります。以前の書き起こしチャンネルは、誰が閉じたかを記録する任意のログチャンネルになります。以前のように閉じたら削除したい場合は「閉じたチケットを残す」をオフにしてください。",
+        },
+        view: "tickets",
+        action: { en: "Open Tickets", ja: "チケットを開く" },
+      },
+    ],
+  },
+  {
     publishedAt: "2026-11-07T00:00:00Z",
     title: { en: "Applications open as one popup", ja: "応募はひとつのポップアップで" },
     items: [
