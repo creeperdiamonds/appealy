@@ -70,7 +70,9 @@ export async function publishTicketPanel(bot: AppealyBot, configId: string) {
         })),
       },
     ],
-    components: rows,
+    // Built in a loop, so the literal types Discord's component union wants
+    // are widened to number; the shapes are the same as the one-button case.
+    components: rows as never,
   });
 
   return message;
