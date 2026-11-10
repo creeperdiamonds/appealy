@@ -38,7 +38,8 @@ import { handlePollVote } from "../interactions/selects/pollVote.ts";
 import { handleRoleMenuSelect } from "../interactions/selects/roleMenuSelect.ts";
 import { handleTimezonePick } from "../interactions/selects/timezonePick.ts";
 import { handleVotePerk } from "../interactions/selects/votePerk.ts";
-import { handleTicketOpenButton } from "../interactions/buttons/ticketOpen.ts";
+import { handleTicketModalSubmit, handleTicketOpenButton } from "../interactions/buttons/ticketOpen.ts";
+import { handleTicketAskButton } from "../interactions/buttons/ticketAsk.ts";
 import { handleTicketCloseButton, handleTicketClaimButton, handleTicketRateButton } from "../interactions/buttons/ticketClose.ts";
 import { handleGiveawayEnterButton } from "../interactions/buttons/giveawayEnter.ts";
 import { handleVerifyButton } from "../interactions/buttons/verify.ts";
@@ -199,7 +200,11 @@ export function onInteractionCreate(bot: AppealyBot) {
             );
           }
           if (namespace === "ticket" && action === "open") {
-            return await handleTicketOpenButton(bot, interaction, entityId);
+            // `extra` is the category, when the panel has any.
+            return await handleTicketOpenButton(bot, interaction, entityId, extra || undefined);
+          }
+          if (namespace === "ticket" && action === "ask" && extra) {
+            return await handleTicketAskButton(bot, interaction, entityId, extra);
           }
           if (namespace === "ticket" && action === "close") {
             return await handleTicketCloseButton(bot, interaction, entityId);
@@ -253,6 +258,9 @@ export function onInteractionCreate(bot: AppealyBot) {
               Number.isInteger(page) && page >= 0 ? page : 0,
               popup ? "popup" : "legacy",
             );
+          }
+          if (namespace === "ticket" && action === "submit" && extra) {
+            return await handleTicketModalSubmit(bot, interaction, entityId, extra);
           }
           if (namespace === "feedback" && action === "submit") {
             return await submitFeedback(bot, interaction);

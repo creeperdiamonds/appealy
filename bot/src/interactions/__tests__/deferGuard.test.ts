@@ -76,6 +76,8 @@ const MUST_NOT_DEFER = [
   "bot/src/interactions/buttons/panelOpen.ts",
   "bot/src/interactions/buttons/reviewDeny.ts",
   "bot/src/interactions/buttons/reviewAsk.ts",
+  // A ticket category's questions, shown before the ticket opens.
+  "bot/src/interactions/buttons/ticketAsk.ts",
 ];
 
 for (const path of MUST_DEFER) {
