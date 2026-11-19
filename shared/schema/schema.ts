@@ -896,6 +896,46 @@ export const ticketConfigs = pgTable(
   }),
 );
 
+// A choice on a ticket panel. A config with no categories shows its single
+// "Open Ticket" button as before; with one or more, the panel shows one button
+// per category and the member picks which kind of ticket they want.
+//
+// Every override is optional and falls back to the config: an empty role list,
+// a null welcome message or a null Discord category means "same as the config".
+// An empty list can't mean "nobody" here, because a private channel nobody on
+// staff can see is never what anyone wants (see problemsFor in
+// web/src/pages/Tickets.tsx).
+export const ticketCategories = pgTable(
+  "ticket_categories",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    configId: text("config_id")
+      .notNull()
+      .references(() => ticketConfigs.id, { onDelete: "cascade" }),
+    label: varchar("label", { length: 80 }).notNull(),
+    emoji: varchar("emoji", { length: 64 }),
+    // Shown under the label in the public panel embed.
+    description: varchar("description", { length: 100 }),
+    // The Discord channel category new tickets of this kind are created under
+    // (private_channel mode). Null = the config's categoryId.
+    discordCategoryId: bigint("discord_category_id", { mode: "bigint" }),
+    supportRoleIds: jsonb("support_role_ids").$type<string[]>().notNull().default([]),
+    pingRoleIds: jsonb("ping_role_ids").$type<string[]>().notNull().default([]),
+    welcomeMessage: text("welcome_message"),
+    // Asked in a pop-up before the ticket opens (Discord allows at most 5), and
+    // posted in the ticket's first message.
+    questions: jsonb("questions")
+      .$type<{ label: string; paragraph: boolean; required: boolean }[]>()
+      .notNull()
+      .default([]),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    configIdx: index("ticket_category_config_idx").on(t.configId),
+  }),
+);
+
 export const tickets = pgTable(
   "tickets",
   {
@@ -903,6 +943,10 @@ export const tickets = pgTable(
     configId: text("config_id")
       .notNull()
       .references(() => ticketConfigs.id, { onDelete: "cascade" }),
+    // Which panel button opened it. Null for tickets from a config without
+    // categories, and after the category is deleted (they then behave as the
+    // config's own settings).
+    ticketCategoryId: text("ticket_category_id").references(() => ticketCategories.id, { onDelete: "set null" }),
     guildId: bigint("guild_id", { mode: "bigint" }).notNull(),
     openerId: bigint("opener_id", { mode: "bigint" }).notNull(),
     channelId: bigint("channel_id", { mode: "bigint" }).notNull(), // channel OR thread id, per channelType
@@ -1415,10 +1459,16 @@ export const pollVotesRelations = relations(pollVotes, ({ one }) => ({
 export const ticketConfigsRelations = relations(ticketConfigs, ({ one, many }) => ({
   guild: one(guilds, { fields: [ticketConfigs.guildId], references: [guilds.id] }),
   tickets: many(tickets),
+  categories: many(ticketCategories),
+}));
+
+export const ticketCategoriesRelations = relations(ticketCategories, ({ one }) => ({
+  config: one(ticketConfigs, { fields: [ticketCategories.configId], references: [ticketConfigs.id] }),
 }));
 
 export const ticketsRelations = relations(tickets, ({ one }) => ({
   config: one(ticketConfigs, { fields: [tickets.configId], references: [ticketConfigs.id] }),
+  category: one(ticketCategories, { fields: [tickets.ticketCategoryId], references: [ticketCategories.id] }),
 }));
 
 export const giveawaysRelations = relations(giveaways, ({ many }) => ({

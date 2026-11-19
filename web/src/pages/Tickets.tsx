@@ -46,6 +46,41 @@ import {
 type ChannelType = "private_channel" | "private_thread" | "public_thread";
 type LeaveAction = "none" | "close" | "notify";
 
+interface TicketQuestion {
+  label: string;
+  paragraph: boolean;
+  required: boolean;
+}
+
+/** One button on the panel. Empty / null fields inherit from the ticket type. */
+interface TicketCategory {
+  id?: string;
+  label: string;
+  emoji: string | null;
+  description: string | null;
+  discordCategoryId: string | null;
+  supportRoleIds: string[];
+  pingRoleIds: string[];
+  welcomeMessage: string | null;
+  questions: TicketQuestion[];
+}
+
+// Discord's limits: 25 buttons on a message, 5 inputs in a pop-up, 45 characters
+// in an input's label.
+const MAX_CATEGORIES = 25;
+const MAX_QUESTIONS = 5;
+
+const blankCategory = (): TicketCategory => ({
+  label: "",
+  emoji: null,
+  description: null,
+  discordCategoryId: null,
+  supportRoleIds: [],
+  pingRoleIds: [],
+  welcomeMessage: null,
+  questions: [],
+});
+
 interface TicketConfigDTO {
   id: string;
   guildId: string;
@@ -68,6 +103,7 @@ interface TicketConfigDTO {
   claimingEnabled: boolean;
   ratingEnabled: boolean;
   active: boolean;
+  categories: TicketCategory[];
 }
 
 /** An unsaved config has no id yet; everything else is the POST body. */
@@ -94,6 +130,7 @@ const blank = (): Draft => ({
   claimingEnabled: false,
   ratingEnabled: false,
   active: true,
+  categories: [],
 });
 
 const toDraft = (c: TicketConfigDTO): Draft => {
@@ -373,6 +410,13 @@ export default function Tickets({ guildId }: { guildId: string }) {
     if (!name) return setError("This ticket type needs a name — it's the title on the panel.");
     if (!draft.buttonLabel.trim()) return setError("The button needs a label. Discord won't render a blank one.");
     if (!draft.channelId) return setError("Pick a channel for the panel. That's where the button lives.");
+    for (const [i, c] of draft.categories.entries()) {
+      const where = `Category ${i + 1}`;
+      if (!c.label.trim()) return setError(`${where} needs a label — it's the text on its button.`);
+      if (c.questions.some((q) => !q.label.trim())) {
+        return setError(`${where} has a question with no text. Fill it in or remove it.`);
+      }
+    }
 
     setSaving(true);
     setError(null);
@@ -767,8 +811,8 @@ function Editor({
             onChange={(e) => onPatch({ ticketNameFormat: e.target.value })}
           />
           <span className="dim">
-            {"{username}"} is the only placeholder that gets filled in. Everything else is used
-            literally.
+            {"{username}"} and {"{category}"} (the label of the button they pressed, if the panel
+            has categories) get filled in. Everything else is used literally.
           </span>
         </label>
 
@@ -858,6 +902,50 @@ function Editor({
         </label>
       </Panel>
 
+      <Panel title="Categories">
+        <p className="dim">
+          Give the panel several buttons — Support, Billing, Report a player — and members pick the
+          kind of ticket they want. Each category can have its own Discord category, support roles,
+          welcome message and questions; anything you leave empty uses the settings above. With no
+          categories, the panel has the single button from the top of this page. Post the panel
+          again after changing these.
+        </p>
+
+        {draft.categories.map((cat, i) => (
+          <CategoryEditor
+            key={cat.id ?? `new-${i}`}
+            guildId={guildId}
+            index={i}
+            total={draft.categories.length}
+            cat={cat}
+            isPrivateChannel={draft.channelType === "private_channel"}
+            onChange={(next) =>
+              onPatch({ categories: draft.categories.map((c, j) => (j === i ? { ...c, ...next } : c)) })
+            }
+            onMove={(by) => {
+              const list = [...draft.categories];
+              const [moved] = list.splice(i, 1);
+              list.splice(i + by, 0, moved);
+              onPatch({ categories: list });
+            }}
+            onRemove={() => onPatch({ categories: draft.categories.filter((_, j) => j !== i) })}
+          />
+        ))}
+
+        <div className="actions">
+          <button
+            className="btn btn-sm"
+            disabled={draft.categories.length >= MAX_CATEGORIES}
+            onClick={() => onPatch({ categories: [...draft.categories, blankCategory()] })}
+          >
+            Add a category
+          </button>
+        </div>
+        {draft.categories.length >= MAX_CATEGORIES && (
+          <span className="dim">Discord allows at most {MAX_CATEGORIES} buttons on a message.</span>
+        )}
+      </Panel>
+
       <Panel title="What members see and what's kept">
         <label className="field">
           <span className="eyebrow">Panel message</span>
@@ -939,5 +1027,177 @@ function Editor({
         </button>
       </div>
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * One category (one button on the panel)
+ * ------------------------------------------------------------------ */
+
+function CategoryEditor({
+  guildId,
+  index,
+  total,
+  cat,
+  isPrivateChannel,
+  onChange,
+  onMove,
+  onRemove,
+}: {
+  guildId: string;
+  index: number;
+  total: number;
+  cat: TicketCategory;
+  isPrivateChannel: boolean;
+  onChange: (next: Partial<TicketCategory>) => void;
+  onMove: (by: -1 | 1) => void;
+  onRemove: () => void;
+}) {
+  const setQuestion = (i: number, next: Partial<TicketQuestion>) =>
+    onChange({ questions: cat.questions.map((q, j) => (j === i ? { ...q, ...next } : q)) });
+
+  return (
+    <div className="card" style={{ marginBottom: "1rem" }}>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <strong>{cat.label.trim() || `Category ${index + 1}`}</strong>
+        <span className="actions">
+          <button className="btn btn-sm" disabled={index === 0} onClick={() => onMove(-1)}>
+            Up
+          </button>
+          <button className="btn btn-sm" disabled={index === total - 1} onClick={() => onMove(1)}>
+            Down
+          </button>
+          <button className="btn btn-sm" onClick={onRemove}>
+            Remove
+          </button>
+        </span>
+      </div>
+
+      <div className="grid grid-2">
+        <label className="field">
+          <span className="eyebrow">Button label</span>
+          <input
+            value={cat.label}
+            maxLength={80}
+            placeholder="Billing"
+            onChange={(e) => onChange({ label: e.target.value })}
+          />
+        </label>
+        <label className="field">
+          <span className="eyebrow">Button emoji</span>
+          <input
+            value={cat.emoji ?? ""}
+            maxLength={64}
+            placeholder="💳"
+            onChange={(e) => onChange({ emoji: e.target.value.trim() || null })}
+          />
+        </label>
+      </div>
+
+      <label className="field">
+        <span className="eyebrow">Description</span>
+        <input
+          value={cat.description ?? ""}
+          maxLength={100}
+          placeholder="Payments, refunds and invoices"
+          onChange={(e) => onChange({ description: e.target.value || null })}
+        />
+        <span className="dim">Optional. Listed under the button in the public panel message.</span>
+      </label>
+
+      <label className="field">
+        <span className="eyebrow">Discord category</span>
+        <input
+          value={cat.discordCategoryId ?? ""}
+          placeholder="Category ID (empty = the one above)"
+          disabled={!isPrivateChannel}
+          onChange={(e) => onChange({ discordCategoryId: e.target.value.trim() || null })}
+        />
+        <NotAnId text={cat.discordCategoryId ?? ""} kind="category" />
+        <span className="dim">
+          {isPrivateChannel
+            ? "Where tickets of this kind are created. Same as the type's category when empty."
+            : "Only applies to private channels."}
+        </span>
+      </label>
+
+      <RolePicker
+        guildId={guildId}
+        label="Support roles"
+        value={cat.supportRoleIds}
+        onChange={(ids) => onChange({ supportRoleIds: ids })}
+        hint="Replace the type's support roles for this category — they see, claim and close these tickets instead. Empty = the type's roles."
+      />
+
+      <RolePicker
+        guildId={guildId}
+        label="Ping on open"
+        value={cat.pingRoleIds}
+        onChange={(ids) => onChange({ pingRoleIds: ids })}
+        hint="Empty = the type's ping roles."
+      />
+
+      <label className="field">
+        <span className="eyebrow">Welcome message</span>
+        <textarea
+          rows={3}
+          value={cat.welcomeMessage ?? ""}
+          maxLength={1000}
+          placeholder="Empty = the type's welcome message"
+          onChange={(e) => onChange({ welcomeMessage: e.target.value || null })}
+        />
+      </label>
+
+      <div className="field">
+        <span className="eyebrow">Questions</span>
+        <span className="dim">
+          Asked in a pop-up when a member presses this button, and posted in the ticket. Up to{" "}
+          {MAX_QUESTIONS}; labels are cut at 45 characters by Discord.
+        </span>
+        {cat.questions.map((q, i) => (
+          <div className="row" key={i}>
+            <input
+              value={q.label}
+              maxLength={45}
+              placeholder="What do you need help with?"
+              onChange={(e) => setQuestion(i, { label: e.target.value })}
+            />
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={q.paragraph}
+                onChange={(e) => setQuestion(i, { paragraph: e.target.checked })}
+              />
+              <span>Long answer</span>
+            </label>
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={q.required}
+                onChange={(e) => setQuestion(i, { required: e.target.checked })}
+              />
+              <span>Required</span>
+            </label>
+            <button
+              className="btn btn-sm"
+              onClick={() => onChange({ questions: cat.questions.filter((_, j) => j !== i) })}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <div className="actions">
+          <button
+            className="btn btn-sm"
+            disabled={cat.questions.length >= MAX_QUESTIONS}
+            onClick={() =>
+              onChange({ questions: [...cat.questions, { label: "", paragraph: false, required: true }] })
+            }
+          >
+            Add a question
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

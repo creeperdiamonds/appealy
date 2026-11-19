@@ -570,7 +570,7 @@ export async function importGuildData(
   // --- ticket configs ------------------------------------------------------
   for (const cfg of asRows(payload.ticketConfigs)) {
     const name = str(cfg.name) ?? "(unnamed ticket type)";
-    await db.insert(schema.ticketConfigs).values({
+    const [createdConfig] = await db.insert(schema.ticketConfigs).values({
       guildId: targetGuildId,
       name,
       buttonLabel: str(cfg.buttonLabel) ?? "Open a ticket",
@@ -596,7 +596,33 @@ export async function importGuildData(
       claimingEnabled: Boolean(cfg.claimingEnabled ?? false),
       ratingEnabled: Boolean(cfg.ratingEnabled ?? false),
       active: Boolean(cfg.active ?? true),
-    });
+    }).returning({ id: schema.ticketConfigs.id });
+
+    // The panel's buttons. Roles and the Discord category are mapped like the
+    // type's own; a role with no counterpart here is dropped, which leaves the
+    // category inheriting the type's roles rather than locking staff out.
+    for (const [index, cat] of asRows(cfg.categories).slice(0, 25).entries()) {
+      const label = str(cat.label);
+      if (!label) continue;
+      await db.insert(schema.ticketCategories).values({
+        configId: createdConfig.id,
+        label: label.slice(0, 80),
+        emoji: str(cat.emoji),
+        description: str(cat.description)?.slice(0, 100) ?? null,
+        discordCategoryId: resolve.optional("ticket category", label, "discordCategoryId", cat.discordCategoryId),
+        supportRoleIds: resolve.roleList(cat.supportRoleIds).ids,
+        pingRoleIds: resolve.roleList(cat.pingRoleIds).ids,
+        welcomeMessage: str(cat.welcomeMessage),
+        questions: asRows(cat.questions)
+          .slice(0, 5)
+          .map((q) => ({
+            label: (str(q.label) ?? "Question").slice(0, 45),
+            paragraph: Boolean(q.paragraph ?? false),
+            required: Boolean(q.required ?? true),
+          })),
+        sortOrder: index,
+      });
+    }
     count("ticketConfigs");
   }
 

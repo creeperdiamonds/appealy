@@ -14,6 +14,11 @@ import { db, schema } from "../db/client.ts";
 import { countRows } from "../db/count.ts";
 import { encodeCustomId } from "../../../shared/types/index.ts";
 import { onlySnowflakes } from "../../../shared/lib/snowflake.ts";
+import {
+  effectiveTicketSettings,
+  slugForChannelName,
+  type EffectiveTicketSettings,
+} from "../../../shared/lib/ticketCategory.ts";
 import { checkAndConsumeDailyCap } from "./rateLimitService.ts";
 import { logger } from "../utils/logger.ts";
 import { describeDiscordError } from "../utils/discordError.ts";
@@ -26,9 +31,22 @@ const ChannelTypes = {
 
 export interface OpenTicketResult {
   ok: boolean;
-  reason?: "max_open_reached" | "config_inactive" | "creation_failed" | "missing_permission" | "guild_rate_limited";
+  reason?:
+    | "max_open_reached"
+    | "config_inactive"
+    | "category_missing"
+    | "creation_failed"
+    | "missing_permission"
+    | "guild_rate_limited";
   ticketId?: string;
   channelId?: bigint;
+}
+
+export interface OpenTicketOptions {
+  /** The panel button (ticket category) that was clicked, if the panel has any. */
+  categoryId?: string | null;
+  /** The member's answers to the category's questions, in question order. */
+  answers?: { label: string; value: string }[];
 }
 
 export async function openTicket(
@@ -37,9 +55,20 @@ export async function openTicket(
   configId: string,
   openerId: bigint,
   openerUsername: string,
+  opts: OpenTicketOptions = {},
 ): Promise<OpenTicketResult> {
-  const config = await db.query.ticketConfigs.findFirst({ where: eq(schema.ticketConfigs.id, configId) });
+  const config = await db.query.ticketConfigs.findFirst({
+    where: eq(schema.ticketConfigs.id, configId),
+    with: { categories: true },
+  });
   if (!config || !config.active) return { ok: false, reason: "config_inactive" };
+
+  // A panel with categories only opens through one of them, and the category
+  // must belong to this config: the id comes from a button's custom_id, which
+  // outlives edits (a deleted category's old panel button still exists).
+  const category = opts.categoryId ? config.categories.find((c) => c.id === opts.categoryId) ?? null : null;
+  if (opts.categoryId && !category) return { ok: false, reason: "category_missing" };
+  const settings = effectiveTicketSettings(config, category);
 
   const rateLimit = await checkAndConsumeDailyCap(guildId, "ticketsPerDay");
   if (!rateLimit.allowed) {
@@ -60,11 +89,12 @@ export async function openTicket(
 
   const ticketName = config.ticketNameFormat
     .replace("{username}", openerUsername)
+    .replace("{category}", category ? slugForChannelName(category.label) : "")
     .slice(0, 100);
 
   let channelId: bigint;
   try {
-    channelId = await createTicketChannel(bot, guildId, config, ticketName, openerId);
+    channelId = await createTicketChannel(bot, guildId, config, settings, ticketName, openerId);
   } catch (err) {
     logger.error("Failed to create ticket channel/thread", { configId, error: String(err) });
     // Told apart because it's the one staff can fix, and the one a server
@@ -76,19 +106,24 @@ export async function openTicket(
 
   const [ticket] = await db
     .insert(schema.tickets)
-    .values({ configId, guildId, openerId, channelId, status: "open" })
+    .values({ configId, ticketCategoryId: category?.id ?? null, guildId, openerId, channelId, status: "open" })
     .returning();
 
-  const pingRoleIds = onlySnowflakes(config.pingRoleIds);
+  const pingRoleIds = onlySnowflakes(settings.pingRoleIds);
   const pingContent = pingRoleIds.length > 0 ? pingRoleIds.map((r) => `<@&${r}>`).join(" ") : "";
   await bot.helpers.sendMessage(channelId, {
     content: `${pingContent}${pingContent ? " " : ""}<@${openerId}>`,
     allowedMentions: { roles: pingRoleIds.map((r) => BigInt(r)), users: [openerId] },
     embeds: [
       {
-        title: config.name,
-        description: config.welcomeMessage ?? "Thanks for opening a ticket.",
+        title: settings.title.slice(0, 256),
+        description: settings.welcomeMessage ?? "Thanks for opening a ticket.",
         color: 0x5865f2,
+        // Embed limits: 25 fields, 256 for a name, 1024 for a value.
+        fields: (opts.answers ?? [])
+          .filter((a) => a.value.trim().length > 0)
+          .slice(0, 25)
+          .map((a) => ({ name: a.label.slice(0, 256), value: a.value.slice(0, 1024) })),
         footer: { text: `Ticket ID: ${ticket.id}` },
       },
     ],
@@ -130,6 +165,7 @@ async function createTicketChannel(
   bot: AppealyBot,
   guildId: bigint,
   config: typeof schema.ticketConfigs.$inferSelect,
+  settings: EffectiveTicketSettings,
   ticketName: string,
   openerId: bigint,
 ): Promise<bigint> {
@@ -137,7 +173,7 @@ async function createTicketChannel(
     const channel = await bot.helpers.createChannel(guildId, {
       name: ticketName,
       type: ChannelTypes.GuildText,
-      parentId: config.categoryId ?? undefined,
+      parentId: settings.parentCategoryId ?? undefined,
       // Deny @everyone, allow the opener and each support role explicitly.
       // This is the standard "private ticket channel" permission pattern.
       permissionOverwrites: [
@@ -150,7 +186,7 @@ async function createTicketChannel(
           type: OverwriteTypes.Member,
           allow: ["VIEW_CHANNEL", "SEND_MESSAGES"],
         },
-        ...onlySnowflakes(config.supportRoleIds).map((roleId) => ({
+        ...onlySnowflakes(settings.supportRoleIds).map((roleId) => ({
           id: BigInt(roleId),
           type: OverwriteTypes.Role,
           allow: ["VIEW_CHANNEL", "SEND_MESSAGES"] as PermissionStrings[],
@@ -184,9 +220,10 @@ export async function closeTicket(
 ) {
   const ticket = await db.query.tickets.findFirst({
     where: eq(schema.tickets.id, ticketId),
-    with: { config: true },
+    with: { config: true, category: true },
   });
   if (!ticket || ticket.status === "closed") return null;
+  const settings = effectiveTicketSettings(ticket.config, ticket.category);
 
   // "Keep closed tickets" (stored as transcript_on_close, its old name): the
   // conversation stays where it happened, read-only, instead of being copied
@@ -217,7 +254,7 @@ export async function closeTicket(
     } else if (keep) {
       await bot.helpers.editChannel(ticket.channelId, {
         name: closedName(ticket.id),
-        permissionOverwrites: closedOverwrites(ticket.guildId, ticket.openerId, ticket.config.supportRoleIds),
+        permissionOverwrites: closedOverwrites(ticket.guildId, ticket.openerId, settings.supportRoleIds),
       } as never, reason ?? "Ticket closed");
     } else {
       await bot.helpers.deleteChannel(ticket.channelId, reason ?? "Ticket closed");

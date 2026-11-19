@@ -9,13 +9,54 @@ import { eq, and, desc } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { requireGuildAccess, requireAdminAccess } from "../middleware/guildAccess.ts";
 import { requestTicketPanelPublish, botCallFailure } from "../services/botBridge.ts";
-import type { TicketConfigDTO, TicketDTO } from "../../../shared/types/index.ts";
+import {
+  MAX_TICKET_CATEGORIES,
+  MAX_TICKET_QUESTIONS,
+  type TicketConfigDTO,
+  type TicketDTO,
+} from "../../../shared/types/index.ts";
 import { parseEmoji } from "../../../shared/lib/emoji.ts";
 import { discordId, discordIdList, discordIdOrBlank } from "../utils/discordIds.ts";
 
 export const ticketsRouter = Router({ mergeParams: true });
 
+// Same check as the type's own button emoji, for the same reason.
+const emojiField = z
+  .string()
+  .nullable()
+  .optional()
+  .superRefine((value, ctx) => {
+    if (value == null) return;
+    const parsed = parseEmoji(value);
+    if (!parsed.ok) ctx.addIssue({ code: z.ZodIssueCode.custom, message: parsed.message });
+  });
+
+const categorySchema = z.object({
+  // Present for a category that already exists, so saving edits it in place
+  // rather than replacing it (which would detach its open tickets).
+  id: z.string().max(64).optional(),
+  label: z.string().min(1).max(80),
+  emoji: emojiField,
+  description: z.string().max(100).nullable().optional(),
+  discordCategoryId: discordIdOrBlank.nullable().optional(),
+  supportRoleIds: discordIdList.default([]),
+  pingRoleIds: discordIdList.default([]),
+  welcomeMessage: z.string().max(1000).nullable().optional(),
+  questions: z
+    .array(
+      z.object({
+        label: z.string().min(1).max(45),
+        paragraph: z.boolean().default(false),
+        required: z.boolean().default(true),
+      }),
+    )
+    .max(MAX_TICKET_QUESTIONS)
+    .default([]),
+});
+
 const configSchema = z.object({
+  // The whole list, in panel order. Absent on a PATCH = leave them alone.
+  categories: z.array(categorySchema).max(MAX_TICKET_CATEGORIES).optional(),
   name: z.string().min(1).max(100),
   buttonLabel: z.string().min(1).max(80).default("Open Ticket"),
   // Validated here rather than left to fail at publish time. A shortcode like
@@ -53,8 +94,66 @@ const configSchema = z.object({
 
 ticketsRouter.use(requireGuildAccess);
 
+type CategoryInput = z.infer<typeof categorySchema>;
+type ConfigWithCategories = typeof schema.ticketConfigs.$inferSelect & {
+  categories: (typeof schema.ticketCategories.$inferSelect)[];
+};
+
+async function loadConfig(configId: string): Promise<ConfigWithCategories> {
+  const row = await db.query.ticketConfigs.findFirst({
+    where: eq(schema.ticketConfigs.id, configId),
+    with: { categories: { orderBy: (c, { asc }) => [asc(c.sortOrder), asc(c.createdAt)] } },
+  });
+  return row!;
+}
+
+/**
+ * Makes the stored categories match the list the dashboard sent: known ids are
+ * updated in place (their open tickets stay attached), new ones inserted,
+ * omitted ones deleted. A client-supplied id that isn't this config's is
+ * treated as new rather than trusted.
+ */
+async function syncCategories(configId: string, incoming: CategoryInput[]) {
+  await db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: schema.ticketCategories.id })
+      .from(schema.ticketCategories)
+      .where(eq(schema.ticketCategories.configId, configId));
+    const known = new Set(existing.map((e) => e.id));
+    const keep = new Set<string>();
+
+    for (const [index, c] of incoming.entries()) {
+      const values = {
+        label: c.label.trim(),
+        emoji: c.emoji ?? null,
+        description: c.description?.trim() || null,
+        discordCategoryId: c.discordCategoryId ? BigInt(c.discordCategoryId) : null,
+        supportRoleIds: c.supportRoleIds,
+        pingRoleIds: c.pingRoleIds,
+        welcomeMessage: c.welcomeMessage?.trim() || null,
+        questions: c.questions.map((q) => ({ ...q, label: q.label.trim() })),
+        sortOrder: index,
+      };
+      if (c.id && known.has(c.id) && !keep.has(c.id)) {
+        keep.add(c.id);
+        await tx.update(schema.ticketCategories).set(values).where(eq(schema.ticketCategories.id, c.id));
+      } else {
+        const [row] = await tx.insert(schema.ticketCategories).values({ configId, ...values }).returning({ id: schema.ticketCategories.id });
+        keep.add(row.id);
+      }
+    }
+
+    for (const id of known) {
+      if (!keep.has(id)) await tx.delete(schema.ticketCategories).where(eq(schema.ticketCategories.id, id));
+    }
+  });
+}
+
 ticketsRouter.get("/", async (req, res) => {
-  const configs = await db.select().from(schema.ticketConfigs).where(eq(schema.ticketConfigs.guildId, BigInt(routeParams(req).guildId)));
+  const configs = await db.query.ticketConfigs.findMany({
+    where: eq(schema.ticketConfigs.guildId, BigInt(routeParams(req).guildId)),
+    with: { categories: { orderBy: (c, { asc }) => [asc(c.sortOrder), asc(c.createdAt)] } },
+  });
   res.json(configs.map(toConfigDTO));
 });
 
@@ -95,7 +194,9 @@ ticketsRouter.post("/", requireAdminAccess, async (req, res) => {
     })
     .returning();
 
-  res.status(201).json(toConfigDTO(created));
+  if (data.categories?.length) await syncCategories(created.id, data.categories);
+
+  res.status(201).json(toConfigDTO(await loadConfig(created.id)));
 });
 
 ticketsRouter.patch("/:configId", requireAdminAccess, async (req, res) => {
@@ -137,8 +238,9 @@ ticketsRouter.patch("/:configId", requireAdminAccess, async (req, res) => {
     updateSet.transcriptChannelId = data.transcriptChannelId ? BigInt(data.transcriptChannelId) : null;
   }
 
-  const [updated] = await db.update(schema.ticketConfigs).set(updateSet).where(eq(schema.ticketConfigs.id, configId)).returning();
-  res.json(toConfigDTO(updated));
+  await db.update(schema.ticketConfigs).set(updateSet).where(eq(schema.ticketConfigs.id, configId));
+  if (data.categories !== undefined) await syncCategories(configId, data.categories);
+  res.json(toConfigDTO(await loadConfig(configId)));
 });
 
 ticketsRouter.post("/:configId/publish", requireAdminAccess, async (req, res) => {
@@ -177,7 +279,7 @@ ticketsRouter.get("/:configId/tickets", async (req, res) => {
   res.json(rows.map(toTicketDTO));
 });
 
-function toConfigDTO(c: typeof schema.ticketConfigs.$inferSelect): TicketConfigDTO {
+function toConfigDTO(c: ConfigWithCategories): TicketConfigDTO {
   return {
     id: c.id,
     guildId: c.guildId.toString(),
@@ -200,6 +302,17 @@ function toConfigDTO(c: typeof schema.ticketConfigs.$inferSelect): TicketConfigD
     claimingEnabled: c.claimingEnabled,
     ratingEnabled: c.ratingEnabled,
     active: c.active,
+    categories: c.categories.map((k) => ({
+      id: k.id,
+      label: k.label,
+      emoji: k.emoji,
+      description: k.description,
+      discordCategoryId: k.discordCategoryId?.toString() ?? null,
+      supportRoleIds: k.supportRoleIds,
+      pingRoleIds: k.pingRoleIds,
+      welcomeMessage: k.welcomeMessage,
+      questions: k.questions,
+    })),
   };
 }
 
@@ -207,6 +320,7 @@ function toTicketDTO(t: typeof schema.tickets.$inferSelect): TicketDTO {
   return {
     id: t.id,
     configId: t.configId,
+    ticketCategoryId: t.ticketCategoryId,
     openerId: t.openerId.toString(),
     channelId: t.channelId.toString(),
     status: t.status,

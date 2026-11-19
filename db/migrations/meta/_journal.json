@@ -169,6 +169,13 @@
       "when": 1793805237517,
       "tag": "0023_gate_reset_for_everyone",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794331102924,
+      "tag": "0024_ticket_categories",
+      "breakpoints": true
     }
   ]
 }

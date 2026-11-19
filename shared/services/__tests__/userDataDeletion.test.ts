@@ -30,6 +30,7 @@ const JSON_REVIEWED: Record<string, string> = {
   "submission_events.detail": "deleted with the submission when it's theirs; holds an outcome label or reason, not IDs",
   "dashboard_audit_logs.changes": "the server's settings before and after; the row's user_id is anonymized",
   "platform_bans.evidence": "kept with the ban, which is kept (platform_bans.subject_id)",
+  "ticket_categories.questions": "the pop-up's question labels, written by staff; members' answers are posted in the ticket, never stored",
   "scheduled_jobs.payload": "deleted with a kick_unverified job; other kinds are about polls and giveaways",
 };
 

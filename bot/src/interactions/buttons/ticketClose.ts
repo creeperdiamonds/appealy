@@ -8,6 +8,7 @@ import type { AppealyBot } from "../../core/client.ts";
 import { db, schema } from "../../db/client.ts";
 import { closeTicket } from "../../services/ticketService.ts";
 import { canManageTicket } from "../../services/permissionService.ts";
+import { effectiveTicketSettings } from "../../../../shared/lib/ticketCategory.ts";
 import { logger } from "../../utils/logger.ts";
 import { defer, finish } from "../../utils/interactionResponse.ts";
 
@@ -30,14 +31,14 @@ export async function handleTicketCloseButton(
 
   const ticket = await db.query.tickets.findFirst({
     where: eq(schema.tickets.id, ticketId),
-    with: { config: true },
+    with: { config: true, category: true },
   });
   if (!ticket) return respond(bot, interaction, "This ticket no longer exists.");
   if (ticket.status === "closed") return respond(bot, interaction, "This ticket is already closed.");
 
   const isStaff = await canManageTicket(
     guildId,
-    ticket.config,
+    effectiveTicketSettings(ticket.config, ticket.category),
     actor.id,
     interaction.member?.roles ?? [],
     interaction.member?.permissions?.bitfield ?? 0n,
@@ -105,7 +106,7 @@ export async function handleTicketClaimButton(
 
   const ticket = await db.query.tickets.findFirst({
     where: eq(schema.tickets.id, ticketId),
-    with: { config: true },
+    with: { config: true, category: true },
   });
   if (!ticket || ticket.status === "closed") {
     return respond(bot, interaction, "This ticket is not open.");
@@ -113,7 +114,7 @@ export async function handleTicketClaimButton(
 
   const allowed = await canManageTicket(
     guildId,
-    ticket.config,
+    effectiveTicketSettings(ticket.config, ticket.category),
     actor.id,
     interaction.member?.roles ?? [],
     interaction.member?.permissions?.bitfield ?? 0n,
