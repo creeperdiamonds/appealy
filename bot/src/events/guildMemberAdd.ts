@@ -73,7 +73,7 @@ export function onGuildMemberAdd(bot: AppealyBot) {
     } catch (err) {
       logger.error("Failed to load guild config on member join", {
         guildId: member.guildId.toString(),
-        error: String(err),
+        error: err,
       });
       return;
     }
@@ -97,7 +97,7 @@ export function onGuildMemberAdd(bot: AppealyBot) {
           userId: member.user.id.toString(),
         });
       } catch (err) {
-        logger.error("Failed to kick member during anti-raid lockdown", { error: String(err) });
+        logger.error("Failed to kick member during anti-raid lockdown", { error: err });
       }
       return; // never apply verification/welcomer to a member we just kicked
     }
@@ -140,7 +140,7 @@ async function applyVerificationGate(
     logger.warn("Failed to apply unverified role on join", {
       guildId: member.guildId.toString(),
       userId: member.user.id.toString(),
-      error: String(err),
+      error: err,
     });
   }
 
@@ -164,7 +164,7 @@ async function applyVerificationGate(
     logger.error("Failed to schedule unverified-kick job", {
       guildId: member.guildId.toString(),
       userId: member.user.id.toString(),
-      error: String(err),
+      error: err,
     });
   }
 }
@@ -217,7 +217,7 @@ async function applyWelcomer(bot: AppealyBot, member: JoiningMember, config: Gui
           ],
         })
         .catch((err: unknown) =>
-          logger.warn("Failed to send welcomer join message", { error: String(err) }),
+          logger.warn("Failed to send welcomer join message", { error: err }),
         ),
     );
   }

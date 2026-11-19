@@ -39,6 +39,6 @@ export async function brandUpdatesWebhook(bot: AppealyBot, webhookId: bigint, cu
     if (hook.name === UPDATES_NAME) return;
     await bot.rest.editWebhook(webhookId, { name: UPDATES_NAME, avatar: await avatarDataUri() } as never);
   } catch (err) {
-    logger.warn("Couldn't brand the updates webhook", { webhookId: webhookId.toString(), error: String(err) });
+    logger.warn("Couldn't brand the updates webhook", { webhookId: webhookId.toString(), error: err });
   }
 }

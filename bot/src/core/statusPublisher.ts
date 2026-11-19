@@ -119,7 +119,7 @@ export function startStatusPublisher(bot: AppealyBot): void {
     } catch (err) {
       if (!failing) {
         failing = true;
-        logger.warn("Status heartbeat failed", { error: String(err) });
+        logger.warn("Status heartbeat failed", { error: err });
       }
     }
   };

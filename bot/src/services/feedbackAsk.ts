@@ -48,7 +48,7 @@ async function shouldAsk(guildId: bigint, userId: bigint): Promise<boolean> {
     if (setting && !setting.enabled) return false;
     return !asked && !answered;
   } catch (err) {
-    logger.warn("Couldn't check whether to ask for feedback", { error: String(err) });
+    logger.warn("Couldn't check whether to ask for feedback", { error: err });
     return false;
   }
 }
@@ -143,7 +143,7 @@ export async function submitFeedback(bot: AppealyBot, interaction: Interaction):
       missing: values.missing || null,
     });
   } catch (err) {
-    logger.error("Couldn't store feedback from the Discord form", { error: String(err) });
+    logger.error("Couldn't store feedback from the Discord form", { error: err });
     return void (await reply("Couldn't save that. Try again in a moment, or use the dashboard's feedback form."));
   }
   logger.info("Feedback received", { via: "discord", answered: Object.keys(values).filter((k) => values[k]) });

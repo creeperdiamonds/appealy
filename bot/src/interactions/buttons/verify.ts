@@ -121,7 +121,7 @@ async function grantVerifiedRole(
       await bot.helpers.removeRole(guildId, userId, config.unverifiedRoleId, "Verification passed");
     }
   } catch (err) {
-    logger.error("Role update failed during verification", { guildId: guildId.toString(), userId: userId.toString(), error: String(err) });
+    logger.error("Role update failed during verification", { guildId: guildId.toString(), userId: userId.toString(), error: err });
     return false;
   }
   return unmanageable.length === 0;

@@ -104,7 +104,7 @@ async function publish(bot: AppealyBot): Promise<void> {
   } catch (err) {
     // A failed presence write is cosmetic. It must never take down the caller,
     // which is a guild-join handler in the middle of a startup burst.
-    logger.warn("Failed to update presence", { error: String(err) });
+    logger.warn("Failed to update presence", { error: err });
   }
 }
 

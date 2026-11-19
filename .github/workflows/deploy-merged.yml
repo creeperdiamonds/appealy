@@ -15,6 +15,11 @@ on:
         type: choice
         default: apply
         options: [apply, skip, allow-destructive]
+      allow_untested:
+        description: 'Deploy even if the tests have not passed on this commit. Only for an emergency fix.'
+        required: false
+        type: boolean
+        default: false
       rehearse:
         description: 'Only while the bot is still on Cloud Run: set up the API on the VM and a new nginx with no traffic, test them, and stop before anything moves.'
         required: false
@@ -48,8 +53,32 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
+      # To read the CI result for the commit being deployed.
+      actions: 'read'
 
     steps:
+      # Nothing ran the tests before a deploy: a merge followed straight by a
+      # deploy would ship whatever was merged, migrations included, even with
+      # CI red or still running. Waits up to 15 minutes for CI to finish on
+      # this exact commit, and stops unless it passed.
+      - name: Require passing tests for this commit
+        if: ${{ !inputs.allow_untested }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 30); do
+            read -r status conclusion < <(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --event push --limit 1 --json status,conclusion --jq '.[0] | "\(.status // "none") \(.conclusion // "none")"' || echo "none none")
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then echo "Tests passed on $GITHUB_SHA."; exit 0; fi
+              echo "::error::Tests on $GITHUB_SHA ended '$conclusion'. Fix main first, or rerun with allow_untested for an emergency."
+              exit 1
+            fi
+            echo "Tests on $GITHUB_SHA: ${status}. Waiting..."
+            sleep 30
+          done
+          echo "::error::Tests on $GITHUB_SHA did not finish within 15 minutes."
+          exit 1
+
       - uses: actions/checkout@v4
 
       # The documentation is its own branch with no app code beside it. Checked

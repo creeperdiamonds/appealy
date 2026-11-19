@@ -128,7 +128,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
   } catch (err) {
     logger.warn("Failed to send export_applications CSV followup after acknowledgment was already sent", {
       formId: form.id,
-      error: String(err),
+      error: err,
     });
   }
 }

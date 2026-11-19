@@ -196,7 +196,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
     await finish(bot, interaction, formatReport(report));
   } catch (err) {
-    logger.error("Appealy import failed", { guildId: guildId.toString(), error: String(err) });
+    logger.error("Appealy import failed", { guildId: guildId.toString(), error: err });
     // Not reported as a clean failure: if this threw partway, some records
     // already exist and the server is in a half-imported state. Saying
     // "failed" without that would send someone looking for nothing.

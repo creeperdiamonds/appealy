@@ -80,7 +80,7 @@ export function onMessageCreate(bot: AppealyBot) {
         await handleDmApplicationReply(bot, message.author.id, message.content ?? "");
       } catch (err) {
         logger.error("Error handling potential DM application reply", {
-          error: String(err),
+          error: err,
           userId: message.author.id.toString(),
         });
       }
@@ -106,7 +106,7 @@ export function onMessageCreate(bot: AppealyBot) {
       } catch (err) {
         logger.error("Error handling a moderation command", {
           guildId: message.guildId.toString(),
-          error: String(err),
+          error: err,
         });
         return;
       }
@@ -129,7 +129,7 @@ export function onMessageCreate(bot: AppealyBot) {
         getGuildConfig(message.guildId)
           .catch((err) => logger.warn("Failed to warm guild config cache", {
             guildId: key,
-            error: String(err),
+            error: err,
           }))
           .finally(() => warming.delete(key));
       }
@@ -141,7 +141,7 @@ export function onMessageCreate(bot: AppealyBot) {
     } catch (err) {
       logger.error("Error bumping sticky message counter", {
         channelId: message.channelId.toString(),
-        error: String(err),
+        error: err,
       });
     }
   };

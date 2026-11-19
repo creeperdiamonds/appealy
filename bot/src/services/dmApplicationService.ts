@@ -330,7 +330,7 @@ export async function createSubmission(
   } catch (err) {
     logger.warn("Post-submit follow-up work failed after DM confirmation was already sent", {
       submissionId: submission.id,
-      error: String(err),
+      error: err,
     });
   }
 
@@ -368,7 +368,7 @@ export async function dmOrLog(
     });
     return true;
   } catch (err) {
-    logger.warn("Failed to DM applicant during DM application flow", { userId: userId.toString(), error: String(err) });
+    logger.warn("Failed to DM applicant during DM application flow", { userId: userId.toString(), error: err });
     return false;
   }
 }

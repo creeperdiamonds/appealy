@@ -200,7 +200,7 @@ async function triggerLockdown(
     } catch (err) {
       logger.error("Failed to send anti-raid alert", {
         guildId: guildId.toString(),
-        error: String(err),
+        error: err,
       });
     }
   }
@@ -225,7 +225,7 @@ async function triggerLockdown(
       await invalidateGuild(guildId);
     } catch (err) {
       logger.error("Failed to force-enable verification during lockdown", {
-        error: String(err),
+        error: err,
       });
     }
   }
@@ -295,7 +295,7 @@ export async function recordRaidAction(
     logger.error("Failed to record an anti-raid action", {
       guildId: guildId.toString(),
       userId: userId.toString(),
-      error: String(err),
+      error: err,
     });
   }
 }

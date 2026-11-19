@@ -114,7 +114,7 @@ export async function stopDedicatedRunner(): Promise<void> {
 }
 
 function onLoopError(err: unknown) {
-  logger.error("Dedicated runner loop error", { runnerId, error: String(err) });
+  logger.error("Dedicated runner loop error", { runnerId, error: err });
 }
 
 /** Claims what this runner has room for, and starts it. */
@@ -146,7 +146,7 @@ async function scan(): Promise<void> {
     await claimAndStart(c.id, c.tokenEnc!).catch((err) =>
       logger.error("Failed to start dedicated bot", {
         guildId: c.id.toString(),
-        error: String(err),
+        error: err,
       }),
     );
   }
@@ -195,7 +195,7 @@ async function claimAndStart(guildId: bigint, tokenEnc: string): Promise<void> {
     await fail(guildId, "Stored token could not be read. Please re-enter your bot token.");
     logger.error("Dedicated token failed to decrypt", {
       guildId: guildId.toString(),
-      error: String(err),
+      error: err,
     });
     return;
   }
@@ -239,7 +239,7 @@ async function claimAndStart(guildId: bigint, tokenEnc: string): Promise<void> {
     );
     logger.warn("Dedicated bot failed to connect", {
       guildId: guildId.toString(),
-      error: String(err),
+      error: err,
     });
   }
 }

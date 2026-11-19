@@ -92,7 +92,7 @@ export async function handleFormModalSubmit(
       logger.error("Failed to stash a modal page; refusing to continue", {
         formId,
         page,
-        error: String(err),
+        error: err,
       });
       return respond(
         bot,
@@ -248,7 +248,7 @@ export async function handleFormModalSubmit(
   } catch (err) {
     logger.warn("Post-submit follow-up work failed after acknowledgment was already sent", {
       submissionId: submission.id,
-      error: String(err),
+      error: err,
     });
   }
 }
@@ -286,7 +286,7 @@ export async function applyRoleAutomationOnSubmit(
         await bot.helpers.removeRole(guildId, applicantId, BigInt(roleId), "Application submitted");
       }
     } catch (err) {
-      logger.error("Failed to remove submit-time roles", { submissionId, error: String(err) });
+      logger.error("Failed to remove submit-time roles", { submissionId, error: err });
     }
   }
 
@@ -300,7 +300,7 @@ export async function applyRoleAutomationOnSubmit(
         await bot.helpers.addRole(guildId, applicantId, BigInt(roleId), "Application pending review");
       }
     } catch (err) {
-      logger.error("Failed to grant pending roles", { submissionId, error: String(err) });
+      logger.error("Failed to grant pending roles", { submissionId, error: err });
     }
   }
 }

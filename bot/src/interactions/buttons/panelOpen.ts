@@ -99,7 +99,7 @@ export async function runApplicationFlow(
       : outcome.status === "in_progress" ? "You already have this application open in your DMs. Reply to my last message there to carry on."
       : outcome.message;
     await bot.helpers.editOriginalInteractionResponse(interaction.token, { content: `${about}${status}` }).catch((err) => {
-      logger.warn("Couldn't update the DM application status message", { formId, error: String(err) });
+      logger.warn("Couldn't update the DM application status message", { formId, error: err });
     });
     return;
   }
@@ -113,12 +113,17 @@ export async function runApplicationFlow(
     try {
       return await showFormPopup(bot, interaction, form, 0);
     } catch (err) {
-      // A refused popup isn't an answer, so the click can still be answered
-      // the older way below. Without this, a popup Discord didn't accept
-      // would leave the applicant with "This interaction failed" and no way in.
+      // Tries the older flow below. In practice this rarely saves the click:
+      // on 2026-11-18 one form's popup was refused 13 times, and each
+      // fallback answer got 10062 "Unknown interaction" about 0.3 seconds
+      // after the click, so a refused popup seems to use the interaction up.
+      // What it does give is the refusal in the log: `error` is the error
+      // itself, so the logger writes Discord's reason and the exact fields it
+      // refused (utils/logger.ts), which is what the clipping in
+      // services/formPopup.ts needs to be fixed against.
       logger.error("Discord refused the application popup; used the older flow instead", {
         formId,
-        error: String(err),
+        error: err,
       });
     }
   }

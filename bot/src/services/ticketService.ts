@@ -96,7 +96,7 @@ export async function openTicket(
   try {
     channelId = await createTicketChannel(bot, guildId, config, settings, ticketName, openerId);
   } catch (err) {
-    logger.error("Failed to create ticket channel/thread", { configId, error: String(err) });
+    logger.error("Failed to create ticket channel/thread", { configId, error: err });
     // Told apart because it's the one staff can fix, and the one a server
     // that invited Appealy without Manage Channels always hits.
     const { code } = describeDiscordError(err);

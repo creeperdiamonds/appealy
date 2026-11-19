@@ -182,7 +182,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
       `Imported ${result.imported} submission(s) into **${form.name}**.${alreadySummary}${skippedSummary}${unmatchedSummary}`,
     );
   } catch (err) {
-    logger.error("Appy import failed", { guildId: guildId.toString(), error: String(err) });
+    logger.error("Appy import failed", { guildId: guildId.toString(), error: err });
     await finish(
       bot,
       interaction,

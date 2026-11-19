@@ -79,7 +79,7 @@ export async function commandIds(bot: AppealyBot): Promise<Map<string, string>> 
     return cachedIds;
   } catch (err) {
     logger.warn("Couldn't fetch command ids for /help; commands are listed as plain text", {
-      error: String(err),
+      error: err,
     });
     return new Map();
   } finally {

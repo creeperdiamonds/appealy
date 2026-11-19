@@ -117,7 +117,7 @@ export async function resolveUsers(bot: AppealyBot, ids: string[]): Promise<Reso
       // and inventing one ("Unknown User") in the data would make the
       // dashboard unable to tell "we could not resolve this" from "this
       // person is literally called Unknown User".
-      logger.debug?.("Could not resolve a user for the dashboard", { id, error: String(err) });
+      logger.debug?.("Could not resolve a user for the dashboard", { id, error: err });
     }
   }
 

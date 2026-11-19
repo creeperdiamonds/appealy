@@ -40,7 +40,12 @@ type PendingGuild = {
   ownerId: bigint;
 };
 
-let buffer: PendingGuild[] = [];
+// Keyed by guild, so a guild that arrives twice before a flush is written
+// once, with its latest details. Two READY bursts close together (the
+// gateway re-identifying) used to put the same guild in one batch twice,
+// and Postgres refuses the whole statement for that: "ON CONFLICT DO UPDATE
+// command cannot affect row a second time" dropped 103 guilds on 2026-11-17.
+let buffer = new Map<bigint, PendingGuild>();
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let inFlight: Promise<void> = Promise.resolve();
 
@@ -49,10 +54,10 @@ async function flush(): Promise<void> {
     clearTimeout(flushTimer);
     flushTimer = null;
   }
-  if (buffer.length === 0) return;
+  if (buffer.size === 0) return;
 
-  const batch = buffer;
-  buffer = [];
+  const batch = [...buffer.values()];
+  buffer = new Map();
 
   // Chain rather than run concurrently. Two overlapping upserts touching the
   // same rows can deadlock, and there's no benefit to parallelism here when
@@ -88,7 +93,7 @@ async function flush(): Promise<void> {
       // Re-queue nothing: a failed batch means those guilds keep whatever row
       // they already had, and the next reconnect will refresh them. Retrying
       // here risks compounding the pool pressure that caused the failure.
-      logger.error("Failed to upsert guild batch", { count: batch.length, error: String(err) });
+      logger.error("Failed to upsert guild batch", { count: batch.length, error: err });
     }
   });
 
@@ -97,7 +102,7 @@ async function flush(): Promise<void> {
 
 export async function onGuildCreate(guild: AppealyGuild, shardId = 0) {
   await trackGuildCreate(shardId, guild.id, async () => {
-    buffer.push({
+    buffer.set(guild.id, {
       id: guild.id,
       name: guild.name,
       // guild.icon is a bigint here: Discordeno packs the hash into one to
@@ -107,7 +112,7 @@ export async function onGuildCreate(guild: AppealyGuild, shardId = 0) {
       ownerId: guild.ownerId,
     });
 
-    if (buffer.length >= BATCH_SIZE) {
+    if (buffer.size >= BATCH_SIZE) {
       await flush();
       return;
     }

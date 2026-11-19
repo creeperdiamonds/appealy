@@ -79,7 +79,7 @@ export async function sendTemplatedDm(bot: AppealyBot, args: SendTemplatedDmArgs
     logger.warn("Failed to DM applicant (likely closed DMs)", {
       userId: args.userId.toString(),
       type: args.type,
-      error: String(err),
+      error: err,
     });
   }
 }

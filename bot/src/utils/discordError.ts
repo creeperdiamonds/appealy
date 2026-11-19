@@ -24,6 +24,30 @@ export interface DiscordErrorInfo {
   code: number | null;
   /** The most specific human-readable message available. */
   message: string;
+  /**
+   * For an Invalid Form Body (50035), each field Discord refused, as
+   * "path: reason". This is what says WHICH part of a popup or message was
+   * wrong; without it the log only says the whole request was refused.
+   */
+  fields?: string[];
+}
+
+/** How many refused fields to keep; Discord can list one per option. */
+const MAX_FIELDS = 10;
+
+function collectFields(node: unknown, path: string, out: string[]): void {
+  if (out.length >= MAX_FIELDS || typeof node !== "object" || node === null) return;
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    if (key === "_errors" && Array.isArray(value)) {
+      for (const e of value) {
+        if (out.length >= MAX_FIELDS) return;
+        const reason = (e as { message?: unknown })?.message;
+        out.push(`${path || "(body)"}: ${typeof reason === "string" ? reason : JSON.stringify(e)}`);
+      }
+    } else {
+      collectFields(value, path ? `${path}.${key}` : key, out);
+    }
+  }
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -67,11 +91,13 @@ export function describeDiscordError(err: unknown): DiscordErrorInfo {
   let status: number | null = null;
   let code: number | null = null;
   const messages: string[] = [];
+  const fields: string[] = [];
 
   for (const level of levels) {
     if (status === null) status = pickNumber(level, ["status", "statusCode", "httpStatus"]);
     if (code === null) code = pickNumber(level, ["code", "errorCode"]);
     if (typeof level.message === "string" && level.message) messages.push(level.message);
+    if (fields.length === 0 && typeof level.errors === "object") collectFields(level.errors, "", fields);
   }
 
   // The wrapper's own message is the least useful one available, so it is
@@ -85,7 +111,7 @@ export function describeDiscordError(err: unknown): DiscordErrorInfo {
   // that is not the raw error is a trap for whoever is reading these logs
   // at 2am. If the untouched error is ever wanted, log `String(err)` or the
   // stack at the call site, where the original object is still in hand.
-  return { status, code, message };
+  return fields.length ? { status, code, message, fields } : { status, code, message };
 }
 
 /**

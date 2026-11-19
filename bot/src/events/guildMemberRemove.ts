@@ -45,7 +45,7 @@ async function handleWelcomerLeaveMessage(
   try {
     await bot.helpers.sendMessage(config.leaveChannelId, { content: message });
   } catch (err) {
-    logger.warn("Failed to send welcomer leave message", { error: String(err) });
+    logger.warn("Failed to send welcomer leave message", { error: err });
   }
 }
 
@@ -104,7 +104,7 @@ async function handleApplicationLeaveActions(
         } catch (err) {
           logger.warn("Failed to edit review message on member-leave auto-deny", {
             submissionId: submission.id,
-            error: String(err),
+            error: err,
           });
         }
       }
@@ -149,7 +149,7 @@ async function handleTicketLeaveActions(
           content: `⚠️ <@${payload.user.id}> has left the server. This ticket remains open — a staff member should follow up or close it.`,
         });
       } catch (err) {
-        logger.warn("Failed to post leave notice in ticket", { ticketId: ticket.id, error: String(err) });
+        logger.warn("Failed to post leave notice in ticket", { ticketId: ticket.id, error: err });
       }
       continue;
     }

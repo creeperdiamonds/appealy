@@ -67,7 +67,7 @@ export async function recordSubmissionEvent(args: RecordEventArgs): Promise<void
     logger.error("Failed to record a submission event; the history will have a hole", {
       submissionId: args.submissionId,
       action: args.action,
-      error: String(err),
+      error: err,
     });
   }
 }

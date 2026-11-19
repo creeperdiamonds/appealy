@@ -231,7 +231,7 @@ export async function subscribeToInvalidations(): Promise<void> {
           const { guildId } = JSON.parse(message) as { guildId: string };
           if (guildId) l1.delete(guildId);
         } catch (err) {
-          logger.warn("Malformed cache invalidation message", { error: String(err) });
+          logger.warn("Malformed cache invalidation message", { error: err });
         }
       }
     })();
@@ -241,7 +241,7 @@ export async function subscribeToInvalidations(): Promise<void> {
     // dashboard edits. Refusing to boot over this would turn a degraded
     // experience into an outage.
     logger.error("Cache invalidation subscriber failed to start; falling back to TTL only", {
-      error: String(err),
+      error: err,
     });
   }
 }
