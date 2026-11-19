@@ -27,7 +27,7 @@ export function onGuildBanAdd(bot: AppealyBot) {
       logger.error("Failed while handling guildBanAdd for ban appeals", {
         guildId: payload.guildId.toString(),
         userId: payload.user.id.toString(),
-        error: String(err),
+        error: err,
       });
     }
   };

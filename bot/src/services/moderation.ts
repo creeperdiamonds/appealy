@@ -204,7 +204,7 @@ export async function moderate(bot: AppealyBot, req: ModerationRequest): Promise
     }
   } catch (err) {
     scheduled = false;
-    logger.error("Couldn't store a temporary ban's end", { guildId: guildId.toString(), error: String(err) });
+    logger.error("Couldn't store a temporary ban's end", { guildId: guildId.toString(), error: err });
   }
 
   const because = reason ? ` · ${reason}` : "";

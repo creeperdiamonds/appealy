@@ -97,7 +97,7 @@ export async function handleWithdrawConfirm(bot: AppealyBot, interaction: Intera
     try {
       await bot.helpers.editChannel(submission.threadId, { archived: true, locked: true });
     } catch (err) {
-      logger.warn("Failed to archive staff thread after withdraw", { submissionId, error: String(err) });
+      logger.warn("Failed to archive staff thread after withdraw", { submissionId, error: err });
     }
   }
 

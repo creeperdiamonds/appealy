@@ -50,7 +50,7 @@ export async function handleRoleMenuSelect(bot: AppealyBot, interaction: Interac
       await bot.helpers.removeRole(guildId, user.id, BigInt(roleId), "Self-removed via role menu");
     }
   } catch (err) {
-    logger.error("Role menu role update failed", { menuId, error: String(err) });
+    logger.error("Role menu role update failed", { menuId, error: err });
     return respond(bot, interaction, "Something went wrong updating your roles. Please try again.");
   }
 

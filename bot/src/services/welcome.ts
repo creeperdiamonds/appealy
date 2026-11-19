@@ -48,6 +48,6 @@ export async function sendWelcome(bot: AppealyBot, guildId: bigint): Promise<voi
     await bot.helpers.sendMessage(BigInt(channelId), message as never);
     logger.info("Welcome message sent", { guildId: guildId.toString(), channelId });
   } catch (err) {
-    logger.warn("Couldn't send the welcome message", { guildId: guildId.toString(), error: String(err) });
+    logger.warn("Couldn't send the welcome message", { guildId: guildId.toString(), error: err });
   }
 }

@@ -81,3 +81,36 @@ Deno.test("following a deleted channel gets the general hint", () => {
   assertEquals(followHintFor(info), hintFor(info));
   assert(hintFor(info)?.includes("no longer exists"));
 });
+
+Deno.test("lists which fields Discord refused in an Invalid Form Body", () => {
+  // The shape Discordeno v20 throws: the body is a JSON string on the cause.
+  const err = Object.assign(new Error("Failed to send request to discord."), {
+    cause: {
+      ok: false,
+      status: 400,
+      body: JSON.stringify({
+        message: "Invalid Form Body",
+        code: 50035,
+        errors: {
+          data: {
+            components: {
+              "2": {
+                component: {
+                  options: { "0": { label: { _errors: [{ code: "BASE_TYPE_REQUIRED", message: "This field is required" }] } } },
+                },
+              },
+            },
+          },
+        },
+      }),
+    },
+  });
+  const info = describeDiscordError(err);
+  assertEquals(info.status, 400);
+  assertEquals(info.code, 50035);
+  assertEquals(info.fields, ["data.components.2.component.options.0.label: This field is required"]);
+});
+
+Deno.test("no fields when Discord sent none", () => {
+  assertEquals(describeDiscordError(new Error("x")).fields, undefined);
+});

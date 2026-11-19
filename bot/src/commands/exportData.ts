@@ -70,7 +70,7 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
 
     logger.info("Full data export completed", { guildId: guildId.toString(), requesterId: requester.id.toString() });
   } catch (err) {
-    logger.error("Failed to build/send data export", { guildId: guildId.toString(), error: String(err) });
+    logger.error("Failed to build/send data export", { guildId: guildId.toString(), error: err });
     try {
       const dmChannel = await bot.helpers.getDmChannel(requester.id);
       await bot.helpers.sendMessage(dmChannel.id, {

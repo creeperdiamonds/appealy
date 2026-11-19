@@ -24,7 +24,13 @@ import { flushGuildBuffer } from "./events/guildCreate.ts";
 // for why (short version: Discord allows 200 global command creates per day,
 // and registering on every boot spends that budget on restarts).
 async function main() {
-  const bot = createAppealyBot();
+  // A fresh process is what got the gateway out of its stuck loop on
+  // 2026-11-19, so that is what the watchdog asks for. Exit code 1 makes
+  // Docker's restart policy start a new one within seconds.
+  const bot = createAppealyBot(undefined, () => {
+    logger.error("Restarting the bot process to get a fresh gateway connection.");
+    flushGuildBuffer().finally(() => Deno.exit(1));
+  });
 
   // Escape hatch for single-container dev where running a separate task is
   // friction. Off by default; never set it in an environment with more than

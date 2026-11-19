@@ -124,7 +124,7 @@ export async function withRedis<T>(fn: (r: Redis) => Promise<T>, fallback: T): P
     const r = await getRedis();
     return await fn(r);
   } catch (err) {
-    logger.warn("Redis operation failed, using fallback", { error: String(err) });
+    logger.warn("Redis operation failed, using fallback", { error: err });
     // Drop the handle so the next call attempts a fresh connection rather
     // than reusing one that may be half-open.
     client = null;

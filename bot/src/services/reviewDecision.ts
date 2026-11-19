@@ -202,7 +202,7 @@ async function applyRoles(
       await bot.helpers.removeRole(guildId, userId, BigInt(roleId), why);
     }
   } catch (err) {
-    logger.error(`Role update failed: ${why}`, { submissionId, error: String(err) });
+    logger.error(`Role update failed: ${why}`, { submissionId, error: err });
   }
   return unmanageable;
 }
@@ -232,14 +232,14 @@ async function announce(
         embeds: [{ ...copyOf, color: opts.color, footer: { text: opts.copyFooter } }],
       });
     } catch (err) {
-      logger.warn("Failed to post to the decided-application channel", { submissionId: submission.id, error: String(err) });
+      logger.warn("Failed to post to the decided-application channel", { submissionId: submission.id, error: err });
     }
   }
   if (form.autoArchiveOnDecision && submission.threadId) {
     try {
       await bot.helpers.editChannel(submission.threadId, { archived: true, locked: true });
     } catch (err) {
-      logger.warn("Failed to archive staff thread after a decision", { submissionId: submission.id, error: String(err) });
+      logger.warn("Failed to archive staff thread after a decision", { submissionId: submission.id, error: err });
     }
   }
   const guildName = (await getGuild(bot, guildId))?.name ?? "the server";
@@ -313,7 +313,7 @@ export async function acceptSubmission(
     } catch (err) {
       // Usually: already unbanned by hand, or no Ban Members permission.
       // "Accepted" without an unban is something the reviewer has to know.
-      logger.warn("Unban failed after appeal acceptance", { submissionId, error: String(err) });
+      logger.warn("Unban failed after appeal acceptance", { submissionId, error: err });
       liftWarning =
         "Note: the automatic unban failed — the user may already be unbanned, or I'm missing the Ban Members permission. Please verify manually.";
     }
@@ -322,7 +322,7 @@ export async function acceptSubmission(
     try {
       await bot.helpers.editMember(guildId, submission.applicantId, { communicationDisabledUntil: null }, "Timeout appeal accepted");
     } catch (err) {
-      logger.warn("Lifting the timeout failed after appeal acceptance", { submissionId, error: String(err) });
+      logger.warn("Lifting the timeout failed after appeal acceptance", { submissionId, error: err });
       liftWarning =
         "Note: lifting the timeout failed — it may already have ended, or I'm missing the Timeout Members permission. Please check manually.";
     }

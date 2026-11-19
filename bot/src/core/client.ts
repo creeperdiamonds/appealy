@@ -13,6 +13,7 @@
 // createShardManager directly -- see README.md "Scaling beyond one process".
 
 import { createBot, GatewayIntents } from "@discordeno/bot";
+import { createGatewayWatchdog } from "./gatewayWatchdog.ts";
 import { env } from "./env.ts";
 import { logger } from "../utils/logger.ts";
 import { registerEventHandlers } from "../events/index.ts";
@@ -124,9 +125,26 @@ export const desiredProperties = {
  *
  * Defaults to the platform token, so every existing caller is unaffected.
  */
-export function createAppealyBot(token: string = env.DISCORD_BOT_TOKEN) {
+export function createAppealyBot(
+  token: string = env.DISCORD_BOT_TOKEN,
+  /** Called once when the gateway looks stuck reconnecting (core/gatewayWatchdog.ts). */
+  onGatewayStuck?: () => void,
+) {
+  const watchdog = createGatewayWatchdog();
+  let stuckReported = false;
   const bot = createBot({
     token,
+    gateway: {
+      token,
+      events: {
+        disconnected: (shard) => {
+          if (stuckReported || !watchdog.recordDisconnect(Date.now())) return;
+          stuckReported = true;
+          logger.error("Gateway keeps disconnecting; the connection looks stuck", { shardId: shard.id });
+          onGatewayStuck?.();
+        },
+      },
+    },
     // botId is no longer an option — the library derives it from the token,
     // which is the same value and one fewer thing to get wrong.
     intents:

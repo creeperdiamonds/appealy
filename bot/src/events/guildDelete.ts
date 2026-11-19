@@ -52,7 +52,7 @@ export function onGuildDelete(bot: AppealyBot) {
     } catch (err) {
       logger.error("Failed to mark guild as departed", {
         guildId: guildId.toString(),
-        error: String(err),
+        error: err,
       });
     }
   };

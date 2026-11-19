@@ -85,7 +85,7 @@ export async function handleAskSubmit(bot: AppealyBot, interaction: Interaction,
     } as never);
   } catch (err) {
     delivered = false;
-    logger.warn("Couldn't DM a follow-up question", { submissionId, error: String(err) });
+    logger.warn("Couldn't DM a follow-up question", { submissionId, error: err });
     // Nothing was sent, so there's nothing to answer: don't leave it open.
     await db.delete(schema.submissionFollowups).where(eq(schema.submissionFollowups.id, followup.id));
   }
@@ -175,7 +175,7 @@ async function tellStaff(bot: AppealyBot, submission: Submission, content: strin
       if (!res.ok) throw new Error(`download failed: ${res.status}`);
       copied.push({ blob: await res.blob(), name: f.filename });
     } catch (err) {
-      logger.warn("Couldn't copy an answer's file", { submissionId: submission.id, error: String(err) });
+      logger.warn("Couldn't copy an answer's file", { submissionId: submission.id, error: err });
       linked.push(f);
     }
   }
@@ -196,7 +196,7 @@ async function tellStaff(bot: AppealyBot, submission: Submission, content: strin
         return;
       } catch { /* reported below */ }
     }
-    logger.warn("Couldn't post a follow-up to staff", { submissionId: submission.id, error: String(err) });
+    logger.warn("Couldn't post a follow-up to staff", { submissionId: submission.id, error: err });
   }
 }
 

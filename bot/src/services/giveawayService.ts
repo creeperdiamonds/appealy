@@ -129,7 +129,7 @@ export async function endGiveaway(bot: AppealyBot, giveawayId: string, isReroll 
         content: `Congratulations ${winnerIds.map((id) => `<@${id}>`).join(", ")}! You won **${giveaway.prize}**.`,
       });
     } catch (err) {
-      logger.warn("Failed to post giveaway winner announcement", { giveawayId, error: String(err) });
+      logger.warn("Failed to post giveaway winner announcement", { giveawayId, error: err });
     }
   } else {
     try {
@@ -197,7 +197,7 @@ export async function endDueGiveaways(bot: AppealyBot) {
     try {
       await endGiveaway(bot, giveaway.id);
     } catch (err) {
-      logger.error("Failed to auto-end giveaway", { giveawayId: giveaway.id, error: String(err) });
+      logger.error("Failed to auto-end giveaway", { giveawayId: giveaway.id, error: err });
     }
   }
 }

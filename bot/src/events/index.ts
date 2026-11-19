@@ -50,7 +50,7 @@ export function registerEventHandlers(bot: AppealyBot) {
   // by an old timer (services/tempBans.ts).
   bot.events.guildBanRemove = (user, guildId) => {
     cancelUnban(guildId, user.id).catch((err) =>
-      logger.warn("Couldn't clear a temporary ban after an unban", { guildId: guildId.toString(), error: String(err) })
+      logger.warn("Couldn't clear a temporary ban after an unban", { guildId: guildId.toString(), error: err })
     );
   };
 

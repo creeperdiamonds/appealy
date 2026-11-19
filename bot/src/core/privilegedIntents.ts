@@ -63,7 +63,7 @@ export async function requirePrivilegedIntents(token: string): Promise<void> {
     }
     app = await res.json();
   } catch (err) {
-    logger.warn("Could not check privileged intents; connecting anyway", { error: String(err) });
+    logger.warn("Could not check privileged intents; connecting anyway", { error: err });
     return;
   }
 

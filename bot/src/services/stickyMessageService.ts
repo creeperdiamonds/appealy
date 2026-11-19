@@ -132,7 +132,7 @@ async function repostSticky(bot: AppealyBot, sticky: typeof schema.stickyMessage
   } catch (err) {
     logger.error("Failed to repost sticky message", {
       channelId: sticky.channelId.toString(),
-      error: String(err),
+      error: err,
     });
   }
 }

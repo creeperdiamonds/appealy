@@ -164,7 +164,7 @@ async function task(name: string, fn: () => Promise<unknown>) {
   try {
     await fn();
   } catch (err) {
-    logger.error("Scheduler task failed", { task: name, error: String(err) });
+    logger.error("Scheduler task failed", { task: name, error: err });
   }
 }
 
@@ -203,7 +203,7 @@ async function closeDuePolls(bot: AppealyBot) {
       } catch (err) {
         // Already expired on Discord's side when closesAt was a whole number
         // of hours away, or the message is gone. Either way it takes no votes.
-        logger.debug("endPoll failed for a due poll", { pollId: poll.id, error: String(err) });
+        logger.debug("endPoll failed for a due poll", { pollId: poll.id, error: err });
       }
       return;
     }
@@ -216,7 +216,7 @@ async function closeDuePolls(bot: AppealyBot) {
       // edit is cosmetic, so failing it isn't worth retrying.
       logger.debug("Could not edit closed poll message", {
         pollId: poll.id,
-        error: String(err),
+        error: err,
       });
     }
   });
@@ -284,7 +284,7 @@ async function drainScheduledJobs(bot: AppealyBot) {
         .update(schema.scheduledJobs)
         .set({ claimedAt: null, claimedBy: null, lastError: String(err) })
         .where(eq(schema.scheduledJobs.id, job.id));
-      logger.warn("Scheduled job failed, will retry", { id: job.id, kind: job.kind, error: String(err) });
+      logger.warn("Scheduled job failed, will retry", { id: job.id, kind: job.kind, error: err });
     }
   });
 
@@ -476,7 +476,7 @@ async function mapWithConcurrency<T>(
       try {
         await fn(item);
       } catch (err) {
-        logger.error("Batch item failed", { error: String(err) });
+        logger.error("Batch item failed", { error: err });
       }
     }
   });

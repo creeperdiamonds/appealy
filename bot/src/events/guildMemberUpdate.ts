@@ -53,7 +53,7 @@ export function onGuildMemberUpdate(bot: AppealyBot) {
       logger.error("Failed while checking a member update for appeal notices", {
         guildId: guildId.toString(),
         userId: member.id.toString(),
-        error: String(err),
+        error: err,
       });
     }
   };
