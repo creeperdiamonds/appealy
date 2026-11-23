@@ -46,7 +46,7 @@
      those are where a Discord bot is actually shared. -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Discord Application Bot for Staff Applications — Appealy">
-<meta name="twitter:description" content="Discord bot for applications, ban appeals, tickets, giveaways, polls and anti-raid. Add it in one click; applicants never leave Discord. Every feature at every tier.">
+<meta name="twitter:description" content="Discord bot for applications, ban appeals, tickets, giveaways, polls and anti-raid. Add it in one click; applicants never leave Discord. Free, with no paid plans.">
 <meta name="twitter:image" content="https://appealy.app/og.png?v=2">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -67,7 +67,7 @@
   "applicationCategory": "CommunicationApplication",
   "applicationSubCategory": "Discord bot",
   "operatingSystem": "Discord, web browser",
-  "description": "Hosted Discord bot for applications, ban appeals, tickets, giveaways, polls, verification, welcomer, role menus and anti-raid, with a web dashboard. Added to a server in one click with nothing to install, and applicants fill in forms inside Discord rather than on an external site. Open source (AGPL-3.0) and optionally self-hostable; paid tiers raise throughput caps only.",
+  "description": "Hosted Discord bot for applications, ban appeals, tickets, giveaways, polls, verification, welcomer, role menus and anti-raid, with a web dashboard. Added to a server in one click with nothing to install, and applicants fill in forms inside Discord rather than on an external site. Open source (AGPL-3.0) and optionally self-hostable. Free, with no paid plans.",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
   "isAccessibleForFree": true,
   "codeRepository": "https://github.com/creeperdiamonds/appealy",
@@ -85,36 +85,13 @@
     "url": "https://www.creeperdiamonds.xyz/",
     "sameAs": ["https://github.com/creeperdiamonds"]
   },
-  "offers": [
-    {
-      "@type": "Offer",
-      "name": "Free",
-      "price": "0",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/pricing"
-    },
-    {
-      "@type": "Offer",
-      "name": "Throughput tier 1",
-      "price": "60.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/pricing"
-    },
-    {
-      "@type": "Offer",
-      "name": "Throughput tier 2",
-      "price": "180.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/pricing"
-    },
-    {
-      "@type": "Offer",
-      "name": "Dedicated hosted instance",
-      "price": "30.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/pricing"
-    }
-  ]
+  "offers": {
+    "@type": "Offer",
+    "name": "Free",
+    "price": "0",
+    "priceCurrency": "USD",
+    "url": "https://appealy.app/pricing"
+  }
 }
 </script>
 <!-- The two questions search and AI answers most often got wrong (that Appealy
@@ -237,24 +214,23 @@
         <li class="card">
           <h3>Fully open source</h3>
           <p>
-            The gateway bot, the API, the dashboard, the Terraform, and the pricing calculator that
-            decides what you are charged. AGPL-3.0. You can read the code that enforces your caps.
+            The gateway bot, the API, the dashboard and the Terraform. AGPL-3.0. You can read the
+            code that enforces your limits.
           </p>
         </li>
         <li class="card">
           <h3>Self-host it for free</h3>
           <p>
             No licence key and no feature gate. <code>.env.example</code> ships
-            <code>DEPLOYMENT_MODE=self</code>: billing is off, the payment credentials are never
-            read, and caps come from your own <code>CAP_*</code> values on your own hardware.
+            <code>DEPLOYMENT_MODE=self</code>, and limits come from your own <code>CAP_*</code>
+            values on your own hardware.
           </p>
         </li>
         <li class="card">
-          <h3>Every feature at every tier</h3>
+          <h3>Free, with no paid plans</h3>
           <p>
-            Paid plans raise nine throughput caps. That is the entire difference. Dropdown panels,
-            custom outcomes, manager delegation, ban appeals, kept tickets &mdash; all of it is on the
-            free tier too.
+            There is nothing to buy. Every server gets every feature and the same limits: dropdown
+            panels, custom outcomes, manager delegation, ban appeals, kept tickets and the rest.
           </p>
         </li>
         <li class="card">
@@ -266,11 +242,11 @@
           </p>
         </li>
         <li class="card">
-          <h3>No unlimited tier, anywhere</h3>
+          <h3>Clear limits</h3>
           <p>
-            Every cap has a hard ceiling, including the ones you set yourself. An unbounded cap
-            removes the ability to reason about worst-case cost and makes abuse free to attempt, so
-            it does not exist here by design.
+            Every limit is a fixed number, the same for every server, and you can read it in
+            <code>shared/schema/pricing.ts</code>. None of them is unlimited, so abuse is never free
+            to attempt.
           </p>
         </li>
         <li class="card">
@@ -292,7 +268,7 @@
         <h2>It is not only an application bot.</h2>
         <p class="dim">
           Eighteen slash commands, and a dashboard for configuring what they do. Every one of the
-          subsystems below is available on the free tier.
+          subsystems below is free for every server.
         </p>
       </div>
 
@@ -389,7 +365,7 @@
           <ul>
             <li><strong>Discord&rsquo;s own AutoMod, editable from a phone.</strong> Discord&rsquo;s apps can&rsquo;t change AutoMod rules on mobile; the dashboard can</li>
             <li>Word lists, Discord&rsquo;s ready-made filters, spam, mention spam and blocked words in names &mdash; everything Discord&rsquo;s desktop settings offer</li>
-            <li>Discord&rsquo;s limits and no others: six word lists of up to 1,000 words each, on every tier</li>
+            <li>Discord&rsquo;s limits and no others: six word lists of up to 1,000 words each</li>
             <li>A rule that times someone out can end in a timeout appeal</li>
             <li>The rules live in Discord, so they keep working while Appealy is offline. Manage Server is asked for only when you turn this on</li>
           </ul>
@@ -465,76 +441,43 @@
     <div class="wrap">
       <div class="section-head">
         <p class="eyebrow">Pricing</p>
-        <h2>You pay for throughput, or for hosting. Never for features.</h2>
+        <h2>Appealy is free.</h2>
         <p class="dim">
-          Two independent, additive axes. A server can sit on free throughput with a dedicated
-          instance, or on a paid throughput tier on the shared bot, in any combination. There is no
-          bundle discount and none is planned.
+          There are no paid plans and nothing to buy. Every server gets every feature and the same
+          limits.
         </p>
       </div>
 
-      <ul class="cards cols-4">
+      <ul class="cards cols-3">
         <li class="card price">
           <span class="badge is-ok">Free</span>
           <p class="amount">$0</p>
-          <p class="per">forever, not a trial</p>
+          <p class="per">for every server, not a trial</p>
           <ul>
-            <li>100 submissions/day</li>
-            <li>50 tickets/day</li>
-            <li>500 giveaway entries/day</li>
-            <li>5 forms, 5 panels</li>
-            <li>30 days of history</li>
-          </ul>
-        </li>
-        <li class="card price">
-          <span class="badge">Tier 1</span>
-          <p class="amount">$60<span class="unit"> /year</span></p>
-          <p class="per">$5.00/month equivalent, billed once</p>
-          <ul>
-            <li>500 submissions/day</li>
-            <li>250 tickets/day</li>
-            <li>2,500 giveaway entries/day</li>
-            <li>50 forms, 50 panels</li>
-            <li>365 days of history</li>
-          </ul>
-        </li>
-        <li class="card price">
-          <span class="badge">Tier 2</span>
-          <p class="amount">$180<span class="unit"> /year</span></p>
-          <p class="per">$15.00/month equivalent, billed once</p>
-          <ul>
-            <li>2,000 submissions/day</li>
-            <li>1,000 tickets/day</li>
-            <li>10,000 giveaway entries/day</li>
+            <li>3,000 submissions/day</li>
+            <li>1,500 tickets/day</li>
+            <li>15,000 giveaway entries/day</li>
             <li>100 forms, 100 panels</li>
-            <li>730 days of history</li>
+            <li>Three years of history</li>
           </ul>
         </li>
-        <li class="card price">
-          <span class="badge is-watch">Custom</span>
-          <p class="amount">per unit</p>
-          <p class="per">priced live, before checkout</p>
-          <ul>
-            <li>Set each of the nine caps yourself</li>
-            <li>The dashboard re-prices it as you change each number</li>
-            <li>Never a &ldquo;contact us&rdquo; step</li>
-            <li>Every field still has a ceiling</li>
-          </ul>
+        <li class="card">
+          <h3>Forms</h3>
+          <p>
+            Up to 150 questions per form and 40 roles per rule type. A form asked inside the server
+            can use 25 text questions, because that is what Discord&rsquo;s pop-ups allow; a DM form
+            can use all 150.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Self-hosting</h3>
+          <p>
+            Also free. Run it yourself under the AGPL-3.0 and set your own limits.
+          </p>
         </li>
       </ul>
 
-      <div class="callout">
-        <p>
-          <strong>Billing is annual only. There is no monthly option, anywhere, by design.</strong>
-          Card processing runs roughly 2.9% + $0.30 per transaction, and that flat 30 cents is
-          brutal at these amounts: a $5/month tier billed monthly loses about 9% of a year&rsquo;s
-          revenue to fees, and the same tier billed as one $60 charge loses about 3%. Monthly
-          figures on this site are computed from the annual price for comparison. They are never a
-          billing cadence you can select.
-        </p>
-      </div>
-
-      <p><a href="/pricing">Every cap, every ceiling and the custom per-unit rates &rarr;</a></p>
+      <p><a href="/pricing">All the limits &rarr;</a></p>
     </div>
   </section>
 
@@ -549,9 +492,8 @@
         <div class="card">
           <h3>Nothing is withheld</h3>
           <p>
-            A self-hosted instance is this same bot with the same features. Billing is off, the
-            payment credentials are never read, and the caps come from your <code>CAP_*</code>
-            values. Raise them &mdash; it is your hardware.
+            A self-hosted instance is this same bot with the same features. The limits come from
+            your <code>CAP_*</code> values. Raise them &mdash; it is your hardware.
           </p>
         </div>
         <div class="card">
@@ -608,11 +550,11 @@
           </p>
         </li>
         <li class="card">
-          <h3>What happens when I hit a cap?</h3>
+          <h3>What happens when I hit a limit?</h3>
           <p>
-            The action is refused and the person doing it is told which cap and when it resets.
+            The action is refused and the person doing it is told which limit and when it resets.
             Nothing is deleted and nothing is silently dropped &mdash; a submission that would
-            exceed the daily cap is never accepted and then discarded, because an applicant who
+            exceed the daily limit is never accepted and then discarded, because an applicant who
             believes they applied and did not is worse off than one who was told no.
           </p>
         </li>
@@ -628,12 +570,11 @@
           </p>
         </li>
         <li class="card">
-          <h3>Do I lose my data if I stop paying?</h3>
+          <h3>How long is my data kept?</h3>
           <p>
-            No. Dropping to the free tier lowers your caps; it does not delete forms, submissions
-            or tickets. History retention is the one cap that removes anything, it only ever
-            removes reviewed submissions past your window, and pending ones are never purged
-            &mdash; that is live work sitting in somebody&rsquo;s queue.
+            Forms, settings and tickets stay until you remove them. Submission history is kept for
+            three years (1,095 days). Only reviewed submissions older than that can be removed, and
+            pending ones never are &mdash; that is live work sitting in somebody&rsquo;s queue.
           </p>
         </li>
         <li class="card">
@@ -723,12 +664,11 @@
           </p>
         </li>
         <li class="card">
-          <h3>Billing and payment</h3>
+          <h3>Payments from before</h3>
           <p>
-            Payments are processed by Creem as merchant of record, so refunds and payment-method
-            problems go through their support with your order reference. What a plan actually
-            grants is a different question &mdash; that one belongs on the issue tracker, or is
-            readable directly in <code>pricing.ts</code>.
+            Appealy no longer has paid plans. If you paid for one before, email
+            <a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a> and we will
+            sort it out with you.
           </p>
         </li>
         <li class="card">
@@ -742,9 +682,7 @@
       </ul>
 
       <p class="muted">
-        There is no paid support tier and no plan for one. Paying for a higher throughput cap does
-        not buy a faster answer, which would be a strange thing to sell given the whole service is
-        a set of numbers you can read in the repository.
+        There is no paid support. Everyone gets the same help, in the same places.
       </p>
     </div>
   </section>
@@ -754,8 +692,7 @@
       <div class="section-head">
         <h2>Add it to a server.</h2>
         <p class="dim">
-          The free tier is a set of caps, not a countdown. Nothing expires, and nothing asks for a
-          card before it works.
+          It is free, not a trial. Nothing expires, and nothing ever asks for a card.
         </p>
       </div>
       <div class="btn-row">

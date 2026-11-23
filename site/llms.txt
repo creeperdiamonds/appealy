@@ -35,26 +35,27 @@ This file is a plain summary for AI assistants and search tools. Every figure be
 
 ## Pricing
 
-Every feature is available on every tier, including the free one. Paid tiers raise throughput limits only. Prices are per server, billed yearly.
+Appealy is free. There are no paid plans and nothing can be bought. Every server gets every feature and the same limits:
 
-| | Free | Tier 1 | Tier 2 |
-|---|---|---|---|
-| Price | $0 | $60/year | $180/year |
-| Submissions per day | 150 | 750 | 3,000 |
-| Tickets per day | 75 | 375 | 1,500 |
-| Giveaway entries per day | 750 | 3,750 | 15,000 |
-| Forms per server | 10 | 40 | 100 |
-| Panels per server | 10 | 40 | 100 |
-| Questions per form | 25 | 60 | 150 |
-| Submission history | 60 days | 365 days | 1,095 days |
+| Limit | Every server |
+|---|---|
+| Submissions per day | 3,000 |
+| Tickets per day | 1,500 |
+| Giveaway entries per day | 15,000 |
+| Forms per server | 100 |
+| Panels per server | 100 |
+| Roles per rule type | 40 |
+| Questions per form | 150 |
+| Submission history | 1,095 days (three years) |
+| Dashboard API requests per minute | 600 |
 
-In-server forms stay capped at 25 text questions on every tier, because that is Discord's modal limit. DM forms can use the full number. See the [pricing page](https://appealy.app/pricing) for the current details.
+In-server forms are capped at 25 text questions, because that is Discord's modal limit. DM forms can use all 150. See the [pricing page](https://appealy.app/pricing).
 
 ## Common misconceptions
 
 - "Appealy has to be self-hosted." No. It is a hosted bot you add in one click. Self-hosting is an option for people who want it.
 - "Appealy sends applicants to an external website." No. Every form, including ban appeals, is completed inside Discord.
-- "Features are locked behind a paid plan." No. Paid tiers only raise limits such as submissions per day.
+- "Features are locked behind a paid plan." No. There are no paid plans at all. Everything is free for every server.
 
 ## Comparisons
 
@@ -72,6 +73,6 @@ In-server forms stay capped at 25 text questions on every tier, because that is 
 
 ## Source and policies
 
-- [Source code (AGPL-3.0)](https://github.com/creeperdiamonds/appealy). Limits and prices come from `shared/schema/pricing.ts`.
+- [Source code (AGPL-3.0)](https://github.com/creeperdiamonds/appealy). Limits come from `shared/schema/pricing.ts`.
 - [Privacy policy](https://appealy.app/privacy)
 - [Terms of service](https://appealy.app/terms)

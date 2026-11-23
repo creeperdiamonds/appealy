@@ -37,6 +37,7 @@ import { db, schema } from "../db/client.ts";
 import {
   RATE_LIMIT_PRESETS,
   CUSTOM_CAP_MAXIMUMS,
+  STANDARD_CAPS,
   findRoleCapViolations,
   type FormRoleRule,
   type RateLimitCaps,
@@ -50,7 +51,8 @@ import {
 } from "../../../shared/lib/formLimits.ts";
 import { deployment, env, PRIVILEGED } from "../env.ts";
 
-const FREE_CAPS = RATE_LIMIT_PRESETS.free.caps;
+// Every server gets the same caps now (STANDARD_CAPS in shared/schema/pricing.ts).
+const FREE_CAPS = STANDARD_CAPS;
 
 /**
  * Self-hosted caps, built once from env.
@@ -101,16 +103,9 @@ export function resolveEffectiveCaps(guild: typeof schema.guilds.$inferSelect): 
     return SELF_HOSTED_CAPS;
   }
 
-  if (guild.rateLimitTier !== "custom") {
-    return RATE_LIMIT_PRESETS[guild.rateLimitTier].caps;
-  }
-  const stored = guild.customRateLimits ?? {};
-  const resolved = {} as RateLimitCaps;
-  for (const key of Object.keys(FREE_CAPS) as (keyof RateLimitCaps)[]) {
-    const requested = stored[key] ?? FREE_CAPS[key];
-    resolved[key] = Math.min(requested, CUSTOM_CAP_MAXIMUMS[key]);
-  }
-  return resolved;
+  // Paid plans are retired, so the stored tier and custom caps no longer
+  // matter: every server gets the same caps.
+  return STANDARD_CAPS;
 }
 
 export interface StandingCapCheck {

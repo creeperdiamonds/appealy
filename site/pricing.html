@@ -7,29 +7,13 @@
 <!--
   site/pricing.html
 
-  Every number on this page is read from shared/schema/pricing.ts. If a number
-  changes there, change it here — nothing generates this file, and a pricing
-  page that disagrees with the calculator is worse than no pricing page.
-
-  ONE KNOWN CONTRADICTION, resolved in favour of the code.
-  CUSTOM_CAP_UNIT_PRICE_CENTS_PER_YEAR holds integer cents. For formsPerGuild
-  (12), panelsPerGuild (12) and rolesPerRuleType (6), the trailing comments read
-  "$1/mo -> $12/yr" and "$0.50/mo -> $6/yr" — dollar figures a hundred times the
-  value beside them. That was a real bug and it is fixed: the three constants
-  now read 1200, 1200 and 600, matching the comments that stated the intent.
-  An extra form is $12 a year, not $0.12.
-
-  The figures below are taken from shared/schema/pricing.ts. If you change a
-  price, change it there and mirror it here — never the other way round. A
-  website is not where a price is decided.
-
-  Nothing on this page is a range, an "up to", or a "contact us". The custom
-  tier is arithmetic the dashboard performs live, and it is written out below
-  so it can be checked before anyone reaches a checkout.
+  Appealy has no paid plans. Every server gets the limits that used to be
+  tier 2 (RATE_LIMIT_PRESETS.tier2 in shared/schema/pricing.ts). If a number
+  changes there, change it here too; nothing generates this file.
 -->
 
 <title>Pricing — Appealy</title>
-<meta name="description" content="Free forever, or $60 and $180 a year for more throughput. Every feature is on every tier — paid plans raise nine caps and nothing else. Annual billing.">
+<meta name="description" content="Appealy is free. There are no paid plans: every server gets every feature and the same limits, including 3,000 submissions a day and three years of history.">
 <link rel="canonical" href="https://appealy.app/pricing">
 <link rel="alternate" hreflang="en" href="https://appealy.app/pricing">
 <link rel="alternate" hreflang="ja" href="https://appealy.app/ja/pricing">
@@ -38,14 +22,14 @@
 <meta property="og:site_name" content="Appealy">
 <meta property="og:url" content="https://appealy.app/pricing">
 <meta property="og:title" content="Pricing — Appealy">
-<meta property="og:description" content="Free forever, or $60 and $180 a year for more throughput. Every feature is on every tier — paid plans raise nine caps and nothing else. Annual billing.">
+<meta property="og:description" content="Appealy is free. There are no paid plans: every server gets every feature and the same limits, including 3,000 submissions a day and three years of history.">
 <meta property="og:image" content="https://appealy.app/og.png?v=2">
 <meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Pricing — Appealy">
-<meta name="twitter:description" content="Free forever, or $60/year and $180/year throughput tiers, or set your own caps. Every feature is on every tier.">
+<meta name="twitter:description" content="Appealy is free. No paid plans, every feature and the same limits for every server.">
 <meta name="twitter:image" content="https://appealy.app/og.png?v=2">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -69,40 +53,14 @@
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
   "isAccessibleForFree": true,
   "codeRepository": "https://github.com/creeperdiamonds/appealy",
-  "offers": [
-    {
-      "@type": "Offer",
-      "name": "Free",
-      "price": "0",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/pricing",
-      "description": "Every feature, at the baseline throughput caps."
-    },
-    {
-      "@type": "Offer",
-      "name": "Throughput tier 1",
-      "price": "60.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/pricing",
-      "description": "Annual. Raises all nine throughput caps."
-    },
-    {
-      "@type": "Offer",
-      "name": "Throughput tier 2",
-      "price": "180.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/pricing",
-      "description": "Annual. Raises all nine throughput caps further."
-    },
-    {
-      "@type": "Offer",
-      "name": "Dedicated hosted instance",
-      "price": "30.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/pricing",
-      "description": "Annual. A dedicated instance under your own bot token. Independent of the throughput tier."
-    }
-  ]
+  "offers": {
+    "@type": "Offer",
+    "name": "Free",
+    "price": "0",
+    "priceCurrency": "USD",
+    "url": "https://appealy.app/pricing",
+    "description": "Every feature and the same limits for every server. There are no paid plans."
+  }
 }
 </script>
 </head>
@@ -135,271 +93,63 @@
   <div class="wrap prose wide">
 
     <p class="eyebrow">Pricing</p>
-    <h1>You pay for throughput, or for hosting. Never for features.</h1>
+    <h1>Appealy is free.</h1>
     <p class="lede">
-      Every feature described anywhere on this site is available on the free tier. The paid axes
-      raise nine numbers and, separately, put the bot on hardware that is only yours.
+      There are no paid plans. Every server gets every feature and the same limits, and there is
+      nothing to buy.
     </p>
 
-    <div class="callout is-accent">
-      <p>
-        <strong>Self-hosting is free and always will be.</strong> Clone the repository, run it, and
-        none of this page applies to you: billing is off, the payment credentials are never read,
-        and your caps are whatever you set in your own <code>.env</code>. There is no licence key
-        and no feature gate.
-      </p>
-    </div>
-
-    <h2>Axis A &mdash; throughput</h2>
+    <h2>The limits</h2>
     <p>
-      Nine caps, listed in full. The two preset tiers raise all of them at a fixed annual price.
-      The custom option lets you set each one yourself and prices it live on the dashboard before
-      you reach a checkout.
+      Every server on the shared bot has these limits. They are the same for everyone.
     </p>
 
     <div class="table-scroll">
       <table>
-        <caption>All nine metered caps, from <code>shared/schema/pricing.ts</code>. The last column is the hard ceiling on a self-set custom value.</caption>
+        <caption>Limits for every server, from <code>shared/schema/pricing.ts</code>.</caption>
         <thead>
           <tr>
-            <th scope="col">Cap</th>
-            <th scope="col" class="num">Free</th>
-            <th scope="col" class="num">Tier 1</th>
-            <th scope="col" class="num">Tier 2</th>
-            <th scope="col" class="num">Custom ceiling</th>
+            <th scope="col">Limit</th>
+            <th scope="col" class="num">Every server</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <th scope="row">Submissions per day</th>
-            <td class="num">150</td><td class="num">750</td><td class="num">3,000</td><td class="num">15,000</td>
-          </tr>
-          <tr>
-            <th scope="row">Tickets per day</th>
-            <td class="num">75</td><td class="num">375</td><td class="num">1,500</td><td class="num">7,500</td>
-          </tr>
-          <tr>
-            <th scope="row">Giveaway entries per day</th>
-            <td class="num">750</td><td class="num">3,750</td><td class="num">15,000</td><td class="num">75,000</td>
-          </tr>
-          <tr>
-            <th scope="row">Dashboard API requests per minute</th>
-            <td class="num">60</td><td class="num">180</td><td class="num">600</td><td class="num">2,000</td>
-          </tr>
-          <tr>
-            <th scope="row">Forms per server</th>
-            <td class="num">10</td><td class="num">40</td><td class="num">100</td><td class="num">300</td>
-          </tr>
-          <tr>
-            <th scope="row">Panels per server</th>
-            <td class="num">10</td><td class="num">40</td><td class="num">100</td><td class="num">300</td>
-          </tr>
-          <tr>
-            <th scope="row">Roles per rule type</th>
-            <td class="num">5</td><td class="num">15</td><td class="num">40</td><td class="num">100</td>
-          </tr>
-          <tr>
-            <th scope="row">Questions per form</th>
-            <td class="num">25</td><td class="num">60</td><td class="num">150</td><td class="num">200</td>
-          </tr>
-          <tr>
-            <th scope="row">History retention (days)</th>
-            <td class="num">60</td><td class="num">365</td><td class="num">1,095</td><td class="num">1,825</td>
-          </tr>
-          <tr>
-            <th scope="row">Price</th>
-            <td class="num">$0</td>
-            <td class="num">$60/year</td>
-            <td class="num">$180/year</td>
-            <td class="num">up to $1,068.93/year</td>
-          </tr>
-          <tr>
-            <th scope="row">Monthly equivalent</th>
-            <td class="num">&mdash;</td>
-            <td class="num">$5.00</td>
-            <td class="num">$15.00</td>
-            <td class="num">up to $89.07</td>
-          </tr>
+          <tr><th scope="row">Submissions per day</th><td class="num">3,000</td></tr>
+          <tr><th scope="row">Tickets per day</th><td class="num">1,500</td></tr>
+          <tr><th scope="row">Giveaway entries per day</th><td class="num">15,000</td></tr>
+          <tr><th scope="row">Forms per server</th><td class="num">100</td></tr>
+          <tr><th scope="row">Panels per server</th><td class="num">100</td></tr>
+          <tr><th scope="row">Roles per rule type</th><td class="num">40</td></tr>
+          <tr><th scope="row">Questions per form</th><td class="num">150</td></tr>
+          <tr><th scope="row">Submission history</th><td class="num">1,095 days (three years)</td></tr>
+          <tr><th scope="row">Dashboard API requests per minute</th><td class="num">600</td></tr>
         </tbody>
       </table>
     </div>
 
     <p class="muted">
-      History retention is enforced everywhere history is shown: older submissions don't appear
-      or count. The scheduled job that then deletes them is written but switched off for now, as
-      the <a href="/privacy">privacy policy</a> explains. Pending submissions are never purged &mdash; one
-      of those is live work sitting in someone&rsquo;s review queue, and ageing it out would silently
-      drop an application the applicant is still waiting on.
+      <strong>In-server forms are capped at 25 text questions.</strong> This comes from Discord: a
+      pop-up form holds five questions, and Appealy chains up to five pop-ups. A
+      <em>DM</em> form asks one question at a time, so it can use all 150. Select questions are asked
+      before the pop-up and do not count toward the 25.
     </p>
 
     <p class="muted">
-      <strong>Questions per form has a second limit that is not ours to sell.</strong> A Discord
-      modal holds five components, and Appealy pages an in-server application five modals deep, so
-      an <em>in-server</em> form can ask at most 25 text questions no matter which tier you are on.
-      Paying more does not raise it, because the limit is Discord&rsquo;s. A <em>DM</em> form has no
-      such limit &mdash; it asks one question at a time &mdash; so the number above is what actually
-      governs it. Select questions are asked before the modal and do not count toward the 25.
-      Saving a form that crosses either limit is refused with which one, rather than accepted and
-      quietly trimmed.
+      History older than three years stops showing up and stops counting. Pending submissions are
+      never removed, because someone is still waiting on them. The <a href="/privacy">privacy
+      policy</a> has the details.
     </p>
 
-    <h3>Setting your own caps</h3>
+    <h2>Self-hosting</h2>
     <p>
-      Each cap is priced per unit above the free baseline, annually. These rates are constants in
-      <code>pricing.ts</code>, so the dashboard quote, the charge, and this table all come from the
-      same arithmetic.
+      Appealy is open source under the AGPL-3.0. You can run it yourself, and then your limits are
+      whatever you set in your own <code>.env</code>.
     </p>
 
-    <div class="table-scroll">
-      <table>
-        <caption>Annual price per unit above the free baseline.</caption>
-        <thead>
-          <tr>
-            <th scope="col">Cap</th>
-            <th scope="col">Free baseline</th>
-            <th scope="col" class="num">Per year, per unit above it</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><th scope="row">Submissions per day</th><td>150</td><td class="num">$0.03</td></tr>
-          <tr><th scope="row">Tickets per day</th><td>75</td><td class="num">$0.03</td></tr>
-          <tr><th scope="row">Giveaway entries per day</th><td>750</td><td class="num">$0.15 per 100</td></tr>
-          <tr><th scope="row">Dashboard API requests per minute</th><td>60</td><td class="num">$0.05</td></tr>
-          <tr><th scope="row">Forms per server</th><td>10</td><td class="num">$0.21</td></tr>
-          <tr><th scope="row">Panels per server</th><td>10</td><td class="num">$0.21</td></tr>
-          <tr><th scope="row">Roles per rule type</th><td>5</td><td class="num">$0.26</td></tr>
-          <tr><th scope="row">Questions per form</th><td>25</td><td class="num">$0.06</td></tr>
-          <tr><th scope="row">History retention (days)</th><td>60</td><td class="num">$0.02</td></tr>
-        </tbody>
-      </table>
-    </div>
-
+    <h2>If you paid before</h2>
     <p>
-      Worked example, because a per-unit table is not a price until someone does the multiplication.
-      A server wanting 1,000 submissions a day and nothing else changed is 850 units above the
-      baseline of 150, at $0.03 each: <strong>$25.50 a year</strong>. Adding 90 days of retention on
-      top of the free 60 is 90 more units at two cents each: <strong>$1.80</strong>, for $27.30 in
-      total. Tier 1 tops out at 750 submissions a day so it will not cover that server at all, and
-      tier 2 &mdash; the only preset that does &mdash; is $180. Raising the one cap that binds is
-      the cheaper answer by a wide margin, which is the entire reason the builder exists.
-    </p>
-    <p>
-      It is worth being explicit about the other direction too: buying a preset&rsquo;s <em>exact</em>
-      caps through the builder always costs at least what the preset costs, because presets are a
-      bundle discount. Tier 1&rsquo;s caps price out at $60.90 against $60, and tier 2&rsquo;s at
-      $251.73 against $180. Use the builder when one or two caps bind and the rest do not; take the
-      preset when most of them move together. The dashboard shows both numbers side by side rather
-      than making you work that out.
-    </p>
-
-    <div class="callout">
-      <p>
-        <strong>There is no unlimited tier, anywhere, and there will not be one.</strong> Every cap
-        has a ceiling, custom values included &mdash; the right-hand column of the first table. An
-        unbounded cap removes the ability to reason about worst-case cost and makes abuse free to
-        attempt. A request above a ceiling is refused and names the field, rather than being quietly
-        clamped to something you did not ask for.
-      </p>
-    </div>
-
-    <p class="muted">
-      A selection totalling less than <strong>$5.00</strong> a year is refused at checkout rather
-      than billed. A charge that small is not worth firing on its own once processing fees are
-      counted.
-    </p>
-
-    <h2>Axis B &mdash; hosting</h2>
-    <p>
-      Self-hosting is free. Paying for hosting means a dedicated instance of this same bot, run for
-      you, under your own bot token &mdash; priced near cost.
-    </p>
-
-    <div class="table-scroll">
-      <table>
-        <caption>Hosting. Independent of the throughput tier above.</caption>
-        <thead>
-          <tr>
-            <th scope="col">Option</th>
-            <th scope="col">What it is</th>
-            <th scope="col" class="num">Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">Self-hosted</th>
-            <td>You run it. Your hardware, your caps, no billing account of any kind.</td>
-            <td class="num">$0</td>
-          </tr>
-          <tr>
-            <th scope="row">Shared</th>
-            <td>The multi-tenant bot everyone else is on.</td>
-            <td class="num">$0</td>
-          </tr>
-          <tr>
-            <th scope="row">Dedicated</th>
-            <td>A dedicated instance under your own bot token, run for you.</td>
-            <td class="num">$30/year</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <p>
-      The two axes are strictly additive. A server can be on free throughput with a dedicated
-      instance, or on tier 2 with the shared bot, in any combination. There is no bundle discount
-      and none is planned &mdash; each axis is priced and charged on its own.
-    </p>
-
-    <p>
-      $2.50 a month, for a bot running under your own token, name and avatar that you
-      don&rsquo;t operate. The cheapest VPS you could rent to run it yourself is about $60 a year
-      &mdash; and then you run it.
-    </p>
-
-    <h2>Why the billing is annual</h2>
-    <p>
-      <strong>There is no monthly option, anywhere.</strong> This is a fee-survival requirement
-      rather than a preference. Card processing runs roughly 2.9% + $0.30 per transaction, and the
-      flat 30 cents is what does the damage at these amounts: twelve small monthly charges pay that
-      flat component twelve times for the same revenue one annual charge collects once.
-    </p>
-    <p>
-      Concretely, a $5/month tier billed monthly loses roughly 9% of a year&rsquo;s revenue to fees.
-      The same tier billed as a single $60 charge loses roughly 3%. It gets worse the smaller the
-      amount: the $30/year hosting fee framed as $2.50 a month would lose roughly 15% of its value
-      to fees, almost all of it the flat 30 cents, which is exactly why it is never billed that way.
-    </p>
-    <p>
-      Every monthly figure on this site is computed from the annual price, floored to the cent, and
-      shown only so you can compare against something quoted monthly elsewhere. It is never a
-      cadence you can select.
-    </p>
-
-    <h2>How payment works</h2>
-    <p>
-      Creem is the merchant of record. It sells to the customer, collects the money, and owns sales
-      tax and VAT registration and remittance in the places it sells into. Paid plans are created as
-      annual subscriptions, so a plan that stops being paid for ends rather than continuing
-      indefinitely; a refund returns the server to the free selection.
-    </p>
-    <p>
-      <strong>Refunds are available for 14 days after purchase, no reason needed.</strong> Ask
-      through Creem, since they took the payment. Ending a plan changes your caps back and nothing
-      else &mdash; forms, submissions, tickets and settings all stay where they are, so a refund
-      costs you the headroom and none of the work. The full terms are on the
-      <a href="/terms">Terms of Service</a> page.
-    </p>
-    <p>
-      Downgrading to the fully free selection is the one plan change that skips checkout entirely,
-      because there is no payment to confirm.
-    </p>
-
-    <h2>What is not metered</h2>
-    <p>
-      Features. All of them. Dropdown panels, custom accept outcomes, manager delegation, ban
-      appeals, kept tickets, ticket ratings, giveaway bonus entries, anti-raid, verification,
-      role menus, sticky messages, quick responses, the full data export and both importers are
-      available on the free tier and always have been.
+      Paid plans and the dedicated hosting option have been retired. If you paid for one and have
+      questions, ask in <a href="https://discord.gg/UwBMug9JyX">the community server</a>.
     </p>
 
     <div class="btn-row">

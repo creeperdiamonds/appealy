@@ -91,7 +91,7 @@
 
     <p class="eyebrow">Legal</p>
     <h1>Privacy</h1>
-    <p class="updated">Last updated 10 November 2026</p>
+    <p class="updated">Last updated 24 November 2026</p>
 
     <p class="lede">
       This describes the hosted deployment at appealy.app. If you self-host, none of it applies to
@@ -156,10 +156,6 @@
             <th scope="row">Discord OAuth tokens</th>
             <td>The access and refresh tokens Discord issues when you sign in, so the dashboard can list the servers you manage. <strong>Encrypted at rest.</strong></td>
           </tr>
-          <tr>
-            <th scope="row">Billing state</th>
-            <td>Which plan a server is on and the payment provider&rsquo;s subscription reference. No card details, ever &mdash; see below.</td>
-          </tr>
         </tbody>
       </table>
     </div>
@@ -179,8 +175,8 @@
         stay in your server, read-only; Appealy doesn&rsquo;t copy them anywhere.
       </li>
       <li>
-        <strong>No card details.</strong> They never reach this service. The payment provider is the
-        merchant of record and collects payment on its own pages.
+        <strong>No payment data.</strong> Appealy has no paid plans and takes no payments, so it
+        collects no card details, billing addresses or other payment information.
       </li>
       <li>
         <strong>No analytics on this website.</strong> The page you are reading contains no
@@ -208,8 +204,7 @@
 
     <h2>How long it is kept</h2>
     <p>
-      Every server has a history retention window, and it is one of the metered caps: 60 days on
-      the free tier, up to five years at the ceiling. Reviewed submissions &mdash; accepted, denied
+      Every server has the same history retention window: 1,095 days (three years). Reviewed submissions &mdash; accepted, denied
       or withdrawn &mdash; are eligible for deletion once they pass it, and answers are deleted
       with the submission they belong to.
     </p>
@@ -230,7 +225,7 @@
       a deletion request at the address below is honoured by hand.
     </div>
     <p>
-      <strong>Pending submissions are never purged</strong>, at any tier. One of those is live work
+      <strong>Pending submissions are never purged.</strong> One of those is live work
       sitting in a review queue, and deleting it because it aged out would silently drop an
       application someone is still waiting on.
     </p>
@@ -269,8 +264,8 @@
       <code>/export</code> in the server produces one JSON
       file with every form, question, panel, submission, answer, DM template, ticket, giveaway,
       verification and welcomer config, role menu, anti-raid config, quick response, sticky message
-      and staff delegation for that server. Billing and session data are deliberately excluded:
-      those are an account concern, not portable server configuration.
+      and staff delegation for that server. Session data is deliberately excluded:
+      that is an account concern, not portable server configuration.
     </p>
     <p>
       The point of it is that a server which outgrows the shared bot can move to its own
@@ -291,10 +286,6 @@
           <tr>
             <th scope="row">Discord</th>
             <td>Everything the bot sends and receives. They are the platform this runs on.</td>
-          </tr>
-          <tr>
-            <th scope="row">Creem</th>
-            <td>The merchant of record for paid plans. They handle the payment and own sales tax and VAT registration where they sell. Card details go to them, not to us.</td>
           </tr>
           <tr>
             <th scope="row">Google Cloud</th>

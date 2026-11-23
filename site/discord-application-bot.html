@@ -19,7 +19,7 @@
     Commands                                           bot/src/commands/{apply,application,panelCreate,
                                                        resetCooldown,resetAllCooldowns,exportApplications,importAppy}.ts
     Templates                                          site/guides/applications.html (dashboard labels)
-    Free-tier numbers                                  shared/schema/pricing.ts (RATE_LIMIT_PRESETS.free)
+    Limits (same for every server)                     shared/schema/pricing.ts (RATE_LIMIT_PRESETS.tier2)
   If one stops being true, fix the code or fix this page. Do not leave them
   disagreeing.
 
@@ -90,7 +90,7 @@
           "name": "How many questions can a form have?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Up to 25 on the free plan. An in-server form shows them across several pop-up pages and can ask at most 25 text questions, because that is what Discord's pop-ups allow. A direct-message form asks one at a time, so on a paid plan it can be longer."
+            "text": "An in-server form shows them across several pop-up pages and can ask at most 25 text questions, because that is what Discord's pop-ups allow. A direct-message form asks one at a time, so it can have up to 150."
           }
         },
         {
@@ -122,7 +122,7 @@
           "name": "Is it free?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Every feature is on the free plan. Paid plans raise limits such as how many forms and applications a server can have, and you can self-host the whole bot for free under the AGPL-3.0."
+            "text": "Yes. There are no paid plans. Every server gets every feature and the same limits, and you can self-host the whole bot for free under the AGPL-3.0."
           }
         }
       ]
@@ -255,9 +255,9 @@
 
       <h2>What it costs</h2>
 
-      <p><strong>Nothing.</strong> Every feature above is on the free plan, which allows 10 forms, 10
-        panels, 25 questions per form, 150 applications a day and 60 days of history. Paid plans raise
-        those numbers and nothing else, as the <a href="/pricing">pricing page</a> lists. Or
+      <p><strong>Nothing.</strong> There are no paid plans. Every server gets every feature above,
+        100 forms, 100 panels, 150 questions per form, 3,000 applications a day and three years of
+        history, as the <a href="/pricing">pricing page</a> lists. Or
         <a href="https://docs.appealy.app/self-hosting/">run it yourself</a> under the AGPL-3.0.</p>
 
       <h2>It is not only an application bot</h2>
@@ -273,7 +273,7 @@
       <p>No. An in-server form opens as a Discord pop-up when someone presses Apply, and a direct-message form asks its questions one at a time in DMs. Nobody is sent to a website.</p>
 
       <h3>How many questions can a form have?</h3>
-      <p>Up to 25 on the free plan. An in-server form shows them across several pop-up pages and can ask at most 25 text questions, because that is what Discord's pop-ups allow. A direct-message form asks one at a time, so on a paid plan it can be longer.</p>
+      <p>An in-server form shows them across several pop-up pages and can ask at most 25 text questions, because that is what Discord's pop-ups allow. A direct-message form asks one at a time, so it can have up to 150.</p>
 
       <h3>Can staff discuss an application before deciding?</h3>
       <p>Yes. Each application can open a review thread for staff, staff can vote with thumbs up or down, and Ask applicant sends the applicant a question whose answer is attached to the application.</p>
@@ -285,7 +285,7 @@
       <p>Yes. A form can have a cooldown, a limit on how many times each person can apply, and a limit within a time window, and by default one person can only have one application waiting. Staff can reset someone's cooldown with /reset-cooldown.</p>
 
       <h3>Is it free?</h3>
-      <p>Yes. Every feature is on the free plan. Paid plans raise limits such as how many forms and applications a server can have, and you can self-host the whole bot for free under the AGPL-3.0.</p>
+      <p>Yes. There are no paid plans. Every server gets every feature and the same limits, and you can self-host the whole bot for free under the AGPL-3.0.</p>
 
     </article>
   </div>

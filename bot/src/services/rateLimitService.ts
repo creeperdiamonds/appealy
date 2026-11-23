@@ -40,13 +40,14 @@ import { getRedis, pipeline, withRedis } from "../core/redis.ts";
 import {
   RATE_LIMIT_PRESETS,
   CUSTOM_CAP_MAXIMUMS,
+  STANDARD_CAPS,
   type RateLimitCaps,
 } from "../../../shared/schema/pricing.ts";
 import { deployment, env, PRIVILEGED } from "../core/env.ts";
-import { entitledTier } from "../core/entitlements.ts";
 import { parseActivePerk, voteBonus, votePerkKey, withVoteBonus } from "../../../shared/schema/votePerks.ts";
 
-const FREE_CAPS = RATE_LIMIT_PRESETS.free.caps;
+// Every server gets the same caps now (STANDARD_CAPS in shared/schema/pricing.ts).
+const FREE_CAPS = STANDARD_CAPS;
 
 /**
  * Self-hosted caps. Mirrors api/src/services/rateLimitService.ts — both must
@@ -97,37 +98,9 @@ export function resolveEffectiveCaps(
     return SELF_HOSTED_CAPS;
   }
 
-  // A live Discord entitlement outranks the stored tier. The database column
-  // lags — it's updated by our own bookkeeping — whereas the entitlement is
-  // what Discord says the customer is currently paying for. When they
-  // disagree, Discord is right.
-  //
-  // Returns null when nothing is entitled OR when entitlements haven't loaded
-  // yet, so an unreconciled cache falls through to the stored tier rather than
-  // downgrading a paying customer to free.
-  const entitled = entitledTier(guild.id);
-  // "custom" is a tier but not a preset: its caps are per-guild and live on
-  // the row, so an entitlement claiming it falls through to the stored config
-  // below rather than indexing a table with no entry for it.
-  if (entitled && entitled !== "custom") {
-    return RATE_LIMIT_PRESETS[entitled].caps;
-  }
-
-  if (guild.rateLimitTier !== "custom") {
-    return RATE_LIMIT_PRESETS[guild.rateLimitTier].caps;
-  }
-
-  // Defensive re-clamp. The API validates on write, but ceilings are
-  // allowed to tighten over time and an old row must not grandfather in a
-  // number that's no longer permitted. An enforcement point should never
-  // trust a stored value it didn't just validate itself.
-  const stored = guild.customRateLimits ?? {};
-  const resolved = {} as RateLimitCaps;
-  for (const key of Object.keys(FREE_CAPS) as (keyof RateLimitCaps)[]) {
-    const requested = stored[key] ?? FREE_CAPS[key];
-    resolved[key] = Math.min(requested, CUSTOM_CAP_MAXIMUMS[key]);
-  }
-  return resolved;
+  // Paid plans are retired, so the stored tier, custom caps and any Discord
+  // entitlement no longer matter: every server gets the same caps.
+  return STANDARD_CAPS;
 }
 
 /**
@@ -313,13 +286,11 @@ export function rateLimitDeniedMessage(
     const resetTimestamp = Math.floor(Date.now() / 1000) + result.resetsInSeconds;
     return (
       `This server has reached its daily limit of ${result.limit} ${capLabel} ` +
-      `(${result.current}/${result.limit} used). The limit resets <t:${resetTimestamp}:R>. ` +
-      "Higher limits are available — see `/dashboard`."
+      `(${result.current}/${result.limit} used). The limit resets <t:${resetTimestamp}:R>.`
     );
   }
   return (
-    `This server has reached its limit of ${result.limit} ${capLabel}. ` +
-    "Higher limits are available — see `/dashboard`."
+    `This server has reached its limit of ${result.limit} ${capLabel}.`
   );
 }
 

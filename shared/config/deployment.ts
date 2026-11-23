@@ -258,9 +258,10 @@ export function resolveDeployment(
     brandName: get("BRAND_NAME")?.trim() || (isPlatform ? "Appealy" : "This bot"),
     supportUrl: get("SUPPORT_URL")?.trim() ?? "",
     features: {
-      // Never available self-hosted: there is no second Paddle account to point
-      // at. Off in test too — that is what makes it test.
-      billing: isPlatform,
+      // Off everywhere since paid plans were retired on 2026-11-24. Kept as a
+      // flag so the dashboard and API keep hiding every billing screen and
+      // checkout without a second code path; nothing can be bought.
+      billing: false,
       // Self-hosters get flat caps from env instead of a price-derived tier.
       // Caps still exist — they protect the host's own Postgres pool, which
       // is the real constraint — they're just not a product ladder.
