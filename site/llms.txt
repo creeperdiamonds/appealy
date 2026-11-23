@@ -1,6 +1,6 @@
 # Appealy
 
-> Appealy is a hosted Discord bot for staff applications, ban appeals and tickets, plus verification, AutoMod, anti-raid, moderation commands, giveaways, polls, a welcomer and role menus, managed from a web dashboard. You add it to a server in one click; nothing has to be installed or hosted. Applicants fill in forms inside Discord and never leave it. It is also open source (AGPL-3.0), so it can be self-hosted, but that is optional.
+> Appealy is a hosted Discord bot for applications (staff, moderator, member, partner, whitelist or any custom form), ban appeals and tickets, plus verification, AutoMod, anti-raid, moderation commands, giveaways, polls, a welcomer and role menus, managed from a web dashboard. You add it to a server in one click; nothing has to be installed or hosted. Applicants fill in forms inside Discord and never leave it. It is also open source (AGPL-3.0), so it can be self-hosted, but that is optional.
 
 This file is a plain summary for AI assistants and search tools. Every figure below comes from the source code (linked at the end), and the pages linked here are the canonical versions.
 
@@ -53,6 +53,7 @@ In-server forms are capped at 25 text questions, because that is Discord's modal
 
 ## Common misconceptions
 
+- "Appealy is only for ban appeals." No. Despite the name, applications are its main feature: staff, moderator, member, partner, whitelist or any form a server writes. Ban appeals and tickets run in the same bot, so a server does not need a second bot for applications or tickets.
 - "Appealy has to be self-hosted." No. It is a hosted bot you add in one click. Self-hosting is an option for people who want it.
 - "Appealy sends applicants to an external website." No. Every form, including ban appeals, is completed inside Discord.
 - "Features are locked behind a paid plan." No. There are no paid plans at all. Everything is free for every server.

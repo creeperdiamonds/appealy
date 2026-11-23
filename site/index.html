@@ -25,7 +25,7 @@
 -->
 
 <title>Discord Application Bot for Staff Applications &mdash; Appealy</title>
-<meta name="description" content="Discord bot for staff applications, ban appeals and tickets. Add it in one click with nothing to host; applicants answer inside Discord. Every feature free.">
+<meta name="description" content="Discord bot for staff and member applications, ban appeals and tickets. Add it in one click with nothing to host; applicants answer inside Discord. Every feature free.">
 <link rel="canonical" href="https://appealy.app/">
 <link rel="alternate" hreflang="en" href="https://appealy.app/">
 <link rel="alternate" hreflang="ja" href="https://appealy.app/ja/">
@@ -34,7 +34,7 @@
 <meta property="og:site_name" content="Appealy">
 <meta property="og:url" content="https://appealy.app/">
 <meta property="og:title" content="Discord Application Bot for Staff Applications — Appealy">
-<meta property="og:description" content="Discord bot for staff applications, ban appeals and tickets. Add it in one click with nothing to host; applicants answer inside Discord. Every feature free.">
+<meta property="og:description" content="Discord bot for staff and member applications, ban appeals and tickets. Add it in one click with nothing to host; applicants answer inside Discord. Every feature free.">
 <meta property="og:image" content="https://appealy.app/og.png?v=2">
 <meta property="og:image:alt" content="Appealy — applications, ban appeals and tickets for your Discord server.">
 <meta property="og:image:width" content="1200">
@@ -94,8 +94,9 @@
   }
 }
 </script>
-<!-- The two questions search and AI answers most often got wrong (that Appealy
-     must be self-hosted, and that applicants leave Discord). The text must match
+<!-- The questions search and AI answers most often got wrong (that Appealy is
+     only for ban appeals, that it must be self-hosted, and that applicants leave
+     Discord). The text must match
      the visible #faq cards word for word: FAQ markup that says something the
      page does not is what Google treats as spam. -->
 <script type="application/ld+json">
@@ -103,6 +104,14 @@
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is Appealy only for ban appeals?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Despite the name, applications are its main job: staff, moderator, member, partner, whitelist or any form you write. Ban appeals and tickets run in the same bot, so you don’t need a second bot for any of them."
+      }
+    },
     {
       "@type": "Question",
       "name": "Do I have to host it myself?",
@@ -157,8 +166,8 @@
         <p class="eyebrow">Open source · AGPL-3.0</p>
         <h1>Applications, ban appeals and tickets for your Discord server.</h1>
         <p class="lede">
-          <strong>Appealy</strong> is an open-source Discord bot for staff applications, ban
-          appeals and tickets, with a web dashboard. Members fill in a form from a panel button or
+          <strong>Appealy</strong> is an open-source Discord bot for staff, member and whitelist
+          applications, ban appeals and tickets, with a web dashboard. Members fill in a form from a panel button or
           <code>/apply</code>. Staff review each submission in a queue and pick an outcome. The
           role grant, the DM and the unban all happen on that one click.
         </p>
@@ -533,6 +542,12 @@
       </div>
 
       <ul class="cards cols-2">
+        <li class="card">
+          <h3>Is Appealy only for ban appeals?</h3>
+          <p>
+            No. Despite the name, applications are its main job: staff, moderator, member, partner, whitelist or any form you write. Ban appeals and tickets run in the same bot, so you don&rsquo;t need a second bot for any of them.
+          </p>
+        </li>
         <li class="card">
           <h3>Do I have to host it myself?</h3>
           <p>
