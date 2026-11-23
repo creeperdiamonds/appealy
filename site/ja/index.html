@@ -37,7 +37,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="スタッフ募集に使える Discord 応募ボット — Appealy">
-<meta name="twitter:description" content="応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、アンチレイドに対応する Discord ボット。ワンクリックで追加でき、応募者は Discord から離れません。全機能をすべてのティアで。">
+<meta name="twitter:description" content="応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、アンチレイドに対応する Discord ボット。ワンクリックで追加でき、応募者は Discord から離れません。無料で、有料プランはありません。">
 <meta name="twitter:image" content="https://appealy.app/og.png?v=2">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -59,7 +59,7 @@
   "applicationSubCategory": "Discord bot",
   "operatingSystem": "Discord, web browser",
   "inLanguage": "ja",
-  "description": "応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、認証、ウェルカム、ロールメニュー、アンチレイドに対応するホスト型の Discord ボット。Web ダッシュボード付き。ワンクリックでサーバーに追加でき、インストールは不要です。応募者は外部サイトではなく Discord の中でフォームに回答します。オープンソース（AGPL-3.0）で、セルフホストも選べます。有料ティアが上げるのは処理上限だけです。",
+  "description": "応募、BAN 異議申し立て、チケット、ギブアウェイ、投票、認証、ウェルカム、ロールメニュー、アンチレイドに対応するホスト型の Discord ボット。Web ダッシュボード付き。ワンクリックでサーバーに追加でき、インストールは不要です。応募者は外部サイトではなく Discord の中でフォームに回答します。オープンソース（AGPL-3.0）で、セルフホストも選べます。無料で、有料プランはありません。",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
   "isAccessibleForFree": true,
   "codeRepository": "https://github.com/creeperdiamonds/appealy",
@@ -77,36 +77,13 @@
     "url": "https://www.creeperdiamonds.xyz/",
     "sameAs": ["https://github.com/creeperdiamonds"]
   },
-  "offers": [
-    {
-      "@type": "Offer",
-      "name": "無料",
-      "price": "0",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/ja/pricing"
-    },
-    {
-      "@type": "Offer",
-      "name": "処理量ティア1",
-      "price": "60.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/ja/pricing"
-    },
-    {
-      "@type": "Offer",
-      "name": "処理量ティア2",
-      "price": "180.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/ja/pricing"
-    },
-    {
-      "@type": "Offer",
-      "name": "専用ホスティングインスタンス",
-      "price": "30.00",
-      "priceCurrency": "USD",
-      "url": "https://appealy.app/ja/pricing"
-    }
-  ]
+  "offers": {
+    "@type": "Offer",
+    "name": "無料",
+    "price": "0",
+    "priceCurrency": "USD",
+    "url": "https://appealy.app/ja/pricing"
+  }
 }
 </script>
 <!-- The two questions search and AI answers most often got wrong (that Appealy
@@ -222,24 +199,24 @@
         <li class="card">
           <h3>完全にオープンソース</h3>
           <p>
-            ゲートウェイボット、API、ダッシュボード、Terraform、そして請求額を決める料金計算まで。
-            ライセンスは AGPL-3.0 です。あなたの上限を適用しているコードそのものを読めます。
+            ゲートウェイボット、API、ダッシュボード、Terraform まで。ライセンスは AGPL-3.0 です。
+            あなたの上限を適用しているコードそのものを読めます。
           </p>
         </li>
         <li class="card">
           <h3>無料でセルフホストできます</h3>
           <p>
             ライセンスキーも機能制限もありません。<code>.env.example</code> には
-            <code>DEPLOYMENT_MODE=self</code> が入っています。課金は無効、決済情報は一切
-            読み込まれず、上限はあなたのハードウェア上の <code>CAP_*</code> の値で決まります。
+            <code>DEPLOYMENT_MODE=self</code> が入っていて、上限はあなたのハードウェア上の
+            <code>CAP_*</code> の値で決まります。
           </p>
         </li>
         <li class="card">
-          <h3>全機能をすべてのティアで</h3>
+          <h3>無料、有料プランなし</h3>
           <p>
-            有料プランが上げるのは 9 つの処理上限です。違いはそれだけ。ドロップダウン形式のパネル、
-            カスタム審査結果、マネージャーへの権限委任、BAN 異議申し立て、閉じたチケットの保存
-            &mdash; すべて無料ティアでも使えます。
+            購入できるものはありません。どのサーバーでも全機能と同じ上限を使えます。ドロップダウン
+            形式のパネル、カスタム審査結果、マネージャーへの権限委任、BAN 異議申し立て、閉じた
+            チケットの保存なども、すべて含まれます。
           </p>
         </li>
         <li class="card">
@@ -251,11 +228,10 @@
           </p>
         </li>
         <li class="card">
-          <h3>無制限ティアはどこにもありません</h3>
+          <h3>はっきりした上限</h3>
           <p>
-            自分で設定するものも含め、すべての上限にハードリミットがあります。上限のない設定は
-            最悪ケースのコストを見積もる術を奪い、悪用のコストをゼロにします。だから設計として
-            用意していません。
+            上限はどれも決まった数値で、どのサーバーでも同じです。<code>shared/schema/pricing.ts</code>
+            で確認できます。無制限のものはないので、悪用のコストがゼロになることはありません。
           </p>
         </li>
         <li class="card">
@@ -277,7 +253,7 @@
         <h2>応募フォームだけのボットではありません。</h2>
         <p class="dim">
           18 個のスラッシュコマンドと、その挙動を設定するダッシュボード。以下のサブシステムは
-          すべて無料ティアで使えます。
+          どのサーバーでもすべて無料で使えます。
         </p>
       </div>
 
@@ -374,7 +350,7 @@
           <ul>
             <li><strong>Discord 公式の AutoMod を、スマホから設定。</strong> Discord のアプリでは、モバイルから AutoMod のルールを変更できません。ダッシュボードならできます</li>
             <li>ワードリスト、Discord が用意する定番の禁止ワード、スパム、メンションスパム、名前に含まれる禁止ワード。Discord のデスクトップ版の設定でできることは、すべてできます</li>
-            <li>制限は Discord 自身のものだけです。ワードリストは 6 つまで、それぞれ最大 1,000 語。どのティアでも同じです</li>
+            <li>制限は Discord 自身のものだけです。ワードリストは 6 つまで、それぞれ最大 1,000 語です</li>
             <li>メンバーをタイムアウトするルールは、そのままタイムアウトの異議申し立てにつながります</li>
             <li>ルールは Discord 側にあるため、Appealy が止まっていても動き続けます。必要な「サーバー管理」権限は、この機能を使い始めるときにだけ求めます</li>
           </ul>
@@ -452,75 +428,43 @@
     <div class="wrap">
       <div class="section-head">
         <p class="eyebrow">料金</p>
-        <h2>支払うのは処理量か、ホスティングか。機能に対してではありません。</h2>
+        <h2>Appealy は無料です。</h2>
         <p class="dim">
-          独立した 2 つの軸があり、それぞれが加算されます。無料の処理量のまま専用インスタンスを
-          使うことも、共有ボットのまま有料の処理量ティアを使うこともでき、組み合わせは自由です。
-          セット割引はなく、その予定もありません。
+          有料プランはなく、購入できるものもありません。どのサーバーでも全機能と同じ上限を
+          使えます。
         </p>
       </div>
 
-      <ul class="cards cols-4">
+      <ul class="cards cols-3">
         <li class="card price">
           <span class="badge is-ok">無料</span>
           <p class="amount">$0</p>
-          <p class="per">試用期間ではなく、ずっと無料</p>
+          <p class="per">すべてのサーバーで。試用期間ではありません</p>
           <ul>
-            <li>1 日 100 件の応募</li>
-            <li>1 日 50 件のチケット</li>
-            <li>1 日 500 件のギブアウェイ参加</li>
-            <li>フォーム 5 個、パネル 5 個</li>
-            <li>履歴 30 日</li>
-          </ul>
-        </li>
-        <li class="card price">
-          <span class="badge">ティア1</span>
-          <p class="amount">$60<span class="unit"> /年</span></p>
-          <p class="per">月あたり $5.00 相当、年 1 回の請求</p>
-          <ul>
-            <li>1 日 500 件の応募</li>
-            <li>1 日 250 件のチケット</li>
-            <li>1 日 2,500 件のギブアウェイ参加</li>
-            <li>フォーム 50 個、パネル 50 個</li>
-            <li>履歴 365 日</li>
-          </ul>
-        </li>
-        <li class="card price">
-          <span class="badge">ティア2</span>
-          <p class="amount">$180<span class="unit"> /年</span></p>
-          <p class="per">月あたり $15.00 相当、年 1 回の請求</p>
-          <ul>
-            <li>1 日 2,000 件の応募</li>
-            <li>1 日 1,000 件のチケット</li>
-            <li>1 日 10,000 件のギブアウェイ参加</li>
+            <li>1 日 3,000 件の応募</li>
+            <li>1 日 1,500 件のチケット</li>
+            <li>1 日 15,000 件のギブアウェイ参加</li>
             <li>フォーム 100 個、パネル 100 個</li>
-            <li>履歴 730 日</li>
+            <li>履歴 3 年</li>
           </ul>
         </li>
-        <li class="card price">
-          <span class="badge is-watch">カスタム</span>
-          <p class="amount">従量制</p>
-          <p class="per">チェックアウト前にその場で価格表示</p>
-          <ul>
-            <li>9 つの上限を自分で設定できます</li>
-            <li>数値を変えるたびに、ダッシュボードが再計算します</li>
-            <li>「お問い合わせください」の手順はありません</li>
-            <li>どの項目にも上限値があります</li>
-          </ul>
+        <li class="card">
+          <h3>フォーム</h3>
+          <p>
+            1 フォームあたり最大 150 問、ルール種別あたり 40 ロールまで。サーバー内で回答する
+            フォームは、Discord のポップアップの仕様上テキスト質問 25 問までです。DM フォームなら
+            150 問すべてを使えます。
+          </p>
+        </li>
+        <li class="card">
+          <h3>セルフホスト</h3>
+          <p>
+            こちらも無料です。AGPL-3.0 のもとで自分で動かし、上限も自分で決められます。
+          </p>
         </li>
       </ul>
 
-      <div class="callout">
-        <p>
-          <strong>請求は年額のみです。月額の選択肢は、どこにも、意図的に用意していません。</strong>
-          カード決済の手数料はおおよそ 2.9% + 1 件あたり $0.30 で、この金額帯では固定の 30 セントが
-          重くのしかかります。月額 $5 のティアを毎月請求すると、年間の売上の約 9% が手数料に
-          消えます。同じティアを $60 の 1 回払いにすれば約 3% です。このサイトの月額表示は比較の
-          ために年額から計算したもので、選べる請求サイクルではありません。
-        </p>
-      </div>
-
-      <p><a href="/ja/pricing">すべての上限、上限値、カスタムの単価はこちら &rarr;</a></p>
+      <p><a href="/ja/pricing">すべての上限はこちら &rarr;</a></p>
     </div>
   </section>
 
@@ -535,8 +479,8 @@
         <div class="card">
           <h3>出し惜しみはありません</h3>
           <p>
-            セルフホストしたインスタンスは、同じ機能を備えた同じボットです。課金は無効、決済情報は
-            読み込まれず、上限はあなたの <code>CAP_*</code> の値で決まります。上げるのも自由です
+            セルフホストしたインスタンスは、同じ機能を備えた同じボットです。上限はあなたの
+            <code>CAP_*</code> の値で決まります。上げるのも自由です
             &mdash; あなたのハードウェアなのですから。
           </p>
         </div>
@@ -616,11 +560,11 @@
           </p>
         </li>
         <li class="card">
-          <h3>支払いをやめるとデータは失われますか？</h3>
+          <h3>データはどのくらい保存されますか？</h3>
           <p>
-            いいえ。無料ティアに下がると上限は下がりますが、フォーム、応募、チケットが削除される
-            ことはありません。何かを削除する上限は履歴の保持期間だけで、それも保持期間を過ぎた
-            審査済みの応募に限られます。未処理の応募が消されることは決してありません
+            フォーム、設定、チケットは、自分で削除するまで残ります。応募の履歴は 3 年（1,095 日）
+            保存されます。削除されうるのはそれより古い審査済みの応募だけで、未処理の応募が
+            消されることは決してありません
             &mdash; それは誰かのキューにある、進行中の作業だからです。
           </p>
         </li>
@@ -710,12 +654,11 @@
           </p>
         </li>
         <li class="card">
-          <h3>請求と支払い</h3>
+          <h3>以前のお支払いについて</h3>
           <p>
-            決済は、記録上の販売者である Creem が処理します。そのため返金や支払い方法の問題は、
-            注文番号を添えて Creem のサポートへお願いします。プランで何ができるようになるかは
-            別の話で &mdash; そちらは issue トラッカー、あるいは <code>pricing.ts</code> を
-            直接読めば分かります。
+            Appealy には有料プランがなくなりました。以前お支払いいただいた場合は
+            <a href="mailto:contact@creeperdiamonds.xyz">contact@creeperdiamonds.xyz</a> まで
+            メールでご連絡ください。個別に対応します。
           </p>
         </li>
         <li class="card">
@@ -729,9 +672,7 @@
       </ul>
 
       <p class="muted">
-        有料のサポートティアはなく、作る予定もありません。処理上限を上げても回答が早くなることは
-        ありません。サービスの中身がリポジトリで読める数値の集合である以上、それを売るのは奇妙な
-        話です。
+        有料サポートはありません。誰でも同じ場所で、同じサポートを受けられます。
       </p>
     </div>
   </section>
@@ -741,8 +682,7 @@
       <div class="section-head">
         <h2>サーバーに追加する。</h2>
         <p class="dim">
-          無料ティアはカウントダウンではなく、上限の集合です。期限切れはなく、動かす前にカードを
-          求めることもありません。
+          試用版ではなく、無料です。期限切れはなく、カードを求めることもありません。
         </p>
       </div>
       <div class="btn-row">

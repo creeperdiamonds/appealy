@@ -155,6 +155,21 @@ export const RATE_LIMIT_PRESETS: Record<Exclude<RateLimitTier, "custom">, {
   },
 };
 
+/**
+ * What every server on the hosted bot gets.
+ *
+ * Paid plans were retired on 2026-11-24: no server had ever bought one, and
+ * every server was moved to what had been Tier 2, free. The presets above stay
+ * as data because the database enum, old rows and the self-hosted fallback
+ * still name them, but nothing sells them and the stored tier no longer
+ * changes what a server gets (see resolveEffectiveCaps in the bot and API).
+ *
+ * The caps themselves stay. They are not a price any more; they protect the
+ * one small VM and the database every server shares from a single runaway or
+ * abusive server.
+ */
+export const STANDARD_CAPS: RateLimitCaps = RATE_LIMIT_PRESETS.tier2.caps;
+
 // Hard ceiling for self-service custom caps. No field may be priced or
 // persisted above these values under any circumstances — this is the
 // deliberate "no unlimited" backstop, not just a UI suggestion.

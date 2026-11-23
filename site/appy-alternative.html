@@ -47,7 +47,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Appy Alternative for Discord — Appealy">
-<meta name="twitter:description" content="An Appy alternative for Discord applications, tickets and ban appeals. Add it in one click, applicants stay inside Discord, every feature on every tier.">
+<meta name="twitter:description" content="An Appy alternative for Discord applications, tickets and ban appeals. Add it in one click, applicants stay inside Discord, every feature free.">
 <meta name="twitter:image" content="https://appealy.app/og.png?v=2">
 
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1016">
@@ -74,7 +74,7 @@
       "name": "What is a good alternative to Appy for Discord?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Appealy is a hosted Discord bot for staff applications, ban appeals and tickets. You add it in one click with nothing to install, and applicants answer inside Discord, as they do with Appy. Every feature is on the free tier; paid tiers raise throughput caps only. It is also open source (AGPL-3.0) and free to self-host with no licence key, if you want to."
+        "text": "Appealy is a hosted Discord bot for staff applications, ban appeals and tickets. You add it in one click with nothing to install, and applicants answer inside Discord, as they do with Appy. Appealy is free: there are no paid plans, and every server gets every feature. It is also open source (AGPL-3.0) and free to self-host with no licence key, if you want to."
       }
     },
     {
@@ -82,7 +82,7 @@
       "name": "Is Appealy free?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Self-hosting is free with no feature gate. On the hosted service the free tier includes every feature; paid tiers raise nine throughput caps and nothing else."
+        "text": "Yes. There are no paid plans: on the hosted service every server gets every feature and the same limits. Self-hosting is also free, with no feature gate."
       }
     },
     {
@@ -155,18 +155,17 @@
     <p class="lede">
       <strong>Appealy</strong> is a hosted Discord bot for staff applications, ban appeals and
       tickets, and it is a direct alternative to Appy. You add it in one click with nothing to
-      install, and applicants answer inside Discord, as they do with Appy. Every feature is on the
-      free tier; paid tiers raise throughput caps only. It is also open source (AGPL-3.0) and free
+      install, and applicants answer inside Discord, as they do with Appy. Appealy is free: there are
+      no paid plans, and every server gets every feature. It is also open source (AGPL-3.0) and free
       to self-host with no licence key, if you want to. If you already run Appy, your submission
       history can come with you.
     </p>
 
     <div class="callout is-accent">
       <p>
-        <strong>The difference in one line:</strong> Appy sells features, Appealy sells throughput.
+        <strong>The difference in one line:</strong> Appy has a paid tier, and Appealy is free for every server.
         Regex validation, cooldowns, submission history and in-Discord verification are Appy Premium
-        features; on Appealy they are on the free tier, and what you pay for is how much you can run
-        through them.
+        features; on Appealy they are free, along with everything else.
       </p>
     </div>
 
@@ -176,78 +175,77 @@
       on <strong>2 September 2026</strong>. They may have changed since; check the source before
       relying on them. Appealy's come from
       <a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts"><code>pricing.ts</code></a>,
-      which is the file the billing calculator itself reads.
+      which is the file the bot reads its limits from.
     </p>
 
     <div class="table-scroll">
       <table>
-        <caption>Free tiers compared, then the paid ones. Prices as listed by each project.</caption>
+        <caption>Appy&rsquo;s free and Premium plans next to Appealy, which has no paid plans. Prices as listed by each project.</caption>
         <thead>
           <tr>
             <th scope="col"></th>
             <th scope="col" class="num">Appy free</th>
-            <th scope="col" class="num">Appealy free</th>
             <th scope="col" class="num">Appy Premium</th>
-            <th scope="col" class="num">Appealy Tier&nbsp;1</th>
+            <th scope="col" class="num">Appealy</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <th scope="row">Price</th>
-            <td class="num">&pound;0</td><td class="num">$0</td>
-            <td class="num">&pound;4.99/mo<br>per server</td><td class="num">$60/yr<br>per server</td>
+            <td class="num">&pound;0</td>
+            <td class="num">&pound;4.99/mo<br>per server</td><td class="num">$0</td>
           </tr>
           <tr>
             <th scope="row">Forms filled in inside Discord</th>
-            <td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td>
+            <td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td>
           </tr>
           <tr>
             <th scope="row">Application forms</th>
-            <td class="num">2</td><td class="num">10</td><td class="num">200</td><td class="num">40</td>
+            <td class="num">2</td><td class="num">200</td><td class="num">100</td>
           </tr>
           <tr>
             <th scope="row">Questions per form</th>
-            <td class="num">10</td><td class="num">25</td><td class="num">100</td><td class="num">60</td>
+            <td class="num">10</td><td class="num">100</td><td class="num">150<br>(25 in-server)</td>
           </tr>
           <tr>
             <th scope="row">Application panels</th>
-            <td class="num">1</td><td class="num">10</td><td class="num">50</td><td class="num">40</td>
+            <td class="num">1</td><td class="num">50</td><td class="num">100</td>
           </tr>
           <tr>
             <th scope="row">Regex question validation</th>
-            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td>
           </tr>
           <tr>
             <th scope="row">Application cooldowns</th>
-            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td>
           </tr>
           <tr>
             <th scope="row">Submission history</th>
-            <td class="num">&mdash;</td><td class="num">60 days</td><td class="num">Yes</td><td class="num">365 days</td>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">3 years</td>
           </tr>
           <tr>
             <th scope="row">In-Discord verification</th>
-            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td><td class="num">Yes</td>
+            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">Yes</td>
           </tr>
           <tr>
             <th scope="row">Ban appeals</th>
-            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">&mdash;</td><td class="num">Yes</td>
+            <td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">Yes</td>
           </tr>
           <tr>
             <th scope="row">Open source</th>
-            <td class="num">&mdash;</td><td class="num">AGPL-3.0</td><td class="num">&mdash;</td><td class="num">AGPL-3.0</td>
+            <td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">AGPL-3.0</td>
           </tr>
           <tr>
             <th scope="row">Self-host free</th>
-            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">&mdash;</td><td class="num">Yes</td>
+            <td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">Yes</td>
           </tr>
           <tr>
             <th scope="row">Export responses</th>
-            <td class="num">JSON</td><td class="num">Yes</td><td class="num">JSON</td><td class="num">Yes</td>
+            <td class="num">JSON</td><td class="num">JSON</td><td class="num">Yes</td>
           </tr>
           <tr>
             <th scope="row">Export the whole server config</th>
-            <td class="num">&mdash;</td><td class="num">Yes</td><td class="num">&mdash;</td><td class="num">Yes</td>
+            <td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">Yes</td>
           </tr>
         </tbody>
       </table>
@@ -263,11 +261,10 @@
     </p>
 
     <p class="muted">
-      <strong>Where Appy is ahead, plainly:</strong> its Premium tier allows far more forms than
-      Appealy Tier&nbsp;1 &mdash; 200 against 40 &mdash; and more questions per form and panels, 100
-      against 60 and 50 against 40. If what you need is a very large number of separate forms, Appy
-      Premium gives you more of them for roughly the same money. Appealy's paid tiers are shaped around how much a server <em>runs</em> rather than
-      how many things it configures, and a table that hid that would not be worth reading.
+      <strong>Where Appy is ahead, plainly:</strong> Appy Premium allows more forms than Appealy,
+      200 against 100. If what you need is a very large number of separate forms, Appy Premium gives
+      you more of them. An Appealy form asked inside the server is also limited to 25 text
+      questions by Discord; a DM form can use all 150.
     </p>
 
     <h2>Moving your applications across</h2>
@@ -310,9 +307,9 @@
 
     <h3>Is Appealy free?</h3>
     <p>
-      Yes. Self-hosting is free with no licence key and no feature gate. On the hosted service the
-      free tier has every feature; paid tiers raise nine throughput caps and nothing else. The
-      <a href="/pricing">pricing page</a> lists all nine with their exact numbers.
+      Yes. There are no paid plans: on the hosted service every server gets every feature and the
+      same limits. Self-hosting is also free, with no licence key and no feature gate. The
+      <a href="/pricing">pricing page</a> lists every limit.
     </p>
 
     <h3>Does it handle ban appeals?</h3>
@@ -348,14 +345,14 @@
     <h3>How do I know the caps are what you say they are?</h3>
     <p>
       Read them. <a href="https://github.com/creeperdiamonds/appealy/blob/main/shared/schema/pricing.ts"><code>shared/schema/pricing.ts</code></a>
-      is the same file the billing calculator uses, and the code that enforces every cap is in the
-      same repository. That is the practical difference open source makes here &mdash; not a
-      philosophy, just that the number you are charged against is one you can check.
+      is the file the bot reads its limits from, and the code that enforces every limit is in the
+      same repository. That is the practical difference open source makes here: the numbers on this
+      page are ones you can check.
     </p>
 
     <div class="actions">
       <a class="btn btn-primary" href="/api/invite">Add to Discord</a>
-      <a class="btn" href="/pricing">See the pricing</a>
+      <a class="btn" href="/pricing">See the limits</a>
       <a class="btn" href="https://github.com/creeperdiamonds/appealy">Read the source</a>
     </div>
 

@@ -140,11 +140,11 @@ export async function execute(bot: AppealyBot, interaction: Interaction) {
         bot,
         interaction,
         `Import refused — nothing was written.\n\n` +
-          `This server can hold **${limit.toLocaleString()}** imported submissions on its current plan` +
+          `This server can hold **${limit.toLocaleString()}** imported submissions` +
           `${stored > 0 ? `, and already holds ${stored.toLocaleString()}` : ""}. ` +
           `This file would add ${incoming.toLocaleString()} more.\n\n` +
           `Nothing was truncated: importing only part of a history would quietly discard real applications. ` +
-          `Raise the limit by moving to a higher tier, or import into more than one form.`,
+          `You can import into more than one form instead.`,
       );
       return;
     }

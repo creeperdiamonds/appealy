@@ -25,7 +25,7 @@ import { db, schema } from "../db/client.ts";
 import { requireGuildAccess } from "../middleware/guildAccess.ts";
 import { resolveEffectiveCaps } from "../services/rateLimitService.ts";
 import { withRedis } from "../lib/redis.ts";
-import { RATE_LIMIT_PRESETS } from "../../../shared/schema/pricing.ts";
+import { STANDARD_CAPS } from "../../../shared/schema/pricing.ts";
 import { deployment, PRIVILEGED } from "../env.ts";
 import { findPerk, parseActivePerk, votePerkKey, withVoteBonus } from "../../../shared/schema/votePerks.ts";
 
@@ -182,7 +182,7 @@ overviewRouter.get("/", async (req, res, next) => {
       guild && deployment.features.tieredRateLimits && !PRIVILEGED.ids.has(guildIdStr)
         ? daily.votePerk
         : null;
-    const baseCaps = guild ? resolveEffectiveCaps(guild) : RATE_LIMIT_PRESETS.free.caps;
+    const baseCaps = guild ? resolveEffectiveCaps(guild) : STANDARD_CAPS;
     const caps = withVoteBonus(baseCaps, votePerk);
     const lockdownActive = Boolean(lockdown && lockdown.expiresAt > new Date());
 

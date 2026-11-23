@@ -11,9 +11,9 @@
 // A vote is free and repeats every 12 hours, so anything it buys can be
 // farmed — by a selfbot, or by twenty alts. The perks are sized so farming
 // isn't worth it: ONE perk per server at a time, a new vote replaces it
-// rather than stacking, and the biggest is a third of the free daily limit.
-// Voting non-stop with every alt in the world still leaves a server far
-// below Tier 1, so better limits are still something you buy.
+// rather than stacking. Since paid plans were retired (2026-11-24) every
+// server already has the full limits, so a perk is a small thank-you for
+// voting rather than a way around a price.
 //
 // Only the daily caps. A bonus to forms or panels would expire with forms
 // still standing above the limit, and someone has to decide which ones stop

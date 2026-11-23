@@ -26,7 +26,7 @@ Giveaways · polls · verification · welcome messages · role menus · sticky m
 
 **Why Appealy**
 
-- Every feature is free. Paid plans raise usage limits — they never unlock features.
+- Every feature is free, with no paid plans. Every server gets the same generous limits.
 - Open source (AGPL-3.0) and free to self-host
 - No lock-in: `/export` gives you your server's data in one JSON file
 - Coming from Appy? `/import-appy` brings your applications with you

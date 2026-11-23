@@ -17,7 +17,6 @@ const BOT_SOURCE = "bot/src";
 
 /** Files that write a cached table and don't need to clear it, and why. */
 const NO_CLEAR_NEEDED = new Map([
-  ["bot/src/core/dedicatedRunner.ts", "only customBot* columns, which nothing reads through the cache"],
   ["bot/src/events/guildDelete.ts", "only botPresent, which nothing reads through the cache"],
   [
     "bot/src/events/guildCreate.ts",

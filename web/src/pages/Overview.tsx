@@ -29,7 +29,6 @@ import {
   levelFor,
   formatDuration,
   formatRelative,
-  formatTier,
 } from "../components/ui";
 
 const POLL_MS = 15_000;
@@ -145,8 +144,8 @@ export default function Overview({ guildId }: { guildId: string }) {
           {worst.key.endsWith("PerDay")
             ? `, resetting in ${formatDuration(capacity.resetsInSeconds)}`
             : ""}
-          . Raise it on the Plan page, or leave it — the bot will tell members the limit was
-          reached rather than failing silently.
+          . If you need more, ask in the support server. Otherwise the bot will tell members the
+          limit was reached rather than failing silently.
         </Banner>
       )}
 
@@ -198,7 +197,7 @@ export default function Overview({ guildId }: { guildId: string }) {
         <Panel
           eyebrow="Capacity"
           title="What you're using"
-          action={<Pill level={worst ? worst.level : "ok"}>{formatTier(data.guild?.tier)} plan</Pill>}
+          action={<Pill level={worst ? worst.level : "ok"}>Free, every feature</Pill>}
         >
           <CapacityRail
             caps={capacity.caps}

@@ -6,7 +6,7 @@ build step, no framework, no bundler, and no JavaScript at all.
 | File | Is |
 |---|---|
 | `index.html` | Landing page |
-| `pricing.html` | Pricing in full, including the custom per-unit rates |
+| `pricing.html` | Appealy is free: the limits every server gets |
 | `appy-alternative.html` | The one page targeting a query people type: "Appy alternative". Dated comparison table, migration steps, FAQPage schema |
 | `privacy.html` | What is stored, for how long, who sees it |
 | `terms.html` | Hosted-service terms |
@@ -21,7 +21,7 @@ build step, no framework, no bundler, and no JavaScript at all.
 | `appeal-gg-alternative.html` | The second comparison page. Deliberately has no migration section — see below |
 | `og.png` | The 1200×630 Open Graph card. The one committed raster; `brand/README.md` says why |
 | `sitemap.xml` | The canonical URLs, with no `lastmod` — see the comment in the file |
-| `guides.html`, `guides/*.html` | Beginner click-by-click guides (getting started, tickets, applications, ban appeals, plans). Quoted labels are the dashboard's own; change them together |
+| `guides.html`, `guides/*.html` | Beginner click-by-click guides (getting started, tickets, applications, ban appeals, cost and limits). Quoted labels are the dashboard's own; change them together |
 
 ## The URLs are extensionless, and the sitemap has to match
 
@@ -163,31 +163,10 @@ here hasn't picked a server yet, so Discord should show them the picker.
 
 ## Changing it
 
-**Numbers come from `shared/schema/pricing.ts`.** Every price, cap and ceiling
-on `pricing.html` was read out of that file. Nothing generates the page, so if
-you change a constant there, change it here in the same commit. A pricing page
-that disagrees with the calculator is worse than no pricing page.
-
-### One contradiction found while writing this, and how it was resolved
-
-`CUSTOM_CAP_UNIT_PRICE_CENTS_PER_YEAR` in `pricing.ts` holds integer cents.
-Three of its seven entries carry comments in dollars a hundred times larger
-than the value beside them:
-
-```ts
-formsPerGuild: 12,      // $1/mo -> $12/yr flat, not per-day
-panelsPerGuild: 12,
-rolesPerRuleType: 6,    // $0.50/mo -> $6/yr
-```
-
-The other four agree with their comments (`submissionsPerDay: 12` → $0.12/yr),
-so this reads as three comments written in dollars against constants stored in
-cents rather than a deliberately different rate.
-
-`pricing.html` states **what `quoteCustomCaps()` actually charges** — $0.12,
-$0.12 and $0.06 a year — because a public price that the checkout won't honour
-is the worse of the two errors. **If $12 and $6 were the intent, that is a bug
-in `pricing.ts`, not in this page.** Fix the constants first, then the table.
+**Numbers come from `shared/schema/pricing.ts`.** There are no paid plans;
+every server gets the limits in `RATE_LIMIT_PRESETS.tier2`, and every limit on
+`pricing.html` was read out of that file. Nothing generates the page, so if you
+change a constant there, change it here in the same commit.
 
 **Colours come from `web/src/index.css`.** The tokens at the top of `site.css`
 are copied verbatim so the page someone reads before signing up and the console

@@ -47,9 +47,9 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.ts";
 import { withRedis } from "../lib/redis.ts";
 import { resolveEffectiveCaps } from "../services/rateLimitService.ts";
-import { RATE_LIMIT_PRESETS } from "../../../shared/schema/pricing.ts";
+import { STANDARD_CAPS } from "../../../shared/schema/pricing.ts";
 
-const FREE_LIMIT = RATE_LIMIT_PRESETS.free.caps.apiRequestsPerMinute;
+const FREE_LIMIT = STANDARD_CAPS.apiRequestsPerMinute;
 
 // Tier lookups are cached because otherwise this middleware would add a
 // Postgres read to every request — reintroducing, on the API side, the
